@@ -8,7 +8,7 @@ using SymbolicUtils
 include("Weingarten.jl")
 using .Weingarten
 
-export integrate, dU
+export integrate, dU, integrate_indices
 
 # Dummy type to represent the measure
 struct HaarMeasure{T, N, D}
@@ -20,7 +20,17 @@ dU(U::AbstractArray{T,N}, dim) where {T,N} = HaarMeasure{T,N,typeof(dim)}(U, dim
 """
     integrate(expr, measure::HaarMeasure)
 """
+function integrate(expr::AbstractArray, measure::HaarMeasure)
+    return map(e -> integrate(e, measure), expr)
+end
+
 function integrate(expr, measure::HaarMeasure)
+    if expr isa Complex
+        val_re = integrate(real(expr), measure)
+        val_im = integrate(imag(expr), measure)
+        return _robust_real(val_re + im * val_im)
+    end
+    
     U_sym = measure.U
     dim = measure.dim
     
@@ -35,23 +45,21 @@ function integrate(expr, measure::HaarMeasure)
     end
 
     # Rewrite rules to ensure abs(z)^2 becomes (z * conj(z)) or real^2 + imag^2
-    # This is necessary because Symbolics.expand doesn't always handle abs(sum)^2 well.
     r_abs_sq = @rule abs(~x)^2 => (~x) * conj(~x)
     r_abs = @rule abs(~x) => hypot(real(~x), imag(~x))
     
     # Rewrite hypot(x,y) -> ((x + i*y)(x - i*y))^(1//2) ONLY if x, y are Sums
-    # This optimization is crucial for Tr(U) (Sums) to avoid expansion explosion.
     r_hypot_sum = @rule hypot(~x::is_add, ~y::is_add) => ((~x + im*~y) * (~x - im*~y))^(1//2)
     # Fallback/Default for non-sums:
     r_hypot_default = @rule hypot(~x, ~y) => ((~x)^2 + (~y)^2)^(1//2)
     
     expr_unwrapped = Symbolics.unwrap(expr)
     
-    # Apply rewrites in sequence: abs^2 -> z*conj(z), then remaining abs -> hypot, then hypot -> pow
+    # Apply rewrites
     chain = SymbolicUtils.Chain([r_abs_sq, r_abs, r_hypot_sum, r_hypot_default])
     expr_rewritten = SymbolicUtils.Postwalk(SymbolicUtils.PassThrough(chain))(expr_unwrapped)
     
-    # Manual power fixing function to handle nested and rational powers robustly
+    # Manual power fixing function
     function fix_powers(t)
         if Symbolics.iscall(t)
             op = Symbolics.operation(t)
@@ -60,8 +68,6 @@ function integrate(expr, measure::HaarMeasure)
                 base = args[1]
                 expon = args[2]
                 
-                # Case 1: Nested power ((x^p)^q) -> x^(p*q)
-                # Note: Postwalk visits children first, so base is already processed
                 if Symbolics.iscall(base) && Symbolics.operation(base) == (^)
                     base_args = Symbolics.arguments(base)
                     inner_base = base_args[1]
@@ -75,7 +81,6 @@ function integrate(expr, measure::HaarMeasure)
                     end
                 end
                 
-                # Case 2: Rational integer power (x^(2//1)) -> x^2
                 if expon isa Rational && isinteger(expon)
                      return base^Int(expon)
                 end
@@ -85,10 +90,9 @@ function integrate(expr, measure::HaarMeasure)
     end
     
     expr_rewritten = SymbolicUtils.Postwalk(fix_powers)(expr_rewritten)
-    
     expr = Num(expr_rewritten)
     
-    # Expand again to distribute the square
+    # Expand again
     expr = Symbolics.expand(expr)
 
     # Substitute Re(U) and Im(U)
@@ -117,120 +121,17 @@ function integrate(expr, measure::HaarMeasure)
     # Substitute
     expr_subbed = Symbolics.substitute(expr, subs_dict)
     
-    # Also handle IM_dummy substitution immediately if possible
-    expr_subbed = Symbolics.substitute(expr_subbed, Dict(IM_dummy => im))
-    
     # Expand
     expanded_expr = Symbolics.expand(expr_subbed)
 
-    # Substitute IM_dummy back to im (which makes it Complex{Num} potentially)
+    # Substitute IM_dummy back to im
+    # Use -1 for IM_dummy^2 first to simplify, then IM_dummy to im
     expanded_expr = Symbolics.substitute(expanded_expr, Dict(IM_dummy^2 => -1))
     expanded_expr = Symbolics.substitute(expanded_expr, Dict(IM_dummy => im))
 
     # Helper to traverse product
-    function process_term(term)
-        term = Symbolics.unwrap(term)
-        
-        # Handle wrappers introduced by Symbolics (e.g. real(Sum), imag(Sum), abs(Sum))
-        if Symbolics.iscall(term)
-            op = Symbolics.operation(term)
-            if op == real
-                return process_term(Symbolics.arguments(term)[1])
-            elseif op == imag
-                return 0
-            elseif op == abs
-                # abs on sum might be tricky, but on monomials we unwrap it
-                return process_term(Symbolics.arguments(term)[1])
-            elseif op == (+)
-                return sum(process_term, Symbolics.arguments(term))
-            end
-        end
-
-        coeff = 1
-        u_indices = Vector{Tuple{Int, Int}}()
-        u_bar_indices = Vector{Tuple{Int, Int}}()
-        
-        function traverse(t)
-            t_unwrapped = Symbolics.unwrap(t)
-            
-            # Check atomic lookups with unwrapped variable
-            if haskey(U_atomic_lookup, t_unwrapped)
-                push!(u_indices, U_atomic_lookup[t_unwrapped])
-                return
-            elseif haskey(U_bar_lookup, t_unwrapped)
-                push!(u_bar_indices, U_bar_lookup[t_unwrapped])
-                return
-            end
-            
-            # Robust fallback using isequal and string comparison
-            for (k, v) in U_atomic_lookup
-                if isequal(k, t_unwrapped) || string(k) == string(t_unwrapped)
-                    push!(u_indices, v)
-                    return
-                end
-            end
-            for (k, v) in U_bar_lookup
-                if isequal(k, t_unwrapped) || string(k) == string(t_unwrapped)
-                    push!(u_bar_indices, v)
-                    return
-                end
-            end
-            
-            # Literal numbers
-            if t isa Number && !(t isa Num) && !(t isa Complex{Num})
-                coeff *= t
-                return
-            end
-            
-            if Symbolics.iscall(t_unwrapped)
-                op = Symbolics.operation(t_unwrapped)
-                args = Symbolics.arguments(t_unwrapped)
-                
-                op_str = string(op)
-                
-                if op_str == "*"
-                    for arg in args
-                        traverse(arg)
-                    end
-                    return
-                elseif op_str == "^"
-                    base = args[1]
-                    p_val = Symbolics.unwrap(args[2])
-                    p = try parse(Int, string(p_val)) catch; nothing end
-                    if p isa Integer
-                        for _ in 1:p
-                            traverse(base)
-                        end
-                        return
-                    end
-                elseif op_str == "real" || op_str == "Base.real"
-                    traverse(args[1])
-                    return
-                elseif op_str == "imag" || op_str == "Base.imag"
-                    coeff = 0
-                    return
-                elseif op_str == "abs" || op_str == "Base.abs"
-                    traverse(args[1])
-                    return
-                elseif op_str == "conj" || op_str == "Base.conj"
-                     traverse(args[1])
-                     return
-                end
-            end
-            
-            coeff *= t
-        end
-        traverse(term)
-        
-        n = length(u_indices)
-        if n != length(u_bar_indices)
-            return 0 # Orthogonality
-        end
-        if n == 0
-            return coeff
-        end
-        
-        return coeff * integrate_indices(u_indices, u_bar_indices, dim)
+    function process_term_wrapped(term)
+        return process_term(term, U_atomic_lookup, U_bar_lookup, dim)
     end
 
     # Local helper to sum integrals over terms
@@ -238,22 +139,138 @@ function integrate(expr, measure::HaarMeasure)
         ex_un = Symbolics.unwrap(ex)
         if Symbolics.iscall(ex_un) && Symbolics.operation(ex_un) == (+)
             terms = Symbolics.arguments(ex_un)
-            return sum(process_term, terms)
+            return sum(process_term_wrapped, terms)
         end
-        return process_term(ex)
+        return process_term_wrapped(ex)
     end
 
-    # Handle Complex{Num} by splitting
-    if expanded_expr isa Complex
-        re_part = real(expanded_expr)
-        im_part = imag(expanded_expr)
+    # Handle Complex{Num} result from substitution
+    final_res = integrate_num_expr(expanded_expr)
+    return _robust_real(final_res)
+end
+
+function _robust_real(x)
+    if x isa AbstractArray
+        return map(_robust_real, x)
+    end
+    
+    # Standardize to underlying Julia type if it's a constant
+    unwrapped = Symbolics.unwrap(x)
+    
+    if unwrapped isa Complex
+        return iszero(imag(unwrapped)) ? real(unwrapped) : unwrapped
+    end
+    
+    # If it's a Num and symbolically real, return the real part
+    try
+        r = Symbolics.simplify(Symbolics.real(x))
+        i = Symbolics.simplify(Symbolics.imag(x))
+        if isequal(Symbolics.unwrap(i), 0)
+            return Symbolics.unwrap(r)
+        end
+    catch
+    end
+    
+    return unwrapped
+end
+
+function _iszero(x)
+    x_un = Symbolics.unwrap(x)
+    if x_un isa Number
+        return iszero(x_un)
+    end
+    return isequal(x_un, 0)
+end
+
+function process_term(term, U_atomic_lookup, U_bar_lookup, dim)
+    term = Symbolics.unwrap(term)
+    
+    if Symbolics.iscall(term)
+        op = Symbolics.operation(term)
+        if op == real
+            return process_term(Symbolics.arguments(term)[1], U_atomic_lookup, U_bar_lookup, dim)
+        elseif op == imag
+            return 0
+        elseif op == abs
+            return process_term(Symbolics.arguments(term)[1], U_atomic_lookup, U_bar_lookup, dim)
+        elseif op == (+)
+            return sum(t -> process_term(t, U_atomic_lookup, U_bar_lookup, dim), Symbolics.arguments(term))
+        end
+    end
+
+    coeff = 1 // 1
+    u_indices = Vector{Tuple{Int, Int}}()
+    u_bar_indices = Vector{Tuple{Int, Int}}()
+    
+    function traverse(t)
+        t_unwrapped = Symbolics.unwrap(t)
         
-        val_re = integrate_num_expr(re_part)
-        val_im = integrate_num_expr(im_part)
-        return val_re + im * val_im
+        if haskey(U_atomic_lookup, t_unwrapped)
+            push!(u_indices, U_atomic_lookup[t_unwrapped])
+            return
+        elseif haskey(U_bar_lookup, t_unwrapped)
+            push!(u_bar_indices, U_bar_lookup[t_unwrapped])
+            return
+        end
+        
+        # Robust fallback
+        for (k, v) in U_atomic_lookup
+            if isequal(k, t_unwrapped) || string(k) == string(t_unwrapped)
+                push!(u_indices, v)
+                return
+            end
+        end
+        for (k, v) in U_bar_lookup
+            if isequal(k, t_unwrapped) || string(k) == string(t_unwrapped)
+                push!(u_bar_indices, v)
+                return
+            end
+        end
+        
+        if t isa Number && !(t isa Num) && !(t isa Complex{Num})
+            coeff *= t
+            return
+        end
+        
+        if Symbolics.iscall(t_unwrapped)
+            op = Symbolics.operation(t_unwrapped)
+            args = Symbolics.arguments(t_unwrapped)
+            
+            if op == (*)
+                for arg in args; traverse(arg); end
+                return
+            elseif op == (^)
+                base = args[1]
+                p_val = Symbolics.unwrap(args[2])
+                p = try parse(Int, string(p_val)) catch; nothing end
+                if p isa Integer
+                    for _ in 1:p; traverse(base); end
+                    return
+                end
+            elseif op == real || op == Base.real
+                traverse(args[1]); return
+            elseif op == imag || op == Base.imag
+                coeff = 0; return
+            elseif op == abs || op == Base.abs
+                traverse(args[1]); return
+            elseif op == conj || op == Base.conj
+                 traverse(args[1]); return
+            end
+        end
+        
+        coeff *= t
     end
-
-    return integrate_num_expr(expanded_expr)
+    traverse(term)
+    
+    n = length(u_indices)
+    if n != length(u_bar_indices)
+        return 0
+    end
+    if n == 0
+        return coeff
+    end
+    
+    return coeff * integrate_indices(u_indices, u_bar_indices, dim)
 end
 
 
