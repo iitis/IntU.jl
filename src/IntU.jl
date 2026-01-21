@@ -304,19 +304,48 @@ end
 
 function get_matching_permutations(target::Vector{Int}, source::Vector{Int})
     n = length(target)
-    perms = permutations(1:n)
-    valid = Vector{Vector{Int}}()
-    for p in perms
-        match = true
-        for i in 1:n
-            if target[i] != source[p[i]]
-                match = false
-                break
+    if n != length(source)
+        return Vector{Vector{Int}}()
+    end
+
+    # Group indices of source and target by value
+    source_groups = Dict{Int, Vector{Int}}()
+    for (idx, val) in enumerate(source)
+        push!(get!(source_groups, val, Int[]), idx)
+    end
+    
+    target_groups = Dict{Int, Vector{Int}}()
+    for (idx, val) in enumerate(target)
+        push!(get!(target_groups, val, Int[]), idx)
+    end
+
+    # Check if value sets and counts match
+    if length(source_groups) != length(target_groups)
+        return Vector{Vector{Int}}()
+    end
+    for (val, t_idxs) in target_groups
+        if !haskey(source_groups, val) || length(source_groups[val]) != length(t_idxs)
+            return Vector{Vector{Int}}()
+        end
+    end
+
+    # Generate permutations for each value group
+    vals = collect(keys(target_groups))
+    group_perms = [collect(permutations(source_groups[v])) for v in vals]
+    
+    res = Vector{Vector{Int}}()
+    for combined_p in Iterators.product(group_perms...)
+        p = zeros(Int, n)
+        for (v_idx, v_perms) in enumerate(combined_p)
+            t_idxs = target_groups[vals[v_idx]]
+            for (i, t_idx) in enumerate(t_idxs)
+                p[t_idx] = v_perms[i]
             end
         end
-        if match; push!(valid, p); end
+        push!(res, p)
     end
-    return valid
+    
+    return res
 end
 
 function get_cycle_type(p::Vector{Int})

@@ -1,6 +1,7 @@
 module Weingarten
 
 using Combinatorics
+using Memoization
 
 export weingarten, conjugate_partition
 
@@ -78,7 +79,7 @@ dim(lambda) = Product_{(i,j) in lambda} (d + j - i) / h_{i,j}
 
 This formulation supports symbolic `d`.
 """
-function irrep_dimension(part::Vector{Int}, d)
+@memoize function irrep_dimension(part::Vector{Int}, d)
     # Hook lengths are needed.
     # We already have logic for hook lengths in character_at_id implicitly.
     
@@ -283,7 +284,7 @@ end
 # But the `i` loop constraint `i < Length` prevents execution anyway.
 # `limit = min(m[t], length(R))` in initialization.
 
-function calculate_character(lambda::Vector{Int}, mu::Vector{Int})
+@memoize function calculate_character(lambda::Vector{Int}, mu::Vector{Int})
     R = get_binary_partition(lambda)
     # R needs to be large enough?
     # MurnaghanNakayama adds zeros? Reference "BinaryPartition" just flattens.
@@ -294,7 +295,7 @@ function calculate_character(lambda::Vector{Int}, mu::Vector{Int})
     return mn_inner(R, mu, 1)
 end
 
-function weingarten(partition_type::Vector{Int}, d)
+@memoize function weingarten(partition_type::Vector{Int}, d)
     # Wg(sigma, d) where sigma has cycle type `partition_type`.
     n = sum(partition_type)
     
