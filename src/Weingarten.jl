@@ -70,27 +70,38 @@ end
 
 
 """
-    schur_polynomial_at_1(part::Vector{Int}, d::Integer)
+    irrep_dimension(part::Vector{Int}, d)
 
-Computes s_lambda(1, ..., 1) (d times).
-This is the dimension of the irrep of U(d).
-Formula: Product_{1<=i<j<=d} (l_i - l_j + j - i) / (j - i)
-where l_k = part[k] (padded with zeros).
+Computes the dimension of the irreducible representation of U(d) corresponding to partition `part`.
+Uses the hook-content formula:
+dim(lambda) = Product_{(i,j) in lambda} (d + j - i) / h_{i,j}
+
+This formulation supports symbolic `d`.
 """
-function schur_polynomial_at_1(part::Vector{Int}, d::Integer)
-    # Pad part to length d
-    l = zeros(Int, d)
-    for i in 1:min(length(part), d)
-        l[i] = part[i]
-    end
+function irrep_dimension(part::Vector{Int}, d)
+    # Hook lengths are needed.
+    # We already have logic for hook lengths in character_at_id implicitly.
     
+    conj_part = conjugate_partition(part)
+    cols = length(part) > 0 ? part[1] : 0
+    
+    # We need to iterate over all boxes (i, j) in the Young diagram
     prod_val = 1 // 1
-    for i in 1:d
-        for j in i+1:d
-            term = (l[i] - l[j] + j - i) // (j - i)
-            prod_val *= term
+    
+    for i in 1:length(part)
+        for j in 1:part[i]
+            # Hook length h_{i,j} = lambda[i] - i + lambda'[j] - j + 1
+            hook_length = part[i] - i + conj_part[j] - j + 1
+            
+            # Content c_{i,j} = j - i
+            # Term = d + c_{i,j} = d + j - i
+            term = d + j - i
+            
+            # Update product
+            prod_val *= (d isa Integer ? term // hook_length : term / hook_length)
         end
     end
+    
     return prod_val
 end
 
@@ -283,7 +294,7 @@ function calculate_character(lambda::Vector{Int}, mu::Vector{Int})
     return mn_inner(R, mu, 1)
 end
 
-function weingarten(partition_type::Vector{Int}, d::Integer)
+function weingarten(partition_type::Vector{Int}, d)
     # Wg(sigma, d) where sigma has cycle type `partition_type`.
     n = sum(partition_type)
     
@@ -294,7 +305,7 @@ function weingarten(partition_type::Vector{Int}, d::Integer)
     
     for lam in parts
         # If length(lam) > d, s_lambda(1^d) = 0.
-        if length(lam) > d
+        if d isa Integer && length(lam) > d
             continue
         end
         
@@ -305,13 +316,13 @@ function weingarten(partition_type::Vector{Int}, d::Integer)
         chi_lam_mu = calculate_character(lam, partition_type)
         
         # s_lam(1^d)
-        s_lam_d = schur_polynomial_at_1(lam, d)
+        dim_lam = irrep_dimension(lam, d)
         
-        term = ((f_lam)^2 * chi_lam_mu) // s_lam_d
+        term = (d isa Integer ? ((f_lam)^2 * chi_lam_mu) // dim_lam : ((f_lam)^2 * chi_lam_mu) / dim_lam)
         sum_val += term
     end
     
-    return sum_val // (factorial(n)^2)
+    return (d isa Integer ? sum_val // (factorial(n)^2) : sum_val / (factorial(n)^2))
 end
 
 end # module

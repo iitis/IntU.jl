@@ -11,11 +11,11 @@ using .Weingarten
 export integrate, dU
 
 # Dummy type to represent the measure
-struct HaarMeasure{T, N}
+struct HaarMeasure{T, N, D}
     U::AbstractArray{T, N}
-    dim::Integer
+    dim::D
 end
-dU(U::AbstractArray{T,N}, dim::Integer) where {T,N} = HaarMeasure{T,N}(U, dim)
+dU(U::AbstractArray{T,N}, dim) where {T,N} = HaarMeasure{T,N,typeof(dim)}(U, dim)
 
 """
     integrate(expr, measure::HaarMeasure)
@@ -257,7 +257,7 @@ function integrate(expr, measure::HaarMeasure)
 end
 
 
-function integrate_indices(U_idxs::Vector{Tuple{Int, Int}}, U_bar_idxs::Vector{Tuple{Int, Int}}, dim::Integer)
+function integrate_indices(U_idxs::Vector{Tuple{Int, Int}}, U_bar_idxs::Vector{Tuple{Int, Int}}, dim)
     n = length(U_idxs)
     I = [x[1] for x in U_idxs]
     J = [x[2] for x in U_idxs]
