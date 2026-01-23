@@ -36,7 +36,7 @@ println("Result: $res2 (Expected: 2 / (d*(d+1)))")
 
 # 3. Integrate a 2x2 minor
 println("\n3. Integrating |U_11*U_22 - U_12*U_21|^2 ...")
-minor = U[1,1]*U[2,2] - U[1,2]*U[2,1]
+minor = det(U)
 expr3 = abs(minor)^2
 res3 = integrate(expr3, measure)
 # Theoretical expectation: 2 / (d*(d-1))

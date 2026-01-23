@@ -8,7 +8,8 @@ using SymbolicUtils
 include("Weingarten.jl")
 using .Weingarten
 
-export integrate, dU, integrate_indices
+import LinearAlgebra: tr, det
+export integrate, dU, integrate_indices, tr, det
 
 # Dummy type to represent the measure
 struct HaarMeasure{T, N, D}
@@ -171,7 +172,7 @@ function _robust_real(x)
     catch
     end
     
-    return unwrapped
+    return Symbolics.value(unwrapped)
 end
 
 function _iszero(x)
@@ -365,6 +366,13 @@ function get_cycle_type(p::Vector{Int})
     end
     sort!(lengths, rev=true)
     return lengths
+end
+
+# Overloads for symbolic types to make them "just work" with tr, det etc.
+# These ensure that tr(U) returns a symbolic sum instead of a generic tr(U) call node.
+
+function LinearAlgebra.tr(A::Symbolics.Arr{T, 2}) where T
+    return sum(A[i,i] for i in 1:size(A,1))
 end
 
 end # module

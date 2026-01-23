@@ -14,8 +14,8 @@ println("\n--- Trace Moments: ∫ |Tr(U)|^(2k) dU ---")
 println("For large d, Tr(U) converges to a complex Gaussian.")
 println("Expected moments: k! (1, 2, 6, 24...) for d >= k")
 
-# Explicit definition of trace to avoid LinearAlgebra/Symbolics array op issues
-tr_U = sum(U[i,i] for i in 1:d_val)
+# Using overloaded tr(U)
+tr_U = tr(U)
 
 for k in 1:d_val
     # |Tr(U)|^(2k) = (Tr(U) * conj(Tr(U)))^k = abs(Tr(U))^(2k)
@@ -41,7 +41,7 @@ end
 # --- 2. Determinant of a Minor ---
 println("\n--- Integral of a Minor ---")
 # Let's verify that the integral of the squared modulus of a 2x2 minor is related to d.
-# Minor M = U_11 U_22 - U_12 U_21
+# Minor M = U_11 U_22 - U_12 U_21 = det(U[1:2, 1:2])
 minor_2x2 = U[1,1]*U[2,2] - U[1,2]*U[2,1]
 expr_minor = abs(minor_2x2)^2
 
