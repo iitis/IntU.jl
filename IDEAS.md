@@ -13,14 +13,14 @@ functionalities that could be added:
     groups, which involve sums over pair partitions (matchings) rather than
     permutations.
 
-## 2. Haar Random States (integration over $|\psi\rangle$)
-*   **Description**: Add a dedicated measure `dPsi(psi, d)` for integration over
-    Haar-random pure states.
-*   **Why**: Easier syntax for problems involving state averages rather than
-    full unitaries.
-*   **Implementation**: This is mathematically equivalent to integrating over
-    the first column of a Haar unitary, so it can reuse the existing `U(d)`
-    engine with fixed indices.
+~~## 2. Haar Random States (integration over $|\psi\rangle$)~~
+~~*   **Description**: Add a dedicated measure `dPsi(psi, d)` for integration over~~
+~~    Haar-random pure states.~~
+~~*   **Why**: Easier syntax for problems involving state averages rather than~~
+~~    full unitaries.~~
+~~*   **Implementation**: This is mathematically equivalent to integrating over~~
+~~    the first column of a Haar unitary, so it can reuse the existing `U(d)`~~
+~~    engine with fixed indices.~~
 
 ## 3. Large-$d$ Asymptotic Expansions
 *   **Description**: A function `asymptotic(expr, measure, order=1)` that

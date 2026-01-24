@@ -9,7 +9,13 @@ include("Weingarten.jl")
 using .Weingarten
 
 import LinearAlgebra: tr, det
-export integrate, dU, integrate_indices, tr, det
+import Symbolics: Num
+export integrate, dU, dPsi, integrate_indices, tr, det
+
+# Resolve Num(::Complex) ambiguity
+Symbolics.Num(z::Complex) = Complex(Num(real(z)), Num(imag(z)))
+Base.isequal(a::Complex{Num}, b::Num) = isequal(real(a), b) && isequal(imag(a), 0)
+Base.isequal(a::Num, b::Complex{Num}) = isequal(b, a)
 
 # Dummy type to represent the measure
 struct HaarMeasure{T, N, D}
@@ -17,6 +23,14 @@ struct HaarMeasure{T, N, D}
     dim::D
 end
 dU(U::AbstractArray{T,N}, dim) where {T,N} = HaarMeasure{T,N,typeof(dim)}(U, dim)
+
+# Type to represent integration over pure states |psi>
+# Mathematically equivalent to the first column of a Haar unitary.
+struct PureStateMeasure{T, N, D}
+    psi::AbstractArray{T, N}
+    dim::D
+end
+dPsi(psi::AbstractArray{T,N}, dim) where {T,N} = PureStateMeasure{T,N,typeof(dim)}(psi, dim)
 
 """
     integrate(expr, measure::HaarMeasure)
@@ -26,19 +40,59 @@ function integrate(expr::AbstractArray, measure::HaarMeasure)
 end
 
 function integrate(expr, measure::HaarMeasure)
-    if expr isa Complex
-        val_re = integrate(real(expr), measure)
-        val_im = integrate(imag(expr), measure)
-        return _robust_real(val_re + im * val_im)
-    end
-    
     U_sym = measure.U
     dim = measure.dim
     
-    IM_dummy = Symbolics.variable(:IM_dummy)
+    # Substitute Re(U) and Im(U)
+    subs_dict = Dict{Any, Any}()
+    U_atomic_lookup = Dict{Any, Tuple{Int, Int}}()
+    U_bar_lookup = Dict{Any, Tuple{Int, Int}}()
     
-    # Expand FIRST to reveal Re(u) and Im(u) terms from products like U*conj(U)
-    expr = Symbolics.expand(expr)
+
+    if U_sym isa AbstractArray
+        for i in 1:size(U_sym, 1)
+            for j in 1:size(U_sym, 2)
+                u_ij = U_sym[i,j]
+                u_atomic = Symbolics.variable(:U_atomic, i, j)
+                u_bar_atomic = Symbolics.variable(:U_bar_atomic, i, j)
+                
+                U_atomic_lookup[Symbolics.unwrap(u_atomic)] = (i, j)
+                U_bar_lookup[Symbolics.unwrap(u_bar_atomic)] = (i, j)
+                
+                subs_dict[u_ij] = u_atomic
+                subs_dict[conj(u_ij)] = u_bar_atomic
+                subs_dict[real(u_ij)] = (1//2) * (u_atomic + u_bar_atomic)
+                subs_dict[imag(u_ij)] = (1//(2im)) * (u_atomic - u_bar_atomic)
+            end
+        end
+    end
+
+    return _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
+end
+
+function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
+    if expr isa Complex
+        val_re = _integrate_core(real(expr), dim, subs_dict, U_atomic_lookup, U_bar_lookup)
+        val_im = _integrate_core(imag(expr), dim, subs_dict, U_atomic_lookup, U_bar_lookup)
+        return _robust_real(val_re + im * val_im)
+    end
+
+    expr_un = Symbolics.unwrap(expr)
+    if expr_un isa Number && (expr_un isa Real || expr_un isa Complex)
+        return expr_un
+    end
+    
+    # Check if unwrapping revealed a complex object
+    if expr_un isa Complex
+        return _integrate_core(expr_un, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
+    end
+
+    # Wrap in Num if not already, then expand
+    expr_num = _safe_Num(expr_un)
+    try
+        expr_num = Symbolics.expand(expr_num)
+    catch
+    end
 
     # Predicate to check if term is a Sum
     function is_add(t)
@@ -54,10 +108,16 @@ function integrate(expr, measure::HaarMeasure)
     # Fallback/Default for non-sums:
     r_hypot_default = @rule hypot(~x, ~y) => ((~x)^2 + (~y)^2)^(1//2)
     
+    r_hypot_default = @rule hypot(~x, ~y) => ((~x)^2 + (~y)^2)^(1//2)
+    
+    # Rewrite complex(x, y) calls to x + im*y so expanding works
+    r_complex = @rule complex(~x, ~y) => ~x + im*~y
+    r_complex_base = @rule Base.complex(~x, ~y) => ~x + im*~y
+
     expr_unwrapped = Symbolics.unwrap(expr)
     
     # Apply rewrites
-    chain = SymbolicUtils.Chain([r_abs_sq, r_abs, r_hypot_sum, r_hypot_default])
+    chain = SymbolicUtils.Chain([r_abs_sq, r_abs, r_hypot_sum, r_hypot_default, r_complex, r_complex_base])
     expr_rewritten = SymbolicUtils.Postwalk(SymbolicUtils.PassThrough(chain))(expr_unwrapped)
     
     # Manual power fixing function
@@ -91,44 +151,37 @@ function integrate(expr, measure::HaarMeasure)
     end
     
     expr_rewritten = SymbolicUtils.Postwalk(fix_powers)(expr_rewritten)
-    expr = Num(expr_rewritten)
+    if expr_rewritten isa Complex
+        return _integrate_core(expr_rewritten, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
+    end
+    expr_num = _safe_Num(expr_rewritten)
     
     # Expand again
-    expr = Symbolics.expand(expr)
-
-    # Substitute Re(U) and Im(U)
-    subs_dict = Dict{Any, Any}()
-    U_atomic_lookup = Dict{Any, Tuple{Int, Int}}()
-    U_bar_lookup = Dict{Any, Tuple{Int, Int}}()
-    
-    if U_sym isa AbstractArray
-        for i in 1:size(U_sym, 1)
-            for j in 1:size(U_sym, 2)
-                u_ij = U_sym[i,j]
-                u_atomic = Symbolics.variable(:U_atomic, i, j)
-                u_bar_atomic = Symbolics.variable(:U_bar_atomic, i, j)
-                
-                U_atomic_lookup[Symbolics.unwrap(u_atomic)] = (i, j)
-                U_bar_lookup[Symbolics.unwrap(u_bar_atomic)] = (i, j)
-                
-                subs_dict[u_ij] = u_atomic
-                subs_dict[conj(u_ij)] = u_bar_atomic
-                subs_dict[real(u_ij)] = (1//2) * (u_atomic + u_bar_atomic)
-                subs_dict[imag(u_ij)] = (-1//2) * IM_dummy * (u_atomic - u_bar_atomic)
-            end
-        end
+    try
+        expr_num = Symbolics.expand(_safe_Num(Symbolics.unwrap(expr_num)))
+    catch
     end
-    
+
     # Substitute
-    expr_subbed = Symbolics.substitute(expr, subs_dict)
+    expr_subbed = Symbolics.substitute(expr_num, subs_dict)
     
     # Expand
-    expanded_expr = Symbolics.expand(expr_subbed)
+    expanded_expr = try
+        Symbolics.expand(_safe_Num(Symbolics.unwrap(expr_subbed)))
+    catch
+        _safe_Num(expr_subbed)
+    end
+    
+    # Apply rewrites again to catch complex(...) introduced by substitution
+    expanded_expr = SymbolicUtils.Postwalk(SymbolicUtils.PassThrough(chain))(Symbolics.unwrap(expanded_expr))
+    # Safe wrap and expand again to distribute
+    try
+        expanded_expr = Symbolics.expand(_safe_Num(expanded_expr))
+    catch e
+        println("DEBUG: Expansion failed: ", e)
+        expanded_expr = _safe_Num(expanded_expr)
+    end
 
-    # Substitute IM_dummy back to im
-    # Use -1 for IM_dummy^2 first to simplify, then IM_dummy to im
-    expanded_expr = Symbolics.substitute(expanded_expr, Dict(IM_dummy^2 => -1))
-    expanded_expr = Symbolics.substitute(expanded_expr, Dict(IM_dummy => im))
 
     # Helper to traverse product
     function process_term_wrapped(term)
@@ -138,16 +191,85 @@ function integrate(expr, measure::HaarMeasure)
     # Local helper to sum integrals over terms
     function integrate_num_expr(ex)
         ex_un = Symbolics.unwrap(ex)
-        if Symbolics.iscall(ex_un) && Symbolics.operation(ex_un) == (+)
-            terms = Symbolics.arguments(ex_un)
-            return sum(process_term_wrapped, terms)
+        if ex_un isa Complex
+             return integrate_num_expr(real(ex_un)) + im * integrate_num_expr(imag(ex_un))
+        end
+        if ex_un isa Number && (ex_un isa Real)
+             return ex_un
+        end
+        if Symbolics.iscall(ex_un)
+            op = Symbolics.operation(ex_un)
+            if op == (+)
+                terms = Symbolics.arguments(ex_un)
+                return sum(process_term_wrapped, terms)
+            end
+            if op == complex || op == Base.complex
+                args = Symbolics.arguments(ex_un)
+                return integrate_num_expr(args[1]) + im * integrate_num_expr(args[2])
+            end
+            if op == complex || op == Base.complex
+                args = Symbolics.arguments(ex_un)
+                return integrate_num_expr(args[1]) + im * integrate_num_expr(args[2])
+            end
         end
         return process_term_wrapped(ex)
     end
 
-    # Handle Complex{Num} result from substitution
+    # Handle result
     final_res = integrate_num_expr(expanded_expr)
     return _robust_real(final_res)
+end
+
+"""
+    integrate(expr, measure::PureStateMeasure)
+"""
+function integrate(expr::AbstractArray, measure::PureStateMeasure)
+    return map(e -> integrate(e, measure), expr)
+end
+
+function integrate(expr, measure::PureStateMeasure)
+    psi = measure.psi
+    dim = measure.dim
+    n = length(psi)
+    
+    
+    subs_dict = Dict()
+    psi_atomic_lookup = Dict{Any, Tuple{Int, Int}}()
+    psi_bar_lookup = Dict{Any, Tuple{Int, Int}}()
+    
+    psi_vec = collect(psi)
+    for i in 1:n
+        u_elem = psi_vec[i]
+        u_atomic = Symbolics.variable(:psi_atomic, i)
+        u_bar_atomic = Symbolics.variable(:psi_bar_atomic, i)
+        
+        psi_atomic_lookup[Symbolics.unwrap(u_atomic)] = (i, 1)
+        psi_bar_lookup[Symbolics.unwrap(u_bar_atomic)] = (i, 1)
+        
+        subs_dict[u_elem] = u_atomic
+        subs_dict[conj(u_elem)] = u_bar_atomic
+        subs_dict[real(u_elem)] = (1//2) * (u_atomic + u_bar_atomic)
+        subs_dict[imag(u_elem)] = (1//(2im)) * (u_atomic - u_bar_atomic)
+    end
+    
+    return _integrate_core(expr, dim, subs_dict, psi_atomic_lookup, psi_bar_lookup)
+end
+
+function _safe_Num(x)
+    if x isa Num || x isa Complex{Num}
+        return x
+    end
+    # Check if it's a raw symbolic object from Symbolics/SymbolicUtils
+    if !(x isa Number) && !(x isa AbstractArray)
+        # If it's not a standard number/array, it's likely a symbolic object.
+        # We can try to wrap it in Num.
+        return Num(x)
+    end
+    x_un = Symbolics.unwrap(x)
+    if x_un isa Complex
+        return Complex(Num(real(x_un)), Num(imag(x_un)))
+    end
+    return Num(x_un)
 end
 
 function _robust_real(x)
@@ -155,24 +277,38 @@ function _robust_real(x)
         return map(_robust_real, x)
     end
     
-    # Standardize to underlying Julia type if it's a constant
-    unwrapped = Symbolics.unwrap(x)
-    
-    if unwrapped isa Complex
-        return iszero(imag(unwrapped)) ? real(unwrapped) : unwrapped
+    x_un = Symbolics.unwrap(x)
+
+    # If it's already a plain Complex, check if it's real
+    if x_un isa Complex
+        if _iszero(imag(x_un))
+            return _robust_real(real(x_un))
+        end
+        return Complex(_robust_real(real(x_un)), _robust_real(imag(x_un)))
     end
-    
-    # If it's a Num and symbolically real, return the real part
+
+    # If it's a plain Real, we're done
+    if x_un isa Real
+        return x_un
+    end
+
+    # Try symbolic simplification to see if it's real
     try
-        r = Symbolics.simplify(Symbolics.real(x))
-        i = Symbolics.simplify(Symbolics.imag(x))
-        if isequal(Symbolics.unwrap(i), 0)
-            return Symbolics.unwrap(r)
+        nx = _safe_Num(x_un)
+        ix = Symbolics.simplify(imag(nx))
+        if _iszero(ix)
+            rx = Symbolics.simplify(real(nx))
+            ux = Symbolics.unwrap(rx)
+            # If unwrapped part is a real number, return it
+            if ux isa Real
+                return ux
+            end
+            return ux
         end
     catch
     end
     
-    return Symbolics.value(unwrapped)
+    return x_un
 end
 
 function _iszero(x)
@@ -206,27 +342,25 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim)
     function traverse(t)
         t_unwrapped = Symbolics.unwrap(t)
         
-        if haskey(U_atomic_lookup, t_unwrapped)
-            push!(u_indices, U_atomic_lookup[t_unwrapped])
-            return
-        elseif haskey(U_bar_lookup, t_unwrapped)
-            push!(u_bar_indices, U_bar_lookup[t_unwrapped])
-            return
-        end
+        t_str = string(t_unwrapped)
         
-        # Robust fallback
+        # Exact match or string match for robustness
+        found = false
         for (k, v) in U_atomic_lookup
-            if isequal(k, t_unwrapped) || string(k) == string(t_unwrapped)
+            if isequal(k, t_unwrapped) || string(k) == t_str
                 push!(u_indices, v)
-                return
+                found = true; break
             end
         end
+        found && return
+        
         for (k, v) in U_bar_lookup
-            if isequal(k, t_unwrapped) || string(k) == string(t_unwrapped)
+            if isequal(k, t_unwrapped) || string(k) == t_str
                 push!(u_bar_indices, v)
-                return
+                found = true; break
             end
         end
+        found && return
         
         if t isa Number && !(t isa Num) && !(t isa Complex{Num})
             coeff *= t
@@ -271,7 +405,11 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim)
         return coeff
     end
     
-    return coeff * integrate_indices(u_indices, u_bar_indices, dim)
+    val = integrate_indices(u_indices, u_bar_indices, dim)
+    if isequal(val, 0)
+        return 0
+    end
+    return coeff * val
 end
 
 
