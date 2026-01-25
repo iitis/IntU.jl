@@ -417,3 +417,104 @@ end
 function LinearAlgebra.tr(A::Symbolics.Arr{T, 2}) where T
     return sum(A[i,i] for i in 1:size(A,1))
 end
+
+"""
+    _poly_degree(p, d)
+
+Helper to get the degree of a polynomial `p` in variable `d`.
+"""
+function _poly_degree(p, d)
+    p_un = Symbolics.unwrap(p)
+    if isequal(p_un, d) return 1 end
+    if !(p_un isa SymbolicUtils.BasicSymbolic) return 0 end
+    if Symbolics.iscall(p_un)
+        op = Symbolics.operation(p_un)
+        args = Symbolics.arguments(p_un)
+        if op == (+)
+            return maximum(a -> _poly_degree(a, d), args, init=0)
+        elseif op == (*)
+            return sum(a -> _poly_degree(a, d), args)
+        elseif op == (^)
+            # Handle power if exponent is an integer
+            base = args[1]
+            expon = Symbolics.unwrap(args[2])
+            if expon isa Integer
+                return _poly_degree(base, d) * expon
+            elseif expon isa Rational && isinteger(expon)
+                return _poly_degree(base, d) * Int(expon)
+            end
+        end
+    end
+    return 0
+end
+
+
+"""
+    _expand_asymptotic(ex, d, order)
+
+Helper to expand a rational function of `d` in powers of `1/d`.
+Uses Taylor expansion in ε = 1/d around ε = 0.
+"""
+function _expand_asymptotic(ex, d, order)
+    ex_un = Symbolics.unwrap(ex)
+    if ex_un isa AbstractArray
+        return map(e -> _expand_asymptotic(e, d, order), ex_un)
+    end
+    if ex_un isa Complex
+        re_part = _expand_asymptotic(real(ex_un), d, order)
+        im_part = _expand_asymptotic(imag(ex_un), d, order)
+        return re_part + im * im_part
+    end
+    if !(ex_un isa Symbolics.Num) && !(ex_un isa SymbolicUtils.BasicSymbolic)
+        return ex_un
+    end
+    
+    # We want expansion in 1/d. Let eps = 1/d.
+    # Ensure it is a single fraction
+    ex_sim = SymbolicUtils.simplify_fractions(ex_un)
+    num = Symbolics.numerator(ex_sim)
+    den = Symbolics.denominator(ex_sim)
+    
+    ϵ = Symbolics.variable(:ϵ)
+    
+    # Get degrees to clear denominators
+    n = _poly_degree(num, d)
+    m = _poly_degree(den, d)
+    max_deg = max(n, m)
+    
+    # Substitute d -> 1/ϵ and clear denominators by multiplying by ϵ^max_deg
+    # P_eps(ϵ) = num(1/ϵ) * ϵ^max_deg
+    # Q_eps(ϵ) = den(1/ϵ) * ϵ^max_deg
+    p_eps = Symbolics.simplify(Symbolics.substitute(num, Dict(d => 1/ϵ)) * ϵ^max_deg)
+    q_eps = Symbolics.simplify(Symbolics.substitute(den, Dict(d => 1/ϵ)) * ϵ^max_deg)
+    
+    # Now we have a well-behaved rational function f_eps = p_eps / q_eps
+    f_eps = p_eps / q_eps
+    
+    total = 0 // 1
+    curr_deriv = f_eps
+    
+    for k in 0:order
+        # Evaluate at ϵ = 0. Substitute into p_eps and q_eps separately to avoid 0/0 if possible,
+        # but p_eps/q_eps should be fine after simplification.
+        val = try
+            # If q_eps(0) is 0, then f_eps is singular at 0. 
+            # This would mean the integral has positive powers of d.
+            # We handle this by using limit or just substitute.
+            Symbolics.substitute(curr_deriv, Dict(ϵ => 0))
+        catch
+            Symbolics.substitute(Symbolics.simplify(curr_deriv), Dict(ϵ => 0))
+        end
+        
+        if !isequal(val, 0)
+            term = (val // factorial(k)) * (1/d)^k
+            total += term
+        end
+        
+        if k < order
+            curr_deriv = Symbolics.derivative(curr_deriv, ϵ)
+        end
+    end
+    
+    return Symbolics.simplify(total)
+end

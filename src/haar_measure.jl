@@ -44,3 +44,21 @@ function integrate(expr, measure::HaarMeasure)
 
     return _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
 end
+
+"""
+    asymptotic(expr, measure::HaarMeasure, order=1)
+
+Returns the series expansion of the integral in powers of `1/d`.
+"""
+function asymptotic(expr, measure::HaarMeasure, order=1)
+    d = measure.dim
+    if d isa Symbolics.Num || !(d isa Integer)
+        exact_res = integrate(expr, measure)
+        return _expand_asymptotic(exact_res, d, order)
+    end
+    
+    d_asymp = Symbolics.variable(:d_asymp)
+    m_sym = dU(measure.U, d_asymp)
+    exact_res = integrate(expr, m_sym)
+    return _expand_asymptotic(exact_res, d_asymp, order)
+end

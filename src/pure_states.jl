@@ -41,3 +41,21 @@ function integrate(expr, measure::PureStateMeasure)
     
     return _integrate_core(expr, dim, subs_dict, psi_atomic_lookup, psi_bar_lookup)
 end
+
+"""
+    asymptotic(expr, measure::PureStateMeasure, order=1)
+
+Returns the series expansion of the integral in powers of `1/d`.
+"""
+function asymptotic(expr, measure::PureStateMeasure, order=1)
+    d = measure.dim
+    if d isa Symbolics.Num || !(d isa Integer)
+        exact_res = integrate(expr, measure)
+        return _expand_asymptotic(exact_res, d, order)
+    end
+    
+    d_asymp = Symbolics.variable(:d_asymp)
+    m_sym = dPsi(measure.psi, d_asymp)
+    exact_res = integrate(expr, m_sym)
+    return _expand_asymptotic(exact_res, d_asymp, order)
+end
