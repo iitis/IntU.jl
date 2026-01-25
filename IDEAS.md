@@ -28,13 +28,13 @@ functionalities that could be added:
 ~~*   **Why**: In many physical applications (like holography or many-body~~
 ~~    physics), the large-$d$ limit is the most relevant regime.~~
 
-## 4. Symbolic Trace Logic (Coordinate-Free Integration)
-*   **Description**: Instead of expanding `tr(U*A*U'*B)` into indices
-    immediately, use symbolic rewrite rules to perform integration directly at
-    the trace level where possible (graphical calculus).
-*   **Why**: For complex expressions involving many matrix multiplications,
-    expanding to indices $O(d^k)$ is computationally expensive. Graphical
-    Weingarten calculus can be much faster.
+~~## 4. Symbolic Trace Logic (Coordinate-Free Integration)~~
+~~*   **Description**: Instead of expanding `tr(U*A*U'*B)` into indices~~
+~~    immediately, use symbolic rewrite rules to perform integration directly at~~
+~~    the trace level where possible (graphical calculus).~~
+~~*   **Why**: For complex expressions involving many matrix multiplications,~~
+~~    expanding to indices $O(d^k)$ is computationally expensive. Graphical~~
+~~    Weingarten calculus can be much faster.~~
 
 ## 5. Gaussian Unitary Ensemble (GUE)
 *   **Description**: Support integration over Gaussian random matrices
