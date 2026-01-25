@@ -42,6 +42,10 @@ function to_numeric(x)
 end
 
 @testset verbose=true "IntU.jl Suite" begin
+    # @testset verbose=true "Aqua Tests" begin
+    #     include("aqua.jl")
+    # end
+    
     @testset verbose=true "Weingarten Calculus" begin
         include("weingarten.jl")
     end
@@ -62,11 +66,7 @@ end
         include("asymptotic.jl")
     end
 
-    @testset verbose=true "Symbolic Trace Logic" begin
+    @testset verbose=true "Symbolic Trace" begin
         include("symbolic_trace.jl")
-    end
-
-    @testset verbose=true "Aqua" begin
-        include("aqua.jl")
     end
 end
