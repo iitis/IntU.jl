@@ -1,8 +1,8 @@
 using IntU
 using Test
 
-@testset "Weingarten Calculus" begin
-    @testset "Weingarten Function Values" begin
+@testset verbose=true "Weingarten Calculus" begin
+    @testset verbose=true "Weingarten Function Values" begin
         # Wg(1^2, d) = 1/(d^2-1)
         @test IntU.weingarten([1,1], 3) == 1//8
         
@@ -10,10 +10,10 @@ using Test
         @test IntU.weingarten([2], 3) == -1//24
     end
 
-    @testset "Weingarten Unit Tests" begin
+    @testset verbose=true "Weingarten Unit Tests" begin
         # Access internal functions (they are now in IntU module directly via include)
         
-        @testset "conjugate_partition" begin
+        @testset verbose=true "conjugate_partition" begin
             @test IntU.conjugate_partition([1]) == [1]
             @test IntU.conjugate_partition([2]) == [1,1]
             @test IntU.conjugate_partition([1,1]) == [2]
@@ -23,7 +23,7 @@ using Test
             @test IntU.conjugate_partition(Int[]) == Int[]
         end
 
-        @testset "irrep_dimension (Dim of U(d) irrep)" begin
+        @testset verbose=true "irrep_dimension (Dim of U(d) irrep)" begin
             # s_{1}(1^d) = d
             @test IntU.irrep_dimension([1], 3) == 3//1
             # s_{2}(1^d) = d(d+1)/2 symmetric tensor
@@ -32,7 +32,7 @@ using Test
             @test IntU.irrep_dimension([1,1], 3) == 3*2//2 # 3
         end
 
-        @testset "character_at_id (Dim of S_n irrep)" begin
+        @testset verbose=true "character_at_id (Dim of S_n irrep)" begin
             # S3
             # [3] -> 1 (trivial)
             @test IntU.character_at_id([3]) == 1
@@ -52,7 +52,7 @@ using Test
             @test IntU.character_at_id([2,1,1]) == 3
         end
 
-        @testset "murnaghan_nakayama (Character table values)" begin
+        @testset verbose=true "murnaghan_nakayama (Character table values)" begin
             # S3 Character Table
             # Lambda [3] (Trivial): 1, 1, 1 everywhere.
             @test IntU.murnaghan_nakayama([3], [1,1,1]) == 1
@@ -70,7 +70,7 @@ using Test
             @test IntU.murnaghan_nakayama([2,1], [3]) == -1
         end
         
-        @testset "Weingarten Function consistency" begin
+        @testset verbose=true "Weingarten Function consistency" begin
              # Check basic property or redundancy
              # Wg([1,1], d) should be 1/(d^2-1)
              d = 3

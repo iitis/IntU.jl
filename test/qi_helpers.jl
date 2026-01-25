@@ -4,8 +4,8 @@ using Symbolics
 using LinearAlgebra
 using Test
 
-@testset "QI Helpers" begin
-    @testset "Purity and Fidelity" begin
+@testset verbose=true "QI Helpers" begin
+    @testset verbose=true "Purity and Fidelity" begin
         @variables rho[1:2, 1:2]::Complex
         @variables sigma[1:2, 1:2]::Complex
         
@@ -25,7 +25,7 @@ using Test
         @test to_numeric(imag(avg_pur)) ≈ 0.0
     end
     
-    @testset "Partial Trace" begin
+    @testset verbose=true "Partial Trace" begin
         # Test on a Bell state |phi+> = 1/sqrt(2) (|00> + |11>)
         # rho = [1/2 0 0 1/2; 0 0 0 0; 0 0 0 0; 1/2 0 0 1/2]
         M = [0.5 0 0 0.5; 0 0 0 0; 0 0 0 0; 0.5 0 0 0.5]

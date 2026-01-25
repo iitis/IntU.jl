@@ -41,7 +41,7 @@ function to_numeric(x)
     return x_un
 end
 
-@testset "IntU.jl Suite" begin
+@testset verbose=true "IntU.jl Suite" begin
     @testset verbose=true "Weingarten Calculus" begin
         include("weingarten.jl")
     end
