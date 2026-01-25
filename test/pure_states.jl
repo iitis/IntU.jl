@@ -3,7 +3,7 @@ using Test
 using Symbolics
 using LinearAlgebra
 
-@testset "Pure States Integration" begin
+@testset verbose=true "Pure States Integration" begin
     @variables d
     @variables d
     @variables psi[1:3]::Complex
@@ -33,7 +33,7 @@ using LinearAlgebra
         end
     end
     
-    @testset "Diagonal Term" begin
+    @testset verbose=true "Diagonal Term" begin
         # 1. <psi_i | psi_i> average
         expr1 = psi[1] * conj(psi[1])
         res1 = integrate(expr1, dPsi(psi, d))
@@ -43,14 +43,14 @@ using LinearAlgebra
         @test is_really_zero(diff)
     end
     
-    @testset "Off-Diagonal Term" begin
+    @testset verbose=true "Off-Diagonal Term" begin
         # 2. <psi_i | psi_j> average (i != j)
         expr2 = psi[1] * conj(psi[2])
         res2 = integrate(expr2, dPsi(psi, d))
         @test Symbolics.iszero(Symbolics.simplify(res2))
     end
     
-    @testset "Fidelity Average" begin
+    @testset verbose=true "Fidelity Average" begin
         # 3. |<psi|phi>|^2 average where phi is fixed
         # This should be 1/d
         @variables phi[1:3]::Complex
