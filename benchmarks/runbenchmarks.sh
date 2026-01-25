@@ -9,15 +9,19 @@ echo "========================================"
 
 echo ""
 echo ">>> Running minors.jl"
-julia --project=. benchmarks/minors.jl
+julia --project=benchmarks benchmarks/minors.jl
 
 echo ""
 echo ">>> Running pure_states.jl"
-julia --project=. benchmarks/pure_states.jl
+julia --project=benchmarks benchmarks/pure_states.jl
 
 echo ""
 echo ">>> Running trace_moments.jl"
-julia --project=. benchmarks/trace_moments.jl
+julia --project=benchmarks benchmarks/trace_moments.jl
+
+echo ""
+echo ">>> Running symbolic_trace.jl"
+julia --project=benchmarks benchmarks/symbolic_trace.jl
 
 echo ""
 echo "All benchmarks completed successfully."
