@@ -48,6 +48,33 @@ res = asymptotic(expr, measure, 4)
 # Output: 2/d^2 - 2/d^3 + 2/d^4
 ```
 
+## Symbolic Trace Logic
+
+Perform symbolic integration of traces of matrix products involving unitaries and constant matrices, without explicit indices.
+
+```julia
+# Define symbolic matrices
+U_sym = SymbolicMatrix(:U, false, :U)
+A = SymbolicMatrix(:A)
+B = SymbolicMatrix(:B)
+
+# Compute Integral of Tr(U A U' B)
+expr = tr_lazy(U_sym * A * U_sym' * B)
+res = integrate(expr, measure)
+# Output simplified: tr(A) * tr(B) / d
+```
+
+## Pure State Asymptotics
+
+Asymptotic expansions follow the same syntax as the Haar measure.
+
+```julia
+# Expand average fideltity up to order 1/d^2
+expr = abs(psi' * phi)^2
+res = asymptotic(expr, measure_psi, 2)
+# Output: 1/d
+```
+
 ## Quantum Information Tasks
 
 ### Average Purity
