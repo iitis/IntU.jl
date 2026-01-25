@@ -5,6 +5,12 @@ struct HaarMeasure{T, N, D}
     U::AbstractArray{T, N}
     dim::D
 end
+"""
+    dU(U, dim)
+
+Define the Haar measure for the Unitary group U(d).
+`U` is the symbolic matrix representing the unitary, and `dim` is the dimension (symbolic or integer).
+"""
 dU(U::AbstractArray{T,N}, dim) where {T,N} = HaarMeasure{T,N,typeof(dim)}(U, dim)
 
 """

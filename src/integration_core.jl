@@ -320,6 +320,13 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim)
 end
 
 
+"""
+    integrate_indices(U_idxs, U_bar_idxs, dim)
+
+Low-level integration function using Weingarten calculus.
+`U_idxs` is a list of (i, j) tuples for each U_{i,j} in the product.
+`U_bar_idxs` is a list of (k, l) tuples for each \bar{U}_{k,l}.
+"""
 function integrate_indices(U_idxs::Vector{Tuple{Int, Int}}, U_bar_idxs::Vector{Tuple{Int, Int}}, dim)
     n = length(U_idxs)
     I = [x[1] for x in U_idxs]

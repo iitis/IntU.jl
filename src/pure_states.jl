@@ -5,6 +5,12 @@ struct PureStateMeasure{T, N, D}
     psi::AbstractArray{T, N}
     dim::D
 end
+"""
+    dPsi(psi, dim)
+
+Define the Haar measure for random pure states (vectors) in dimension `dim`.
+`psi` is the symbolic vector representing the state, and `dim` is the dimension (symbolic or integer).
+"""
 dPsi(psi::AbstractArray{T,N}, dim) where {T,N} = PureStateMeasure{T,N,typeof(dim)}(psi, dim)
 
 """

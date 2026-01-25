@@ -1,0 +1,7 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd3de4"
+IntU = "70c8b9a1-b4c5-4d7a-a56e-8e7e6495d68b"
+
+[compat]
+Documenter = "0.27"
+IntU = "0.1.0"
