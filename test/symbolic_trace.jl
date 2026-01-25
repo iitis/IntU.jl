@@ -34,8 +34,8 @@ using LinearAlgebra
         
         s = string(res)
         # Check for presence of tr(A) and tr(B) variables
-        @test occursin("tr(A)", s)
-        @test occursin("tr(B)", s)
+        @test occursin("tr_val(A)", s)
+        @test occursin("tr_val(B)", s)
         @test occursin("d", s)
         
         # Check that it simplifies to 1/d * tr(A) * tr(B) effectively
@@ -72,7 +72,7 @@ using LinearAlgebra
         # Actually it contracts U-U' pairs.
         # It forms traces of constants. e.g. tr(A B) is possible? Or tr(A)tr(B)...
         # Since we use SymbolicMatrix(:A etc), we expect tr_val(...) strings.
-        @test occursin("tr(", s)
+        @test occursin("tr_val(", s)
         
         # Verify result is not just 1/d or 0
         @test length(s) > 10

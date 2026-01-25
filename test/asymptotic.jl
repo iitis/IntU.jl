@@ -7,7 +7,7 @@ using LinearAlgebra
     # 1. Test basic Weingarten asymptotic expansion Wg(1, d)
     # Wg(1, d) = 1/d
     # Expansion should match exactly 1/d term or series
-    d = IntU.d_symbolic
+    @variables d
     Series = IntU.Series
     
     wg1 = IntU.weingarten([1], d)

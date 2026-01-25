@@ -65,4 +65,8 @@ end
     @testset verbose=true "Symbolic Trace Logic" begin
         include("symbolic_trace.jl")
     end
+
+    @testset verbose=true "Aqua" begin
+        include("aqua.jl")
+    end
 end
