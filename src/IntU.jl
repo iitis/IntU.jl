@@ -8,9 +8,11 @@ using SymbolicUtils
 include("Weingarten.jl")
 using .Weingarten
 
+include("QI.jl")
+
 import LinearAlgebra: tr, det
 import Symbolics: Num
-export integrate, dU, dPsi, integrate_indices, tr, det
+export integrate, dU, dPsi, integrate_indices, tr, det, purity, average_purity, fidelity, average_fidelity, partial_trace
 
 # Resolve Num(::Complex) ambiguity
 Symbolics.Num(z::Complex) = Complex(Num(real(z)), Num(imag(z)))
@@ -162,8 +164,21 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
     catch
     end
 
-    # Substitute
-    expr_subbed = Symbolics.substitute(expr_num, subs_dict)
+    # Substitute using SymbolicUtils but fallback to Postwalk on TypeError
+    function robust_substitute(ex, dict)
+        try
+            return Symbolics.substitute(Symbolics.wrap(ex), dict)
+        catch
+            # Truly brute force fallback using only symbols if possible
+            return SymbolicUtils.Postwalk(x -> x isa Symbolics.Num ? get(dict, x, x) : x)(ex)
+        end
+    end
+
+    expr_subbed = if expr_num isa Complex
+        robust_substitute(Symbolics.unwrap(real(expr_num)), subs_dict) + im * robust_substitute(Symbolics.unwrap(imag(expr_num)), subs_dict)
+    else
+        robust_substitute(Symbolics.unwrap(expr_num), subs_dict)
+    end
     
     # Expand
     expanded_expr = try

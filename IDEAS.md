@@ -43,10 +43,10 @@ functionalities that could be added:
     dynamics. This is simpler than Haar but nice to have in the same unified
     interface.
 
-## 6. Quantum Information Helpers
-*   **Description**: Built-in functions for calculating average Purity,
-    Fidelity, or Entanglement Entropy of subsystems.
-*   **Example**: `average_purity(rho_symbolic, measure)`.
+~~## 6. Quantum Information Helpers~~
+~~*   **Description**: Built-in functions for calculating average Purity,~~
+~~    Fidelity, or Entanglement Entropy of subsystems.~~
+~~*   **Example**: `average_purity(rho_symbolic, measure)`.~~
 
 ## 7. Pre-computed Integral Cache
 *   **Description**: Create a cache with all potential interesting integrals that
