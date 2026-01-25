@@ -13,6 +13,7 @@ elements exactly, supporting both concrete and **symbolic dimensions** ($d$).
   allowing for large-$d$ analysis.
 - **Pure States**: Integration over Haar-random pure states $|\psi\rangle$
   (equivalent to the first column of a random unitary).
+- **Asymptotic Expansions**: Compute Taylor series expansions of integrals in powers of $1/d$.
 - **Quantum Information Helpers**: Built-in functions for calculating average purity,
   fidelity, and partial traces of symbolic densitiy matrices.
 - **Automated Weingarten Calculus**: Handles the combinatorial complexity of
@@ -80,6 +81,18 @@ measure_psi = dPsi(psi, d)
 expr = abs(psi' * phi)^2
 result = integrate(expr, measure_psi)
 # Output simplified: (sum(|phi_i|^2)) / d
+```
+
+### 4. Large-$d$ Asymptotic Expansions
+
+Compute series expansions of integrals around $d \to \infty$.
+
+```julia
+# Expand |U_{1,1}|^4 up to order 1/d^4
+expr = abs(U[1,1])^4
+res = asymptotic(expr, measure, 4)
+println(res)
+# Output: 2/d^2 - 2/d^3 + 2/d^4
 ```
 
 ## Development and Verification

@@ -22,11 +22,11 @@ functionalities that could be added:
 ~~    the first column of a Haar unitary, so it can reuse the existing `U(d)`~~
 ~~    engine with fixed indices.~~
 
-## 3. Large-$d$ Asymptotic Expansions
-*   **Description**: A function `asymptotic(expr, measure, order=1)` that
-    returns the series expansion of the integral in powers of $1/d$.
-*   **Why**: In many physical applications (like holography or many-body
-    physics), the large-$d$ limit is the most relevant regime.
+~~## 3. Large-$d$ Asymptotic Expansions~~
+~~*   **Description**: A function `asymptotic(expr, measure, order=1)` that~~
+~~    returns the series expansion of the integral in powers of $1/d$.~~
+~~*   **Why**: In many physical applications (like holography or many-body~~
+~~    physics), the large-$d$ limit is the most relevant regime.~~
 
 ## 4. Symbolic Trace Logic (Coordinate-Free Integration)
 *   **Description**: Instead of expanding `tr(U*A*U'*B)` into indices

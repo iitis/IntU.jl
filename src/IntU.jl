@@ -21,6 +21,6 @@ include("qi.jl")
 
 import LinearAlgebra: tr, det
 import Symbolics: Num
-export integrate, dU, dPsi, integrate_indices, tr, det, purity, average_purity, fidelity, average_fidelity, partial_trace
+export integrate, asymptotic, dU, dPsi, integrate_indices, tr, det, purity, average_purity, fidelity, average_fidelity, partial_trace
 
 end # module

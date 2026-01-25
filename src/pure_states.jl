@@ -5,6 +5,12 @@ struct PureStateMeasure{T, N, D}
     psi::AbstractArray{T, N}
     dim::D
 end
+"""
+    dPsi(psi, dim)
+
+Define the Haar measure for random pure states (vectors) in dimension `dim`.
+`psi` is the symbolic vector representing the state, and `dim` is the dimension (symbolic or integer).
+"""
 dPsi(psi::AbstractArray{T,N}, dim) where {T,N} = PureStateMeasure{T,N,typeof(dim)}(psi, dim)
 
 """
@@ -40,4 +46,22 @@ function integrate(expr, measure::PureStateMeasure)
     end
     
     return _integrate_core(expr, dim, subs_dict, psi_atomic_lookup, psi_bar_lookup)
+end
+
+"""
+    asymptotic(expr, measure::PureStateMeasure, order=1)
+
+Returns the series expansion of the integral in powers of `1/d`.
+"""
+function asymptotic(expr, measure::PureStateMeasure, order=1)
+    d = measure.dim
+    if d isa Symbolics.Num || !(d isa Integer)
+        exact_res = integrate(expr, measure)
+        return _expand_asymptotic(exact_res, d, order)
+    end
+    
+    d_asymp = Symbolics.variable(:d_asymp)
+    m_sym = dPsi(measure.psi, d_asymp)
+    exact_res = integrate(expr, m_sym)
+    return _expand_asymptotic(exact_res, d_asymp, order)
 end

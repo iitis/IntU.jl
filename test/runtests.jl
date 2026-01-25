@@ -57,4 +57,8 @@ end
     @testset verbose=true "QI Helpers" begin
         include("qi_helpers.jl")
     end
+
+    @testset verbose=true "Asymptotic Expansions" begin
+        include("asymptotic_test.jl")
+    end
 end
