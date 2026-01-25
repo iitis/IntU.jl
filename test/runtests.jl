@@ -59,6 +59,10 @@ end
     end
 
     @testset verbose=true "Asymptotic Expansions" begin
-        include("asymptotic_test.jl")
+        include("asymptotic.jl")
+    end
+
+    @testset verbose=true "Symbolic Trace Logic" begin
+        include("symbolic_trace.jl")
     end
 end

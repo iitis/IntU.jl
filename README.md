@@ -95,6 +95,23 @@ println(res)
 # Output: 2/d^2 - 2/d^3 + 2/d^4
 ```
 
+### 5. Symbolic Trace Logic
+
+Perform symbolic integration of traces of matrix products involving Unitaries and constant matrices, without explicit indices.
+
+```julia
+# Define symbolic matrices
+U_sym = SymbolicMatrix(:U, false, :U)
+A = SymbolicMatrix(:A)
+B = SymbolicMatrix(:B)
+
+# Compute Integral of Tr(U A U' B)
+expr = tr_lazy(U_sym * A * U_sym' * B)
+res = integrate(expr, measure)
+println(res)
+# Output simplified: tr(A) * tr(B) / d
+```
+
 ## Development and Verification
 
 The package follows a modular architecture for maintainability. You can run all
