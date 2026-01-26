@@ -36,4 +36,36 @@ LazyTrace
 
 ```@docs
 integrate_indices
+tr
+```
+
+## Real Groups
+
+```@docs
+dO
+dSp
+```
+
+## Internal & Weingarten Utilities
+
+These functions are part of the internal machinery but documented for development reference.
+
+```@docs
+IntU.weingarten_orthogonal_matrix
+IntU.character_at_id
+IntU._poly_degree
+IntU.weingarten_symplectic_val
+IntU.conjugate_partition
+IntU.get_matching_pair_partitions_filtered
+IntU.irrep_dimension
+IntU.compute_symplectic_contraction
+IntU.integrate_indices_symplectic
+IntU.weingarten_orthogonal_val
+IntU.orthogonal_gram_matrix
+IntU.murnaghan_nakayama
+IntU.tr_val
+IntU.integrate_indices_orthogonal
+IntU.get_pair_partitions
+IntU.count_loops
+IntU._expand_asymptotic
 ```

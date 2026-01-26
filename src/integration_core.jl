@@ -1,14 +1,22 @@
 # Core integration logic
 
-# Resolve Num(::Complex) ambiguity
-Symbolics.Num(z::Complex) = Complex(Num(real(z)), Num(imag(z)))
-Base.isequal(a::Complex{Num}, b::Num) = isequal(real(a), b) && isequal(imag(a), 0)
-Base.isequal(a::Num, b::Complex{Num}) = isequal(b, a)
+# Helper to wrap complex numbers in Num safely
+_to_Num(z::Complex) = Complex(Num(real(z)), Num(imag(z)))
+_to_Num(z) = Num(z)
+# Helper for symbolic equality to avoid piracy
+_symbolic_isequal(a, b) = isequal(a, b)
+_symbolic_isequal(a::Complex{Num}, b::Num) = isequal(real(a), b) && iszero(imag(a))
+_symbolic_isequal(a::Num, b::Complex{Num}) = _symbolic_isequal(b, a)
+_symbolic_isequal(a::Complex{Num}, b::Real) = isequal(real(a), b) && iszero(imag(a))
+_symbolic_isequal(a::Real, b::Complex{Num}) = _symbolic_isequal(b, a)
+_symbolic_isequal(a::Complex{Num}, b::Complex{Num}) = isequal(real(a), real(b)) && isequal(imag(a), imag(b))
+_symbolic_isequal(a::Complex{Num}, b::Complex) = isequal(real(a), real(b)) && isequal(imag(a), imag(b))
+_symbolic_isequal(a::Complex, b::Complex{Num}) = _symbolic_isequal(b, a)
 
-function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
+function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type=:U)
     if expr isa Complex
-        val_re = _integrate_core(real(expr), dim, subs_dict, U_atomic_lookup, U_bar_lookup)
-        val_im = _integrate_core(imag(expr), dim, subs_dict, U_atomic_lookup, U_bar_lookup)
+        val_re = _integrate_core(real(expr), dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type)
+        val_im = _integrate_core(imag(expr), dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type)
         return _robust_real(val_re + im * val_im)
     end
 
@@ -19,7 +27,7 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
     
     # Check if unwrapping revealed a complex object
     if expr_un isa Complex
-        return _integrate_core(expr_un, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
+        return _integrate_core(expr_un, dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type)
     end
 
     # Wrap in Num if not already, then expand
@@ -90,7 +98,7 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
     
     expr_rewritten = SymbolicUtils.Postwalk(fix_powers)(expr_rewritten)
     if expr_rewritten isa Complex
-        return _integrate_core(expr_rewritten, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
+        return _integrate_core(expr_rewritten, dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type)
     end
     expr_num = _safe_Num(expr_rewritten)
     
@@ -106,7 +114,7 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
         try
             res = Symbolics.substitute(Symbolics.wrap(ex), dict)
             # If nothing changed, try deeper dive
-            if isequal(res, Symbolics.wrap(ex))
+            if _symbolic_isequal(res, Symbolics.wrap(ex))
                  throw(error("No change"))
             end
             return res
@@ -152,7 +160,7 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
 
     # Helper to traverse product
     function process_term_wrapped(term)
-        return process_term(term, U_atomic_lookup, U_bar_lookup, dim)
+        return process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type)
     end
 
     # Local helper to sum integrals over terms
@@ -194,10 +202,7 @@ function _safe_Num(x)
         return Num(x)
     end
     x_un = Symbolics.unwrap(x)
-    if x_un isa Complex
-        return Complex(Num(real(x_un)), Num(imag(x_un)))
-    end
-    return Num(x_un)
+    return _to_Num(x_un)
 end
 
 function _robust_real(x)
@@ -244,16 +249,16 @@ function _iszero(x)
     if x_un isa Number
         return iszero(x_un)
     end
-    return isequal(x_un, 0)
+    return _symbolic_isequal(x_un, 0)
 end
 
-function process_term(term, U_atomic_lookup, U_bar_lookup, dim)
+function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
     term = Symbolics.unwrap(term)
     
     if Symbolics.iscall(term)
         op = Symbolics.operation(term)
         if op == (+)
-            return sum(t -> process_term(t, U_atomic_lookup, U_bar_lookup, dim), Symbolics.arguments(term))
+            return sum(t -> process_term(t, U_atomic_lookup, U_bar_lookup, dim, measure_type), Symbolics.arguments(term))
         end
     end
 
@@ -263,21 +268,39 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim)
     
     function traverse(t)
         t_unwrapped = Symbolics.unwrap(t)
-        
         t_str = string(t_unwrapped)
         
         # Exact match or string match for robustness
         found = false
         for (k, v) in U_atomic_lookup
-            if isequal(k, t_unwrapped) || string(k) == t_str
-                push!(u_indices, v)
+            if _symbolic_isequal(k, t_unwrapped) || string(k) == t_str
+                # Check if it's a conjugate entry for Symplectic
+                if length(v) == 3 && v[3] == :conj
+                    if measure_type == :Sp
+                        if !(dim isa Integer)
+                             error("Symplectic integration with conjugates requires integer dimension")
+                        end
+                        i_idx, j_idx, _ = v
+                        m_dim = div(dim, 2)
+                        
+                        di, si = (i_idx <= m_dim ? (i_idx + m_dim, 1) : (i_idx - m_dim, -1))
+                        dj, sj = (j_idx <= m_dim ? (j_idx + m_dim, 1) : (j_idx - m_dim, -1))
+                        
+                        coeff *= (si * sj)
+                        push!(u_indices, (di, dj))
+                    else
+                        error("Conjugate flag :conj found for non-Symplectic measure")
+                    end
+                else
+                    push!(u_indices, v)
+                end
                 found = true; break
             end
         end
         found && return
         
         for (k, v) in U_bar_lookup
-            if isequal(k, t_unwrapped) || string(k) == t_str
+            if _symbolic_isequal(k, t_unwrapped) || string(k) == t_str
                 push!(u_bar_indices, v)
                 found = true; break
             end
@@ -309,14 +332,27 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim)
                 inner_str = string(inner)
                 # conj(U) -> U_bar
                 for (k, v) in U_atomic_lookup
-                    if isequal(k, inner) || string(k) == inner_str
-                        push!(u_bar_indices, v)
+                    if _symbolic_isequal(k, inner) || string(k) == inner_str
+                        if measure_type == :Sp
+                             # Perform same Sp duality rewrite here!
+                             if !(dim isa Integer)
+                                  error("Symplectic integration with conjugates requires integer dimension")
+                             end
+                             i_i, j_j = v
+                             m_m = div(dim, 2)
+                             di, si = (i_i <= m_m ? (i_i + m_m, 1) : (i_i - m_m, -1))
+                             dj, sj = (j_j <= m_m ? (j_j + m_m, 1) : (j_j - m_m, -1))
+                             coeff *= (si * sj)
+                             push!(u_indices, (di, dj))
+                        else
+                             push!(u_bar_indices, v)
+                        end
                         return
                     end
                 end
                 # conj(U_bar) -> U
                 for (k, v) in U_bar_lookup
-                    if isequal(k, inner) || string(k) == inner_str
+                    if _symbolic_isequal(k, inner) || string(k) == inner_str
                         push!(u_indices, v)
                         return
                     end
@@ -328,28 +364,73 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim)
     end
     traverse(term)
     
-    n = length(u_indices)
-    if n != length(u_bar_indices)
-        return 0
+    n_u = length(u_indices)
+    n_bar = length(u_bar_indices)
+
+    if measure_type == :U
+        if n_u != n_bar
+            return 0
+        end
+        if n_u == 0
+            return coeff
+        end
+        
+        val = integrate_indices(u_indices, u_bar_indices, dim)
+        if _symbolic_isequal(val, 0)
+            return 0
+        end
+        return coeff * val
+        
+    elseif measure_type == :O
+        # Orthogonal measure: O combined with O_bar (which is same as O)
+        # We combine both lists
+        all_indices = [u_indices; u_bar_indices]
+        n_total = length(all_indices)
+        
+        if n_total % 2 != 0
+            return 0
+        end
+        if n_total == 0
+            return coeff
+        end
+        
+        val = integrate_indices_orthogonal(all_indices, dim)
+        if _symbolic_isequal(val, 0)
+            return 0
+        end
+        return coeff * val
+        
+    elseif measure_type == :Sp
+        # Symplectic measure
+        # We combine both lists (u_indices and u_bar_indices are treated same for real/symplectic generally,
+        # but technically S_bar = J S J^T ? No S is unitary symplectic.
+        # S_ij is treated as variable.
+        # Formula uses S_{i_1 j_1} ... S_{i_2k j_2k}.
+        all_indices = [u_indices; u_bar_indices]
+        n_total = length(all_indices)
+        
+        if n_total % 2 != 0
+            return 0
+        end
+        if n_total == 0
+            return coeff
+        end
+        
+        val = integrate_indices_symplectic(all_indices, dim)
+        if _symbolic_isequal(val, 0)
+            return 0
+        end
+        return coeff * val
+    else
+        error("Unknown measure type: $measure_type")
     end
-    if n == 0
-        return coeff
-    end
-    
-    val = integrate_indices(u_indices, u_bar_indices, dim)
-    if isequal(val, 0)
-        return 0
-    end
-    return coeff * val
 end
 
 
 """
     integrate_indices(U_idxs, U_bar_idxs, dim)
 
-Low-level integration function using Weingarten calculus.
-`U_idxs` is a list of (i, j) tuples for each U_{i,j} in the product.
-`U_bar_idxs` is a list of (k, l) tuples for each \bar{U}_{k,l}.
+Low-level integration function using Weingarten calculus (Unitary).
 """
 function integrate_indices(U_idxs::Vector{Tuple{Int, Int}}, U_bar_idxs::Vector{Tuple{Int, Int}}, dim)
     n = length(U_idxs)
@@ -444,10 +525,257 @@ function get_cycle_type(p::Vector{Int})
     return lengths
 end
 
+"""
+    integrate_indices_orthogonal(indices, dim)
+    
+Low-level integration function using Orthogonal Weingarten calculus.
+Indices are a list of (i, j) for O_{ij}.
+Formula: sum_{pi, sigma in PairPartitions} delta_pi(i) * delta_sigma(j) * Wg(pi, sigma)
+"""
+function integrate_indices_orthogonal(indices::Vector{Tuple{Int, Int}}, dim)
+    n = length(indices) # This is 2k
+    if n % 2 != 0; return 0; end
+    
+    I = [x[1] for x in indices]
+    J = [x[2] for x in indices]
+    
+    valid_pi = get_matching_pair_partitions_filtered(I)
+    valid_sigma = get_matching_pair_partitions_filtered(J)
+    
+    if isempty(valid_pi) || isempty(valid_sigma)
+        return 0
+    end
+    
+    total = 0 // 1
+    for pi in valid_pi
+        for sigma in valid_sigma
+            # Wg(pi, sigma)
+            val = weingarten_orthogonal_val(pi, sigma, dim)
+            total += val
+        end
+    end
+    return total
+end
+
+"""
+    get_matching_pair_partitions_filtered(indices)
+
+Returns all pair partitions of 1..2k such that for every pair (a,b), indices[a] == indices[b].
+"""
+function get_matching_pair_partitions_filtered(indices::Vector{Int})
+    n = length(indices)
+    
+    # Validation: each value must appear an even number of times.
+    counts = Dict{Int, Vector{Int}}()
+    for (pos, val) in enumerate(indices)
+        push!(get!(counts, val, Int[]), pos)
+    end
+    
+    for (val, pos_list) in counts
+        if length(pos_list) % 2 != 0
+            return Vector{Vector{Tuple{Int, Int}}}()
+        end
+    end
+    
+    # For each group of positions, generate all pair partitions
+    # Then take Cartesian product
+    
+    # We can reuse get_pair_partitions but we need to map indices back to positions
+    
+    group_partitions = Vector{Vector{Vector{Tuple{Int, Int}}}}()
+    
+    for (val, pos_list) in counts
+        k_local = length(pos_list)
+        # Generate partitions of 1..k_local
+        local_parts_idx = get_pair_partitions(k_local)
+        
+        # Map back to real positions
+        real_parts = Vector{Vector{Tuple{Int, Int}}}()
+        for p in local_parts_idx
+            mapped = [(pos_list[a], pos_list[b]) for (a,b) in p]
+            push!(real_parts, mapped)
+        end
+        push!(group_partitions, real_parts)
+    end
+    
+    # Combine
+    res = Vector{Vector{Tuple{Int, Int}}}()
+    for combined in Iterators.product(group_partitions...)
+        # flattened list of pairs
+        full_part = Vector{Tuple{Int, Int}}()
+        for part in combined
+            append!(full_part, part)
+        end
+        # Sort internal pairs and list for consistency (optional but good for debugging)
+        push!(res, full_part)
+    end
+    
+    return res
+end
+
+
+"""
+    integrate_indices_symplectic(indices, dim)
+
+Low-level integration function using Symplectic Weingarten calculus.
+Formula: sum_{pi, sigma} J_pi(i) * J_sigma(j) * Wg^Sp(pi, sigma)
+"""
+function integrate_indices_symplectic(indices::Vector{Tuple{Int, Int}}, dim)
+    n = length(indices)
+    k = div(n, 2)
+    partitions = get_pair_partitions(n)
+    
+    I = [x[1] for x in indices]
+    J_idx = [x[2] for x in indices]
+    
+    # Check if dim is clearly integer for simplified J evaluation
+    dim_int = dim isa Integer ? dim : nothing
+    
+    total = 0 // 1
+    
+    # Optimization: Filter partitions that yield non-zero J-contraction first?
+    # J_{uv} is non-zero only if |u - v| = d/2 (appropriately signed).
+    # This requires looking at the actual index values.
+    
+    # Pre-calculate contractions
+    # For each partition pi, calculate J_pi(I).
+    # If I contains symbolic variables, this might return a symbolic expressions.
+    # Currently we might assume indices are integers.
+    
+    pi_contractions = Dict{Any, Any}()
+    sigma_contractions = Dict{Any, Any}()
+    
+    for pi in partitions
+        val_I = compute_symplectic_contraction(pi, I, dim)
+        if !_symbolic_isequal(val_I, 0)
+             pi_contractions[pi] = val_I
+        end
+        
+        val_J = compute_symplectic_contraction(pi, J_idx, dim)
+        if !_symbolic_isequal(val_J, 0)
+             sigma_contractions[pi] = val_J
+        end
+    end
+    
+    if isempty(pi_contractions) || isempty(sigma_contractions)
+        return 0
+    end
+    
+    for (pi, val_pi) in pi_contractions
+        for (sigma, val_sigma) in sigma_contractions
+            wg = weingarten_symplectic_val(pi, sigma, dim)
+            total += val_pi * val_sigma * wg
+        end
+    end
+    
+    return total
+end
+
+"""
+    compute_symplectic_contraction(partition, indices, dim)
+
+Computes prod_{(u, v) in partition} J(indices[u], indices[v]).
+J = [0 I; -I 0].
+"""
+function compute_symplectic_contraction(partition, indices, dim)
+    val = 1
+    
+    # If dim is unknown, we can't evaluate J numerically easily unless indices are 
+    # constructed such that we know.
+    # But usually dim is symbolic `d`.
+    # AND indices are something like 1, 2, ...
+    # We need to know `d` to know if index i and j are symplectic pairs.
+    # If `d` is symbolic, we can't determine this range.
+    
+    # However, usually when integrating, `dim` matches the matrix size indices.
+    # If the user defines `dSp(S, d)` and `S` is 2x2. Then `d=2`.
+    # If `S` is symbolic size, indices are typically symbolic too?
+    # For now, we assume numeric indices and try to infer symplectic structure.
+    # Or we assume d is the numeric size involved.
+    
+    # Fallback: if d is symbolic, we check if we can convert it to number if indices are numbers.
+    # If indices are huge integers, we assume standard basis.
+    
+    # CRITICAL: We need `d` to define J.
+    # If d is symbolic, we can try to look at max index?
+    # No, that's unsafe.
+    
+    is_d_numeric = (dim isa Integer)
+    
+    for (u, v) in partition
+        idx_u = indices[u]
+        idx_v = indices[v]
+        
+        j_val = symplectic_form(idx_u, idx_v, dim)
+        if _symbolic_isequal(j_val, 0)
+            return 0
+        end
+        val *= j_val
+    end
+    return val
+end
+
+function symplectic_form(i, j, dim)
+    # J matrix evaluation
+    # returns 1 if j = i + m, -1 if j = i - m, 0 otherwise
+    # where m = dim / 2.
+    
+    # If i, j are symbolic, return symbolic representation?
+    # For now, simplistic implementation for numeric indices.
+    
+    if !(i isa Integer) || !(j isa Integer)
+        # Symbolic indices not fully supported yet for contraction
+        return 0 
+    end
+    
+    # We require dim to be known integer for this check 
+    # Or we return 0 if we can't check.
+    if !(dim isa Integer)
+         # Try to resolve or error?
+         # If the user provided d symbolic but indices 1,2, then we can likely assume d=2 if max index is 2?
+         # Unsafe.
+         # For now, return 0 or error.
+         # Actually, better to error if we can't compute.
+         # But usually we want to return 0 for non-matching.
+         # Let's try to assume small dimension if indices are small?
+         # Re-eval plan: "Support numeric indices". 
+         # We need dim to be numeric.
+         return 0 
+         # TODO: Support J(i, j) symbolic object.
+    end
+    
+    m = div(dim, 2)
+    
+    # 1 <= i, j <= 2m
+    if i < 1 || i > 2*m || j < 1 || j > 2*m
+        return 0
+    end
+    
+    if j == i + m
+        return 1
+    elseif j == i - m
+        return -1
+    else
+        return 0
+    end
+end
+
+
 # Overloads for symbolic types to make them "just work" with tr, det etc.
-function LinearAlgebra.tr(A::Symbolics.Arr{T, 2}) where T
+"""
+    tr(A)
+
+Compute the trace of a matrix. Works for both standard matrices (via `LinearAlgebra.tr`) 
+and symbolic arrays (by summing diagonal elements).
+"""
+function tr(A::Symbolics.Arr{T, 2}) where T
     return sum(A[i,i] for i in 1:size(A,1))
 end
+
+function tr(A)
+    return LinearAlgebra.tr(A)
+end
+
 
 """
     _poly_degree(p, d)
@@ -465,7 +793,7 @@ function _poly_degree(p, d)
         # Fallback to very basic manual checking if degree fails
         p_un = Symbolics.unwrap(p)
         d_un = Symbolics.unwrap(d)
-        if isequal(p_un, d_un) return 1 end
+        if _symbolic_isequal(p_un, d_un) return 1 end
         return 0
     end
 end
@@ -567,7 +895,7 @@ function _expand_asymptotic(ex, d, order)
                 Symbolics.substitute(curr_sim, Dict(ϵ => 0))
             catch
                 # Last resort: very basic search and replace
-                Symbolics.wrap(SymbolicUtils.Postwalk(x -> isequal(x, ϵ_un) ? 0 : x)(Symbolics.unwrap(curr_deriv)))
+                Symbolics.wrap(SymbolicUtils.Postwalk(x -> _symbolic_isequal(x, ϵ_un) ? 0 : x)(Symbolics.unwrap(curr_deriv)))
             end
         end
         
@@ -592,3 +920,4 @@ function _expand_asymptotic(ex, d, order)
     
     return Symbolics.simplify(total)
 end
+

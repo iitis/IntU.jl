@@ -39,10 +39,10 @@ function integrate(expr, measure::PureStateMeasure)
         psi_atomic_lookup[Symbolics.unwrap(u_atomic)] = (i, 1)
         psi_bar_lookup[Symbolics.unwrap(u_bar_atomic)] = (i, 1)
         
-        subs_dict[u_elem] = u_atomic
-        subs_dict[conj(u_elem)] = u_bar_atomic
-        subs_dict[real(u_elem)] = (1//2) * (u_atomic + u_bar_atomic)
-        subs_dict[imag(u_elem)] = (1//(2im)) * (u_atomic - u_bar_atomic)
+        subs_dict[Symbolics.unwrap(u_elem)] = u_atomic
+        subs_dict[Symbolics.unwrap(conj(u_elem))] = u_bar_atomic
+        subs_dict[Symbolics.unwrap(real(u_elem))] = (1//2) * (u_atomic + u_bar_atomic)
+        subs_dict[Symbolics.unwrap(imag(u_elem))] = (1//2im) * (u_atomic - u_bar_atomic)
     end
     
     return _integrate_core(expr, dim, subs_dict, psi_atomic_lookup, psi_bar_lookup)

@@ -11,7 +11,7 @@ using LinearAlgebra
     function is_really_zero(x)
         # 1. Structural simplified zero
         x_simp = Symbolics.simplify(x)
-        if isequal(x_simp, 0) || isequal(x_simp, Num(0))
+        if IntU._symbolic_isequal(x_simp, 0) || IntU._symbolic_isequal(x_simp, Num(0))
             return true
         end
         

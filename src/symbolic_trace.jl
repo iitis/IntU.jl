@@ -180,7 +180,7 @@ function integrate(t::LazyTrace, measure::HaarMeasure)
             cycle_type = get_cycle_type(P)
             wg_val = weingarten(cycle_type, dim)
             
-            if isequal(wg_val, 0)
+            if _symbolic_isequal(wg_val, 0)
                 continue
             end
             

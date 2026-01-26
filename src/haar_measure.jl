@@ -41,18 +41,12 @@ function integrate(expr, measure::HaarMeasure)
                 U_atomic_lookup[Symbolics.unwrap(u_atomic)] = (i, j)
                 U_bar_lookup[Symbolics.unwrap(u_bar_atomic)] = (i, j)
                 
-                # Add both wrapped and unwrapped to be safe
-                subs_dict[u_ij_num] = u_atomic
                 subs_dict[u_ij_un] = u_atomic
                 
-                c_ij_num = conj(u_ij_num)
-                c_ij_un = Symbolics.unwrap(c_ij_num)
-                subs_dict[c_ij_num] = u_bar_atomic
+                c_ij_un = Symbolics.unwrap(conj(u_ij_num))
                 subs_dict[c_ij_un] = u_bar_atomic
                 
-                bc_ij_num = Base.conj(u_ij_num)
-                bc_ij_un = Symbolics.unwrap(bc_ij_num)
-                subs_dict[bc_ij_num] = u_bar_atomic
+                bc_ij_un = Symbolics.unwrap(Base.conj(u_ij_num))
                 subs_dict[bc_ij_un] = u_bar_atomic
             end
         end

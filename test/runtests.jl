@@ -22,7 +22,7 @@ function to_numeric(x)
         return sim2_un
     end
     
-    if isequal(sim, 0) || isequal(sim2, 0)
+    if IntU._symbolic_isequal(sim, 0) || IntU._symbolic_isequal(sim2, 0)
         return 0.0
     end
     
@@ -35,16 +35,16 @@ function to_numeric(x)
     catch
     end
     
-    if isequal(sim, 0)
+    if IntU._symbolic_isequal(sim, 0)
         return 0.0
     end
     return x_un
 end
 
 @testset verbose=true "IntU.jl Suite" begin
-    # @testset verbose=true "Aqua Tests" begin
-    #     include("aqua.jl")
-    # end
+    @testset verbose=true "Aqua Tests" begin
+        include("aqua.jl")
+    end
     
     @testset verbose=true "Weingarten Calculus" begin
         include("weingarten.jl")
@@ -56,6 +56,10 @@ end
 
     @testset verbose=true "Pure States" begin
         include("pure_states.jl")
+    end
+
+    @testset verbose=true "Orthogonal Group" begin
+        include("orthogonal.jl")
     end
 
     @testset verbose=true "QI Helpers" begin

@@ -143,6 +143,7 @@ end
     return mn_inner(R, mu, 1)
 end
 
+
 @memoize function weingarten(partition_type::Vector{Int}, d)
     # Wg(sigma, d) where sigma has cycle type `partition_type`.
     n = sum(partition_type)
@@ -173,3 +174,205 @@ end
     
     return (d isa Integer ? sum_val // (factorial(n)^2) : sum_val / (factorial(n)^2))
 end
+
+
+# ==============================================================================
+# Orthogonal and Symplectic Weingarten Calculus
+# ==============================================================================
+
+"""
+    get_pair_partitions(n)
+
+Generate all partitions of the set `{1, ..., n}` into pairs. `n` must be even.
+Returns a list of partitions. Each partition is a list of pairs (Tuples).
+"""
+@memoize function get_pair_partitions(n::Int)
+    if n % 2 != 0
+        return Vector{Vector{Tuple{Int, Int}}}()
+    end
+    if n == 0
+        return [Vector{Tuple{Int, Int}}()]
+    end
+    
+    # Recursive generation
+    res = Vector{Vector{Tuple{Int, Int}}}()
+    
+    # helper
+    function generate(current_pairs, remaining)
+        if isempty(remaining)
+            push!(res, current_pairs)
+            return
+        end
+        
+        first = remaining[1]
+        # Try pairing `first` with each other element
+        for i in 2:length(remaining)
+            second = remaining[i]
+            
+            new_pairs = copy(current_pairs)
+            push!(new_pairs, (first, second))
+            
+            new_remaining = copy(remaining)
+            deleteat!(new_remaining, [1, i])
+            
+            generate(new_pairs, new_remaining)
+        end
+    end
+    
+    generate(Vector{Tuple{Int, Int}}(), collect(1:n))
+    return res
+end
+
+"""
+    count_loops(pi, sigma)
+
+Count the number of loops in the graph formed by superimposing two pair partitions `pi` and `sigma`.
+The graph has vertices 1..2k. Edges correspond to pairs in `pi` and `sigma`.
+Since both are perfect matchings, the union forms a set of disjoint cycles.
+"""
+@memoize function count_loops(pi, sigma)
+    n = 2 * length(pi)
+    adj = Dict{Int, Vector{Int}}()
+    for i in 1:n
+        adj[i] = Int[]
+    end
+    
+    for (u, v) in pi
+        push!(adj[u], v)
+        push!(adj[v], u)
+    end
+    for (u, v) in sigma
+        push!(adj[u], v)
+        push!(adj[v], u)
+    end
+    
+    # Count connected components
+    visited = falses(n)
+    loops = 0
+    for i in 1:n
+        if !visited[i]
+            loops += 1
+            # BFS/DFS
+            q = [i]
+            visited[i] = true
+            while !isempty(q)
+                curr = pop!(q)
+                for neighbor in adj[curr]
+                    if !visited[neighbor]
+                        visited[neighbor] = true
+                        push!(q, neighbor)
+                    end
+                end
+            end
+        end
+    end
+    return loops
+end
+
+"""
+    orthogonal_gram_matrix(k, d)
+
+Compute the Gram matrix for the Orthogonal group O(d) for 2k indices.
+Rows and columns are indexed by pair partitions of 2k elements.
+G_{pi, sigma} = d^{loops(pi, sigma)}
+"""
+@memoize function orthogonal_gram_matrix(k::Int, d)
+    partitions = get_pair_partitions(2*k)
+    N = length(partitions)
+    
+    # Determine type
+    val_sample = d^1
+    T = typeof(val_sample)
+    if d isa Integer
+        T = Rational{Int}
+    end
+    
+    G = zeros(T, N, N)
+    
+    for i in 1:N
+        for j in 1:N
+            loops = count_loops(partitions[i], partitions[j])
+            if d isa Integer
+                G[i, j] = (d^loops) // 1
+            else
+                G[i, j] = d^loops
+            end
+        end
+    end
+    return G, partitions
+end
+
+
+"""
+    weingarten_orthogonal_matrix(k, d)
+
+Computes the Weingarten matrix (inverse of Gram matrix) for O(d).
+Returns (Wg_matrix, partitions).
+"""
+@memoize function weingarten_orthogonal_matrix(k::Int, d)
+    G, parts = orthogonal_gram_matrix(k, d)
+    # Invert G
+    try
+        Wg = inv(G)
+        return Wg, parts
+    catch e
+        # If singular or symbolic issue
+        error("Failed to invert O(d) Gram matrix for k=$k. Error: $e")
+    end
+end
+
+"""
+    weingarten_orthogonal_val(pi, sigma, d)
+
+Returns the value Wg(pi, sigma) for O(d).
+"""
+@memoize function weingarten_orthogonal_val(pi, sigma, d)
+    k = length(pi) # pi is list of pairs
+    # Note: this is inefficient if called repeatedly for same k but different pi,sigma
+    # But we memoize the matrix generation.
+    Wg_mat, parts = weingarten_orthogonal_matrix(k, d)
+    
+    # Find index of pi and sigma
+    # This search is O(N) where N=(2k-1)!!, might be slow for large k.
+    # We can optimize by canonicalizing representation.
+    # For now, simplistic find.
+    
+    # Canonicalize pairs for comparison: (min, max), sorted by min
+    function canonicalize(p)
+        sorted_pairs = [Pair(min(u,v), max(u,v)) for (u,v) in p]
+        sort!(sorted_pairs, by=x->x.first)
+        return sorted_pairs
+    end
+    
+    pi_c = canonicalize(pi)
+    sigma_c = canonicalize(sigma)
+    
+    parts_c = [canonicalize(p) for p in parts]
+    
+    idx_pi = findfirst(isequal(pi_c), parts_c)
+    idx_sigma = findfirst(isequal(sigma_c), parts_c)
+    
+    if idx_pi === nothing || idx_sigma === nothing
+        error("Partition not found in generated set")
+    end
+    
+    return Wg_mat[idx_pi, idx_sigma]
+end
+
+
+
+"""
+    weingarten_symplectic_val(pi, sigma, d)
+
+Returns the value Wg(pi, sigma) for Sp(d).
+Uses the relation Wg^Sp(d)(pi, sigma) = (-1)^k * Wg^O(-d)(pi, sigma)
+where k is the number of pairs (length of pi or sigma).
+"""
+@memoize function weingarten_symplectic_val(pi, sigma, d)
+    k = length(pi)
+    # Wg^Sp(d)(pi, sigma) = (-1)^k * Wg^O(-d)(pi, sigma)
+    # Note: d -> -d substitution.
+    val_ortho = weingarten_orthogonal_val(pi, sigma, -d)
+    return ((-1)^k) * val_ortho
+end
+
