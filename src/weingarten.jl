@@ -186,7 +186,7 @@ end
 Generate all partitions of the set `{1, ..., n}` into pairs. `n` must be even.
 Returns a list of partitions. Each partition is a list of pairs (Tuples).
 """
-function get_pair_partitions(n::Int)
+@memoize function get_pair_partitions(n::Int)
     if n % 2 != 0
         return Vector{Vector{Tuple{Int, Int}}}()
     end
@@ -230,7 +230,7 @@ Count the number of loops in the graph formed by superimposing two pair partitio
 The graph has vertices 1..2k. Edges correspond to pairs in `pi` and `sigma`.
 Since both are perfect matchings, the union forms a set of disjoint cycles.
 """
-function count_loops(pi, sigma)
+@memoize function count_loops(pi, sigma)
     n = 2 * length(pi)
     adj = Dict{Int, Vector{Int}}()
     for i in 1:n
@@ -276,7 +276,7 @@ Compute the Gram matrix for the Orthogonal group O(d) for 2k indices.
 Rows and columns are indexed by pair partitions of 2k elements.
 G_{pi, sigma} = d^{loops(pi, sigma)}
 """
-function orthogonal_gram_matrix(k::Int, d)
+@memoize function orthogonal_gram_matrix(k::Int, d)
     partitions = get_pair_partitions(2*k)
     N = length(partitions)
     
