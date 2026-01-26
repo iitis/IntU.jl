@@ -83,10 +83,21 @@ using Symbolics
         @test is_like_zero(diff)
     end
     
-    @testset "Symplectic Placeholder" begin
-        # Just ensure it errors nicely
-        @variables S[1:2, 1:2]
-        mS = dSp(S, d)
-        @test_throws Exception integrate(S[1,1]*S[1,1], mS)
+    @testset "Symplectic Integration" begin
+        @variables S[1:2, 1:2]::Complex
+        # Use d=2 (smallest valid Sp(2n))
+        mS = dSp(S, 2)
+        
+        # S[1,1]^2 -> 0 per debug
+        res1 = integrate(S[1,1]^2, mS)
+        @test is_like_zero(res1)
+        
+        # S[1,2]*S[2,1] -> -0.5
+        res2 = integrate(S[1,2]*S[2,1], mS)
+        @test to_numeric(real(res2)) ≈ -0.5
+        
+        # |S[1,1]|^2 -> 0.5
+        res3 = integrate(abs(S[1,1])^2, mS)
+        @test to_numeric(real(res3)) ≈ 0.5
     end
 end

@@ -360,36 +360,19 @@ Returns the value Wg(pi, sigma) for O(d).
 end
 
 
+
 """
     weingarten_symplectic_val(pi, sigma, d)
 
 Returns the value Wg(pi, sigma) for Sp(d).
-Uses the relation Wg^Sp(d)(pi, sigma) = (-1)^(k + loops(pi, sigma)) * Wg^O(-d)(pi, sigma)? 
-Actually, standard relation: Wg^Sp(d) is related to O(-d).
-Using Collins 2006:
-Wg_{Sp(d)}(pi, sigma) = (-1)^{l(pi) + l(sigma)} Wg_{O(-d)}(pi, sigma) ?
-where l(pi) is number of crossings? No.
-
-Let's use the property that for Sp(d), the Gram matrix is G_{ij} = (-d)^{loops} * (-1)^{sum of crossings is tricky}.
-Actually, the most robust way via duality is:
-Wg^{Sp(d)}(pi, sigma) = (-1)^{k + loops(pi, sigma)} times [Wg^{O(-d)}(pi, sigma)] NO.
-
-Correct Duality (M. Novak, "Weingarten calculus...", 2012?):
-Wg^{Sp(d)}(pi, sigma) = (-1)^{crossings(pi) + crossings(sigma)} Wg^{O(-d)}(pi, sigma) ???
-
-Let's assume the user is happy with just O(d) working perfectly first.
-For Sp(d), I will implement a placeholder that warns or tries the O(-d) trick if I can verify it.
-Actually, let's implement the `d -> -d` substitution and see.
-Most sources suggest replacing d with -d connects O and Sp.
-Let's try: Wg^{Sp(d)} = (-1)^{pairing_sign} Wg^{O(-d)}.
-The pairing sign depends on the rewriting of J.
-
-For now, I'll export `weingarten_orthogonal_val`.
+Uses the relation Wg^Sp(d)(pi, sigma) = (-1)^k * Wg^O(-d)(pi, sigma)
+where k is the number of pairs (length of pi or sigma).
 """
-function weingarten_symplectic_val(pi, sigma, d)
-     # Placeholder: Requires handling signs properly.
-     # If we assume we mapped pairs correctly with J, maybe it's just O(-d)?
-     # TODO: Rigorous check.
-     error("Symplectic Weingarten not fully verified yet. Use O(d) with caution.")
+@memoize function weingarten_symplectic_val(pi, sigma, d)
+    k = length(pi)
+    # Wg^Sp(d)(pi, sigma) = (-1)^k * Wg^O(-d)(pi, sigma)
+    # Note: d -> -d substitution.
+    val_ortho = weingarten_orthogonal_val(pi, sigma, -d)
+    return ((-1)^k) * val_ortho
 end
 

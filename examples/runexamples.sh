@@ -7,7 +7,7 @@ echo "========================================"
 echo "    Running IntU.jl Examples            "
 echo "========================================"
 
-for f in examples/0*.jl; do
+for f in examples/*.jl; do
     echo ""
     echo ">>> Running $f"
     julia --project=. "$f"
