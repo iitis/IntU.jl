@@ -4,24 +4,17 @@ set -e
 cd "$(dirname "$0")/.."
 
 echo "========================================"
-echo "    Running IntU.jl Benchmarks          "
+    echo "    Running IntU.jl Benchmarks          "
 echo "========================================"
 
-echo ""
-echo ">>> Running minors.jl"
-julia --project=benchmarks benchmarks/minors.jl
+# Instantiate benchmarks environment to ensure dependencies are available
+julia --project=benchmarks -e 'import Pkg; Pkg.instantiate()'
 
-echo ""
-echo ">>> Running pure_states.jl"
-julia --project=benchmarks benchmarks/pure_states.jl
-
-echo ""
-echo ">>> Running trace_moments.jl"
-julia --project=benchmarks benchmarks/trace_moments.jl
-
-echo ""
-echo ">>> Running symbolic_trace.jl"
-julia --project=benchmarks benchmarks/symbolic_trace.jl
+for f in benchmarks/[0-9]*.jl; do
+    echo ""
+    echo ">>> Running $f"
+    julia --project=benchmarks "$f"
+done
 
 echo ""
 echo "All benchmarks completed successfully."

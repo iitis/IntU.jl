@@ -36,17 +36,24 @@ println("\n--- Symplectic Group Sp(d) ---")
 println("(Note: Sp(d) integration requires d to be even)")
 
 @variables S[1:2, 1:2]
-mS = dSp(S, d)
+# Note: For explicit index calculations involving conjugates, we currently require numeric d to evaluate J contractions.
+d_val = 2
+@variables S[1:2, 1:2]::Complex
+mS = dSp(S, d_val)
 
-println("1. Defining Measure dSp(S, d)")
+println("1. Defining Measure dSp(S, $d_val) with complex variables")
 println("Measure: ", mS)
 
-try
-    println("\n2. Attempting integration of |S[1,1]|^2 (Experimental)")
-    expr_sp = S[1,1]^2
-    res_sp = integrate(expr_sp, mS)
-    println("Result: ", res_sp)
-catch e
-    println("Symplectic integration is currently a work in progress and throws an error as expected.")
-    println("Error: ", e)
-end
+println("\n2. Integrating S[1,1]*S[2,2] (Should be 0.5 for d=2)")
+expr_sp1 = S[1,1]*S[2,2]
+res_sp1 = integrate(expr_sp1, mS)
+println("Result: ", res_sp1)
+
+println("\n3. Integrating S[1,2]*S[2,1] (Should be -0.5)")
+res_sp2 = integrate(S[1,2]*S[2,1], mS)
+println("Result: ", res_sp2)
+
+println("\n4. Integrating |S[1,1]|^2 (Should be 0.5 for d=2)")
+expr_sp3 = abs(S[1,1])^2
+res_sp3 = integrate(expr_sp3, mS)
+println("Result: ", res_sp3)
