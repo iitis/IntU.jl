@@ -8,7 +8,7 @@ function benchmark_trace_moments(d_vals, k_vals)
         println("Benchmarking U($d)")
         @variables U[1:d, 1:d]::Complex
         measure = dU(U, d)
-        tr_U = tr(U)
+        tr_U = IntU.tr(U)
         
         for k in k_vals
             if k > d

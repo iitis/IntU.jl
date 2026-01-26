@@ -52,25 +52,16 @@ function integrate(expr, measure::OrthogonalMeasure)
             for j in 1:size(O_sym, 2)
                 o_ij_num = _safe_Num(O_sym[i,j])
                 o_ij_un = Symbolics.unwrap(o_ij_num)
-                # Use a specific prefix to avoid collision
                 o_atomic = Symbolics.variable(:O_atomic, i, j)
                 
                 O_atomic_lookup[Symbolics.unwrap(o_atomic)] = (i, j)
                 
                 # O is real, so conj(O) = O
-                subs_dict[o_ij_num] = o_atomic
                 subs_dict[o_ij_un] = o_atomic
                 
                 # Handle conjugates by mapping them to the same atomic variable
-                c_ij_num = conj(o_ij_num)
-                c_ij_un = Symbolics.unwrap(c_ij_num)
-                subs_dict[c_ij_num] = o_atomic
-                subs_dict[c_ij_un] = o_atomic
-                
-                bc_ij_num = Base.conj(o_ij_num)
-                bc_ij_un = Symbolics.unwrap(bc_ij_num)
-                subs_dict[bc_ij_num] = o_atomic
-                subs_dict[bc_ij_un] = o_atomic
+                subs_dict[Symbolics.unwrap(conj(o_ij_un))] = o_atomic
+                subs_dict[Symbolics.unwrap(Base.conj(o_ij_un))] = o_atomic
             end
         end
     end
@@ -106,31 +97,10 @@ function integrate(expr, measure::SymplecticMeasure)
                 sb_atomic = Symbolics.variable(:S_bar_atomic, i, j)
                 
                 S_atomic_lookup[Symbolics.unwrap(s_atomic)] = (i, j)
-                # We track bars separately to convert them if needed, or error if not supported yet
-                # For Sp, usually we want to convert bar to non-bar using J.
-                # S_{ij}^* = (J S^T J^T)_{ij} = \sum_{kl} J_{ik} S_{lk} (J^T)_{lj}
-                # This expansion is expensive to do at substitution time.
-                # Better approach: map conj(S_{ij}) to a new variable Sbar_{ij}, 
-                # and in the integration step, we know that we are integrating over Sp(d),
-                # so we can use the specific Weingarten formula which takes pairs of indices,
-                # whether from S or S^* (but S^* needs J factors).
+                S_atomic_lookup[Symbolics.unwrap(sb_atomic)] = (i, j, :conj)
                 
-                # To essentially reuse the O(d) logic (pairing all indices), we can map everything to "Indices".
-                # But we need to know if it came from S or S^*.
-                # Let's use a combined lookup.
-                
-                subs_dict[s_ij_num] = s_atomic
                 subs_dict[s_ij_un] = s_atomic
-                
-                c_ij_num = conj(s_ij_num)
-                c_ij_un = Symbolics.unwrap(c_ij_num)
-                subs_dict[c_ij_num] = sb_atomic
-                subs_dict[c_ij_un] = sb_atomic
-                
-                # Register S_bar as well. We will handle the J logic in the core or just before it.
-                S_atomic_lookup[Symbolics.unwrap(sb_atomic)] = (i, j, :conj) 
-                # Note: modifying the Tuple type for Lookup might break existing code.
-                # We will check integration_core.jl compatibility.
+                subs_dict[Symbolics.unwrap(conj(s_ij_un))] = sb_atomic
             end
         end
     end

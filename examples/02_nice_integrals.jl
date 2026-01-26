@@ -15,7 +15,7 @@ println("For large d, Tr(U) converges to a complex Gaussian.")
 println("Expected moments: k! (1, 2, 6, 24...) for d >= k")
 
 # Using overloaded tr(U)
-tr_U = tr(U)
+tr_U = IntU.tr(U)
 
 for k in 1:d_val
     # |Tr(U)|^(2k) = (Tr(U) * conj(Tr(U)))^k = abs(Tr(U))^(2k)

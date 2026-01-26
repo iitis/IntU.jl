@@ -22,7 +22,7 @@ function to_numeric(x)
         return sim2_un
     end
     
-    if isequal(sim, 0) || isequal(sim2, 0)
+    if IntU._symbolic_isequal(sim, 0) || IntU._symbolic_isequal(sim2, 0)
         return 0.0
     end
     
@@ -35,7 +35,7 @@ function to_numeric(x)
     catch
     end
     
-    if isequal(sim, 0)
+    if IntU._symbolic_isequal(sim, 0)
         return 0.0
     end
     return x_un

@@ -9,8 +9,8 @@ using Test
         @variables rho[1:2, 1:2]::Complex
         @variables sigma[1:2, 1:2]::Complex
         
-        @test isequal(purity(rho), tr(rho * rho))
-        @test isequal(fidelity(rho, sigma), tr(rho * sigma))
+        @test IntU._symbolic_isequal(purity(rho), IntU.tr(rho * rho))
+        @test IntU._symbolic_isequal(fidelity(rho, sigma), IntU.tr(rho * sigma))
         
         @variables U[1:2, 1:2]::Complex
         measure = dU(U, 2)

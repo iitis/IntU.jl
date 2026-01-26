@@ -3,8 +3,15 @@
 # Helper to wrap complex numbers in Num safely
 _to_Num(z::Complex) = Complex(Num(real(z)), Num(imag(z)))
 _to_Num(z) = Num(z)
-Base.isequal(a::Complex{Num}, b::Num) = isequal(real(a), b) && isequal(imag(a), 0)
-Base.isequal(a::Num, b::Complex{Num}) = isequal(b, a)
+# Helper for symbolic equality to avoid piracy
+_symbolic_isequal(a, b) = isequal(a, b)
+_symbolic_isequal(a::Complex{Num}, b::Num) = isequal(real(a), b) && iszero(imag(a))
+_symbolic_isequal(a::Num, b::Complex{Num}) = _symbolic_isequal(b, a)
+_symbolic_isequal(a::Complex{Num}, b::Real) = isequal(real(a), b) && iszero(imag(a))
+_symbolic_isequal(a::Real, b::Complex{Num}) = _symbolic_isequal(b, a)
+_symbolic_isequal(a::Complex{Num}, b::Complex{Num}) = isequal(real(a), real(b)) && isequal(imag(a), imag(b))
+_symbolic_isequal(a::Complex{Num}, b::Complex) = isequal(real(a), real(b)) && isequal(imag(a), imag(b))
+_symbolic_isequal(a::Complex, b::Complex{Num}) = _symbolic_isequal(b, a)
 
 function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type=:U)
     if expr isa Complex
@@ -107,7 +114,7 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup, me
         try
             res = Symbolics.substitute(Symbolics.wrap(ex), dict)
             # If nothing changed, try deeper dive
-            if isequal(res, Symbolics.wrap(ex))
+            if _symbolic_isequal(res, Symbolics.wrap(ex))
                  throw(error("No change"))
             end
             return res
@@ -242,7 +249,7 @@ function _iszero(x)
     if x_un isa Number
         return iszero(x_un)
     end
-    return isequal(x_un, 0)
+    return _symbolic_isequal(x_un, 0)
 end
 
 function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
@@ -266,7 +273,7 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
         # Exact match or string match for robustness
         found = false
         for (k, v) in U_atomic_lookup
-            if isequal(k, t_unwrapped) || string(k) == t_str
+            if _symbolic_isequal(k, t_unwrapped) || string(k) == t_str
                 # Check if it's a conjugate entry for Symplectic
                 if length(v) == 3 && v[3] == :conj
                     if measure_type == :Sp
@@ -293,7 +300,7 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
         found && return
         
         for (k, v) in U_bar_lookup
-            if isequal(k, t_unwrapped) || string(k) == t_str
+            if _symbolic_isequal(k, t_unwrapped) || string(k) == t_str
                 push!(u_bar_indices, v)
                 found = true; break
             end
@@ -325,7 +332,7 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
                 inner_str = string(inner)
                 # conj(U) -> U_bar
                 for (k, v) in U_atomic_lookup
-                    if isequal(k, inner) || string(k) == inner_str
+                    if _symbolic_isequal(k, inner) || string(k) == inner_str
                         if measure_type == :Sp
                              # Perform same Sp duality rewrite here!
                              if !(dim isa Integer)
@@ -345,7 +352,7 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
                 end
                 # conj(U_bar) -> U
                 for (k, v) in U_bar_lookup
-                    if isequal(k, inner) || string(k) == inner_str
+                    if _symbolic_isequal(k, inner) || string(k) == inner_str
                         push!(u_indices, v)
                         return
                     end
@@ -369,7 +376,7 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
         end
         
         val = integrate_indices(u_indices, u_bar_indices, dim)
-        if isequal(val, 0)
+        if _symbolic_isequal(val, 0)
             return 0
         end
         return coeff * val
@@ -388,7 +395,7 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
         end
         
         val = integrate_indices_orthogonal(all_indices, dim)
-        if isequal(val, 0)
+        if _symbolic_isequal(val, 0)
             return 0
         end
         return coeff * val
@@ -410,7 +417,7 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
         end
         
         val = integrate_indices_symplectic(all_indices, dim)
-        if isequal(val, 0)
+        if _symbolic_isequal(val, 0)
             return 0
         end
         return coeff * val
@@ -640,12 +647,12 @@ function integrate_indices_symplectic(indices::Vector{Tuple{Int, Int}}, dim)
     
     for pi in partitions
         val_I = compute_symplectic_contraction(pi, I, dim)
-        if !isequal(val_I, 0)
+        if !_symbolic_isequal(val_I, 0)
              pi_contractions[pi] = val_I
         end
         
         val_J = compute_symplectic_contraction(pi, J_idx, dim)
-        if !isequal(val_J, 0)
+        if !_symbolic_isequal(val_J, 0)
              sigma_contractions[pi] = val_J
         end
     end
@@ -700,7 +707,7 @@ function compute_symplectic_contraction(partition, indices, dim)
         idx_v = indices[v]
         
         j_val = symplectic_form(idx_u, idx_v, dim)
-        if isequal(j_val, 0)
+        if _symbolic_isequal(j_val, 0)
             return 0
         end
         val *= j_val
@@ -755,9 +762,20 @@ end
 
 
 # Overloads for symbolic types to make them "just work" with tr, det etc.
-function LinearAlgebra.tr(A::Symbolics.Arr{T, 2}) where T
+"""
+    tr(A)
+
+Compute the trace of a matrix. Works for both standard matrices (via `LinearAlgebra.tr`) 
+and symbolic arrays (by summing diagonal elements).
+"""
+function tr(A::Symbolics.Arr{T, 2}) where T
     return sum(A[i,i] for i in 1:size(A,1))
 end
+
+function tr(A)
+    return LinearAlgebra.tr(A)
+end
+
 
 """
     _poly_degree(p, d)
@@ -775,7 +793,7 @@ function _poly_degree(p, d)
         # Fallback to very basic manual checking if degree fails
         p_un = Symbolics.unwrap(p)
         d_un = Symbolics.unwrap(d)
-        if isequal(p_un, d_un) return 1 end
+        if _symbolic_isequal(p_un, d_un) return 1 end
         return 0
     end
 end
@@ -877,7 +895,7 @@ function _expand_asymptotic(ex, d, order)
                 Symbolics.substitute(curr_sim, Dict(ϵ => 0))
             catch
                 # Last resort: very basic search and replace
-                Symbolics.wrap(SymbolicUtils.Postwalk(x -> isequal(x, ϵ_un) ? 0 : x)(Symbolics.unwrap(curr_deriv)))
+                Symbolics.wrap(SymbolicUtils.Postwalk(x -> _symbolic_isequal(x, ϵ_un) ? 0 : x)(Symbolics.unwrap(curr_deriv)))
             end
         end
         
