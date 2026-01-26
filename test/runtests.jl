@@ -73,4 +73,8 @@ end
     @testset verbose=true "Symbolic Trace" begin
         include("symbolic_trace.jl")
     end
+
+    @testset verbose=true "GUE Integration" begin
+        include("gue.jl")
+    end
 end

@@ -421,6 +421,27 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
             return 0
         end
         return coeff * val
+        
+    elseif measure_type == :GUE
+        # Gaussian measure
+        # We collected all indices into `u_indices` (because we mapped conjugated vars to H_{ji} in lookup)
+        # `u_bar_indices` should be empty if `traverse` worked as expected for GUE logic.
+        
+        all_indices = [u_indices; u_bar_indices]
+        n_total = length(all_indices)
+        
+        if n_total % 2 != 0
+            return 0
+        end
+        if n_total == 0
+            return coeff
+        end
+        
+        val = integrate_indices_gue(all_indices, dim)
+        if _symbolic_isequal(val, 0)
+            return 0
+        end
+        return coeff * val
     else
         error("Unknown measure type: $measure_type")
     end
@@ -668,6 +689,74 @@ function integrate_indices_symplectic(indices::Vector{Tuple{Int, Int}}, dim)
         end
     end
     
+    return total
+end
+
+"""
+    integrate_indices_gue(indices, dim)
+    
+Low-level integration function using Wick's theorem for GUE.
+Formula: sum_{pi in PairPartitions} prod_{(u, v) in pi} delta(i_u, j_v) * delta(j_u, i_v)
+"""
+function integrate_indices_gue(indices::Vector{Tuple{Int, Int}}, dim)
+    n = length(indices) # Must be even
+    
+    # Generate partitions of 1..n into pairs
+    partitions = get_pair_partitions(n)
+    
+    total = 0 // 1
+    
+    for pi in partitions
+        # For each pair (u, v) in pi, we compute contraction
+        term_val = 1
+        possible = true
+        
+        for (u, v) in pi
+            (i_u, j_u) = indices[u]
+            (i_v, j_v) = indices[v]
+            
+            # Contraction < H_{i_u j_u} H_{i_v j_v} > = delta_{i_u j_v} * delta_{j_u i_v}
+            # Check equalities
+            if !_symbolic_isequal(i_u, j_v) || !_symbolic_isequal(j_u, i_v)
+                possible = false
+                break
+            end
+        end
+        
+        if possible
+            total += 1
+        end
+    end
+    
+    return total
+end
+
+"""
+    integrate_indices_gue(indices, dim) (symbolic overload compatibility)
+    
+    This function handles the combinatorics of GUE integration.
+"""
+function integrate_indices_gue(indices::Vector{Any}, dim)
+     # Fallback if indices ended up being Any due to some conversion, but typically they are Tuples of Int/Symbol
+     # We cast to vector of tuples if possible
+     return integrate_indices_gue(Vector{Tuple{Any, Any}}(indices), dim) 
+end
+
+function integrate_indices_gue(indices::Vector{Tuple{Any, Any}}, dim)
+    n = length(indices)
+    partitions = get_pair_partitions(n)
+    total = 0 // 1
+    for pi in partitions
+        possible = true
+        for (u, v) in pi
+            (i_u, j_u) = indices[u]
+            (i_v, j_v) = indices[v]
+            if !_symbolic_isequal(i_u, j_v) || !_symbolic_isequal(j_u, i_v)
+                possible = false; break;
+            end
+        end
+        if possible; total += 1; end
+    end
     return total
 end
 
