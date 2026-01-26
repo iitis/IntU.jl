@@ -81,4 +81,8 @@ end
     @testset verbose=true "GOE Integration" begin
         include("goe.jl")
     end
+
+    @testset verbose=true "Gaussian Miscellaneous" begin
+        include("gaussian_misc.jl")
+    end
 end

@@ -52,7 +52,7 @@ function integrate(expr, measure::HaarMeasure)
         end
     end
 
-    return _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
+    return _robust_real_num(_integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup))
 end
 
 """

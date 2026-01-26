@@ -244,6 +244,11 @@ function _robust_real(x)
     return x_un
 end
 
+function _robust_real_num(x)
+    res = _robust_real(x)
+    return _safe_Num(res)
+end
+
 function _iszero(x)
     x_un = Symbolics.unwrap(x)
     if x_un isa Number
