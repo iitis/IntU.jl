@@ -142,6 +142,55 @@ Its average is:
 ```
 assuming trace-1 normalization, this simplifies to $1/d$.
 
+## Symbolic Trace Logic
+
+While the standard Weingarten formula (Eq. 37) works with explicit indices
+$U_{ij}$, it is often more convenient to work with coordinate-free expressions
+involving traces of matrix products, such as $\operatorname{Tr}(U A U^\dagger
+B)$. This approach is known as the **Graphical Weingarten Calculus**.
+
+### Theoretical Basis
+
+The integral $\int dU U_{i_1 j_1} \dots \bar{U}_{k_n l_n}$ can be interpreted as
+a sum over pairings of the input and output indices of $U$ and $\bar{U}$. In the
+graphical notation:
+- Each $U$ is a box with an input wire (index $j$) and an output wire (index
+  $i$).
+- Each $\bar{U}$ (or $U^\dagger$) is a box with an input wire (index $l$) and an
+  output wire (index $k$).
+- The Weingarten formula sums over permutations $\sigma, \tau \in S_n$ that
+  connect these wires:
+  - $\sigma$ connects the output of the $m$-th $U$ to the output of the
+    $\sigma(m)$-th $U^\dagger$ (indices $i$ and $k$).
+  - $\tau$ connects the input of the $m$-th $U$ to the input of the $\tau(m)$-th
+    $U^\dagger$ (indices $j$ and $l$).
+
+When we integrate a trace like $\operatorname{Tr}(U A U^\dagger B)$, we are
+essentially closing the loops of indices with the constant matrices $A$ and $B$.
+
+### Algorithm
+
+The symbolic trace integration algorithm in `IntU.jl` operates as follows:
+1.  **Identify $U$ and $U^\dagger$ sites**: The expression is treated as a
+    cyclic word of symbolic matrices.
+2.  **Generate Wires**: Constant matrices between unitary factors form "wires"
+    or partial traces.
+3.  **Sum over Permutations**: For each pair $(\sigma, \tau)$:
+    - Connect $U$ and $U^\dagger$ indices according to $\sigma$ and $\tau$.
+    - Traverse the resulting graph. Cycles formed by traversing the graph
+      correspond to full traces of products of the constant matrices encountered
+      along the path.
+    - Each cycle contributes a factor $\operatorname{Tr}(\dots)$.
+    - If a cycle contains no constant matrices, it contributes a factor of $d$.
+4.  **Weighting**: The contribution is weighted by
+    $\operatorname{Wg}(\sigma\tau^{-1}, d)$.
+
+This allows computing results like:
+```math
+\int_{U(d)} \operatorname{Tr}(U A U^\dagger B) dU = \frac{\operatorname{Tr}(A)\operatorname{Tr}(B)}{d}
+```
+symbolically, without expanding into $d^4$ tensor indices.
+
 ### References
 
 - **[CoSn06]** Collins, B., & Śniady, P. (2006). Integration with respect to the
@@ -150,6 +199,12 @@ assuming trace-1 normalization, this simplifies to $1/d$.
   [arXiv:math-ph/0402073](https://arxiv.org/abs/math-ph/0402073)
 - **[Broud16]** Brouder, C. (2016). A Mathematica package for symbolic
   integration over the unitary group. *Journal of Symbolic Computation*.
-- **[DiaSha98]** Diaconis, P., & Shahshahani, M. (1998). On the eigenvalues of random matrices. *Journal of Applied Probability*, 31A, 49-62.
-- **[PuMi17]** Puchała, Z., & Miszczak, J. A. (2017). Symbolic integration with respect to the Haar measure on the unitary groups. *Bulletin of the Polish Academy of Sciences Technical Sciences*, 65(1), 21-27. [arXiv:1109.4244](https://arxiv.org/abs/1109.4244)
-- **[Novak14]** Novak, J. (2014). Three lectures on free probability. *Random Matrix Theory, Interacting Particle Systems, and Integrable Systems*, 65, 309-383. [arXiv:1205.2097](https://arxiv.org/abs/1205.2097)
+- **[DiaSha98]** Diaconis, P., & Shahshahani, M. (1998). On the eigenvalues of
+  random matrices. *Journal of Applied Probability*, 31A, 49-62.
+- **[PuMi17]** Puchała, Z., & Miszczak, J. A. (2017). Symbolic integration with
+  respect to the Haar measure on the unitary groups. *Bulletin of the Polish
+  Academy of Sciences Technical Sciences*, 65(1), 21-27.
+  [arXiv:1109.4244](https://arxiv.org/abs/1109.4244)
+- **[Novak14]** Novak, J. (2014). Three lectures on free probability. *Random
+  Matrix Theory, Interacting Particle Systems, and Integrable Systems*, 65,
+  309-383. [arXiv:1205.2097](https://arxiv.org/abs/1205.2097)

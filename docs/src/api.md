@@ -24,6 +24,14 @@ average_fidelity
 partial_trace
 ```
 
+## Symbolic Trace Logic
+
+```@docs
+SymbolicMatrix
+tr_lazy
+LazyTrace
+```
+
 ## Internal Utilities
 
 ```@docs

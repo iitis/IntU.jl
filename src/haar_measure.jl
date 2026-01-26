@@ -33,17 +33,27 @@ function integrate(expr, measure::HaarMeasure)
     if U_sym isa AbstractArray
         for i in 1:size(U_sym, 1)
             for j in 1:size(U_sym, 2)
-                u_ij = U_sym[i,j]
+                u_ij_num = _safe_Num(U_sym[i,j])
+                u_ij_un = Symbolics.unwrap(u_ij_num)
                 u_atomic = Symbolics.variable(:U_atomic, i, j)
                 u_bar_atomic = Symbolics.variable(:U_bar_atomic, i, j)
                 
                 U_atomic_lookup[Symbolics.unwrap(u_atomic)] = (i, j)
                 U_bar_lookup[Symbolics.unwrap(u_bar_atomic)] = (i, j)
                 
-                subs_dict[u_ij] = u_atomic
-                subs_dict[conj(u_ij)] = u_bar_atomic
-                subs_dict[real(u_ij)] = (1//2) * (u_atomic + u_bar_atomic)
-                subs_dict[imag(u_ij)] = (1//(2im)) * (u_atomic - u_bar_atomic)
+                # Add both wrapped and unwrapped to be safe
+                subs_dict[u_ij_num] = u_atomic
+                subs_dict[u_ij_un] = u_atomic
+                
+                c_ij_num = conj(u_ij_num)
+                c_ij_un = Symbolics.unwrap(c_ij_num)
+                subs_dict[c_ij_num] = u_bar_atomic
+                subs_dict[c_ij_un] = u_bar_atomic
+                
+                bc_ij_num = Base.conj(u_ij_num)
+                bc_ij_un = Symbolics.unwrap(bc_ij_num)
+                subs_dict[bc_ij_num] = u_bar_atomic
+                subs_dict[bc_ij_un] = u_bar_atomic
             end
         end
     end

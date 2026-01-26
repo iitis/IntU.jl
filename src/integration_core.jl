@@ -38,6 +38,11 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
     r_abs_sq = @rule abs(~x)^2 => (~x) * conj(~x)
     r_abs = @rule abs(~x) => hypot(real(~x), imag(~x))
     
+    r_real = @rule real(~x) => (1//2) * (~x + conj(~x))
+    r_real_base = @rule Base.real(~x) => (1//2) * (~x + conj(~x))
+    r_imag = @rule imag(~x) => (1//(2im)) * (~x - conj(~x))
+    r_imag_base = @rule Base.imag(~x) => (1//(2im)) * (~x - conj(~x))
+    
     # Rewrite hypot(x,y) -> ((x + i*y)(x - i*y))^(1//2) ONLY if x, y are Sums
     r_hypot_sum = @rule hypot(~x::is_add, ~y::is_add) => ((~x + im*~y) * (~x - im*~y))^(1//2)
     # Fallback/Default for non-sums:
@@ -50,7 +55,7 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
     expr_unwrapped = Symbolics.unwrap(expr)
     
     # Apply rewrites
-    chain = SymbolicUtils.Chain([r_abs_sq, r_abs, r_hypot_sum, r_hypot_default, r_complex, r_complex_base])
+    chain = SymbolicUtils.Chain([r_abs_sq, r_abs, r_real, r_real_base, r_imag, r_imag_base, r_hypot_sum, r_hypot_default, r_complex, r_complex_base])
     expr_rewritten = SymbolicUtils.Postwalk(SymbolicUtils.PassThrough(chain))(expr_unwrapped)
     
     # Manual power fixing function
@@ -95,13 +100,30 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
     catch
     end
 
-    # Substitute using SymbolicUtils but fallback to Postwalk on TypeError
+    # Substitute using Symbolics.substitute with a robust Postwalk fallback
     function robust_substitute(ex, dict)
+        # 1. Try high-level substitute (works for Num and mapped sub-expressions)
         try
-            return Symbolics.substitute(Symbolics.wrap(ex), dict)
+            res = Symbolics.substitute(Symbolics.wrap(ex), dict)
+            # If nothing changed, try deeper dive
+            if isequal(res, Symbolics.wrap(ex))
+                 throw(error("No change"))
+            end
+            return res
         catch
-            # Truly brute force fallback using only symbols if possible
-            return SymbolicUtils.Postwalk(x -> x isa Symbolics.Num ? get(dict, x, x) : x)(ex)
+            # 2. Fallback to manual Postwalk traversal
+            # We unwrap both the expression and the dictionary keys for raw comparison
+            unwrapped_dict = Dict(Symbolics.unwrap(k) => Symbolics.unwrap(v) for (k, v) in dict)
+            
+            p_res = SymbolicUtils.Postwalk(x -> begin
+                u = Symbolics.unwrap(x)
+                if haskey(unwrapped_dict, u)
+                    return unwrapped_dict[u]
+                end
+                return x
+            end)(Symbolics.unwrap(ex))
+            
+            return Symbolics.wrap(p_res)
         end
     end
 
@@ -127,7 +149,6 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
         println("DEBUG: Expansion failed: ", e)
         expanded_expr = _safe_Num(expanded_expr)
     end
-
 
     # Helper to traverse product
     function process_term_wrapped(term)
@@ -231,13 +252,7 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim)
     
     if Symbolics.iscall(term)
         op = Symbolics.operation(term)
-        if op == real
-            return process_term(Symbolics.arguments(term)[1], U_atomic_lookup, U_bar_lookup, dim)
-        elseif op == imag
-            return 0
-        elseif op == abs
-            return process_term(Symbolics.arguments(term)[1], U_atomic_lookup, U_bar_lookup, dim)
-        elseif op == (+)
+        if op == (+)
             return sum(t -> process_term(t, U_atomic_lookup, U_bar_lookup, dim), Symbolics.arguments(term))
         end
     end
@@ -289,14 +304,23 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim)
                     for _ in 1:p; traverse(base); end
                     return
                 end
-            elseif op == real || op == Base.real
-                traverse(args[1]); return
-            elseif op == imag || op == Base.imag
-                coeff = 0; return
-            elseif op == abs || op == Base.abs
-                traverse(args[1]); return
             elseif op == conj || op == Base.conj
-                 traverse(args[1]); return
+                inner = Symbolics.unwrap(args[1])
+                inner_str = string(inner)
+                # conj(U) -> U_bar
+                for (k, v) in U_atomic_lookup
+                    if isequal(k, inner) || string(k) == inner_str
+                        push!(u_bar_indices, v)
+                        return
+                    end
+                end
+                # conj(U_bar) -> U
+                for (k, v) in U_bar_lookup
+                    if isequal(k, inner) || string(k) == inner_str
+                        push!(u_indices, v)
+                        return
+                    end
+                end
             end
         end
         
@@ -431,30 +455,30 @@ end
 Helper to get the degree of a polynomial `p` in variable `d`.
 """
 function _poly_degree(p, d)
-    p_un = Symbolics.unwrap(p)
-    if isequal(p_un, d) return 1 end
-    if !(p_un isa SymbolicUtils.BasicSymbolic) return 0 end
-    if Symbolics.iscall(p_un)
-        op = Symbolics.operation(p_un)
-        args = Symbolics.arguments(p_un)
-        if op == (+)
-            return maximum(a -> _poly_degree(a, d), args, init=0)
-        elseif op == (*)
-            return sum(a -> _poly_degree(a, d), args)
-        elseif op == (^)
-            # Handle power if exponent is an integer
-            base = args[1]
-            expon = Symbolics.unwrap(args[2])
-            if expon isa Integer
-                return _poly_degree(base, d) * expon
-            elseif expon isa Rational && isinteger(expon)
-                return _poly_degree(base, d) * Int(expon)
-            end
-        end
+    # Use Symbolics' built-in degree function for maximum reliability
+    try
+        # Symbolics.degree(poly, var)
+        # We need to make sure both are wrapped
+        deg = Symbolics.degree(Symbolics.wrap(p), Symbolics.wrap(d))
+        return Int(Symbolics.unwrap(deg))
+    catch
+        # Fallback to very basic manual checking if degree fails
+        p_un = Symbolics.unwrap(p)
+        d_un = Symbolics.unwrap(d)
+        if isequal(p_un, d_un) return 1 end
+        return 0
     end
-    return 0
 end
 
+
+"""
+    asymptotic(ex, d, order=1)
+
+Generic asymptotic expansion of a rational function `ex` in powers of `1/d`.
+"""
+function asymptotic(ex, d, order=1)
+    return _expand_asymptotic(ex, d, order)
+end
 
 """
     _expand_asymptotic(ex, d, order)
@@ -472,54 +496,97 @@ function _expand_asymptotic(ex, d, order)
         im_part = _expand_asymptotic(imag(ex_un), d, order)
         return re_part + im * im_part
     end
-    if !(ex_un isa Symbolics.Num) && !(ex_un isa SymbolicUtils.BasicSymbolic)
+    if !(ex_un isa Symbolics.Num) && !(ex_un isa SymbolicUtils.BasicSymbolic) && !(ex_un isa Number)
         return ex_un
     end
     
+    d_un = Symbolics.unwrap(d)
+    d_num = Symbolics.wrap(d_un)
+    
     # We want expansion in 1/d. Let eps = 1/d.
-    # Ensure it is a single fraction
-    ex_sim = SymbolicUtils.simplify_fractions(ex_un)
+    # To handle rational functions correctly:
+    # Get numerator and denominator after simplification to ensure rational form
+    ex_sim = Symbolics.simplify(Symbolics.wrap(ex_un))
+    
+    # Handle the case where simplify result is still complex (e.g. constant complex or complex num)
+    if ex_sim isa Complex
+        re_part = _expand_asymptotic(real(ex_sim), d, order)
+        im_part = _expand_asymptotic(imag(ex_sim), d, order)
+        return re_part + im * im_part
+    end
+    
     num = Symbolics.numerator(ex_sim)
     den = Symbolics.denominator(ex_sim)
     
+    # Get degrees to clear internal denominators when d -> 1/eps
+    n = _poly_degree(num, d_un)
+    m = _poly_degree(den, d_un)
+    
     ϵ = Symbolics.variable(:ϵ)
+    ϵ_un = Symbolics.unwrap(ϵ)
     
-    # Get degrees to clear denominators
-    n = _poly_degree(num, d)
-    m = _poly_degree(den, d)
-    max_deg = max(n, m)
+    # If n > m, we have positive powers of d (pole at infinity).
+    # If m >= n, we have rational part starting from (1/d)^(m-n).
     
-    # Substitute d -> 1/ϵ and clear denominators by multiplying by ϵ^max_deg
-    # P_eps(ϵ) = num(1/ϵ) * ϵ^max_deg
-    # Q_eps(ϵ) = den(1/ϵ) * ϵ^max_deg
-    p_eps = Symbolics.simplify(Symbolics.substitute(num, Dict(d => 1/ϵ)) * ϵ^max_deg)
-    q_eps = Symbolics.simplify(Symbolics.substitute(den, Dict(d => 1/ϵ)) * ϵ^max_deg)
+    # f_analytic = ex(1/eps) * eps^(n-m)
+    # Use expand=true to ensure internal 1/ϵ terms are cleared immediately
+    p_eps = Symbolics.simplify(Symbolics.substitute(num, Dict(d_num => 1/ϵ)) * ϵ^n; expand=true)
+    q_eps = Symbolics.simplify(Symbolics.substitute(den, Dict(d_num => 1/ϵ)) * ϵ^m; expand=true)
     
-    # Now we have a well-behaved rational function f_eps = p_eps / q_eps
-    f_eps = p_eps / q_eps
+    # Now (p_eps / q_eps) is analytic at 0.
+    f_analytic = Symbolics.simplify(p_eps / q_eps; expand=true)
     
-    total = 0 // 1
-    curr_deriv = f_eps
+    total = Num(0)
+    curr_deriv = f_analytic
+    # ex(1/eps) = f_analytic(eps) * eps^(m-n)
+    diff = m - n
     
-    for k in 0:order
-        # Evaluate at ϵ = 0. Substitute into p_eps and q_eps separately to avoid 0/0 if possible,
-        # but p_eps/q_eps should be fine after simplification.
+    # We need to expand until we reach requested order in 1/d
+    # power = k + diff. We want power <= order.
+    # So k <= order - diff.
+    # But if diff is negative (polynomial), we want to capture all terms.
+    max_k = order - diff
+    
+    for k in 0:max_k
+        # Robust evaluation at ϵ = 0
+        # Aggressively simplify to clear denominators before substitution
         val = try
-            # If q_eps(0) is 0, then f_eps is singular at 0. 
-            # This would mean the integral has positive powers of d.
-            # We handle this by using limit or just substitute.
-            Symbolics.substitute(curr_deriv, Dict(ϵ => 0))
+            v = Symbolics.substitute(curr_deriv, Dict(ϵ => 0))
+            vu = Symbolics.unwrap(v)
+            if isnan(vu) || isinf(vu)
+                # If NaN/Inf, try more aggressive simplification
+                curr_sim = Symbolics.simplify(curr_deriv; expand=true)
+                Symbolics.substitute(curr_sim, Dict(ϵ => 0))
+            else
+                v
+            end
         catch
-            Symbolics.substitute(Symbolics.simplify(curr_deriv), Dict(ϵ => 0))
+            # Fallback to direct replacement in expression (Postwalk-like recursion)
+            try
+                curr_sim = Symbolics.simplify(curr_deriv; expand=true)
+                Symbolics.substitute(curr_sim, Dict(ϵ => 0))
+            catch
+                # Last resort: very basic search and replace
+                Symbolics.wrap(SymbolicUtils.Postwalk(x -> isequal(x, ϵ_un) ? 0 : x)(Symbolics.unwrap(curr_deriv)))
+            end
         end
         
-        if !isequal(val, 0)
-            term = (val // factorial(k)) * (1/d)^k
+        if !_iszero(val)
+            power = k + diff
+            term = (val * (1//factorial(k))) * (1/d_num)^power
             total += term
         end
         
-        if k < order
+        if k < max_k
             curr_deriv = Symbolics.derivative(curr_deriv, ϵ)
+            # Occasional simplify to manage expression size
+            if k % 2 == 0
+                 try
+                     curr_deriv = Symbolics.simplify(curr_deriv; expand=true)
+                 catch
+                     # If simplify fails, continue with unsimplified expression
+                 end
+            end
         end
     end
     

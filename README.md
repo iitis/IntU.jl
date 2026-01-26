@@ -95,6 +95,29 @@ println(res)
 # Output: 2/d^2 - 2/d^3 + 2/d^4
 ```
 
+### 5. Symbolic Trace Logic
+
+Perform symbolic integration of traces of matrix products involving Unitaries and constant matrices, without explicit indices.
+
+```julia
+# Define symbolic matrices
+U_sym = SymbolicMatrix(:U, false, :U)
+A = SymbolicMatrix(:A)
+B = SymbolicMatrix(:B)
+
+# Compute Integral of Tr(U A U' B)
+expr = tr_lazy(U_sym * A * U_sym' * B)
+res = integrate(expr, measure)
+println(res)
+# Output simplified: tr(A) * tr(B) / d
+```
+
+> **Note on Output Format**: Julia displays symbolic variables with special
+> characters (like parentheses) using the `var"name"` syntax. For example,
+> `var"tr_val(A)"` represents the variable named `tr_val(A)`, which corresponds
+> to $\operatorname{tr}(A)$. The output `(var"tr_val(A)"*var"tr_val(B)") / d`
+> should be read as $\frac{\operatorname{tr}(A)\operatorname{tr}(B)}{d}$.
+
 ## Development and Verification
 
 The package follows a modular architecture for maintainability. You can run all

@@ -1,0 +1,5 @@
+[deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+IntU = "70c8b9a1-b4c5-4d7a-a56e-8e7e6495d68b"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
