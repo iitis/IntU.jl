@@ -42,9 +42,9 @@ function to_numeric(x)
 end
 
 @testset verbose=true "IntU.jl Suite" begin
-    # @testset verbose=true "Aqua Tests" begin
-    #     include("aqua.jl")
-    # end
+    @testset verbose=true "Aqua Tests" begin
+        include("aqua.jl")
+    end
     
     @testset verbose=true "Weingarten Calculus" begin
         include("weingarten.jl")

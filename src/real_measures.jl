@@ -32,7 +32,11 @@ dSp(S::AbstractArray{T,N}, dim) where {T,N} = SymplecticMeasure{T,N,typeof(dim)}
 """
     integrate(expr, measure::OrthogonalMeasure)
 """
-function integrate(expr::AbstractArray, measure::Union{OrthogonalMeasure, SymplecticMeasure})
+function integrate(expr::AbstractArray, measure::OrthogonalMeasure)
+    return map(e -> integrate(e, measure), expr)
+end
+
+function integrate(expr::AbstractArray, measure::SymplecticMeasure)
     return map(e -> integrate(e, measure), expr)
 end
 
