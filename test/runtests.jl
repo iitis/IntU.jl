@@ -77,4 +77,8 @@ end
     @testset verbose=true "GUE Integration" begin
         include("gue.jl")
     end
+
+    @testset verbose=true "GOE Integration" begin
+        include("goe.jl")
+    end
 end

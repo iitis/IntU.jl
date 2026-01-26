@@ -442,6 +442,18 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
             return 0
         end
         return coeff * val
+        
+    elseif measure_type == :GOE
+        # Gaussian Orthogonal measure
+        all_indices = [u_indices; u_bar_indices]
+        n_total = length(all_indices)
+        
+        if n_total % 2 != 0; return 0; end
+        if n_total == 0; return coeff; end
+        
+        val = integrate_indices_goe(all_indices, dim)
+        if _symbolic_isequal(val, 0); return 0; end
+        return coeff * val
     else
         error("Unknown measure type: $measure_type")
     end
@@ -756,6 +768,99 @@ function integrate_indices_gue(indices::Vector{Tuple{Any, Any}}, dim)
             end
         end
         if possible; total += 1; end
+    end
+    return total
+end
+
+"""
+    integrate_indices_goe(indices, dim)
+    
+Low-level integration function using Wick's theorem for GOE.
+Formula: sum_{pi in PairPartitions} prod_{(u, v) in pi} (delta(i_u, k_v)*delta(j_u, l_v) + delta(i_u, l_v)*delta(j_u, k_v))
+where pair is H_{i_u j_u} and H_{k_v l_v} (indices re-labeled for clarity).
+"""
+function integrate_indices_goe(indices::Vector{Tuple{Int, Int}}, dim)
+    n = length(indices) # Must be even
+    partitions = get_pair_partitions(n)
+    
+    total = 0 // 1
+    
+    for pi in partitions
+        term_val = 1
+        possible = true
+        
+        for (u, v) in pi
+            (i1, j1) = indices[u]
+            (i2, j2) = indices[v]
+            
+            # Contraction rule for GOE: delta(i1, i2)delta(j1, j2) + delta(i1, j2)delta(j1, i2)
+            # We evaluate this "value" which is 0, 1, or 2.
+            
+            val_pair = 0 // 1
+            
+            # Check match 1: i1==i2 AND j1==j2
+            match1 = _symbolic_isequal(i1, i2) && _symbolic_isequal(j1, j2)
+            
+            # Check match 2: i1==j2 AND j1==i2
+            match2 = _symbolic_isequal(i1, j2) && _symbolic_isequal(j1, i2)
+            
+            if match1
+                val_pair += 1
+            end
+            if match2
+                val_pair += 1
+            end
+            
+            if val_pair == 0
+                possible = false
+                break
+            end
+            term_val *= val_pair
+        end
+        
+        if possible
+            total += term_val
+        end
+    end
+    
+    return total
+end
+
+function integrate_indices_goe(indices::Vector{Any}, dim)
+     return integrate_indices_goe(Vector{Tuple{Any, Any}}(indices), dim) 
+end
+
+function integrate_indices_goe(indices::Vector{Tuple{Any, Any}}, dim)
+    n = length(indices) # Must be even
+    partitions = get_pair_partitions(n)
+    
+    total = 0 // 1
+    
+    for pi in partitions
+        term_val = 1
+        possible = true
+        
+        for (u, v) in pi
+            (i1, j1) = indices[u]
+            (i2, j2) = indices[v]
+            
+            val_pair = 0 // 1
+            match1 = _symbolic_isequal(i1, i2) && _symbolic_isequal(j1, j2)
+            match2 = _symbolic_isequal(i1, j2) && _symbolic_isequal(j1, i2)
+            
+            if match1; val_pair += 1; end
+            if match2; val_pair += 1; end
+            
+            if val_pair == 0
+                possible = false
+                break
+            end
+            term_val *= val_pair
+        end
+        
+        if possible
+            total += term_val
+        end
     end
     return total
 end

@@ -1,8 +1,10 @@
-# Gaussian Unitary Ensemble (GUE) Integration
+# Gaussian Ensembles Integration
 
-This section details the integration of polynomial functions over the Gaussian Unitary Ensemble (GUE) of random matrices.
+This section details the integration of polynomial functions over Gaussian random matrix ensembles: the Gaussian Unitary Ensemble (GUE) and the Gaussian Orthogonal Ensemble (GOE).
 
-## Overview
+## Gaussian Unitary Ensemble (GUE)
+
+### Overview
 
 IntU.jl allows for evaluating integrals over Hermitian random matrices $H$ drawn from the GUE. The measure is defined such that the entries are independent complex Gaussian variables (subject to Hermiticity $H = H^\dagger$).
 
@@ -10,11 +12,9 @@ IntU.jl allows for evaluating integrals over Hermitian random matrices $H$ drawn
 measure = dGUE(H, d)
 ```
 
-## Theory
+### Theory
 
-The integration relies on **Wick's Theorem** (or Isserlis' theorem) for complex Gaussian variables.
-
-The fundamental contraction rule is:
+The integration relies on **Wick's Theorem** for complex Gaussian variables. The fundamental contraction rule is:
 
 ```math
 \langle H_{ij} H_{kl} \rangle = \delta_{il} \delta_{jk}
@@ -25,25 +25,42 @@ This normalization implies:
 - The variance of diagonal entries is $\langle H_{ii}^2 \rangle = 1$.
 - $\langle \text{Tr}(H^2) \rangle = d^2$.
 
-(Note: Some conventions scale the variance by $1/d$. In `IntU.jl`, we use the unscaled variance for symbolic simplicity. You can rescale the result by replacing $H \to H/\sqrt{d}$ if needed.)
+## Gaussian Orthogonal Ensemble (GOE)
 
-For a general polynomial, the integral (expectation value) is computed by summing over all **pair partitions** (perfect matchings) of the factors.
+### Overview
 
-```math
-\langle H_{i_1 j_1} \dots H_{i_{2k} j_{2k}} \rangle = \sum_{\pi \in \mathcal{P}_{2k}} \prod_{(u, v) \in \pi} \langle H_{i_u j_u} H_{i_v j_v} \rangle
+The GOE consists of real symmetric random matrices $H = H^T$. IntU.jl supports integration over these matrices via:
+
+```julia
+measure = dGOE(H, d)
 ```
 
-where the sum runs over all pairings $\pi$ of the indices $\{1, \dots, 2k\}$.
+### Theory
+
+For the GOE, the contraction rule reflects the real symmetry:
+
+```math
+\langle H_{ij} H_{kl} \rangle = \delta_{ik} \delta_{jl} + \delta_{il} \delta_{jk}
+```
+
+This normalization implies:
+- The variance of off-diagonal entries ($i \neq j$) is $\langle H_{ij}^2 \rangle = 1$.
+- The variance of diagonal entries is $\langle H_{ii}^2 \rangle = 2$.
+- $\langle \text{Tr}(H^2) \rangle = d^2 + d$.
 
 ## Implementation Details
 
 IntU.jl automates the following steps:
-1.  **Index Collection**: Parses the expression to find all occurrences of $H$. Note that `conj(H[i,j])` is treated as $H[j,i]$ due to Hermiticity.
+1.  **Index Collection**: Parses the expression to find all occurrences of $H$.
+    - For GUE, `conj(H[i,j])` is treated as $H[j,i]$.
+    - For GOE, `conj(H[i,j])` is treated as $H[i,j]$.
 2.  **Pair Partitioning**: Generates all ways to pair up the $H$ factors. If the number of factors is odd, the integral is 0.
-3.  **Contraction**: For each pair, checks if the contraction is non-zero (i.e., indices match according to the delta functions).
+3.  **Contraction**: For each pair, checks if the contraction is non-zero according to the ensemble-specific rules.
 4.  **Summation**: Sums the contributions from all valid pairings.
 
 ## Examples
+
+### GUE Integration
 
 ```julia
 using IntU, Symbolics
@@ -52,16 +69,28 @@ using IntU, Symbolics
 H = SymbolicMatrix(d, d, :H)
 measure = dGUE(H, d)
 
-# 1. Second Moment
-# < Tr(H^2) > = sum_{ij} < H_{ij} H_{ji} > = sum_{ij} 1 = d^2
-expr = tr(H^2)
-integrate(expr, measure)
-# Output: d^2
-
-# 2. Fourth Moment
 # < Tr(H^4) > = 2d^3 + d
-# (Dominated by planar diagrams 2d^3, plus non-planar crossing term d)
 expr = tr(H^4)
 integrate(expr, measure)
 # Output: 2d^3 + d
+```
+
+### GOE Integration
+
+```julia
+using IntU, Symbolics
+
+@variables d
+H = SymbolicMatrix(d, d, :H)
+measure = dGOE(H, d)
+
+# < Tr(H^2) > = d^2 + d
+expr = tr(H^2)
+integrate(expr, measure)
+# Output: d^2 + d
+
+# < Tr(H^4) > = 2d^3 + 5d^2 + 5d
+expr = tr(H^4)
+integrate(expr, measure)
+# Output: 2d^3 + 5d^2 + 5d
 ```
