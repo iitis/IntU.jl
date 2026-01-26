@@ -1,7 +1,8 @@
 # Core integration logic
 
-# Resolve Num(::Complex) ambiguity
-Symbolics.Num(z::Complex) = Complex(Num(real(z)), Num(imag(z)))
+# Helper to wrap complex numbers in Num safely
+_to_Num(z::Complex) = Complex(Num(real(z)), Num(imag(z)))
+_to_Num(z) = Num(z)
 Base.isequal(a::Complex{Num}, b::Num) = isequal(real(a), b) && isequal(imag(a), 0)
 Base.isequal(a::Num, b::Complex{Num}) = isequal(b, a)
 
@@ -194,10 +195,7 @@ function _safe_Num(x)
         return Num(x)
     end
     x_un = Symbolics.unwrap(x)
-    if x_un isa Complex
-        return Complex(Num(real(x_un)), Num(imag(x_un)))
-    end
-    return Num(x_un)
+    return _to_Num(x_un)
 end
 
 function _robust_real(x)
