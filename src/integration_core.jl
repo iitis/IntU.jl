@@ -5,10 +5,10 @@ Symbolics.Num(z::Complex) = Complex(Num(real(z)), Num(imag(z)))
 Base.isequal(a::Complex{Num}, b::Num) = isequal(real(a), b) && isequal(imag(a), 0)
 Base.isequal(a::Num, b::Complex{Num}) = isequal(b, a)
 
-function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
+function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type=:U)
     if expr isa Complex
-        val_re = _integrate_core(real(expr), dim, subs_dict, U_atomic_lookup, U_bar_lookup)
-        val_im = _integrate_core(imag(expr), dim, subs_dict, U_atomic_lookup, U_bar_lookup)
+        val_re = _integrate_core(real(expr), dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type)
+        val_im = _integrate_core(imag(expr), dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type)
         return _robust_real(val_re + im * val_im)
     end
 
@@ -19,7 +19,7 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
     
     # Check if unwrapping revealed a complex object
     if expr_un isa Complex
-        return _integrate_core(expr_un, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
+        return _integrate_core(expr_un, dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type)
     end
 
     # Wrap in Num if not already, then expand
@@ -90,7 +90,7 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
     
     expr_rewritten = SymbolicUtils.Postwalk(fix_powers)(expr_rewritten)
     if expr_rewritten isa Complex
-        return _integrate_core(expr_rewritten, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
+        return _integrate_core(expr_rewritten, dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type)
     end
     expr_num = _safe_Num(expr_rewritten)
     
@@ -152,7 +152,7 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup)
 
     # Helper to traverse product
     function process_term_wrapped(term)
-        return process_term(term, U_atomic_lookup, U_bar_lookup, dim)
+        return process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type)
     end
 
     # Local helper to sum integrals over terms
@@ -247,13 +247,13 @@ function _iszero(x)
     return isequal(x_un, 0)
 end
 
-function process_term(term, U_atomic_lookup, U_bar_lookup, dim)
+function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
     term = Symbolics.unwrap(term)
     
     if Symbolics.iscall(term)
         op = Symbolics.operation(term)
         if op == (+)
-            return sum(t -> process_term(t, U_atomic_lookup, U_bar_lookup, dim), Symbolics.arguments(term))
+            return sum(t -> process_term(t, U_atomic_lookup, U_bar_lookup, dim, measure_type), Symbolics.arguments(term))
         end
     end
 
@@ -328,28 +328,55 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim)
     end
     traverse(term)
     
-    n = length(u_indices)
-    if n != length(u_bar_indices)
-        return 0
+    n_u = length(u_indices)
+    n_bar = length(u_bar_indices)
+
+    if measure_type == :U
+        if n_u != n_bar
+            return 0
+        end
+        if n_u == 0
+            return coeff
+        end
+        
+        val = integrate_indices(u_indices, u_bar_indices, dim)
+        if isequal(val, 0)
+            return 0
+        end
+        return coeff * val
+        
+    elseif measure_type == :O
+        # Orthogonal measure: O combined with O_bar (which is same as O)
+        # We combine both lists
+        all_indices = [u_indices; u_bar_indices]
+        n_total = length(all_indices)
+        
+        if n_total % 2 != 0
+            return 0
+        end
+        if n_total == 0
+            return coeff
+        end
+        
+        val = integrate_indices_orthogonal(all_indices, dim)
+        if isequal(val, 0)
+            return 0
+        end
+        return coeff * val
+        
+    elseif measure_type == :Sp
+         # Placeholder for now, or just error
+         error("Symplectic integration not yet supported in core.")
+    else
+        error("Unknown measure type: $measure_type")
     end
-    if n == 0
-        return coeff
-    end
-    
-    val = integrate_indices(u_indices, u_bar_indices, dim)
-    if isequal(val, 0)
-        return 0
-    end
-    return coeff * val
 end
 
 
 """
     integrate_indices(U_idxs, U_bar_idxs, dim)
 
-Low-level integration function using Weingarten calculus.
-`U_idxs` is a list of (i, j) tuples for each U_{i,j} in the product.
-`U_bar_idxs` is a list of (k, l) tuples for each \bar{U}_{k,l}.
+Low-level integration function using Weingarten calculus (Unitary).
 """
 function integrate_indices(U_idxs::Vector{Tuple{Int, Int}}, U_bar_idxs::Vector{Tuple{Int, Int}}, dim)
     n = length(U_idxs)
@@ -442,6 +469,94 @@ function get_cycle_type(p::Vector{Int})
     end
     sort!(lengths, rev=true)
     return lengths
+end
+
+"""
+    integrate_indices_orthogonal(indices, dim)
+    
+Low-level integration function using Orthogonal Weingarten calculus.
+Indices are a list of (i, j) for O_{ij}.
+Formula: sum_{pi, sigma in PairPartitions} delta_pi(i) * delta_sigma(j) * Wg(pi, sigma)
+"""
+function integrate_indices_orthogonal(indices::Vector{Tuple{Int, Int}}, dim)
+    n = length(indices) # This is 2k
+    if n % 2 != 0; return 0; end
+    
+    I = [x[1] for x in indices]
+    J = [x[2] for x in indices]
+    
+    valid_pi = get_matching_pair_partitions_filtered(I)
+    valid_sigma = get_matching_pair_partitions_filtered(J)
+    
+    if isempty(valid_pi) || isempty(valid_sigma)
+        return 0
+    end
+    
+    total = 0 // 1
+    for pi in valid_pi
+        for sigma in valid_sigma
+            # Wg(pi, sigma)
+            val = weingarten_orthogonal_val(pi, sigma, dim)
+            total += val
+        end
+    end
+    return total
+end
+
+"""
+    get_matching_pair_partitions_filtered(indices)
+
+Returns all pair partitions of 1..2k such that for every pair (a,b), indices[a] == indices[b].
+"""
+function get_matching_pair_partitions_filtered(indices::Vector{Int})
+    n = length(indices)
+    
+    # Validation: each value must appear an even number of times.
+    counts = Dict{Int, Vector{Int}}()
+    for (pos, val) in enumerate(indices)
+        push!(get!(counts, val, Int[]), pos)
+    end
+    
+    for (val, pos_list) in counts
+        if length(pos_list) % 2 != 0
+            return Vector{Vector{Tuple{Int, Int}}}()
+        end
+    end
+    
+    # For each group of positions, generate all pair partitions
+    # Then take Cartesian product
+    
+    # We can reuse get_pair_partitions but we need to map indices back to positions
+    
+    group_partitions = Vector{Vector{Vector{Tuple{Int, Int}}}}()
+    
+    for (val, pos_list) in counts
+        k_local = length(pos_list)
+        # Generate partitions of 1..k_local
+        local_parts_idx = get_pair_partitions(k_local)
+        
+        # Map back to real positions
+        real_parts = Vector{Vector{Tuple{Int, Int}}}()
+        for p in local_parts_idx
+            mapped = [(pos_list[a], pos_list[b]) for (a,b) in p]
+            push!(real_parts, mapped)
+        end
+        push!(group_partitions, real_parts)
+    end
+    
+    # Combine
+    res = Vector{Vector{Tuple{Int, Int}}}()
+    for combined in Iterators.product(group_partitions...)
+        # flattened list of pairs
+        full_part = Vector{Tuple{Int, Int}}()
+        for part in combined
+            append!(full_part, part)
+        end
+        # Sort internal pairs and list for consistency (optional but good for debugging)
+        push!(res, full_part)
+    end
+    
+    return res
 end
 
 # Overloads for symbolic types to make them "just work" with tr, det etc.
@@ -592,3 +707,4 @@ function _expand_asymptotic(ex, d, order)
     
     return Symbolics.simplify(total)
 end
+

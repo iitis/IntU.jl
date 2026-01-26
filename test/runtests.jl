@@ -58,6 +58,10 @@ end
         include("pure_states.jl")
     end
 
+    @testset verbose=true "Orthogonal Group" begin
+        include("orthogonal.jl")
+    end
+
     @testset verbose=true "QI Helpers" begin
         include("qi_helpers.jl")
     end
