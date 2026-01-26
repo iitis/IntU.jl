@@ -68,7 +68,7 @@ function integrate(expr, measure::OrthogonalMeasure)
 
     # Pass empty U_bar_lookup because O is orthogonal (real for our integration purposes effectively)
     # We will reuse the core logic but identifying it as orthogonal measure
-    return _integrate_core(expr, dim, subs_dict, O_atomic_lookup, Dict(), :O)
+    return _robust_real_num(_integrate_core(expr, dim, subs_dict, O_atomic_lookup, Dict(), :O))
 end
 
 function integrate(expr, measure::SymplecticMeasure)
@@ -108,7 +108,7 @@ function integrate(expr, measure::SymplecticMeasure)
     # For now, let's use the O-like strategy but mark it as Sp.
     # We need to update _integrate_core signature and logic first.
     # This file depends on updates to integration_core.jl
-    return _integrate_core(expr, dim, subs_dict, S_atomic_lookup, Dict(), :Sp)
+    return _robust_real_num(_integrate_core(expr, dim, subs_dict, S_atomic_lookup, Dict(), :Sp))
 end
 
 """

@@ -73,4 +73,16 @@ end
     @testset verbose=true "Symbolic Trace" begin
         include("symbolic_trace.jl")
     end
+
+    @testset verbose=true "GUE Integration" begin
+        include("gue.jl")
+    end
+
+    @testset verbose=true "GOE Integration" begin
+        include("goe.jl")
+    end
+
+    @testset verbose=true "Gaussian Miscellaneous" begin
+        include("gaussian_misc.jl")
+    end
 end

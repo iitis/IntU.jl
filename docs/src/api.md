@@ -5,6 +5,9 @@
 ```@docs
 dU
 dPsi
+dGUE
+dGOE
+dGSE
 ```
 
 ## Integration Functions

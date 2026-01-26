@@ -36,12 +36,12 @@ functionalities that could be added:
 ~~    expanding to indices $O(d^k)$ is computationally expensive. Graphical~~
 ~~    Weingarten calculus can be much faster.~~
 
-## 5. Gaussian Unitary Ensemble (GUE)
-*   **Description**: Support integration over Gaussian random matrices
-    (GUE/GOE/GSE) where entries are i.i.d. Gaussian.
-*   **Why**: Useful for comparing Haar-random results with chaotic/Hamiltonian
-    dynamics. This is simpler than Haar but nice to have in the same unified
-    interface.
+~~## 5. Gaussian Unitary Ensemble (GUE)~~
+~~*   **Description**: Support integration over Gaussian random matrices~~
+~~    (GUE/GOE/GSE) where entries are i.i.d. Gaussian.~~
+~~*   **Why**: Useful for comparing Haar-random results with chaotic/Hamiltonian~~
+~~    dynamics. This is simpler than Haar but nice to have in the same unified~~
+~~    interface.~~
 
 ~~## 6. Quantum Information Helpers~~
 ~~*   **Description**: Built-in functions for calculating average Purity,~~

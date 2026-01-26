@@ -20,6 +20,7 @@ makedocs(;
         "Manual" => [
             "Unitary Integration" => "unitary_integration.md",
             "Orthogonal & Symplectic" => "orthogonal_integration.md",
+            "Gaussian Ensembles" => "gaussian_integration.md",
             "Pure States" => "pure_states.md",
             "Symbolic Traces" => "symbolic_trace.md",
             "Asymptotics" => "asymptotic.md",
