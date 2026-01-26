@@ -18,6 +18,6 @@
 
 # Julia specific
 Manifest.toml
-/docs/build/
-/docs/site/
-/test/tmp/
+docs/build/
+docs/site/
+test/tmp/
