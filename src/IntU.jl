@@ -12,15 +12,14 @@ include("weingarten.jl")
 # Shared integration engine
 include("integration_core.jl")
 
-# Specific measures
+# Symbolic Trace Logic
+include("symbolic_trace.jl")
+
 # Specific measures
 include("haar_measure.jl")
 include("pure_states.jl")
 include("real_measures.jl")
 include("gaussian_measures.jl")
-
-# Symbolic Trace Logic
-include("symbolic_trace.jl")
 
 # Quantum Information helpers
 include("qi.jl")

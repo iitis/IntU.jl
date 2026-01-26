@@ -314,6 +314,7 @@ function integrate(t::LazyTrace, measure::GOEMeasure)
                                 # Land at Port 1 (Input) of some H
                                 landed_m = 1
                                 while H_indices[landed_m] != dest_idx; landed_m += 1; end
+                                visited_ports[landed_m, 1] = true
                                 
                                 # Use Wick contraction jump
                                 pair_idx = 0; partner_m = 0
@@ -335,6 +336,7 @@ function integrate(t::LazyTrace, measure::GOEMeasure)
                                 # Land at Port 2 (Output) of some H
                                 landed_m = 1
                                 while H_indices[landed_m] != prev_idx; landed_m += 1; end
+                                visited_ports[landed_m, 2] = true
                                 
                                 pair_idx = 0; partner_m = 0
                                 for (p_idx, (u, v)) in enumerate(pi)
@@ -379,8 +381,9 @@ function integrate(t::LazyTrace, measure::GOEMeasure)
             # If I sum over ports, I visit each cycle of length L exactly L times?
             # No, if I visit each node in the cycle once.
             
-            # The result for one choice set is prod(current_partition_traces).
-            total_val += isempty(current_partition_traces) ? 1 : prod(current_partition_traces)
+            # The result for one choice set is prod(current_partition_traces)
+            term_val = isempty(current_partition_traces) ? 1 : prod(current_partition_traces)
+            total_val += term_val
         end
     end
     return total_val

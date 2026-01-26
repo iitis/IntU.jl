@@ -94,3 +94,10 @@ expr = tr(H^4)
 integrate(expr, measure)
 # Output: 2d^3 + 5d^2 + 5d
 ```
+
+## References
+
+- Mehta, M. L. (2004). *Random Matrices* (Vol. 142). Elsevier.
+- Anderson, G. W., Guionnet, A., & Zeitouni, O. (2010). *An Introduction to Random Matrices* (No. 118). Cambridge University Press.
+- Forrester, P. J. (2010). *Log-Gases and Random Matrices* (LMS-34). Princeton University Press.
+- Wick, G. C. (1950). The evaluation of the collision matrix. *Physical Review*, 80(2), 268.
