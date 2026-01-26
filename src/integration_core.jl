@@ -454,6 +454,17 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
         val = integrate_indices_goe(all_indices, dim)
         if _symbolic_isequal(val, 0); return 0; end
         return coeff * val
+    elseif measure_type == :GSE
+        # Gaussian Symplectic measure
+        all_indices = [u_indices; u_bar_indices]
+        n_total = length(all_indices)
+        
+        if n_total % 2 != 0; return 0; end
+        if n_total == 0; return coeff; end
+        
+        val = integrate_indices_gse(all_indices, dim)
+        if _symbolic_isequal(val, 0); return 0; end
+        return coeff * val
     else
         error("Unknown measure type: $measure_type")
     end
@@ -860,6 +871,70 @@ function integrate_indices_goe(indices::Vector{Tuple{Any, Any}}, dim)
         
         if possible
             total += term_val
+        end
+    end
+    return total
+end
+
+function _get_J(i, j, d)
+    # J = [0 I; -I 0]. d must be even. n = d/2.
+    # J_i, j = delta(i, j-n) - delta(i-n, j)
+    if !(d isa Integer); return 0; end
+    n = d ÷ 2
+    if i <= n && j > n && j == i + n
+        return 1
+    elseif i > n && j <= n && i == j + n
+        return -1
+    else
+        return 0
+    end
+end
+
+function integrate_indices_gse(indices::Vector{Any}, dim)
+     return integrate_indices_gse(Vector{Tuple{Int, Int}}(indices), dim) 
+end
+
+function integrate_indices_gse(indices::Vector{Tuple{Int, Int}}, dim)
+    n = length(indices)
+    partitions = get_pair_partitions(n)
+    total = 0 // 1
+
+    for pi in partitions
+        # sum_{choices} (-1)^n2 * weight
+        choice_combinations = collect(Iterators.product(fill([1, 2], n ÷ 2)...))
+        for choices in choice_combinations
+            term_val = 1 // 1
+            possible = true
+            n_type2 = 0
+            
+            for (p_idx, (u, v)) in enumerate(pi)
+                (a, b) = indices[u]
+                (c, d) = indices[v]
+                
+                choice = choices[p_idx]
+                if choice == 1
+                    # delta_ad delta_bc
+                    if _symbolic_isequal(a, d) && _symbolic_isequal(b, c)
+                        term_val *= 1
+                    else
+                        possible = false; break
+                    end
+                else
+                    # - J_ac J_bd
+                    n_type2 += 1
+                    jac = _get_J(a, c, dim)
+                    jbd = _get_J(b, d, dim)
+                    if jac == 0 || jbd == 0
+                        possible = false; break
+                    end
+                    term_val *= (jac * jbd)
+                end
+            end
+            
+            if possible
+                total += (term_val) # the -1^n2 is already in term_val from each jac*jbd if we are careful?
+                # Actually, -J_ac J_bd already has the minus.
+            end
         end
     end
     return total

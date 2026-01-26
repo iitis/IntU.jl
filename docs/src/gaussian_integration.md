@@ -1,6 +1,6 @@
 # Gaussian Ensembles Integration
 
-This section details the integration of polynomial functions over Gaussian random matrix ensembles: the Gaussian Unitary Ensemble (GUE) and the Gaussian Orthogonal Ensemble (GOE).
+This section details the integration of polynomial functions over Gaussian random matrix ensembles: the Gaussian Unitary Ensemble (GUE), the Gaussian Orthogonal Ensemble (GOE), and the Gaussian Symplectic Ensemble (GSE).
 
 ## Gaussian Unitary Ensemble (GUE)
 
@@ -48,12 +48,36 @@ This normalization implies:
 - The variance of diagonal entries is $\langle H_{ii}^2 \rangle = 2$.
 - $\langle \text{Tr}(H^2) \rangle = d^2 + d$.
 
-## Implementation Details
+## Gaussian Symplectic Ensemble (GSE)
+
+### Overview
+
+The GSE consists of quaternionic Hermitian random matrices $H$. In complex notation, these are $d \times d$ matrices where $d = 2n$, satisfying $H = H^\dagger$ and $H = -J H^T J$. IntU.jl enables integration over these via:
+
+```julia
+measure = dGSE(H, d)
+```
+
+### Theory
+
+The contraction rule for GSE involves the symplectic form $J$:
+
+```math
+\langle H_{ij} H_{kl} \rangle = \delta_{il} \delta_{jk} + (J)_{ik} (J)_{jl}
+```
+
+This normalization implies:
+- $\langle \text{Tr}(H^2) \rangle = d^2 - d$.
+- The ensemble follows the **$d \to -d$ duality** with GOE. Specifically:
+  $$\langle \text{Tr}(H^k) \rangle_{GSE}(d) = (-1)^{k/2 + 1} \langle \text{Tr}(H^k) \rangle_{GOE}(-d)$$
+
+### Implementation Details
 
 IntU.jl automates the following steps:
 1.  **Index Collection**: Parses the expression to find all occurrences of $H$.
     - For GUE, `conj(H[i,j])` is treated as $H[j,i]$.
     - For GOE, `conj(H[i,j])` is treated as $H[i,j]$.
+    - For GSE, `conj(H[i,j])` is treated as $H[j,i]$ (since it is Hermitian).
 2.  **Pair Partitioning**: Generates all ways to pair up the $H$ factors. If the number of factors is odd, the integral is 0.
 3.  **Contraction**: For each pair, checks if the contraction is non-zero according to the ensemble-specific rules.
 4.  **Summation**: Sums the contributions from all valid pairings.
@@ -66,7 +90,7 @@ IntU.jl automates the following steps:
 using IntU, Symbolics
 
 @variables d
-H = SymbolicMatrix(d, d, :H)
+H = SymbolicMatrix(:H)
 measure = dGUE(H, d)
 
 # < Tr(H^4) > = 2d^3 + d
@@ -81,7 +105,7 @@ integrate(expr, measure)
 using IntU, Symbolics
 
 @variables d
-H = SymbolicMatrix(d, d, :H)
+H = SymbolicMatrix(:H)
 measure = dGOE(H, d)
 
 # < Tr(H^2) > = d^2 + d
@@ -89,10 +113,30 @@ expr = tr(H^2)
 integrate(expr, measure)
 # Output: d^2 + d
 
-# < Tr(H^4) > = 2d^3 + 5d^2 + 5d
+# <Tr(H^4) > = 2d^3 + 5d^2 + 5d
 expr = tr(H^4)
 integrate(expr, measure)
 # Output: 2d^3 + 5d^2 + 5d
+```
+
+### GSE Integration
+
+```julia
+using IntU, Symbolics
+
+@variables d
+H = SymbolicMatrix(:H)
+measure = dGSE(H, d)
+
+# < Tr(H^2) > = d^2 - d
+expr = tr(H^2)
+integrate(expr, measure)
+# Output: d^2 - d
+
+# < Tr(H^4) > = 2d^3 - 5d^2 + 5d
+expr = tr(H^4)
+integrate(expr, measure)
+# Output: 2d^3 - 5d^2 + 5d
 ```
 
 ## References

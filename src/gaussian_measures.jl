@@ -10,6 +10,11 @@ struct GOEMeasure{M, D}
     dim::D
 end
 
+struct GSEMeasure{M, D}
+    H::M
+    dim::D
+end
+
 """
     dGUE(H, dim)
 
@@ -34,6 +39,15 @@ Define the measure for the Gaussian Orthogonal Ensemble (GOE).
 dGOE(H, dim) = GOEMeasure(H, dim)
 
 """
+    dGSE(H, dim)
+
+Define the measure for the Gaussian Symplectic Ensemble (GSE).
+`H` is the symbolic matrix representing the quaternionic Hermitian Gaussian random matrix.
+NOTE: `dim` must be even (\$d=2n\$).
+"""
+dGSE(H, dim) = GSEMeasure(H, dim)
+
+"""
     integrate(expr, measure::GUEMeasure)
 """
 function integrate(expr::AbstractArray, measure::GUEMeasure)
@@ -41,6 +55,10 @@ function integrate(expr::AbstractArray, measure::GUEMeasure)
 end
 
 function integrate(expr::AbstractArray, measure::GOEMeasure)
+    return map(e -> integrate(e, measure), expr)
+end
+
+function integrate(expr::AbstractArray, measure::GSEMeasure)
     return map(e -> integrate(e, measure), expr)
 end
 
@@ -387,6 +405,62 @@ function integrate(t::LazyTrace, measure::GOEMeasure)
         end
     end
     return total_val
+end
+
+function integrate(expr, measure::GSEMeasure)
+    H_sym = measure.H
+    dim = measure.dim
+    
+    subs_dict = Dict{Any, Any}()
+    # Reusing H_atomic_lookup for GSE variables
+    H_atomic_lookup = Dict{Any, Tuple{Int, Int}}()
+    
+    if H_sym isa AbstractArray
+        for i in 1:size(H_sym, 1)
+            for j in 1:size(H_sym, 2)
+                h_ij_num = _safe_Num(H_sym[i,j])
+                h_ij_un = Symbolics.unwrap(h_ij_num)
+                h_atomic = Symbolics.variable(:H_atomic, i, j)
+                
+                H_atomic_lookup[Symbolics.unwrap(h_atomic)] = (i, j)
+                
+                subs_dict[h_ij_un] = h_atomic
+                
+                # For GSE, H is Hermitian so conj(H_{ij}) = H_{ji}
+                hb_atomic = Symbolics.variable(:H_bar_atomic, i, j)
+                H_atomic_lookup[Symbolics.unwrap(hb_atomic)] = (j, i)
+                
+                subs_dict[Symbolics.unwrap(conj(h_ij_un))] = hb_atomic
+                subs_dict[Symbolics.unwrap(Base.conj(h_ij_un))] = hb_atomic
+            end
+        end
+    end
+
+    # For GSE, measure type :GSE
+    return _integrate_core(expr, dim, subs_dict, H_atomic_lookup, Dict(), :GSE)
+end
+
+function integrate(t::LazyTrace, measure::GSEMeasure)
+    # The moment of GSE is related to GOE by duality:
+    # <Tr(H^k)>_GSE(d) = (-1)^(k/2 + 1) * <Tr(H^k)>_GOE(-d)
+    # For multiple traces, it's more complex, but for a single LazyTrace:
+    factors = t.factors
+    H_name = measure.H isa SymbolicMatrix ? measure.H.name : :H
+    n_H = count(f -> f.name == H_name, factors)
+    
+    if isodd(n_H); return 0; end
+    
+    # 1. Integrate as GOE
+    goe_res = integrate(t, dGOE(measure.H, measure.dim))
+    
+    # 2. Substitution d -> -d
+    dim = measure.dim
+    # We substitute both instances if dim is Num or just handle it
+    res_subbed = Symbolics.substitute(goe_res, Dict(dim => -dim))
+    
+    # 3. Apply overall sign
+    final_sign = ((-1)^(n_H ÷ 2 + 1))
+    return final_sign * res_subbed
 end
 
 """
