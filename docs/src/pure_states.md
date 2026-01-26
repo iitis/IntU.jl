@@ -8,7 +8,9 @@ $\mathbb{C}^d$ (Fubini-Study measure).
 A random pure state $|\psi\rangle$ distributed according to the Haar measure can
 be simulated by taking the first column of a Haar-random unitary matrix $U$.
 
-$$ \int f(\psi) d\psi = \int_{U(d)} f(U |0\rangle) dU $$
+```math
+\int f(\psi) d\psi = \int_{U(d)} f(U |0\rangle) dU
+```
 
 Where $|0\rangle = (1, 0, \dots, 0)^T$. This implies $\psi_i = U_{i,1}$.
 
@@ -37,3 +39,9 @@ integrate(expr, measure)
 - **Normalization**: The measure is normalized such that $\int d\psi = 1$.
 - **Vector indexing**: Ensure you index `psi` as a vector `psi[i]` rather than a
   matrix `psi[i,1]`.
+
+## References
+
+- Życzkowski, K., & Sommers, H. J. (2001). Induced measures in the space of
+  mixed quantum states. *Journal of Physics A: Mathematical and General*,
+  34(35), 7111.

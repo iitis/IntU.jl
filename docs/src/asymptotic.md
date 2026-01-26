@@ -25,3 +25,12 @@ res = asymptotic(abs(U[1,1])^4, dU(U, d), 4)
 
 This approximation is useful for checking convergence properties or
 leading-order behavior in high-dimensional quantum systems.
+
+## References
+
+- Collins, B. (2003). Moments and Cumulants of Polynomial random variables on
+  unitary groups, the Itzykson-Zuber integral and free probability.
+  *International Mathematics Research Notices*.
+- Puchała, Z., & Miszczak, J. A. (2017). Symbolic integration with respect to
+  the Haar measure on the unitary group. *Bulletin of the Polish Academy of
+  Sciences: Technical Sciences*.

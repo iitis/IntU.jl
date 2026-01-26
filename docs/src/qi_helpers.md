@@ -15,8 +15,8 @@ Calculates the fidelity between two states.
 - Note: This implements the "Uhlmann fidelity" squared form for states commonly
   used in some contexts, or simply overlap $\operatorname{tr}(\rho \sigma)$.
   **Check implementation**: Currently defined as `tr(rho * sigma)`. For pure
-  states $|\psi\rangle, |\phi\rangle$, this equals $|\langle \psi | \phi
-  \rangle|^2$.
+  states $|\psi\rangle, |\phi\rangle$, this equals
+  $|\langle \psi | \phi \rangle|^2$.
 
 ### `partial_trace(M, dims, subsystem)`
 Symbolically computes the partial trace of a composite system.
@@ -37,3 +37,10 @@ rho_out = U * rho_in * U'
 # Partial trace over subsystem B of a 2-qubit system?
 # (Example requires 4x4 U for 2-qubit)
 ```
+
+## References
+
+- Nielsen, M. A., & Chuang, I. L. (2010). *Quantum computation and quantum
+  information*. Cambridge university press.
+- Watrous, J. (2018). *The theory of quantum information*. Cambridge University
+  Press.

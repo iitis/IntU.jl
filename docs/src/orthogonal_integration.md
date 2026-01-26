@@ -10,14 +10,11 @@ Integration over $O(d)$ is similar to $U(d)$ but involves only real indices
 
 ### Formula
 
-$$ \int_{O(d)} O_{i_1 j_1} \dots O_{i_{2n} j_{2n}} dO = \sum_{\pi \in M_{2n}}
-\delta_{i, \pi} \delta_{j, \pi} \text{Wg}^{O}(\pi, d) $$
+```math
+\int_{O(d)} O_{i_1 j_1} \dots O_{i_{2n} j_{2n}} dO = \sum_{\pi \in M_{2n}} \delta_{i, \pi} \delta_{j, \pi} \text{Wg}^{O}(\pi, d)
+```
 
-where:
-- The integrand must have an even total degree ($2n$). If odd, the integral is
-  0.
-- $M_{2n}$ is the set of pair partitions (pairings) of $2n$ elements.
-- The Weingarten function $\text{Wg}^O$ differs from the Unitary one.
+where the integrand must have an even total degree ($2n$) (if odd, the integral is 0), $M_{2n}$ is the set of pair partitions (pairings) of $2n$ elements, and the Weingarten function $\text{Wg}^O$ differs from the Unitary one.
 
 ### Usage
 
@@ -36,7 +33,9 @@ integrate(expr, measure_O)
 
 The Symplectic group preserves the symplectic form defined by the matrix $J$:
 
-$$ J = \begin{pmatrix} 0 & I_n \\ -I_n & 0 \end{pmatrix} $$
+```math
+J = \begin{pmatrix} 0 & I_n \\ -I_n & 0 \end{pmatrix}
+```
 
 where $d=2n$.
 
@@ -44,7 +43,9 @@ where $d=2n$.
 
 ### Formula
 
-$$ \int_{Sp(d)} S_{i_1 j_1} \dots S_{i_{2n} j_{2n}} dS = \sum_{\pi \in M_{2n}} \mathcal{J}(i, \pi) \mathcal{J}(j, \pi) \text{Wg}^{Sp}(\pi, d) $$
+```math
+\int_{Sp(d)} S_{i_1 j_1} \dots S_{i_{2n} j_{2n}} dS = \sum_{\pi \in M_{2n}} \mathcal{J}(i, \pi) \mathcal{J}(j, \pi) \text{Wg}^{Sp}(\pi, d)
+```
 
 where $\mathcal{J}$ denotes the contraction of indices with the symplectic
 metric $J$.
@@ -54,14 +55,13 @@ metric $J$.
 ```julia
 using IntU, Symbolics
 @variables d
-@variables S_mat[1:d, 1:d]::Complex # Sp(d) entries can be complex? Actually usually real definition for USp? 
-# IntU assumes compact symplectic group USp(2n) = U(2n) intersection Sp(2n, C).
+@variables S_mat[1:d, 1:d]::Complex
 measure_S = dSp(S_mat, d)
 
 # |S_{1,1}|^2 integration
 expr = abs(S_mat[1,1])^2
 integrate(expr, measure_S)
-# Output: 1/d (behaves similarly for basic moduli)
+# Output: 1/d
 ```
 
 ## Implementation Details & Pitfalls
@@ -70,8 +70,16 @@ integrate(expr, measure_S)
   partitions. This means the combinatorics grow differently (faster) than
   $U(d)$.
 - **Dimension Parity**: For $Sp(d)$, $d$ is implicitly assumed to be even.
-- **Metric $J$**: The definitions of indices in $Sp(d)$ integration heavily rely
-  on the antisymmetric matrix $J$. Ensure your manual index checks align with
-  the standard block structure (tensor identity):
+- **Metric $J$**: The definitions of indices in $Sp(d)$ integration heavily
+  rely on the antisymmetric matrix $J$. Ensure your manual index checks align
+  with the standard block structure (tensor identity):
   
-  $$ J = \begin{pmatrix} 0 & 1 \\ -1 & 0 \end{pmatrix} $$
+```math
+J = \begin{pmatrix} 0 & 1 \\ -1 & 0 \end{pmatrix}
+```
+
+## References
+
+- Collins, B., & Śniady, P. (2006). Integration with respect to the Haar
+  measure on unitary, orthogonal and symplectic groups. *Communications in
+  Mathematical Physics*.
