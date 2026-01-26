@@ -4,14 +4,14 @@ Based on the current capabilities of `IntU.jl` (symbolic integration over the
 Haar measure of $U(d)$ using Weingarten calculus), here are several high-impact
 functionalities that could be added:
 
-## 1. Orthogonal ($O(d)$) and Symplectic ($Sp(d)$) Groups
-*   **Description**: Extend the package to support integration over random
-    orthogonal and symplectic matrices.
-*   **Why**: These groups are fundamental in quantum information and random
-    matrix theory.
-*   **Implementation**: Requires implementing the Weingarten functions for these
-    groups, which involve sums over pair partitions (matchings) rather than
-    permutations.
+~~## 1. Orthogonal ($O(d)$) and Symplectic ($Sp(d)$) Groups~~
+~~*   **Description**: Extend the package to support integration over random~~
+~~    orthogonal and symplectic matrices.~~
+~~*   **Why**: These groups are fundamental in quantum information and random~~
+~~    matrix theory.~~
+~~*   **Implementation**: Requires implementing the Weingarten functions for these~~
+~~    groups, which involve sums over pair partitions (matchings) rather than~~
+~~    permutations.~~
 
 ~~## 2. Haar Random States (integration over $|\psi\rangle$)~~
 ~~*   **Description**: Add a dedicated measure `dPsi(psi, d)` for integration over~~
