@@ -191,6 +191,31 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup, me
     return _robust_real(final_res)
 end
 
+function integrate(expr::LazySum, measure)
+    return sum(t -> integrate(t, measure), expr.terms)
+end
+
+function integrate(expr, measure)
+    # Check library first
+    lib_res = check_library(expr, measure)
+    if lib_res !== nothing
+        return lib_res
+    end
+
+    # Fallback to core integration
+    # This requires measure to provide subsistence dicts etc.
+    # Re-dispatch to measure specific integrate
+    return fallback_integrate(expr, measure)
+end
+
+function fallback_integrate(expr, measure)
+    # This should be implemented by each measure. 
+    # Currently integrate(expr, measure) is implemented in each measure file.
+    # We need to rename those or change the flow.
+    # Let's see how they are defined.
+    error("Fallback integrate not implemented for this measure")
+end
+
 function _safe_Num(x)
     if x isa Num || x isa Complex{Num}
         return x
@@ -470,9 +495,35 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
         val = integrate_indices_gse(all_indices, dim)
         if _symbolic_isequal(val, 0); return 0; end
         return coeff * val
+
+    elseif measure_type isa Tuple && first(measure_type) == :Design
+        # Unitary t-design
+        _, t_val = measure_type
+        
+        if n_u != n_bar
+            return 0
+        end
+        if n_u == 0
+            return coeff
+        end
+        
+        # Check degree against t-design property
+        # n_u is the number of U factors (degree in U)
+        # n_bar is the number of U_dagger factors (degree in U_dagger)
+        # We need both <= t_val
+        if n_u > t_val || n_bar > t_val
+             error("Integrand degree ($n_u, $n_bar) exceeds design order t=$t_val")
+        end
+        
+        val = integrate_indices(u_indices, u_bar_indices, dim)
+        if _symbolic_isequal(val, 0)
+            return 0
+        end
+        return coeff * val
     else
         error("Unknown measure type: $measure_type")
     end
+
 end
 
 

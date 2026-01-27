@@ -40,7 +40,7 @@ function integrate(expr::AbstractArray, measure::SymplecticMeasure)
     return map(e -> integrate(e, measure), expr)
 end
 
-function integrate(expr, measure::OrthogonalMeasure)
+function fallback_integrate(expr, measure::OrthogonalMeasure)
     O_sym = measure.O
     dim = measure.dim
     
@@ -71,7 +71,7 @@ function integrate(expr, measure::OrthogonalMeasure)
     return _robust_real_num(_integrate_core(expr, dim, subs_dict, O_atomic_lookup, Dict(), :O))
 end
 
-function integrate(expr, measure::SymplecticMeasure)
+function fallback_integrate(expr, measure::SymplecticMeasure)
     S_sym = measure.S
     dim = measure.dim
     

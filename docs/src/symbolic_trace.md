@@ -41,3 +41,26 @@ then feeds these indices into the standard Weingarten integration core.
 
 This feature is particularly useful for checking identities in Quantum
 Information Theory.
+
+## Products and Sums of Traces
+
+`IntU.jl` supports integration of products and linear combinations of symbolic traces:
+
+- **Multiplication**: `tr(A) * tr(B)` creates a multi-cycle trace object.
+- **Addition**: `tr(A) + tr(B)` creates a `LazySum` object.
+
+### Example
+
+```julia
+# Product of traces
+expr = tr(U * A) * tr(U' * B)
+integrate(expr, measure)
+# Output: tr(A B) / d
+
+# Sum of traces
+expr_sum = tr(U * A * U') + tr(B)
+integrate(expr_sum, measure)
+# Output: tr(A)/d * tr(I) + tr(B) = tr(A) + tr(B)
+```
+
+The underlying engine handles the "wiring" of indices across multiple trace cycles automatically.

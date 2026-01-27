@@ -43,21 +43,24 @@ trace_expr2 = tr_lazy(U_var * A * U_var' * B * U_var * C * U_var')
 println("\nExpression 2: ", trace_expr2)
 
 result2 = integrate(trace_expr2, measure)
-println("Result: ", result2)
+println("Result: ", Symbolics.simplify(result2))
 # The result will involve Weingarten functions of 2nd order (since U appears twice).
 
-# Case 3: Pure State Integration
-# ------------------------------
-# We can also handle integration over pure states if we formulate them as
-# projectors or traces involving U |0><0| U'.
-# But currently symbolic_trace.jl focuses on full Unitary matrix U.
 
-# Case 4: Higher moments
-# ----------------------
-# Let's verify E[Tr(U A) Tr(U' B)]?
-# Currently `integrate` handles a SINGLE trace.
-# Product of traces is not yet directly supported in `integrate` API for single calls,
-# but can be handled if we expand the theory or use tensor product scaling.
-# Supported: Single trace of product.
+# Case 4: Higher moments and Products
+# -----------------------------------
+# We can now integrate products of traces, e.g. E[Tr(U A) Tr(U' B)].
+println("\nCase 4: Product of traces")
+println("Integrating tr(U A) * tr(U' B)...")
+
+# Define traces
+t1 = tr_lazy(U_var * A)
+t2 = tr_lazy(U_var' * B)
+expr_prod = t1 * t2
+
+println("Expression: ", expr_prod)
+result_prod = integrate(expr_prod, measure)
+println("Result: ", Symbolics.simplify(result_prod))
+# Expected: tr(A B) / d
 
 println("\nDone.")

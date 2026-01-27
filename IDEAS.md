@@ -48,8 +48,8 @@ functionalities that could be added:
 ~~    Fidelity, or Entanglement Entropy of subsystems.~~
 ~~*   **Example**: `average_purity(rho_symbolic, measure)`.~~
 
-## 7. Pre-computed Integral Cache
-*   **Description**: Create a cache with all potential interesting integrals that
-    will be distributed with the package.
-*   **Why**: Instant retrieval of interesting standard results without need for
-    re-calculation; serves as a reference library for researchers.
+~~## 7. Pre-computed Integral Cache~~
+~~*   **Description**: Create a cache with all potential interesting integrals that~~
+~~    will be distributed with the package.~~
+~~*   **Why**: Instant retrieval of interesting standard results without need for~~
+~~    re-calculation; serves as a reference library for researchers.~~

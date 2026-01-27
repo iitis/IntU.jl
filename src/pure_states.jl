@@ -1,8 +1,8 @@
 # Pure state integration
 
 # Type to represent integration over pure states |psi>
-struct PureStateMeasure{T, N, D}
-    psi::AbstractArray{T, N}
+struct PureStateMeasure{P, D}
+    psi::P
     dim::D
 end
 """
@@ -11,7 +11,7 @@ end
 Define the Haar measure for random pure states (vectors) in dimension `dim`.
 `psi` is the symbolic vector representing the state, and `dim` is the dimension (symbolic or integer).
 """
-dPsi(psi::AbstractArray{T,N}, dim) where {T,N} = PureStateMeasure{T,N,typeof(dim)}(psi, dim)
+dPsi(psi, dim) = PureStateMeasure(psi, dim)
 
 """
     integrate(expr, measure::PureStateMeasure)
@@ -20,7 +20,7 @@ function integrate(expr::AbstractArray, measure::PureStateMeasure)
     return map(e -> integrate(e, measure), expr)
 end
 
-function integrate(expr, measure::PureStateMeasure)
+function fallback_integrate(expr, measure::PureStateMeasure)
     psi = measure.psi
     dim = measure.dim
     n = length(psi)

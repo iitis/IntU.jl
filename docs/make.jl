@@ -19,7 +19,9 @@ makedocs(;
         "Home" => "index.md",
         "Manual" => [
             "Unitary Integration" => "unitary_integration.md",
+            "Unitary Designs" => "unitary_designs.md",
             "Orthogonal & Symplectic" => "orthogonal_integration.md",
+
             "Gaussian Ensembles" => "gaussian_integration.md",
             "Pure States" => "pure_states.md",
             "Symbolic Traces" => "symbolic_trace.md",

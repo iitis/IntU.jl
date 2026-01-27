@@ -3,11 +3,11 @@
 ## Measures
 
 ```@docs
-dU
-dPsi
-dGUE
-dGOE
-dGSE
+IntU.dU
+IntU.dPsi
+IntU.dGUE
+IntU.dGOE
+IntU.dGSE
 ```
 
 ## Integration Functions
@@ -33,6 +33,7 @@ partial_trace
 SymbolicMatrix
 tr_lazy
 LazyTrace
+IntU.LazySum
 ```
 
 ## Internal Utilities
@@ -71,4 +72,8 @@ IntU.integrate_indices_orthogonal
 IntU.get_pair_partitions
 IntU.count_loops
 IntU._expand_asymptotic
+IntU.check_library
+IntU.fallback_integrate
+IntU.integrate_indices_gue
+IntU.integrate_indices_goe
 ```
