@@ -43,7 +43,7 @@ trace_expr2 = tr_lazy(U_var * A * U_var' * B * U_var * C * U_var')
 println("\nExpression 2: ", trace_expr2)
 
 result2 = integrate(trace_expr2, measure)
-println("Result: ", result2)
+println("Result: ", Symbolics.simplify(result2))
 # The result will involve Weingarten functions of 2nd order (since U appears twice).
 
 # Case 3: Pure State Integration
