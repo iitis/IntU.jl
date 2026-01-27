@@ -85,4 +85,9 @@ end
     @testset verbose=true "Gaussian Miscellaneous" begin
         include("gaussian_misc.jl")
     end
+
+    @testset verbose=true "Unitary Designs" begin
+        include("unitary_designs.jl")
+    end
 end
+

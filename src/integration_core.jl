@@ -495,9 +495,35 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
         val = integrate_indices_gse(all_indices, dim)
         if _symbolic_isequal(val, 0); return 0; end
         return coeff * val
+
+    elseif measure_type isa Tuple && first(measure_type) == :Design
+        # Unitary t-design
+        _, t_val = measure_type
+        
+        if n_u != n_bar
+            return 0
+        end
+        if n_u == 0
+            return coeff
+        end
+        
+        # Check degree against t-design property
+        # n_u is the number of U factors (degree in U)
+        # n_bar is the number of U_dagger factors (degree in U_dagger)
+        # We need both <= t_val
+        if n_u > t_val || n_bar > t_val
+             error("Integrand degree ($n_u, $n_bar) exceeds design order t=$t_val")
+        end
+        
+        val = integrate_indices(u_indices, u_bar_indices, dim)
+        if _symbolic_isequal(val, 0)
+            return 0
+        end
+        return coeff * val
     else
         error("Unknown measure type: $measure_type")
     end
+
 end
 
 
