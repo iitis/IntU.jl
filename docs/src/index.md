@@ -21,6 +21,7 @@ Pkg.add(url="https://github.com/iitis/IntU.jl")
 - [Pure States](pure_states.md): Integration over random vectors.
 - [Symbolic Trace Logic](symbolic_trace.md): Index-free matrix integration.
 - [Asymptotic Expansions](asymptotic.md): Large-$d$ limit analysis.
+- [Integral Library](integral_library.md): Pre-computed standard results.
 - [QI Helpers](qi_helpers.md): Tools for Purity, Fidelity, etc.
 
 ## API Reference

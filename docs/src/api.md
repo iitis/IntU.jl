@@ -3,11 +3,11 @@
 ## Measures
 
 ```@docs
-dU
-dPsi
-dGUE
-dGOE
-dGSE
+IntU.dU
+IntU.dPsi
+IntU.dGUE
+IntU.dGOE
+IntU.dGSE
 ```
 
 ## Integration Functions
@@ -71,4 +71,8 @@ IntU.integrate_indices_orthogonal
 IntU.get_pair_partitions
 IntU.count_loops
 IntU._expand_asymptotic
+IntU.check_library
+IntU.fallback_integrate
+IntU.integrate_indices_gue
+IntU.integrate_indices_goe
 ```

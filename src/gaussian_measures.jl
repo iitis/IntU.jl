@@ -98,12 +98,12 @@ function integrate(expr::AbstractArray, measure::GSEMeasure)
     return map(e -> integrate(e, measure), expr)
 end
 
-function integrate(expr, measure::GUEMeasure)
+function fallback_integrate(expr, measure::GUEMeasure)
     subs_dict, H_atomic_lookup = _setup_gaussian_subs(measure.H, :GUE)
     return _robust_real_num(_integrate_core(expr, measure.dim, subs_dict, H_atomic_lookup, Dict(), :GUE))
 end
 
-function integrate(t::LazyTrace, measure::GUEMeasure)
+function fallback_integrate(t::LazyTrace, measure::GUEMeasure)
     factors = t.factors
     H_name = measure.H isa SymbolicMatrix ? measure.H.name : :H
     
@@ -206,12 +206,12 @@ function integrate(t::LazyTrace, measure::GUEMeasure)
     return total_val
 end
 
-function integrate(expr, measure::GOEMeasure)
+function fallback_integrate(expr, measure::GOEMeasure)
     subs_dict, H_atomic_lookup = _setup_gaussian_subs(measure.H, :GOE)
     return _robust_real_num(_integrate_core(expr, measure.dim, subs_dict, H_atomic_lookup, Dict(), :GOE))
 end
 
-function integrate(t::LazyTrace, measure::GOEMeasure)
+function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
     factors = t.factors
     H_name = measure.H isa SymbolicMatrix ? measure.H.name : :H
     
@@ -371,12 +371,12 @@ function integrate(t::LazyTrace, measure::GOEMeasure)
     return total_val
 end
 
-function integrate(expr, measure::GSEMeasure)
+function fallback_integrate(expr, measure::GSEMeasure)
     subs_dict, H_atomic_lookup = _setup_gaussian_subs(measure.H, :GSE)
     return _robust_real_num(_integrate_core(expr, measure.dim, subs_dict, H_atomic_lookup, Dict(), :GSE))
 end
 
-function integrate(t::LazyTrace, measure::GSEMeasure)
+function fallback_integrate(t::LazyTrace, measure::GSEMeasure)
     # The moment of GSE is related to GOE by duality:
     # <Tr(H^k)>_GSE(d) = (-1)^(k/2 + 1) * <Tr(H^k)>_GOE(-d)
     # For multiple traces, it's more complex, but for a single LazyTrace:

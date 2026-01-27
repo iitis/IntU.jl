@@ -191,6 +191,27 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup, me
     return _robust_real(final_res)
 end
 
+function integrate(expr, measure)
+    # Check library first
+    lib_res = check_library(expr, measure)
+    if lib_res !== nothing
+        return lib_res
+    end
+
+    # Fallback to core integration
+    # This requires measure to provide subsistence dicts etc.
+    # Re-dispatch to measure specific integrate
+    return fallback_integrate(expr, measure)
+end
+
+function fallback_integrate(expr, measure)
+    # This should be implemented by each measure. 
+    # Currently integrate(expr, measure) is implemented in each measure file.
+    # We need to rename those or change the flow.
+    # Let's see how they are defined.
+    error("Fallback integrate not implemented for this measure")
+end
+
 function _safe_Num(x)
     if x isa Num || x isa Complex{Num}
         return x

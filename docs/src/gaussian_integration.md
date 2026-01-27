@@ -139,6 +139,10 @@ integrate(expr, measure)
 # Output: 2d^3 - 5d^2 + 5d
 ```
 
+## Pre-computed Moments
+
+For common moments like $\langle \text{Tr}(H^2) \rangle$, $\langle \text{Tr}(H^4) \rangle$, and $\langle \text{Tr}(H^6) \rangle$, `IntU.jl` uses a [Pre-computed Integral Library](integral_library.md) to provide results instantly.
+
 ## References
 
 - Mehta, M. L. (2004). *Random Matrices* (Vol. 142). Elsevier.

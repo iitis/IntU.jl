@@ -1,8 +1,8 @@
 # Haar measure integration
 
 # Dummy type to represent the measure
-struct HaarMeasure{T, N, D}
-    U::AbstractArray{T, N}
+struct HaarMeasure{M, D}
+    U::M
     dim::D
 end
 """
@@ -11,7 +11,7 @@ end
 Define the Haar measure for the Unitary group U(d).
 `U` is the symbolic matrix representing the unitary, and `dim` is the dimension (symbolic or integer).
 """
-dU(U::AbstractArray{T,N}, dim) where {T,N} = HaarMeasure{T,N,typeof(dim)}(U, dim)
+dU(U, dim) = HaarMeasure(U, dim)
 
 """
     integrate(expr, measure::HaarMeasure)
@@ -20,7 +20,7 @@ function integrate(expr::AbstractArray, measure::HaarMeasure)
     return map(e -> integrate(e, measure), expr)
 end
 
-function integrate(expr, measure::HaarMeasure)
+function fallback_integrate(expr, measure::HaarMeasure)
     U_sym = measure.U
     dim = measure.dim
     
@@ -79,7 +79,7 @@ end
 Integrate a single trace of matrices over the Haar measure.
 Uses the graphical Weingarten calculus.
 """
-function integrate(t::LazyTrace, measure::HaarMeasure)
+function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
     # 1. Identify U and U_dag instances
     U_indices = Int[]
     U_bar_indices = Int[]

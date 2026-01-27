@@ -24,6 +24,9 @@ include("gaussian_measures.jl")
 # Quantum Information helpers
 include("qi.jl")
 
+# Pre-computed library
+include("library.jl")
+
 import LinearAlgebra: det
 import Symbolics: Num
 export integrate, asymptotic, dU, dPsi, dO, dSp, dGUE, dGOE, dGSE, integrate_indices, tr, det, purity, average_purity, fidelity, average_fidelity, partial_trace
