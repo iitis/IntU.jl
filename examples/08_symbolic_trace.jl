@@ -46,11 +46,6 @@ result2 = integrate(trace_expr2, measure)
 println("Result: ", Symbolics.simplify(result2))
 # The result will involve Weingarten functions of 2nd order (since U appears twice).
 
-# Case 3: Pure State Integration
-# ------------------------------
-# We can also handle integration over pure states if we formulate them as
-# projectors or traces involving U |0><0| U'.
-# But currently symbolic_trace.jl focuses on full Unitary matrix U.
 
 # Case 4: Higher moments
 # ----------------------
