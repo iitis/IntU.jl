@@ -1,7 +1,7 @@
 # IntU.jl
 
 **IntU.jl** is a Julia package for performing **symbolic integration over the
-Haar measure** of Unitary ($U(d)$), Orthogonal ($O(d)$), and Symplectic ($Sp(d)$) groups, as well as random pure quantum states. It leverages **Weingarten Calculus** to compute integrals of polynomial functions of matrix elements exactly, supporting both concrete and **symbolic dimensions** ($d$).
+Haar measure** of Unitary, $U(d)$, Orthogonal, $O(d)$, and Symplectic $Sp(d)$ groups, as well as random pure quantum states. It leverages **Weingarten Calculus** to compute integrals of polynomial functions of matrix elements exactly, supporting both concrete and **symbolic dimensions** ($d$).
 
 ## Features
 
