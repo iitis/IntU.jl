@@ -6,14 +6,14 @@ Information.
 ## Functions
 
 ### `purity(rho)`
-Calculates the purity $\gamma = \operatorname{tr}(\rho^2)$.
+Calculates the purity $\gamma = \mathrm{tr}(\rho^2)$.
 - For pure states, $\gamma = 1$.
 - For maximally mixed states, $\gamma = 1/d$.
 
 ### `fidelity(rho, sigma)`
 Calculates the fidelity between two states.
 - Note: This implements the "Uhlmann fidelity" squared form for states commonly
-  used in some contexts, or simply overlap $\operatorname{tr}(\rho \sigma)$.
+  used in some contexts, or simply overlap $\mathrm{tr}(\rho \sigma)$.
   **Check implementation**: Currently defined as `tr(rho * sigma)`. For pure
   states $|\psi\rangle, |\phi\rangle$, this equals
   $|\langle \psi | \phi \rangle|^2$.

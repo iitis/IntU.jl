@@ -1,7 +1,7 @@
 # Symbolic Trace Integration
 
 IntU.jl simplifies the integration of expressions involving traces of products
-of random matricies, such as $\operatorname{tr}(U A U^\dagger B)$.
+of random matricies, such as $\mathrm{tr}(U A U^\dagger B)$.
 
 ## Concept
 

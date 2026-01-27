@@ -11,7 +11,7 @@ Haar measure** of Unitary ($U(d)$), Orthogonal ($O(d)$), and Symplectic ($Sp(d)$
 - **Pure States**: Integration over Haar-random pure states $|\psi\rangle$.
 - **Asymptotic Expansions**: Compute Taylor series expansions of integrals in powers of $1/d$.
 - **Quantum Information Helpers**: Built-in functions for calculating average purity, fidelity, and partial traces.
-- **Symbolic Trace Logic**: Index-free integration of traces like $\operatorname{tr}(U A U^\dagger B)$.
+- **Symbolic Trace Logic**: Index-free integration of traces like $\mathrm{tr}(U A U^\dagger B)$.
 
 ## Installation
 
