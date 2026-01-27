@@ -9,11 +9,11 @@ using Memoization
 # Core Weingarten logic
 include("weingarten.jl")
 
-# Shared integration engine
-include("integration_core.jl")
-
 # Symbolic Trace Logic
 include("symbolic_trace.jl")
+
+# Shared integration engine
+include("integration_core.jl")
 
 # Specific measures
 include("haar_measure.jl")

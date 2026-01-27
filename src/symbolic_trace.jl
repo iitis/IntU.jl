@@ -38,10 +38,21 @@ end
 """
     LazyTrace
 
-Represents the trace of a sequence of SymbolicMatrices.
+Represents the product of traces of sequences of SymbolicMatrices.
+e.g. `tr(A B) * tr(C)` is represented as one LazyTrace with two cycles.
 """
 struct LazyTrace
-    factors::Vector{SymbolicMatrix}
+    cycles::Vector{Vector{SymbolicMatrix}} # list of cycles. Each cycle is a product trace.
+    prefactor::Any                         # Scalar prefactor (Number or Num)
+end
+
+"""
+    LazySum
+
+Represents a sum of LazyTraces.
+"""
+struct LazySum
+    terms::Vector{LazyTrace}
 end
 
 function *(A::SymbolicMatrix, B::SymbolicMatrix)
@@ -78,22 +89,94 @@ end
 Create a LazyTrace from a product of SymbolicMatrices (or a single one).
 """
 function tr_lazy(product::AbstractVector)
-    return LazyTrace(collect(SymbolicMatrix, product))
+    return LazyTrace([collect(SymbolicMatrix, product)], 1)
 end
 
 function tr_lazy(product::SymbolicMatrix)
-    return LazyTrace([product])
+    return LazyTrace([[product]], 1)
 end
 
+# Arithmetic Operations
+
+# Multiplication: LazyTrace * LazyTrace -> LazyTrace (merge cycles)
+function Base.:*(a::LazyTrace, b::LazyTrace)
+    return LazyTrace(vcat(a.cycles, b.cycles), a.prefactor * b.prefactor)
+end
+
+# Multiplication: LazyTrace * Number -> LazyTrace
+function Base.:*(a::LazyTrace, b::Number)
+    return LazyTrace(a.cycles, a.prefactor * b)
+end
+function Base.:*(b::Number, a::LazyTrace)
+    return LazyTrace(a.cycles, a.prefactor * b)
+end
+
+# Multiplication: LazyTrace * Num -> LazyTrace
+function Base.:*(a::LazyTrace, b::Num)
+    return LazyTrace(a.cycles, a.prefactor * b)
+end
+function Base.:*(b::Num, a::LazyTrace)
+    return LazyTrace(a.cycles, a.prefactor * b)
+end
+
+# Addition: LazyTrace + LazyTrace -> LazySum
+function Base.:+(a::LazyTrace, b::LazyTrace)
+    return LazySum([a, b])
+end
+
+# Addition: LazySum + LazyTrace -> LazySum
+function Base.:+(a::LazySum, b::LazyTrace)
+    return LazySum(vcat(a.terms, b))
+end
+function Base.:+(b::LazyTrace, a::LazySum)
+    return LazySum(vcat(b, a.terms))
+end
+
+# Addition: LazySum + LazySum -> LazySum
+function Base.:+(a::LazySum, b::LazySum)
+    return LazySum(vcat(a.terms, b.terms))
+end
+
+# Pow: LazyTrace ^ Integer
+function Base.:^(a::LazyTrace, n::Integer)
+    if n == 0; return LazyTrace([], 1); end
+    if n == 1; return a; end
+    # Repeat cycles n times
+    new_cycles = Vector{Vector{SymbolicMatrix}}()
+    for _ in 1:n
+        append!(new_cycles, a.cycles)
+    end
+    return LazyTrace(new_cycles, a.prefactor^n)
+end
+
+# Show methods
 function show(io::IO, t::LazyTrace)
-    print(io, "tr(")
-    for (i, f) in enumerate(t.factors)
-        print(io, f)
-        if i < length(t.factors)
-            print(io, " * ")
+    if t.prefactor != 1
+        print(io, t.prefactor, "*")
+    end
+    if isempty(t.cycles)
+        print(io, "1")
+        return
+    end
+    for (i, cycle) in enumerate(t.cycles)
+        print(io, "tr(")
+        for (j, f) in enumerate(cycle)
+            print(io, f)
+            if j < length(cycle)
+                print(io, " * ")
+            end
+        end
+        print(io, ")")
+    end
+end
+
+function show(io::IO, s::LazySum)
+    for (i, t) in enumerate(s.terms)
+        print(io, t)
+        if i < length(s.terms)
+            print(io, " + ")
         end
     end
-    print(io, ")")
 end
 
 

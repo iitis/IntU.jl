@@ -191,6 +191,10 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup, me
     return _robust_real(final_res)
 end
 
+function integrate(expr::LazySum, measure)
+    return sum(t -> integrate(t, measure), expr.terms)
+end
+
 function integrate(expr, measure)
     # Check library first
     lib_res = check_library(expr, measure)

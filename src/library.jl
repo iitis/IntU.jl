@@ -27,7 +27,13 @@ function check_haar_library(expr, measure)
     # Check for tr(U A U' B) where U is the integration variable
     # This matches LazyTrace of [U, A, U', B]
     if expr isa LazyTrace
-        factors = expr.factors
+        if length(expr.cycles) != 1
+            return nothing
+        end
+        
+        factors = expr.cycles[1]
+        prefactor = expr.prefactor
+        
         if length(factors) == 4
             # Normalize cycle
             # We want to find a cyclic shift that is [U, A, U', B]
@@ -39,7 +45,7 @@ function check_haar_library(expr, measure)
                    
                    A = shifted[2]
                    B = shifted[4]
-                   return (tr_val([A]) * tr_val([B])) / measure.dim
+                   return prefactor * (tr_val([A]) * tr_val([B])) / measure.dim
                 end
             end
         end
@@ -54,7 +60,13 @@ function check_gaussian_library(expr, measure, type)
         return nothing
     end
     
-    factors = expr.factors
+    if length(expr.cycles) != 1
+        return nothing
+    end
+    
+    factors = expr.cycles[1]
+    prefactor = expr.prefactor
+    
     H_name = measure.H isa SymbolicMatrix ? measure.H.name : :H
     
     # Check if all factors are H
@@ -65,6 +77,7 @@ function check_gaussian_library(expr, measure, type)
     k = length(factors) # tr(H^k)
     d = measure.dim
     
+    val = nothing
     if type == :GUE
         if k == 2
             return d^2
@@ -81,10 +94,14 @@ function check_gaussian_library(expr, measure, type)
         end
     elseif type == :GSE
         if k == 2
-            return d^2 - d
+            val = d^2 - d
         elseif k == 4
-            return 2d^3 - 5d^2 + 5d
+            val = 2d^3 - 5d^2 + 5d
         end
+    end
+    
+    if val !== nothing
+        return prefactor * val
     end
     
     return nothing

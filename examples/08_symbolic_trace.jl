@@ -47,12 +47,20 @@ println("Result: ", Symbolics.simplify(result2))
 # The result will involve Weingarten functions of 2nd order (since U appears twice).
 
 
-# Case 4: Higher moments
-# ----------------------
-# Let's verify E[Tr(U A) Tr(U' B)]?
-# Currently `integrate` handles a SINGLE trace.
-# Product of traces is not yet directly supported in `integrate` API for single calls,
-# but can be handled if we expand the theory or use tensor product scaling.
-# Supported: Single trace of product.
+# Case 4: Higher moments and Products
+# -----------------------------------
+# We can now integrate products of traces, e.g. E[Tr(U A) Tr(U' B)].
+println("\nCase 4: Product of traces")
+println("Integrating tr(U A) * tr(U' B)...")
+
+# Define traces
+t1 = tr_lazy(U_var * A)
+t2 = tr_lazy(U_var' * B)
+expr_prod = t1 * t2
+
+println("Expression: ", expr_prod)
+result_prod = integrate(expr_prod, measure)
+println("Result: ", Symbolics.simplify(result_prod))
+# Expected: tr(A B) / d
 
 println("\nDone.")

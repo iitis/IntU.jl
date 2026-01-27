@@ -76,18 +76,41 @@ end
 """
     integrate(t::LazyTrace, measure::HaarMeasure)
 
-Integrate a single trace of matrices over the Haar measure.
+Integrate a product of traces of matrices over the Haar measure.
 Uses the graphical Weingarten calculus.
 """
 function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
-    # 1. Identify U and U_dag instances
+    dim = measure.dim
+    prefactor = t.prefactor
+    
+    if isempty(t.cycles)
+        return prefactor
+    end
+
+    # 1. Identify U and U_dag instances across ALL cycles
     U_indices = Int[]
     U_bar_indices = Int[]
     
-    factors = t.factors
-    n_factors = length(factors)
+    # Flattened list of factors for indexing
+    # We need to map global index back to (cycle_idx, pos_in_cycle) if needed,
+    # but mainly we need to know connectivity.
     
-    for (i, f) in enumerate(factors)
+    # Connectivity structure:
+    # A slot at global_idx connects to global_next_idx.
+    # If cycle ends, global_next_idx wraps to start of THAT cycle.
+    
+    total_factors = 0
+    cycle_ranges = UnitRange{Int}[]
+    all_factors = SymbolicMatrix[]
+    
+    for cycle in t.cycles
+        start_idx = total_factors + 1
+        append!(all_factors, cycle)
+        total_factors += length(cycle)
+        push!(cycle_ranges, start_idx:total_factors)
+    end
+    
+    for (i, f) in enumerate(all_factors)
         if f.special_type == :U
             push!(U_indices, i)
         elseif f.special_type == :U_dag
@@ -102,34 +125,93 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
         return 0
     end
     
-    dim = measure.dim
-    
     if n_U == 0
-        if isempty(factors)
-            return dim
+        # Product of constant traces
+        # evaluate each cycle
+        val = prefactor
+        for cycle in t.cycles
+            if isempty(cycle)
+                val *= dim
+            else
+                val *= tr_val(cycle)
+            end
         end
-        return tr_val(factors)
+        return val
     end
     
     
     # 2. Build Wires
+    # Map from U/U_bar index (global) to next U/U_bar index (global) and the path of constants between them.
     wires = Dict{Int, Any}()
     all_slots = sort([U_indices; U_bar_indices])
     n_slots = length(all_slots)
     
     for k in 1:n_slots
         start_idx = all_slots[k]
-        end_idx = all_slots[mod1(k+1, n_slots)]
         
-        consts = SymbolicMatrix[]
-        curr = mod1(start_idx + 1, n_factors)
-        while curr != end_idx
-            push!(consts, factors[curr])
-            curr = mod1(curr + 1, n_factors)
+        # Determine which cycle this slot belongs to
+        cycle_id = 0
+        for (cid, rng) in enumerate(cycle_ranges)
+            if start_idx in rng
+                cycle_id = cid
+                break
+            end
         end
-        wires[start_idx] = (end_idx, isempty(consts) ? nothing : consts)
+        cycle_range = cycle_ranges[cycle_id]
+        
+        # Traverse forward from start_idx until we hit another U-slot OR wrap around
+        consts = SymbolicMatrix[]
+        curr = start_idx
+        
+        while true
+            # Move to next in cycle
+            if curr == last(cycle_range)
+                curr = first(cycle_range)
+            else
+                curr += 1
+            end
+            
+            # Check if we hit a U/U_bar
+            if curr in all_slots
+                # Destination found
+                end_idx = curr
+                wires[start_idx] = (end_idx, isempty(consts) ? nothing : consts)
+                break
+            end
+            
+            # Otherwise it's a constant
+            push!(consts, all_factors[curr])
+            
+            # Safety break if cycle is full of constants (shouldn't happen as we started from a U slot)
+            if curr == start_idx
+                error("Cycle should contain at least one U/U_bar")
+            end
+        end
     end
     
+    # Handle cycles that have NO U/U_bar (constant traces)
+    # These just multiply the total result.
+    constant_part = prefactor
+    for (cid, rng) in enumerate(cycle_ranges)
+        # Check if any slot in rng is in all_slots
+        has_U = false
+        for idx in rng
+            if idx in all_slots
+                has_U = true; break
+            end
+        end
+        
+        if !has_U
+            cycle = t.cycles[cid]
+            if isempty(cycle)
+                constant_part *= dim
+            else
+                constant_part *= tr_val(cycle)
+            end
+        end
+    end
+    
+    # 3. Weingarten Sum (Same as before, operating on global indices)
     u_map = Dict{Int, Int}()
     for (m, idx) in enumerate(U_indices) u_map[idx] = m end
     ub_map = Dict{Int, Int}()
@@ -195,7 +277,7 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
                 end
             end
             
-            # Check Ub cycles (if any isolated ones exist - theoretically shouldn't for connected trace)
+            # Check Ub cycles (if any isolated ones exist - theoretically shouldn't for global pairing graph)
              for start_m in 1:n_U_bar
                  if !visited_Ub[start_m]
                     curr_trace_factors = SymbolicMatrix[]
@@ -241,5 +323,5 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
         end
     end
     
-    return total_val
+    return constant_part * total_val
 end
