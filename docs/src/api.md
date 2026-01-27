@@ -33,6 +33,7 @@ partial_trace
 SymbolicMatrix
 tr_lazy
 LazyTrace
+IntU.LazySum
 ```
 
 ## Internal Utilities
