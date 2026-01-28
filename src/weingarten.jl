@@ -230,56 +230,76 @@ Count the number of loops in the graph formed by superimposing two pair partitio
 The graph has vertices 1..2k. Edges correspond to pairs in `pi` and `sigma`.
 Since both are perfect matchings, the union forms a set of disjoint cycles.
 """
-@memoize function count_loops(pi, sigma)
+function count_loops(pi::Vector{Tuple{Int, Int}}, sigma::Vector{Tuple{Int, Int}})
     n = 2 * length(pi)
-    adj = Dict{Int, Vector{Int}}()
-    for i in 1:n
-        adj[i] = Int[]
-    end
-    
+    # Every vertex has exactly two neighbors: one from pi, one from sigma.
+    # Use a fixed-size vector for speed.
+    neighs = Vector{Tuple{Int, Int}}(undef, n)
     for (u, v) in pi
-        push!(adj[u], v)
-        push!(adj[v], u)
+        neighs[u] = (v, 0)
+        neighs[v] = (u, 0)
     end
     for (u, v) in sigma
-        push!(adj[u], v)
-        push!(adj[v], u)
+        # Store the sigma neighbor in the second slot
+        u_p = neighs[u][1]
+        neighs[u] = (u_p, v)
+        v_p = neighs[v][1]
+        neighs[v] = (v_p, u)
     end
     
-    # Count connected components
     visited = falses(n)
     loops = 0
     for i in 1:n
         if !visited[i]
             loops += 1
-            # BFS/DFS
-            q = [i]
-            visited[i] = true
-            while !isempty(q)
-                curr = pop!(q)
-                for neighbor in adj[curr]
-                    if !visited[neighbor]
-                        visited[neighbor] = true
-                        push!(q, neighbor)
+            curr = i
+            visited[curr] = true
+            # Trace the cycle using the fact it's a collection of cycles.
+            # Alternate between pi and sigma neighbors.
+            while true
+                # Neighbor in pi
+                nxt = neighs[curr][1]
+                if visited[nxt]
+                    # Check neighbor in sigma
+                    nxt = neighs[curr][2]
+                    if visited[nxt]
+                        break
                     end
                 end
+                curr = nxt
+                visited[curr] = true
             end
         end
     end
     return loops
 end
 
-"""
-    orthogonal_gram_matrix(k, d)
 
-Compute the Gram matrix for the Orthogonal group O(d) for 2k indices.
-Rows and columns are indexed by pair partitions of 2k elements.
-G_{pi, sigma} = d^{loops(pi, sigma)}
 """
-@memoize function orthogonal_gram_matrix(k::Int, d)
-    partitions = get_pair_partitions(2*k)
-    N = length(partitions)
+    canonicalize_pair_partition(p)
+
+Returns a sorted list of pairs (min, max), sorted by min, to uniquely identify a matching.
+"""
+function canonicalize_pair_partition(p::Vector{Tuple{Int, Int}})
+    sorted_pairs = [Pair(min(u,v), max(u,v)) for (u,v) in p]
+    sort!(sorted_pairs, by=x->x.first)
+    return sorted_pairs
+end
+
+"""
+    get_weingarten_orthogonal_data(k, d)
+
+Internal function to generate and memoize the Weingarten matrix and a lookup Map.
+"""
+@memoize function get_weingarten_orthogonal_data(k::Int, d)
+    parts = get_pair_partitions(2*k)
+    N = length(parts)
     
+    # Pre-canonicalize all partitions for lookup
+    canonical_parts = Any[canonicalize_pair_partition(p) for p in parts]
+    lookup = Dict{Any, Int}(c => i for (i, c) in enumerate(canonical_parts))
+    
+    # Build Gram matrix
     # Determine type
     val_sample = d^1
     T = typeof(val_sample)
@@ -288,10 +308,9 @@ G_{pi, sigma} = d^{loops(pi, sigma)}
     end
     
     G = zeros(T, N, N)
-    
     for i in 1:N
         for j in 1:N
-            loops = count_loops(partitions[i], partitions[j])
+            loops = count_loops(parts[i], parts[j])
             if d isa Integer
                 G[i, j] = (d^loops) // 1
             else
@@ -299,61 +318,31 @@ G_{pi, sigma} = d^{loops(pi, sigma)}
             end
         end
     end
-    return G, partitions
-end
-
-
-"""
-    weingarten_orthogonal_matrix(k, d)
-
-Computes the Weingarten matrix (inverse of Gram matrix) for O(d).
-Returns (Wg_matrix, partitions).
-"""
-@memoize function weingarten_orthogonal_matrix(k::Int, d)
-    G, parts = orthogonal_gram_matrix(k, d)
+    
     # Invert G
-    try
-        Wg = inv(G)
-        return Wg, parts
+    Wg_mat = try
+        inv(G)
     catch e
-        # If singular or symbolic issue
         error("Failed to invert O(d) Gram matrix for k=$k. Error: $e")
     end
+    
+    return Wg_mat, lookup
 end
 
 """
     weingarten_orthogonal_val(pi, sigma, d)
 
-Returns the value Wg(pi, sigma) for O(d).
+Returns the value Wg(pi, sigma) for O(d) using O(1) lookup.
 """
-@memoize function weingarten_orthogonal_val(pi, sigma, d)
-    k = length(pi) # pi is list of pairs
-    # Note: this is inefficient if called repeatedly for same k but different pi,sigma
-    # But we memoize the matrix generation.
-    Wg_mat, parts = weingarten_orthogonal_matrix(k, d)
+function weingarten_orthogonal_val(pi::Vector{Tuple{Int, Int}}, sigma::Vector{Tuple{Int, Int}}, d)
+    k = length(pi)
+    Wg_mat, lookup = get_weingarten_orthogonal_data(k, d)
     
-    # Find index of pi and sigma
-    # This search is O(N) where N=(2k-1)!!, might be slow for large k.
-    # We can optimize by canonicalizing representation.
-    # For now, simplistic find.
-    
-    # Canonicalize pairs for comparison: (min, max), sorted by min
-    function canonicalize(p)
-        sorted_pairs = [Pair(min(u,v), max(u,v)) for (u,v) in p]
-        sort!(sorted_pairs, by=x->x.first)
-        return sorted_pairs
-    end
-    
-    pi_c = canonicalize(pi)
-    sigma_c = canonicalize(sigma)
-    
-    parts_c = [canonicalize(p) for p in parts]
-    
-    idx_pi = findfirst(isequal(pi_c), parts_c)
-    idx_sigma = findfirst(isequal(sigma_c), parts_c)
+    idx_pi = get(lookup, canonicalize_pair_partition(pi), nothing)
+    idx_sigma = get(lookup, canonicalize_pair_partition(sigma), nothing)
     
     if idx_pi === nothing || idx_sigma === nothing
-        error("Partition not found in generated set")
+        error("Partition not found in generated set for k=$k")
     end
     
     return Wg_mat[idx_pi, idx_sigma]

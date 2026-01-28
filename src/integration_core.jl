@@ -43,6 +43,7 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup, me
     end
 
     # Rewrite rules to ensure abs(z)^2 becomes (z * conj(z)) or real^2 + imag^2
+    r_abs2 = @rule abs2(~x) => (~x) * conj(~x)
     r_abs_sq = @rule abs(~x)^2 => (~x) * conj(~x)
     r_abs = @rule abs(~x) => hypot(real(~x), imag(~x))
     
@@ -63,7 +64,7 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup, me
     expr_unwrapped = Symbolics.unwrap(expr)
     
     # Apply rewrites
-    chain = SymbolicUtils.Chain([r_abs_sq, r_abs, r_real, r_real_base, r_imag, r_imag_base, r_hypot_sum, r_hypot_default, r_complex, r_complex_base])
+    chain = SymbolicUtils.Chain([r_abs_sq, r_abs2, r_abs, r_real, r_real_base, r_imag, r_imag_base, r_hypot_sum, r_hypot_default, r_complex, r_complex_base])
     expr_rewritten = SymbolicUtils.Postwalk(SymbolicUtils.PassThrough(chain))(expr_unwrapped)
     
     # Manual power fixing function
@@ -306,21 +307,7 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
             if _symbolic_isequal(k, t_unwrapped) || string(k) == t_str
                 # Check if it's a conjugate entry for Symplectic
                 if length(v) == 3 && v[3] == :conj
-                    if measure_type == :Sp
-                        if !(dim isa Integer)
-                             error("Symplectic integration with conjugates requires integer dimension")
-                        end
-                        i_idx, j_idx, _ = v
-                        m_dim = div(dim, 2)
-                        
-                        di, si = (i_idx <= m_dim ? (i_idx + m_dim, 1) : (i_idx - m_dim, -1))
-                        dj, sj = (j_idx <= m_dim ? (j_idx + m_dim, 1) : (j_idx - m_dim, -1))
-                        
-                        coeff *= (si * sj)
-                        push!(u_indices, (di, dj))
-                    else
-                        error("Conjugate flag :conj found for non-Symplectic measure")
-                    end
+                    push!(u_bar_indices, (v[1], v[2]))
                 else
                     push!(u_indices, v)
                 end
@@ -363,20 +350,7 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
                 # conj(U) -> U_bar
                 for (k, v) in U_atomic_lookup
                     if _symbolic_isequal(k, inner) || string(k) == inner_str
-                        if measure_type == :Sp
-                             # Perform same Sp duality rewrite here!
-                             if !(dim isa Integer)
-                                  error("Symplectic integration with conjugates requires integer dimension")
-                             end
-                             i_i, j_j = v
-                             m_m = div(dim, 2)
-                             di, si = (i_i <= m_m ? (i_i + m_m, 1) : (i_i - m_m, -1))
-                             dj, sj = (j_j <= m_m ? (j_j + m_m, 1) : (j_j - m_m, -1))
-                             coeff *= (si * sj)
-                             push!(u_indices, (di, dj))
-                        else
-                             push!(u_bar_indices, v)
-                        end
+                        push!(u_bar_indices, v)
                         return
                     end
                 end
@@ -1025,7 +999,8 @@ function compute_symplectic_contraction(partition, indices, dim)
     # If d is symbolic, we can try to look at max index?
     # No, that's unsafe.
     
-    is_d_numeric = (dim isa Integer)
+    u_unwrapped = Symbolics.unwrap(dim)
+    is_d_numeric = (u_unwrapped isa Number)
     
     for (u, v) in partition
         idx_u = indices[u]
@@ -1053,23 +1028,15 @@ function symplectic_form(i, j, dim)
         return 0 
     end
     
-    # We require dim to be known integer for this check 
+    # We require dim to be known numeric for this check 
     # Or we return 0 if we can't check.
-    if !(dim isa Integer)
-         # Try to resolve or error?
-         # If the user provided d symbolic but indices 1,2, then we can likely assume d=2 if max index is 2?
-         # Unsafe.
-         # For now, return 0 or error.
-         # Actually, better to error if we can't compute.
-         # But usually we want to return 0 for non-matching.
-         # Let's try to assume small dimension if indices are small?
-         # Re-eval plan: "Support numeric indices". 
-         # We need dim to be numeric.
+    u_dim = Symbolics.unwrap(dim)
+    if !(u_dim isa Number)
          return 0 
-         # TODO: Support J(i, j) symbolic object.
     end
     
-    m = div(dim, 2)
+    dim_val = Int(u_dim)
+    m = div(dim_val, 2)
     
     # 1 <= i, j <= 2m
     if i < 1 || i > 2*m || j < 1 || j > 2*m
