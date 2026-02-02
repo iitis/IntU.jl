@@ -3,7 +3,9 @@
 """
     conjugate_partition(part::Vector{Int})
 
-Returns the conjugate of a partition.
+Returns the conjugate partition \\lambda' of a partition \\lambda.
+The conjugate partition is obtained by transposing the Young diagram of \\lambda.
+Mathematically, \\lambda'_i = \\text{card}\\{j : \\lambda_j \\ge i\\}.
 """
 function conjugate_partition(part::Vector{Int})
     isempty(part) && return Int[]
@@ -16,8 +18,18 @@ end
 """
     character_at_id(part::Vector{Int})
 
-Calculates the character of the symmetric group identity element (dimension of the irrep),
-given by the hook length formula.
+Calculates the character of the symmetric group S_n at the identity element for the 
+irreducible representation (irrep) corresponding to the partition `part` (\\\\lambda).
+This is equivalent to the dimension f^\\\\lambda of the irrep.
+
+The dimension is given by the **Hook Length Formula**:
+```math
+f^\\\\lambda = \\\\frac{n!}{\\\\prod_{(i,j) \\\\in \\\\lambda} h_{\\\\lambda}(i,j)}
+```
+where h_\\\\lambda(i,j) is the hook length of the cell (i,j) in the Young diagram of \\\\lambda.
+
+Reference:
+- Frame, J. S., Robinson, G. de B., & Thrall, R. M. (1954). The hook graphs of the symmetric group.
 """
 function character_at_id(part::Vector{Int})
     n = sum(part)
@@ -38,8 +50,18 @@ end
 """
     murnaghan_nakayama(lambda, mu)
 
-Computes the character of the symmetric group for partition `lambda` at class `mu`
-using the Murnaghan-Nakayama rule.
+Computes the character \\chi^\\lambda(\\mu) of the symmetric group S_n for the irrep 
+\\lambda at the conjugacy class with cycle type \\mu using the **Murnaghan-Nakayama rule**.
+
+The rule states:
+```math
+\\chi^\\lambda(\\mu) = \\sum_{T \\in RIM(\\lambda, \\mu)} (-1)^{\\text{ht}(T)}
+```
+where the sum is over "rim hook" tableaux of shape \\lambda and content \\mu.
+
+Reference:
+- Murnaghan, F. D. (1937). The characters of the symmetric group.
+- Nakayama, T. (1940). On some finite group of substitutions.
 """
 function murnaghan_nakayama(lambda::Vector{Int}, mu::Vector{Int})
     isempty(mu) && return isempty(lambda) ? 1 : 0
@@ -58,11 +80,19 @@ end
 """
     irrep_dimension(part::Vector{Int}, d)
 
-Computes the dimension of the irreducible representation of U(d) corresponding to partition `part`.
-Uses the hook-content formula:
-dim(lambda) = Product_{(i,j) in lambda} (d + j - i) / h_{i,j}
+Computes the dimension s_\\lambda(1^d) of the irreducible representation of the unitary 
+group U(d) (or the Schur polynomial at ones) corresponding to the partition \\lambda.
 
-This formulation supports symbolic `d`.
+The dimension is given by the **Hook-Content Formula**:
+```math
+\\text{dim}_d(\\lambda) = \\prod_{(i,j) \\in \\lambda} \\frac{d + j - i}{h_\\lambda(i,j)}
+```
+where h_\\lambda(i,j) is the hook length and j-i is the content of the cell (i,j).
+
+This implementation supports symbolic dimension d, returning a rational function in d.
+
+Reference:
+- Stanley, R. P. (1999). *Enumerative Combinatorics*, Vol. 2.
 """
 @memoize function irrep_dimension(part::Vector{Int}, d)
     conj_part = conjugate_partition(part)
@@ -144,6 +174,22 @@ end
 end
 
 
+"""
+    weingarten(partition_type::Vector{Int}, d)
+
+Computes the **Unitary Weingarten function** \\text{Wg}(\\sigma, d) where \\sigma 
+is a permutation with cycle type given by `partition_type`.
+
+The Weingarten function is defined as the sum over irreducible representations of S_n:
+```math
+\\text{Wg}(\\sigma, d) = \\frac{1}{(n!)^2} \\sum_{\\lambda \\vdash n, \\ell(\\lambda) \\le d} \\frac{(f^\\lambda)^2 \\chi^\\lambda(\\sigma)}{s_\\lambda(1^d)}
+```
+where f^\\lambda is the dimension of the S_n irrep, \\chi^\\lambda(\\sigma) is the 
+character, and s_\\lambda(1^d) is the dimension of the U(d) irrep.
+
+Reference:
+- Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitay, orthogonal and symplectic groups. *Communications in Mathematical Physics*.
+"""
 @memoize function weingarten(partition_type::Vector{Int}, d)
     # Wg(sigma, d) where sigma has cycle type `partition_type`.
     n = sum(partition_type)
@@ -183,8 +229,10 @@ end
 """
     get_pair_partitions(n)
 
-Generate all partitions of the set `{1, ..., n}` into pairs. `n` must be even.
-Returns a list of partitions. Each partition is a list of pairs (Tuples).
+Generate all partitions of the set `{1, ..., n}` into `n/2` disjoint pairs. 
+`n` must be even. The number of such partitions is given by the double factorial `(n-1)!!`.
+
+These partitions are also known as **perfect matchings** of the complete graph `K_n`.
 """
 @memoize function get_pair_partitions(n::Int)
     if n % 2 != 0
@@ -226,9 +274,11 @@ end
 """
     count_loops(pi, sigma)
 
-Count the number of loops in the graph formed by superimposing two pair partitions `pi` and `sigma`.
-The graph has vertices 1..2k. Edges correspond to pairs in `pi` and `sigma`.
-Since both are perfect matchings, the union forms a set of disjoint cycles.
+Count the number of loops `ℓ(π, σ)` in the multigraph formed by 
+the union of two pair partitions `π` and `σ`.
+
+The graph has `2k` vertices. Since both `π` and `σ` are perfect matchings, 
+their union consists of disjoint cycles of even length.
 """
 function count_loops(pi::Vector{Tuple{Int, Int}}, sigma::Vector{Tuple{Int, Int}})
     n = 2 * length(pi)
@@ -289,7 +339,10 @@ end
 """
     get_weingarten_orthogonal_data(k, d)
 
-Internal function to generate and memoize the Weingarten matrix and a lookup Map.
+Internal function to generate the **Orthogonal Weingarten matrix**. 
+The matrix \$G\$ is a Gram matrix of size \$(2k-1)!! \\times (2k-1)!!\$ where 
+\$G_{\\pi, \\sigma} = d^{\\ell(\\pi, \\sigma)}\$.
+The Weingarten matrix is the inverse of \$G\\\$.
 """
 @memoize function get_weingarten_orthogonal_data(k::Int, d)
     parts = get_pair_partitions(2*k)
@@ -323,7 +376,7 @@ Internal function to generate and memoize the Weingarten matrix and a lookup Map
     Wg_mat = try
         inv(G)
     catch e
-        error("Failed to invert O(d) Gram matrix for k=$k. Error: $e")
+        error("Failed to invert O(d) Gram matrix for k=\$k. Error: \$e")
     end
     
     return Wg_mat, lookup
@@ -332,7 +385,10 @@ end
 """
     weingarten_orthogonal_val(pi, sigma, d)
 
-Returns the value Wg(pi, sigma) for O(d) using O(1) lookup.
+Returns the **Orthogonal Weingarten function** value \\\\text{Wg}^O(\\\\pi, \\\\sigma, d).
+
+Reference:
+- Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups.
 """
 function weingarten_orthogonal_val(pi::Vector{Tuple{Int, Int}}, sigma::Vector{Tuple{Int, Int}}, d)
     k = length(pi)
@@ -342,7 +398,7 @@ function weingarten_orthogonal_val(pi::Vector{Tuple{Int, Int}}, sigma::Vector{Tu
     idx_sigma = get(lookup, canonicalize_pair_partition(sigma), nothing)
     
     if idx_pi === nothing || idx_sigma === nothing
-        error("Partition not found in generated set for k=$k")
+        error("Partition not found in generated set for k=\$k")
     end
     
     return Wg_mat[idx_pi, idx_sigma]
@@ -353,9 +409,15 @@ end
 """
     weingarten_symplectic_val(pi, sigma, d)
 
-Returns the value Wg(pi, sigma) for Sp(d).
-Uses the relation Wg^Sp(d)(pi, sigma) = (-1)^k * Wg^O(-d)(pi, sigma)
-where k is the number of pairs (length of pi or sigma).
+Returns the **Symplectic Weingarten function** value \\\\text{Wg}^{Sp}(\\\\pi, \\\\sigma, d).
+Uses the duality relation:
+```math
+\\\\text{Wg}^{Sp}(\\\\pi, \\\\sigma, d) = (-1)^k \\\\text{Wg}^{O}(\\\\pi, \\\\sigma, -d)
+```
+where k is the number of pairs.
+
+Reference:
+- Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups.
 """
 @memoize function weingarten_symplectic_val(pi, sigma, d)
     k = length(pi)

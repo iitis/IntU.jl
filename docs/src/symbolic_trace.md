@@ -1,46 +1,53 @@
 # Symbolic Trace Integration
 
 IntU.jl simplifies the integration of expressions involving traces of products
-of random matricies, such as $\mathrm{tr}(U A U^\dagger B)$.
+of random matrices, such as $\mathrm{tr}(U A U^\dagger B)$.
 
 ## Concept
 
-Instead of writing out indices explicitly ($ \sum_{ijkl} U_{ij} A_{jk}
-\bar{U}_{lk} B_{li} \dots $), you can work with symbolic matrix objects. The
-package provides a `tr_lazy` function (exported as `tr` via `IntU.tr` or
-explicitly `LinearAlgebra.tr` overload on symbolic types in older versions) that
-delays evaluation until integration time.
+Instead of writing out indices explicitly ($ \sum_{ijkl} U_{ij} A_{jk} \bar{U}_{lk} B_{li} \dots $), you can work with symbolic matrix objects.
+The package provides a `tr` function (representing a lazy trace) that delays evaluation until integration time.
 
 ## Usage
 
-1.  **Define Symbolic Matrices**: Use `SymbolicMatrix(name)`.
-2.  **Define Matrix Variables**: $U$ (random) and $A, B, C$ (constants).
-3.  **Construct Trace**: Use standard `*` and adjoint `'` operations.
+1.  **Define Symbolic Matrices**: Use `SymbolicMatrix(name, is_adj, type)`.
+    *   Set type to `:U` for the random unitary.
+    *   Set type to `:Constant` for fixed matrices.
+2.  **Define Measure**: Create a `HaarMeasure` using `dU`. The `dim` is crucial.
+3.  **Construct Trace**: Use `IntU.tr` with standard matrix multiplication `*` and adjoint `'`.
 
 ```julia
 using IntU, Symbolics
 
 @variables d
-# Dummy usage for measure definition
-@variables u_dummy[1:1, 1:1]
-measure = dU(u_dummy, d)
 
-U = SymbolicMatrix(:U, false, :U) # Variable name U, is_constant=false, ID=:U
-A = SymbolicMatrix(:A)            # Constant matrix A
+# 1. Define Matrices
+# Random Unitary U
+U = SymbolicMatrix(:U, false, :U)
+# Constant Matrix A
+A = SymbolicMatrix(:A) 
 
+# 2. Define Measure
+measure = dU(U, d)
+
+# 3. Construct Expression
+# tr(U * A * U' * A)
 expr = IntU.tr(U * A * U' * A)
-integrate(expr, measure)
+
+# 4. Integrate
+res = integrate(expr, measure)
+println(res)
 # Output: (tr(A)^2)/d
 ```
 
-## Implementation
+## Implementation Details
 
 The system converts the lazy trace expression into a tensor network of indices,
 automatically assigning input/output indices to each matrix multiplication. It
 then feeds these indices into the standard Weingarten integration core.
 
 This feature is particularly useful for checking identities in Quantum
-Information Theory.
+Information Theory without getting bogged down in index hell.
 
 ## Products and Sums of Traces
 
@@ -62,5 +69,7 @@ expr_sum = tr(U * A * U') + tr(B)
 integrate(expr_sum, measure)
 # Output: tr(A)/d * tr(I) + tr(B) = tr(A) + tr(B)
 ```
+
+The underlying engine handles the "wiring" of indices across multiple trace cycles automatically.
 
 The underlying engine handles the "wiring" of indices across multiple trace cycles automatically.

@@ -26,16 +26,35 @@ Symbolically computes the partial trace of a composite system.
 
 ## Example: Average Purity
 
+Calculating the average purity of a subsystem when the global system is in a random pure state.
+
 ```julia
 using IntU, Symbolics
-@variables U[1:2, 1:2]::Complex
-measure = dU(U, 2)
 
-rho_in = [1 0; 0 0] # Pure state |0><0|
-rho_out = U * rho_in * U'
+# System Dimensions: d_A = 2, d_B = 2
+d_A = 2
+d_B = 2
+d = d_A * d_B
 
-# Partial trace over subsystem B of a 2-qubit system?
-# (Example requires 4x4 U for 2-qubit)
+# Random Unitary on full system
+@variables U[1:d, 1:d]::Complex
+measure = dU(U, d)
+
+# Pure state |psi> = U |00> (first column of U)
+# We form the density matrix rho = |psi><psi|
+# rho_{ij} = U_{i,1} * conj(U_{j,1})
+
+# We can conceptually construct the partial trace.
+# But IntU provides helpers if you work with explicit indices.
+# Or we can compute the integral of Purity(rho_A).
+
+# < Purity(rho_A) > = (d_A + d_B) / (d + 1)
+# For d_A=d_B=2, d=4 -> (2+2)/5 = 0.8
+
+val = average_purity((d_A, d_B), 1) 
+# Note: average_purity is a helper that returns the analytical formula or value
+println(val)
+# Output: 4//5 (for d_A=2, d_B=2)
 ```
 
 ## References

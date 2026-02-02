@@ -1,6 +1,13 @@
 # Haar measure integration
 
-# Lazy Symbolic Unitary Matrix
+"""
+    SymbolicUnitary(name, func, dim)
+
+A lazy, "infinite" representation of a unitary matrix. 
+It does not store entries in memory. Instead, accessing `U[i,j]` generates 
+a symbolic variable on the fly using `func`. This allows for operations 
+on matrices of symbolic or very large dimensions without memory overhead.
+"""
 struct SymbolicUnitary{D} <: AbstractMatrix{Num}
     name::Symbol
     func::Function # Generates the variable
@@ -28,11 +35,15 @@ end
 """
     @symbolic_dimension U[1:d, 1:d]
 
-Macro to define a symbolic unitary `U` with symbolic dimension `d`.
+Macro to define a `SymbolicUnitary` matrix `U` with symbolic dimension `d`.
+Internal components are generated as `U_i_j`.
+
 Example:
-    @variables d
-    @symbolic_dimension U[1:d, 1:d]
-    measure = dU(U)
+```julia
+@variables d
+@symbolic_dimension U[1:d, 1:d]
+measure = dU(U)
+```
 """
 macro symbolic_dimension(expr)
     if !Meta.isexpr(expr, :ref) || length(expr.args) != 3
@@ -94,17 +105,19 @@ struct HaarMeasure{M, D}
 end
 """
     dU(U, dim)
-
-Define the Haar measure for the Unitary group U(d).
-`U` is the symbolic matrix representing the unitary, and `dim` is the dimension (symbolic or integer).
-"""
-dU(U, dim) = HaarMeasure(U, dim)
-
-"""
     dU(U::SymbolicUnitary)
 
-Uses the stored dimension in the symbolic unitary.
+Defines the Haar measure for the Unitary group U(d).
+
+The integration of a monomial of entries is given by:
+```math
+\\int_{U(d)} U_{i_1 j_1} \\dots U_{i_n j_n} \\bar{U}_{k_1 l_1} \\dots \\bar{U}_{k_n l_n} dU = \\sum_{\\sigma, \\tau \\in S_n} \\delta_{i, k_\\sigma} \\delta_{j, l_\\tau} \\text{Wg}(\\sigma \\tau^{-1}, d)
+```
+
+Reference:
+- Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups.
 """
+dU(U, dim) = HaarMeasure(U, dim)
 dU(S::SymbolicUnitary) = HaarMeasure(S, S.dim)
 
 """

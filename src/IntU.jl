@@ -32,6 +32,9 @@ include("library.jl")
 import LinearAlgebra: det
 import Symbolics: Num
 export integrate, asymptotic, dU, dPsi, dO, dSp, dGUE, dGOE, dGSE, integrate_indices, tr, det, purity, average_purity, fidelity, average_fidelity, partial_trace, dDesign, symbolic_dimension_unitary, @symbolic_dimension
+export weingarten, weingarten_orthogonal_val, weingarten_symplectic_val
+export get_pair_partitions, canonicalize_pair_partition, conjugate_partition, count_loops, murnaghan_nakayama, character_at_id, irrep_dimension, get_weingarten_orthogonal_data
+export AbstractIndexMatcher, LookupMatcher, _integrate_core, SymbolicUnitary, process_term
 
 export SymbolicMatrix, tr_lazy, LazyTrace, LazySum
 

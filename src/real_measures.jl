@@ -14,17 +14,32 @@ end
 """
     dO(O, dim)
 
-Define the Haar measure for the Orthogonal group O(d).
-`O` is the symbolic matrix representing the orthogonal matrix, and `dim` is the dimension (symbolic or integer).
+Defines the Haar measure for the real Orthogonal group O(d).
+
+The integration of a monomial of entries is given by:
+```math
+\\int_{O(d)} O_{i_1 j_1} \\dots O_{i_{2n} j_{2n}} dO = \\sum_{\\pi, \\sigma \\in M_{2n}} \\delta_{\\pi}(i) \\delta_{\\sigma}(j) \\text{Wg}^O(\\pi, \\sigma, d)
+```
+where M_{2n} is the set of pair partitions.
+
+Reference:
+- Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups.
 """
 dO(O::AbstractArray{T,N}, dim) where {T,N} = OrthogonalMeasure{T,N,typeof(dim)}(O, dim)
 
 """
     dSp(S, dim)
 
-Define the Haar measure for the Symplectic group Sp(d).
-`S` is the symbolic matrix representing the symplectic matrix, and `dim` is the dimension (symbolic or integer).
-NOTE: The dimension `dim` corresponds to the size of the matrix, which must be even (2n).
+Defines the Haar measure for the Symplectic group Sp(d). 
+The dimension `dim` must be even.
+
+The integration formula uses the symplectic metric J and pair partitions:
+```math
+\\int_{Sp(d)} S_{i_1 j_1} \\dots S_{i_{2n} j_{2n}} dS = \\sum_{\\pi, \\sigma \\in M_{2n}} J_{\\pi}(i) J_{\\sigma}(j) \\text{Wg}^{Sp}(\\pi, \\sigma, d)
+```
+
+Reference:
+- Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups.
 """
 dSp(S::AbstractArray{T,N}, dim) where {T,N} = SymplecticMeasure{T,N,typeof(dim)}(S, dim)
 
@@ -82,7 +97,7 @@ function fallback_integrate(expr, measure::SymplecticMeasure)
     # Check dimensions
     N = size(S_sym, 1)
     if isodd(N)
-        error("Symplectic matrix dimension must be even, got $N")
+        error("Symplectic matrix dimension must be even, got \$N")
     end
     n_half = N ÷ 2
     

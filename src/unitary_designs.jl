@@ -9,11 +9,14 @@ end
 """
     dDesign(U, dim, t)
 
-Define a unitary t-design measure.
-`U` is the symbolic matrix, `dim` is the dimension, and `t` is the design order.
-Integrals of polynomials in elements of `U` and `conj(U)` will match Haar measure results
-if the degree in `U` (and `conj(U)`) is at most `t`.
-If the degree exceeds `t`, `integrate` will throw an error.
+Defines a measure representing a **unitary t-design**. 
+
+A t-design is a set of unitaries that reproduces the first t moments 
+of the Haar measure. Integration of any polynomial P(U, \\bar{U}) of 
+degree (q, q) with q \\le t yields the same result as the Haar measure.
+
+Reference:
+- Gross, D., Audenaert, K., & Eisert, J. (2007). Evenly distributed unitaries: On the structure of unitary designs.
 """
 dDesign(U, dim, t) = UnitaryDesign(U, dim, t)
 

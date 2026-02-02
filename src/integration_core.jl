@@ -13,9 +13,19 @@ _symbolic_isequal(a::Complex{Num}, b::Complex{Num}) = isequal(real(a), real(b)) 
 _symbolic_isequal(a::Complex{Num}, b::Complex) = isequal(real(a), real(b)) && isequal(imag(a), imag(b))
 _symbolic_isequal(a::Complex, b::Complex{Num}) = _symbolic_isequal(b, a)
 
-# Abstract Matcher Interface
+"""
+    AbstractIndexMatcher
+
+Base type for index matching strategies. Subtypes must implement `match_index`.
+"""
 abstract type AbstractIndexMatcher end
 
+"""
+    LookupMatcher(U_lookup, U_bar_lookup)
+
+A matcher that uses dictionaries to map symbolic variables to (row, column) indices.
+Used primarily for GUE/GOE/GSE and list-based unitary integration.
+"""
 struct LookupMatcher <: AbstractIndexMatcher
     U_lookup::Dict{Any, Tuple{Int, Int}}
     U_bar_lookup::Dict{Any, Tuple{Int, Int}}
@@ -47,6 +57,15 @@ function match_index(m::LookupMatcher, t)
     return nothing
 end
 
+"""
+    _integrate_core(expr, dim, subs_dict, matcher, measure_type=:U)
+
+The internal integration engine. It performs several steps:
+1.  **Normalization/Rewriting**: Expands `abs2(z)`, `real(z)`, `imag(z)` into explicit polynomials.
+2.  **Substitution**: Replaces symbolic variables with internal atomic representatives via `subs_dict`.
+3.  **Expansion**: Distributes products over sums to get a sum of monomials.
+4.  **Monomial Integration**: For each monomial, invokes `process_term` to identify indices and apply the appropriate integration rule (Weingarten or Wick).
+"""
 function _integrate_core(expr, dim, subs_dict, matcher::AbstractIndexMatcher, measure_type=:U)
     if expr isa Complex
         val_re = _integrate_core(real(expr), dim, subs_dict, matcher, measure_type)
@@ -230,6 +249,12 @@ function integrate(expr::LazySum, measure)
     return sum(t -> integrate(t, measure), expr.terms)
 end
 
+"""
+    integrate(expr, measure)
+
+Top-level integration function. It first checks the [Pre-computed Integral Library](@ref) 
+for instant results. If not found, it calls `fallback_integrate` for the specific measure.
+"""
 function integrate(expr, measure)
     # Check library first
     lib_res = check_library(expr, measure)
@@ -317,6 +342,17 @@ function _iszero(x)
     return _symbolic_isequal(x_un, 0)
 end
 
+"""
+    process_term(term, matcher, dim, measure_type)
+
+Integrates a single monomial term.
+1.  **Index Collection**: Traverses the term to find all random matrix elements using the `matcher`.
+2.  **Dispatch**: Calls specific index integration functions based on `measure_type`:
+    - `:U`: `integrate_indices` (Weingarten)
+    - `:O`: `integrate_indices_orthogonal`
+    - `:Sp`: `integrate_indices_symplectic`
+    - `:GUE`, `:GOE`, `:GSE`: Wick contraction rules.
+"""
 function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type=:U)
     term = Symbolics.unwrap(term)
     
