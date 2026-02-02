@@ -13,10 +13,44 @@ _symbolic_isequal(a::Complex{Num}, b::Complex{Num}) = isequal(real(a), real(b)) 
 _symbolic_isequal(a::Complex{Num}, b::Complex) = isequal(real(a), real(b)) && isequal(imag(a), imag(b))
 _symbolic_isequal(a::Complex, b::Complex{Num}) = _symbolic_isequal(b, a)
 
-function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type=:U)
+# Abstract Matcher Interface
+abstract type AbstractIndexMatcher end
+
+struct LookupMatcher <: AbstractIndexMatcher
+    U_lookup::Dict{Any, Tuple{Int, Int}}
+    U_bar_lookup::Dict{Any, Tuple{Int, Int}}
+end
+
+function match_index(m::LookupMatcher, t)
+    t_un = Symbolics.unwrap(t)
+    t_str = string(t_un)
+    
+    # Check U
+    for (k, v) in m.U_lookup
+        if _symbolic_isequal(k, t_un) || string(k) == t_str
+            # Check for special symplectic conj flag in value
+            if length(v) == 3 && v[3] == :conj
+                return (:U_bar, v[1], v[2])
+            else
+                return (:U, v[1], v[2])
+            end
+        end
+    end
+    
+    # Check U_bar
+    for (k, v) in m.U_bar_lookup
+        if _symbolic_isequal(k, t_un) || string(k) == t_str
+            return (:U_bar, v[1], v[2])
+        end
+    end
+    
+    return nothing
+end
+
+function _integrate_core(expr, dim, subs_dict, matcher::AbstractIndexMatcher, measure_type=:U)
     if expr isa Complex
-        val_re = _integrate_core(real(expr), dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type)
-        val_im = _integrate_core(imag(expr), dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type)
+        val_re = _integrate_core(real(expr), dim, subs_dict, matcher, measure_type)
+        val_im = _integrate_core(imag(expr), dim, subs_dict, matcher, measure_type)
         return _robust_real(val_re + im * val_im)
     end
 
@@ -27,7 +61,7 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup, me
     
     # Check if unwrapping revealed a complex object
     if expr_un isa Complex
-        return _integrate_core(expr_un, dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type)
+        return _integrate_core(expr_un, dim, subs_dict, matcher, measure_type)
     end
 
     # Wrap in Num if not already, then expand
@@ -99,7 +133,7 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup, me
     
     expr_rewritten = SymbolicUtils.Postwalk(fix_powers)(expr_rewritten)
     if expr_rewritten isa Complex
-        return _integrate_core(expr_rewritten, dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type)
+        return _integrate_core(expr_rewritten, dim, subs_dict, matcher, measure_type)
     end
     expr_num = _safe_Num(expr_rewritten)
     
@@ -161,7 +195,7 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup, me
 
     # Helper to traverse product
     function process_term_wrapped(term)
-        return process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type)
+        return process_term(term, matcher, dim, measure_type)
     end
 
     # Local helper to sum integrals over terms
@@ -283,13 +317,13 @@ function _iszero(x)
     return _symbolic_isequal(x_un, 0)
 end
 
-function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
+function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type=:U)
     term = Symbolics.unwrap(term)
     
     if Symbolics.iscall(term)
         op = Symbolics.operation(term)
         if op == (+)
-            return sum(t -> process_term(t, U_atomic_lookup, U_bar_lookup, dim, measure_type), Symbolics.arguments(term))
+            return sum(t -> process_term(t, matcher, dim, measure_type), Symbolics.arguments(term))
         end
     end
 
@@ -299,30 +333,18 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
     
     function traverse(t)
         t_unwrapped = Symbolics.unwrap(t)
-        t_str = string(t_unwrapped)
         
-        # Exact match or string match for robustness
-        found = false
-        for (k, v) in U_atomic_lookup
-            if _symbolic_isequal(k, t_unwrapped) || string(k) == t_str
-                # Check if it's a conjugate entry for Symplectic
-                if length(v) == 3 && v[3] == :conj
-                    push!(u_bar_indices, (v[1], v[2]))
-                else
-                    push!(u_indices, v)
-                end
-                found = true; break
+        # Use Matcher
+        match_res = match_index(matcher, t_unwrapped)
+        if match_res !== nothing
+            type, i, j = match_res
+            if type == :U
+                push!(u_indices, (i, j))
+            else
+                push!(u_bar_indices, (i, j))
             end
+            return
         end
-        found && return
-        
-        for (k, v) in U_bar_lookup
-            if _symbolic_isequal(k, t_unwrapped) || string(k) == t_str
-                push!(u_bar_indices, v)
-                found = true; break
-            end
-        end
-        found && return
         
         if t isa Number && !(t isa Num) && !(t isa Complex{Num})
             coeff *= t
@@ -346,20 +368,17 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
                 end
             elseif op == conj || op == Base.conj
                 inner = Symbolics.unwrap(args[1])
-                inner_str = string(inner)
-                # conj(U) -> U_bar
-                for (k, v) in U_atomic_lookup
-                    if _symbolic_isequal(k, inner) || string(k) == inner_str
-                        push!(u_bar_indices, v)
-                        return
+                match_res_inner = match_index(matcher, inner)
+                
+                if match_res_inner !== nothing
+                    type, i, j = match_res_inner
+                    # Flip type
+                    if type == :U
+                        push!(u_bar_indices, (i, j))
+                    else
+                        push!(u_indices, (i, j))
                     end
-                end
-                # conj(U_bar) -> U
-                for (k, v) in U_bar_lookup
-                    if _symbolic_isequal(k, inner) || string(k) == inner_str
-                        push!(u_indices, v)
-                        return
-                    end
+                    return
                 end
             end
         end

@@ -6,13 +6,11 @@ using LinearAlgebra
 # Define symbolic dimension
 @variables d
 
-println("Testing symbolic dimension d...")
+println("Testing symbolic dimension d with @symbolic_dimension macro...")
 
-# We can use any fixed size matrix for U, 
-# but the results will depend on d symbolically.
-# Let's use 2x2.
-@variables U[1:2, 1:2]::Complex
-measure = dU(U, d)
+# Use the new macro to define U
+@symbolic_dimension U[1:d, 1:d]
+measure = dU(U)
 
 # 1. Integrate |U_11|^2
 println("\n1. Integrating |U_11|^2 ...")
@@ -37,7 +35,10 @@ println("Result: $res2 (Expected: 2 / (d*(d+1)))")
 # 3. Integrate a 2x2 minor
 println("\n3. Integrating |U_11*U_22 - U_12*U_21|^2 ...")
 # Convert to Matrix of expressions to force determinant expansion
-U_mat = collect(U)
+# Since U is lazy infinite, we must explicitly slice it or construct the minor
+# U[1:2, 1:2] usually works if getindex supports ranges, but our lazy implementation
+# might only be optimized for scalar indexing implicitly or we can just build the matrix.
+U_mat = [U[i,j] for i in 1:2, j in 1:2]
 minor = det(U_mat)
 expr3 = abs(minor)^2
 res3 = integrate(expr3, measure)

@@ -31,7 +31,7 @@ include("library.jl")
 
 import LinearAlgebra: det
 import Symbolics: Num
-export integrate, asymptotic, dU, dPsi, dO, dSp, dGUE, dGOE, dGSE, integrate_indices, tr, det, purity, average_purity, fidelity, average_fidelity, partial_trace, dDesign
+export integrate, asymptotic, dU, dPsi, dO, dSp, dGUE, dGOE, dGSE, integrate_indices, tr, det, purity, average_purity, fidelity, average_fidelity, partial_trace, dDesign, symbolic_dimension_unitary, @symbolic_dimension
 
 export SymbolicMatrix, tr_lazy, LazyTrace, LazySum
 

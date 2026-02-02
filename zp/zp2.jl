@@ -132,10 +132,8 @@ println()
 
 # ---------------- U(d): symbolic-d stress tests -------------------------------
 @variables d::Int
-# We use a sufficiently large concrete N for the array variables
-N_sym = 10
-@variables U[1:N_sym, 1:N_sym]::Complex
-μU = dU(U, d)  # IntU.jl measure constructor
+@symbolic_dimension U[1:d, 1:d]
+μU = dU(U)  # IntU.jl measure constructor
 
 U_cases = [
     ("U_abs2_pow4__|U11|^8",  abs2(U[1,1])^4, unitary_abs2_moment(d, 4)),
@@ -177,6 +175,7 @@ for (name, expr, expected) in U_cases
 end
 
 # ------------- O(d): symbolic-d stress tests ----------------------------------
+N_sym = 10
 @variables O[1:N_sym, 1:N_sym]::Real
 μO = dO(O, d)  # IntU.jl measure constructor
 

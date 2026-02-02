@@ -57,5 +57,6 @@ function fallback_integrate(expr, measure::UnitaryDesign)
     end
 
     # Pass measure_type as a tuple (:Design, t)
-    return _robust_real_num(_integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup, (:Design, t_val)))
+    matcher = LookupMatcher(U_atomic_lookup, U_bar_lookup)
+    return _robust_real_num(_integrate_core(expr, dim, subs_dict, matcher, (:Design, t_val)))
 end

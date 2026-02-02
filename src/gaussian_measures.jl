@@ -100,7 +100,8 @@ end
 
 function fallback_integrate(expr, measure::GUEMeasure)
     subs_dict, H_atomic_lookup = _setup_gaussian_subs(measure.H, :GUE)
-    return _robust_real_num(_integrate_core(expr, measure.dim, subs_dict, H_atomic_lookup, Dict(), :GUE))
+    matcher = LookupMatcher(H_atomic_lookup, Dict{Any, Tuple{Int, Int}}())
+    return _robust_real_num(_integrate_core(expr, measure.dim, subs_dict, matcher, :GUE))
 end
 
 function fallback_integrate(t::LazyTrace, measure::GUEMeasure)
@@ -208,7 +209,8 @@ end
 
 function fallback_integrate(expr, measure::GOEMeasure)
     subs_dict, H_atomic_lookup = _setup_gaussian_subs(measure.H, :GOE)
-    return _robust_real_num(_integrate_core(expr, measure.dim, subs_dict, H_atomic_lookup, Dict(), :GOE))
+    matcher = LookupMatcher(H_atomic_lookup, Dict{Any, Tuple{Int, Int}}())
+    return _robust_real_num(_integrate_core(expr, measure.dim, subs_dict, matcher, :GOE))
 end
 
 function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
@@ -373,7 +375,8 @@ end
 
 function fallback_integrate(expr, measure::GSEMeasure)
     subs_dict, H_atomic_lookup = _setup_gaussian_subs(measure.H, :GSE)
-    return _robust_real_num(_integrate_core(expr, measure.dim, subs_dict, H_atomic_lookup, Dict(), :GSE))
+    matcher = LookupMatcher(H_atomic_lookup, Dict{Any, Tuple{Int, Int}}())
+    return _robust_real_num(_integrate_core(expr, measure.dim, subs_dict, matcher, :GSE))
 end
 
 function fallback_integrate(t::LazyTrace, measure::GSEMeasure)

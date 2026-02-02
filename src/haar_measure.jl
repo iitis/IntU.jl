@@ -1,5 +1,92 @@
 # Haar measure integration
 
+# Lazy Symbolic Unitary Matrix
+struct SymbolicUnitary{D} <: AbstractMatrix{Num}
+    name::Symbol
+    func::Function # Generates the variable
+    dim::D
+end
+
+# Infinite size for lazy unitary to allow U[100, 100] etc
+Base.size(::SymbolicUnitary) = (typemax(Int), typemax(Int))
+Base.getindex(S::SymbolicUnitary, i::Integer, j::Integer) = S.func(i, j)
+
+"""
+    symbolic_dimension_unitary(dim; name=:U)
+
+Creates a lazy symbolic unitary matrix `U` with symbolic dimension `dim`.
+`U` allows accessing indices of any size (e.g. `U[i,j]`).
+To get the measure, use `dU(U)`.
+"""
+function symbolic_dimension_unitary(dim; name=:U)
+    # Create variables on demand with consistent naming
+    # Ensure variables are Complex so conj(x) != x
+    gen = (i, j) -> Symbolics.variable(Symbol(name, :_, i, :_, j), T=Complex{Num})
+    return SymbolicUnitary(name, gen, dim)
+end
+
+"""
+    @symbolic_dimension U[1:d, 1:d]
+
+Macro to define a symbolic unitary `U` with symbolic dimension `d`.
+Example:
+    @variables d
+    @symbolic_dimension U[1:d, 1:d]
+    measure = dU(U)
+"""
+macro symbolic_dimension(expr)
+    if !Meta.isexpr(expr, :ref) || length(expr.args) != 3
+        error("Usage: @symbolic_dimension U[1:d, 1:d]")
+    end
+    
+    name = expr.args[1]
+    
+    # Parse dimensions from ranges
+    # Expecting 1:d
+    range1 = expr.args[2]
+    range2 = expr.args[3]
+    
+    # Simple check for 1:d format
+    if !Meta.isexpr(range1, :call) || range1.args[1] != :(:) || range1.args[2] != 1
+        error("Dimensions must be in format 1:d")
+    end
+    
+    dim_sym = range1.args[3]
+    
+    # Use the function
+    # We escape name to define it in user scope
+    # We escape dim_sym to use user's variable
+    
+    q = quote
+        $(esc(name)) = symbolic_dimension_unitary($(esc(dim_sym)), name=$(QuoteNode(name)))
+    end
+    return q
+end
+
+# Matcher for SymbolicUnitary
+struct SymbolicMatcher <: AbstractIndexMatcher
+    regex::Regex
+end
+
+function match_index(m::SymbolicMatcher, t)
+    # Unwrap to Sym
+    s = Symbolics.unwrap(t)
+    # We check string representation of the symbol
+    s_str = string(s)
+    
+    mat = match(m.regex, s_str)
+    if mat !== nothing
+        try
+            i = parse(Int, mat[1])
+            j = parse(Int, mat[2])
+            return (:U, i, j)
+        catch
+        end
+    end
+    return nothing
+end
+
+
 # Dummy type to represent the measure
 struct HaarMeasure{M, D}
     U::M
@@ -14,6 +101,13 @@ Define the Haar measure for the Unitary group U(d).
 dU(U, dim) = HaarMeasure(U, dim)
 
 """
+    dU(U::SymbolicUnitary)
+
+Uses the stored dimension in the symbolic unitary.
+"""
+dU(S::SymbolicUnitary) = HaarMeasure(S, S.dim)
+
+"""
     integrate(expr, measure::HaarMeasure)
 """
 function integrate(expr::AbstractArray, measure::HaarMeasure)
@@ -21,38 +115,51 @@ function integrate(expr::AbstractArray, measure::HaarMeasure)
 end
 
 function fallback_integrate(expr, measure::HaarMeasure)
-    U_sym = measure.U
+    U_input = measure.U
     dim = measure.dim
     
-    # Substitute Re(U) and Im(U)
-    subs_dict = Dict{Any, Any}()
-    U_atomic_lookup = Dict{Any, Tuple{Int, Int}}()
-    U_bar_lookup = Dict{Any, Tuple{Int, Int}}()
-    
-
-    if U_sym isa AbstractArray
-        for i in 1:size(U_sym, 1)
-            for j in 1:size(U_sym, 2)
-                u_ij_num = _safe_Num(U_sym[i,j])
-                u_ij_un = Symbolics.unwrap(u_ij_num)
-                u_atomic = Symbolics.variable(:U_atomic, i, j)
-                u_bar_atomic = Symbolics.variable(:U_bar_atomic, i, j)
-                
-                U_atomic_lookup[Symbolics.unwrap(u_atomic)] = (i, j)
-                U_bar_lookup[Symbolics.unwrap(u_bar_atomic)] = (i, j)
-                
-                subs_dict[u_ij_un] = u_atomic
-                
-                c_ij_un = Symbolics.unwrap(conj(u_ij_num))
-                subs_dict[c_ij_un] = u_bar_atomic
-                
-                bc_ij_un = Symbolics.unwrap(Base.conj(u_ij_num))
-                subs_dict[bc_ij_un] = u_bar_atomic
+    # Check if U is our new SymbolicUnitary or legacy AbstractArray
+    if U_input isa SymbolicUnitary
+        # Use Symbolic Matcher
+        # We don't need subs_dict for canonical variables because U(i,j) is already canonical
+        subs_dict = Dict{Any, Any}()
+        # Regex matches name_i_j
+        matcher = SymbolicMatcher(Regex("^$(U_input.name)_(\\d+)_(\\d+)\$"))
+        
+        return _robust_real_num(_integrate_core(expr, dim, subs_dict, matcher))
+    else
+        # Legacy array-based path
+        U_sym = U_input
+        # Substitute Re(U) and Im(U)
+        subs_dict = Dict{Any, Any}()
+        U_atomic_lookup = Dict{Any, Tuple{Int, Int}}()
+        U_bar_lookup = Dict{Any, Tuple{Int, Int}}()
+        
+        if U_sym isa AbstractArray
+            for i in 1:size(U_sym, 1)
+                for j in 1:size(U_sym, 2)
+                    u_ij_num = _safe_Num(U_sym[i,j])
+                    u_ij_un = Symbolics.unwrap(u_ij_num)
+                    u_atomic = Symbolics.variable(:U_atomic, i, j)
+                    u_bar_atomic = Symbolics.variable(:U_bar_atomic, i, j)
+                    
+                    U_atomic_lookup[Symbolics.unwrap(u_atomic)] = (i, j)
+                    U_bar_lookup[Symbolics.unwrap(u_bar_atomic)] = (i, j)
+                    
+                    subs_dict[u_ij_un] = u_atomic
+                    
+                    c_ij_un = Symbolics.unwrap(conj(u_ij_num))
+                    subs_dict[c_ij_un] = u_bar_atomic
+                    
+                    bc_ij_un = Symbolics.unwrap(Base.conj(u_ij_num))
+                    subs_dict[bc_ij_un] = u_bar_atomic
+                end
             end
         end
-    end
 
-    return _robust_real_num(_integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup))
+        matcher = LookupMatcher(U_atomic_lookup, U_bar_lookup)
+        return _robust_real_num(_integrate_core(expr, dim, subs_dict, matcher))
+    end
 end
 
 """

@@ -4,8 +4,8 @@ using BenchmarkTools
 
 function benchmark_asymptotic()
     @variables d
-    @variables U[1:2, 1:2]::Complex
-    measure = dU(U, d)
+    @symbolic_dimension U[1:d, 1:d]
+    measure = dU(U)
     
     println("=== Asymptotic Expansion Benchmarks ===")
     

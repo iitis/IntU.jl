@@ -45,7 +45,8 @@ function fallback_integrate(expr, measure::PureStateMeasure)
         subs_dict[Symbolics.unwrap(imag(u_elem))] = (1//2im) * (u_atomic - u_bar_atomic)
     end
     
-    return _robust_real_num(_integrate_core(expr, dim, subs_dict, psi_atomic_lookup, psi_bar_lookup))
+    matcher = LookupMatcher(psi_atomic_lookup, psi_bar_lookup)
+    return _robust_real_num(_integrate_core(expr, dim, subs_dict, matcher))
 end
 
 """

@@ -67,27 +67,28 @@ end
 # ============================================================
 # 1) Unitary group U(d)
 # ============================================================
-function test_unitary(N::Int)
+function test_unitary()
     println("------------------------------------------------------------")
-    println("Testing Unitary U(d) moments (degree <= 4) using $N x $N matrix")
+    println("Testing Unitary U(d) moments (degree <= 4) using Symbolic Dimension")
     println("------------------------------------------------------------")
     
-    @variables U[1:N, 1:N]::Complex
-    μU = dU(U, d)
+    @variables d::Int
+    @symbolic_dimension U[1:d, 1:d]
+    μU = dU(U)
+    # Using specific values for substitution checks
     subsU = [Dict(d => 3), Dict(d => 4), Dict(d => 7)]
 
+    # Note: U is infinite lazy matrix, so we can access any index
     run_example("U1: ∫ 1 dU", 1, μU, 1; subs=subsU)
     run_example("U2: ∫ U₁₁ dU = 0", U[1,1], μU, 0; subs=subsU)
     run_example("U3: ∫ |U₁₁|² dU = 1/d", U[1,1]*conj(U[1,1]), μU, 1/d; subs=subsU)
 
-    if N >= 2
-        run_example("U4: ∫ U₁₁ conj(U₁₂) dU = 0", U[1,1]*conj(U[1,2]), μU, 0; subs=subsU)
-        run_example("U5: ∫ |U₁₁|⁴ dU = 2/(d(d+1))", (U[1,1]*conj(U[1,1]))^2, μU, 2/(d*(d+1)); subs=subsU)
-        run_example("U6: ∫ |U₁₁|²|U₁₂|² dU = 1/(d(d+1))", (U[1,1]*conj(U[1,1]))*(U[1,2]*conj(U[1,2])), μU, 1/(d*(d+1)); subs=subsU)
-        run_example("U7: ∫ |U₁₁|²|U₂₁|² dU = 1/(d(d+1))", (U[1,1]*conj(U[1,1]))*(U[2,1]*conj(U[2,1])), μU, 1/(d*(d+1)); subs=subsU)
-        run_example("U8: ∫ |U₁₁|²|U₂₂|² dU = 1/(d²-1)", (U[1,1]*conj(U[1,1]))*(U[2,2]*conj(U[2,2])), μU, 1/(d^2 - 1); subs=subsU)
-        run_example("U9: ∫ U₁₁U₂₂ conj(U₁₂)conj(U₂₁) dU = -1/(d(d²-1))", U[1,1]*U[2,2]*conj(U[1,2])*conj(U[2,1]), μU, -1/(d*(d^2 - 1)); subs=subsU)
-    end
+    run_example("U4: ∫ U₁₁ conj(U₁₂) dU = 0", U[1,1]*conj(U[1,2]), μU, 0; subs=subsU)
+    run_example("U5: ∫ |U₁₁|⁴ dU = 2/(d(d+1))", (U[1,1]*conj(U[1,1]))^2, μU, 2/(d*(d+1)); subs=subsU)
+    run_example("U6: ∫ |U₁₁|²|U₁₂|² dU = 1/(d(d+1))", (U[1,1]*conj(U[1,1]))*(U[1,2]*conj(U[1,2])), μU, 1/(d*(d+1)); subs=subsU)
+    run_example("U7: ∫ |U₁₁|²|U₂₁|² dU = 1/(d(d+1))", (U[1,1]*conj(U[1,1]))*(U[2,1]*conj(U[2,1])), μU, 1/(d*(d+1)); subs=subsU)
+    run_example("U8: ∫ |U₁₁|²|U₂₂|² dU = 1/(d²-1)", (U[1,1]*conj(U[1,1]))*(U[2,2]*conj(U[2,2])), μU, 1/(d^2 - 1); subs=subsU)
+    run_example("U9: ∫ U₁₁U₂₂ conj(U₁₂)conj(U₂₁) dU = -1/(d(d²-1))", U[1,1]*U[2,2]*conj(U[1,2])*conj(U[2,1]), μU, -1/(d*(d^2 - 1)); subs=subsU)
 end
 
 # ============================================================
@@ -146,8 +147,9 @@ function test_high_moments()
     println("------------------------------------------------------------")
     
     # Unitary U(d) 6-th moment
-    @variables U[1:1, 1:1]::Complex
-    μU = dU(U, d)
+    @variables d::Int
+    @symbolic_dimension U[1:d, 1:d]
+    μU = dU(U)
     run_example("U10: ∫ |U₁₁|⁶ dU = 6/(d(d+1)(d+2))", (U[1,1]*conj(U[1,1]))^3, μU, 6/(d*(d+1)*(d+2)); subs=[Dict(d => 3)])
 
     # Orthogonal O(d) 6-th moment - slow with symbolic inversion, using concrete dimension for demonstration
@@ -184,9 +186,11 @@ println("============================================================")
 println("Running IntU examples with symbolic dimension 'd'")
 println("============================================================\n")
 
+# Run unitary once
+test_unitary()
+
 # Run loops for low-degree moments
 for N in 2:4
-    test_unitary(N)
     test_orthogonal(N)
     test_symplectic(N)
 end
