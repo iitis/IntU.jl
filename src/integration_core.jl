@@ -13,10 +13,63 @@ _symbolic_isequal(a::Complex{Num}, b::Complex{Num}) = isequal(real(a), real(b)) 
 _symbolic_isequal(a::Complex{Num}, b::Complex) = isequal(real(a), real(b)) && isequal(imag(a), imag(b))
 _symbolic_isequal(a::Complex, b::Complex{Num}) = _symbolic_isequal(b, a)
 
-function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type=:U)
+"""
+    AbstractIndexMatcher
+
+Base type for index matching strategies. Subtypes must implement `match_index`.
+"""
+abstract type AbstractIndexMatcher end
+
+"""
+    LookupMatcher(U_lookup, U_bar_lookup)
+
+A matcher that uses dictionaries to map symbolic variables to (row, column) indices.
+Used primarily for GUE/GOE/GSE and list-based unitary integration.
+"""
+struct LookupMatcher <: AbstractIndexMatcher
+    U_lookup::Dict{Any, Tuple{Int, Int}}
+    U_bar_lookup::Dict{Any, Tuple{Int, Int}}
+end
+
+function match_index(m::LookupMatcher, t)
+    t_un = Symbolics.unwrap(t)
+    t_str = string(t_un)
+    
+    # Check U
+    for (k, v) in m.U_lookup
+        if _symbolic_isequal(k, t_un) || string(k) == t_str
+            # Check for special symplectic conj flag in value
+            if length(v) == 3 && v[3] == :conj
+                return (:U_bar, v[1], v[2])
+            else
+                return (:U, v[1], v[2])
+            end
+        end
+    end
+    
+    # Check U_bar
+    for (k, v) in m.U_bar_lookup
+        if _symbolic_isequal(k, t_un) || string(k) == t_str
+            return (:U_bar, v[1], v[2])
+        end
+    end
+    
+    return nothing
+end
+
+"""
+    _integrate_core(expr, dim, subs_dict, matcher, measure_type=:U)
+
+The internal integration engine. It performs several steps:
+1.  **Normalization/Rewriting**: Expands `abs2(z)`, `real(z)`, `imag(z)` into explicit polynomials.
+2.  **Substitution**: Replaces symbolic variables with internal atomic representatives via `subs_dict`.
+3.  **Expansion**: Distributes products over sums to get a sum of monomials.
+4.  **Monomial Integration**: For each monomial, invokes `process_term` to identify indices and apply the appropriate integration rule (Weingarten or Wick).
+"""
+function _integrate_core(expr, dim, subs_dict, matcher::AbstractIndexMatcher, measure_type=:U)
     if expr isa Complex
-        val_re = _integrate_core(real(expr), dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type)
-        val_im = _integrate_core(imag(expr), dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type)
+        val_re = _integrate_core(real(expr), dim, subs_dict, matcher, measure_type)
+        val_im = _integrate_core(imag(expr), dim, subs_dict, matcher, measure_type)
         return _robust_real(val_re + im * val_im)
     end
 
@@ -27,7 +80,7 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup, me
     
     # Check if unwrapping revealed a complex object
     if expr_un isa Complex
-        return _integrate_core(expr_un, dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type)
+        return _integrate_core(expr_un, dim, subs_dict, matcher, measure_type)
     end
 
     # Wrap in Num if not already, then expand
@@ -43,6 +96,7 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup, me
     end
 
     # Rewrite rules to ensure abs(z)^2 becomes (z * conj(z)) or real^2 + imag^2
+    r_abs2 = @rule abs2(~x) => (~x) * conj(~x)
     r_abs_sq = @rule abs(~x)^2 => (~x) * conj(~x)
     r_abs = @rule abs(~x) => hypot(real(~x), imag(~x))
     
@@ -63,7 +117,7 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup, me
     expr_unwrapped = Symbolics.unwrap(expr)
     
     # Apply rewrites
-    chain = SymbolicUtils.Chain([r_abs_sq, r_abs, r_real, r_real_base, r_imag, r_imag_base, r_hypot_sum, r_hypot_default, r_complex, r_complex_base])
+    chain = SymbolicUtils.Chain([r_abs_sq, r_abs2, r_abs, r_real, r_real_base, r_imag, r_imag_base, r_hypot_sum, r_hypot_default, r_complex, r_complex_base])
     expr_rewritten = SymbolicUtils.Postwalk(SymbolicUtils.PassThrough(chain))(expr_unwrapped)
     
     # Manual power fixing function
@@ -98,7 +152,7 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup, me
     
     expr_rewritten = SymbolicUtils.Postwalk(fix_powers)(expr_rewritten)
     if expr_rewritten isa Complex
-        return _integrate_core(expr_rewritten, dim, subs_dict, U_atomic_lookup, U_bar_lookup, measure_type)
+        return _integrate_core(expr_rewritten, dim, subs_dict, matcher, measure_type)
     end
     expr_num = _safe_Num(expr_rewritten)
     
@@ -160,7 +214,7 @@ function _integrate_core(expr, dim, subs_dict, U_atomic_lookup, U_bar_lookup, me
 
     # Helper to traverse product
     function process_term_wrapped(term)
-        return process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type)
+        return process_term(term, matcher, dim, measure_type)
     end
 
     # Local helper to sum integrals over terms
@@ -195,6 +249,12 @@ function integrate(expr::LazySum, measure)
     return sum(t -> integrate(t, measure), expr.terms)
 end
 
+"""
+    integrate(expr, measure)
+
+Top-level integration function. It first checks the [Pre-computed Integral Library](@ref) 
+for instant results. If not found, it calls `fallback_integrate` for the specific measure.
+"""
 function integrate(expr, measure)
     # Check library first
     lib_res = check_library(expr, measure)
@@ -282,13 +342,24 @@ function _iszero(x)
     return _symbolic_isequal(x_un, 0)
 end
 
-function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
+"""
+    process_term(term, matcher, dim, measure_type)
+
+Integrates a single monomial term.
+1.  **Index Collection**: Traverses the term to find all random matrix elements using the `matcher`.
+2.  **Dispatch**: Calls specific index integration functions based on `measure_type`:
+    - `:U`: `integrate_indices` (Weingarten)
+    - `:O`: `integrate_indices_orthogonal`
+    - `:Sp`: `integrate_indices_symplectic`
+    - `:GUE`, `:GOE`, `:GSE`: Wick contraction rules.
+"""
+function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type=:U)
     term = Symbolics.unwrap(term)
     
     if Symbolics.iscall(term)
         op = Symbolics.operation(term)
         if op == (+)
-            return sum(t -> process_term(t, U_atomic_lookup, U_bar_lookup, dim, measure_type), Symbolics.arguments(term))
+            return sum(t -> process_term(t, matcher, dim, measure_type), Symbolics.arguments(term))
         end
     end
 
@@ -298,44 +369,18 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
     
     function traverse(t)
         t_unwrapped = Symbolics.unwrap(t)
-        t_str = string(t_unwrapped)
         
-        # Exact match or string match for robustness
-        found = false
-        for (k, v) in U_atomic_lookup
-            if _symbolic_isequal(k, t_unwrapped) || string(k) == t_str
-                # Check if it's a conjugate entry for Symplectic
-                if length(v) == 3 && v[3] == :conj
-                    if measure_type == :Sp
-                        if !(dim isa Integer)
-                             error("Symplectic integration with conjugates requires integer dimension")
-                        end
-                        i_idx, j_idx, _ = v
-                        m_dim = div(dim, 2)
-                        
-                        di, si = (i_idx <= m_dim ? (i_idx + m_dim, 1) : (i_idx - m_dim, -1))
-                        dj, sj = (j_idx <= m_dim ? (j_idx + m_dim, 1) : (j_idx - m_dim, -1))
-                        
-                        coeff *= (si * sj)
-                        push!(u_indices, (di, dj))
-                    else
-                        error("Conjugate flag :conj found for non-Symplectic measure")
-                    end
-                else
-                    push!(u_indices, v)
-                end
-                found = true; break
+        # Use Matcher
+        match_res = match_index(matcher, t_unwrapped)
+        if match_res !== nothing
+            type, i, j = match_res
+            if type == :U
+                push!(u_indices, (i, j))
+            else
+                push!(u_bar_indices, (i, j))
             end
+            return
         end
-        found && return
-        
-        for (k, v) in U_bar_lookup
-            if _symbolic_isequal(k, t_unwrapped) || string(k) == t_str
-                push!(u_bar_indices, v)
-                found = true; break
-            end
-        end
-        found && return
         
         if t isa Number && !(t isa Num) && !(t isa Complex{Num})
             coeff *= t
@@ -359,33 +404,17 @@ function process_term(term, U_atomic_lookup, U_bar_lookup, dim, measure_type=:U)
                 end
             elseif op == conj || op == Base.conj
                 inner = Symbolics.unwrap(args[1])
-                inner_str = string(inner)
-                # conj(U) -> U_bar
-                for (k, v) in U_atomic_lookup
-                    if _symbolic_isequal(k, inner) || string(k) == inner_str
-                        if measure_type == :Sp
-                             # Perform same Sp duality rewrite here!
-                             if !(dim isa Integer)
-                                  error("Symplectic integration with conjugates requires integer dimension")
-                             end
-                             i_i, j_j = v
-                             m_m = div(dim, 2)
-                             di, si = (i_i <= m_m ? (i_i + m_m, 1) : (i_i - m_m, -1))
-                             dj, sj = (j_j <= m_m ? (j_j + m_m, 1) : (j_j - m_m, -1))
-                             coeff *= (si * sj)
-                             push!(u_indices, (di, dj))
-                        else
-                             push!(u_bar_indices, v)
-                        end
-                        return
+                match_res_inner = match_index(matcher, inner)
+                
+                if match_res_inner !== nothing
+                    type, i, j = match_res_inner
+                    # Flip type
+                    if type == :U
+                        push!(u_bar_indices, (i, j))
+                    else
+                        push!(u_indices, (i, j))
                     end
-                end
-                # conj(U_bar) -> U
-                for (k, v) in U_bar_lookup
-                    if _symbolic_isequal(k, inner) || string(k) == inner_str
-                        push!(u_indices, v)
-                        return
-                    end
+                    return
                 end
             end
         end
@@ -1025,7 +1054,8 @@ function compute_symplectic_contraction(partition, indices, dim)
     # If d is symbolic, we can try to look at max index?
     # No, that's unsafe.
     
-    is_d_numeric = (dim isa Integer)
+    u_unwrapped = Symbolics.unwrap(dim)
+    is_d_numeric = (u_unwrapped isa Number)
     
     for (u, v) in partition
         idx_u = indices[u]
@@ -1053,23 +1083,15 @@ function symplectic_form(i, j, dim)
         return 0 
     end
     
-    # We require dim to be known integer for this check 
+    # We require dim to be known numeric for this check 
     # Or we return 0 if we can't check.
-    if !(dim isa Integer)
-         # Try to resolve or error?
-         # If the user provided d symbolic but indices 1,2, then we can likely assume d=2 if max index is 2?
-         # Unsafe.
-         # For now, return 0 or error.
-         # Actually, better to error if we can't compute.
-         # But usually we want to return 0 for non-matching.
-         # Let's try to assume small dimension if indices are small?
-         # Re-eval plan: "Support numeric indices". 
-         # We need dim to be numeric.
+    u_dim = Symbolics.unwrap(dim)
+    if !(u_dim isa Number)
          return 0 
-         # TODO: Support J(i, j) symbolic object.
     end
     
-    m = div(dim, 2)
+    dim_val = Int(u_dim)
+    m = div(dim_val, 2)
     
     # 1 <= i, j <= 2m
     if i < 1 || i > 2*m || j < 1 || j > 2*m

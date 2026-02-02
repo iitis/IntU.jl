@@ -38,6 +38,8 @@ catch e
 end
 
 println("\n--- Comparison with full Haar Measure ---")
-haar = dU(U, N)
-res3_haar = integrate(expr3, haar)
+@variables d_sym
+@symbolic_dimension U_haar[1:d_sym, 1:d_sym]
+haar = dU(U_haar)
+res3_haar = integrate(abs(U_haar[1,1])^6, haar)
 println("Haar Result for |U[1,1]|^6: $res3_haar")

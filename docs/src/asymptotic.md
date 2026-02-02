@@ -19,7 +19,9 @@ asymptotic(expr, measure, order=1)
 Evaluating the fourth moment of a matrix entry $|U_{11}|^4$:
 
 ```julia
-res = asymptotic(abs(U[1,1])^4, dU(U, d), 4)
+@variables d
+@symbolic_dimension U[1:d, 1:d]
+res = asymptotic(abs(U[1,1])^4, dU(U), 4)
 # Output: 2/d^2 - 2/d^3 + 2/d^4
 ```
 

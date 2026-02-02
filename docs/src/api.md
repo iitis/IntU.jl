@@ -1,23 +1,52 @@
 # API Reference
 
-## Measures
-
-```@docs
-IntU.dU
-IntU.dPsi
-IntU.dGUE
-IntU.dGOE
-IntU.dGSE
-```
-
-## Integration Functions
+## Core Integration
 
 ```@docs
 integrate
 asymptotic
 ```
 
-## Quantum Information Helpers
+## Measures
+
+### Unitary Group
+```@docs
+dU
+symbolic_dimension_unitary
+@symbolic_dimension
+```
+
+### Orthogonal & Symplectic
+```@docs
+dO
+dSp
+```
+
+### Gaussian Ensembles
+```@docs
+dGUE
+dGOE
+dGSE
+```
+
+### Pure States
+```@docs
+dPsi
+```
+
+### Unitary Designs
+```@docs
+dDesign
+```
+
+## Symbolic Helpers
+
+```@docs
+SymbolicMatrix
+tr
+```
+
+## Quantum Information Utilities
 
 ```@docs
 purity
@@ -27,53 +56,50 @@ average_fidelity
 partial_trace
 ```
 
-## Symbolic Trace Logic
-
-```@docs
-SymbolicMatrix
-tr_lazy
-LazyTrace
-IntU.LazySum
-```
-
-## Internal Utilities
-
-```@docs
-integrate_indices
-tr
-```
-
-## Real Groups
-
-```@docs
-dO
-dSp
-```
-
-## Internal & Weingarten Utilities
+## Internal / Advanced
 
 These functions are part of the internal machinery but documented for development reference.
 
 ```@docs
-IntU.weingarten_orthogonal_matrix
-IntU.character_at_id
-IntU._poly_degree
-IntU.weingarten_symplectic_val
-IntU.conjugate_partition
-IntU.get_matching_pair_partitions_filtered
-IntU.irrep_dimension
-IntU.compute_symplectic_contraction
-IntU.integrate_indices_symplectic
-IntU.weingarten_orthogonal_val
-IntU.orthogonal_gram_matrix
-IntU.murnaghan_nakayama
-IntU.tr_val
-IntU.integrate_indices_orthogonal
-IntU.get_pair_partitions
-IntU.count_loops
-IntU._expand_asymptotic
-IntU.check_library
-IntU.fallback_integrate
+integrate_indices
+tr_lazy
+LazyTrace
+LazySum
 IntU.integrate_indices_gue
 IntU.integrate_indices_goe
+IntU.integrate_indices_orthogonal
+IntU.integrate_indices_symplectic
+IntU.fallback_integrate
+IntU.check_library
+IntU.tr_val
+IntU._expand_asymptotic
+IntU._poly_degree
+```
+
+### Matcher and Logic
+
+```@docs
+AbstractIndexMatcher
+LookupMatcher
+SymbolicUnitary
+_integrate_core
+process_term
+weingarten
+```
+
+### Weingarten & Combinatorics
+
+```@docs
+IntU.weingarten_orthogonal_val
+IntU.weingarten_symplectic_val
+IntU.get_pair_partitions
+IntU.get_matching_pair_partitions_filtered
+IntU.canonicalize_pair_partition
+IntU.conjugate_partition
+IntU.count_loops
+IntU.murnaghan_nakayama
+IntU.character_at_id
+IntU.irrep_dimension
+IntU.get_weingarten_orthogonal_data
+IntU.compute_symplectic_contraction
 ```

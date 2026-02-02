@@ -18,36 +18,55 @@ end
 """
     dGUE(H, dim)
 
-Define the measure for the Gaussian Unitary Ensemble (GUE).
-`H` is the symbolic matrix representing the Hermitian Gaussian random matrix.
-`dim` is the dimension (symbolic or integer).
+Defines the measure for the **Gaussian Unitary Ensemble (GUE)**.
+H is a complex Hermitian matrix (H = H^\\dagger).
 
-Expectation values are defined by Wick's theorem with the contraction:
-`< H_{ij} H_{kl} > = delta_{il} * delta_{jk}`
+Expectation values are given by **Wick's Theorem** (Isserlis' Theorem) with the contraction:
+```math
+\\langle H_{ij} \\bar{H}_{kl} \\rangle = \\delta_{il} \\delta_{jk}
+```
+This implies \\langle \\text{Tr}(H^2) \\rangle = d^2.
 
-This normalization corresponds to `< Tr(H^2) > = dim^2`.
-Note: H is Hermitian, so `conj(H_{ij})` is treated as `H_{ji}`.
+Reference:
+- Mehta, M. L. (2004). *Random Matrices*.
 """
 dGUE(H, dim) = GUEMeasure(H, dim)
 
 """
     dGOE(H, dim)
 
-Define the measure for the Gaussian Orthogonal Ensemble (GOE).
-`H` is the symbolic matrix representing the real symmetric Gaussian random matrix.
+Defines the measure for the **Gaussian Orthogonal Ensemble (GOE)**.
+H is a real symmetric matrix (H = H^T).
+
+The Wick contraction is:
+```math
+\\langle H_{ij} H_{kl} \\rangle = \\delta_{ik} \\delta_{jl} + \\delta_{il} \\delta_{jk}
+```
+This implies \\langle \\text{Tr}(H^2) \\rangle = d^2 + d.
+
+Reference:
+- Mehta, M. L. (2004). *Random Matrices*.
 """
 dGOE(H, dim) = GOEMeasure(H, dim)
 
 """
     dGSE(H, dim)
 
-Define the measure for the Gaussian Symplectic Ensemble (GSE).
-`H` is the symbolic matrix representing the quaternionic Hermitian Gaussian random matrix.
-NOTE: `dim` must be even (\$d=2n\$).
+Defines the measure for the **Gaussian Symplectic Ensemble (GSE)**.
+H is a Hermitian quaternionic self-dual matrix. Dimension d must be even.
+
+The integration uses the property:
+```math
+\\langle \\text{Tr}(H^k) \\rangle_{GSE}(d) = (-1)^{\\frac{k}{2} + 1} \\langle \\text{Tr}(H^k) \\rangle_{GOE}(-d)
+```
+This implies \\langle \\text{Tr}(H^2) \\rangle = d^2 - d.
+
+Reference:
+- Mehta, M. L. (2004). *Random Matrices*.
 """
 function dGSE(H, dim)
     if dim isa Integer && isodd(dim)
-        throw(ArgumentError("GSE dimension must be even, got $dim"))
+        throw(ArgumentError("GSE dimension must be even, got \$dim"))
     end
     return GSEMeasure(H, dim)
 end
@@ -100,7 +119,8 @@ end
 
 function fallback_integrate(expr, measure::GUEMeasure)
     subs_dict, H_atomic_lookup = _setup_gaussian_subs(measure.H, :GUE)
-    return _robust_real_num(_integrate_core(expr, measure.dim, subs_dict, H_atomic_lookup, Dict(), :GUE))
+    matcher = LookupMatcher(H_atomic_lookup, Dict{Any, Tuple{Int, Int}}())
+    return _robust_real_num(_integrate_core(expr, measure.dim, subs_dict, matcher, :GUE))
 end
 
 function fallback_integrate(t::LazyTrace, measure::GUEMeasure)
@@ -208,7 +228,8 @@ end
 
 function fallback_integrate(expr, measure::GOEMeasure)
     subs_dict, H_atomic_lookup = _setup_gaussian_subs(measure.H, :GOE)
-    return _robust_real_num(_integrate_core(expr, measure.dim, subs_dict, H_atomic_lookup, Dict(), :GOE))
+    matcher = LookupMatcher(H_atomic_lookup, Dict{Any, Tuple{Int, Int}}())
+    return _robust_real_num(_integrate_core(expr, measure.dim, subs_dict, matcher, :GOE))
 end
 
 function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
@@ -373,7 +394,8 @@ end
 
 function fallback_integrate(expr, measure::GSEMeasure)
     subs_dict, H_atomic_lookup = _setup_gaussian_subs(measure.H, :GSE)
-    return _robust_real_num(_integrate_core(expr, measure.dim, subs_dict, H_atomic_lookup, Dict(), :GSE))
+    matcher = LookupMatcher(H_atomic_lookup, Dict{Any, Tuple{Int, Int}}())
+    return _robust_real_num(_integrate_core(expr, measure.dim, subs_dict, matcher, :GSE))
 end
 
 function fallback_integrate(t::LazyTrace, measure::GSEMeasure)

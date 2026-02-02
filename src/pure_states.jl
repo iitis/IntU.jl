@@ -8,8 +8,17 @@ end
 """
     dPsi(psi, dim)
 
-Define the Haar measure for random pure states (vectors) in dimension `dim`.
-`psi` is the symbolic vector representing the state, and `dim` is the dimension (symbolic or integer).
+Defines the Fubini-Study measure for a **random pure state** |psi> 
+distributed according to the Haar measure. 
+
+The integration is performed by mapping |psi> to the first column 
+of a Haar-random unitary matrix U:
+```math
+|\\psi\\rangle = (U_{1,1}, U_{2,1}, \\dots, U_{d,1})^T
+```
+
+Reference:
+- Bengtsson, I., & Życzkowski, K. (2017). *Geometry of Quantum States*.
 """
 dPsi(psi, dim) = PureStateMeasure(psi, dim)
 
@@ -45,7 +54,8 @@ function fallback_integrate(expr, measure::PureStateMeasure)
         subs_dict[Symbolics.unwrap(imag(u_elem))] = (1//2im) * (u_atomic - u_bar_atomic)
     end
     
-    return _robust_real_num(_integrate_core(expr, dim, subs_dict, psi_atomic_lookup, psi_bar_lookup))
+    matcher = LookupMatcher(psi_atomic_lookup, psi_bar_lookup)
+    return _robust_real_num(_integrate_core(expr, dim, subs_dict, matcher))
 end
 
 """

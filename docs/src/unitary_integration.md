@@ -1,7 +1,8 @@
 # Unitary Group Integration
 
 This section details the integration of polynomial functions over the unitary
-group $U(d)$ with respect to the Haar measure.
+group $U(d)$ with respect to the Haar measure. It covers the theoretical foundations
+based on Weingarten Calculus and provides practical examples using `IntU.jl`.
 
 ## Overview
 
@@ -10,25 +11,48 @@ IntU.jl allows for evaluating integrals of the form:
 ```math
 \int_{U(d)} U_{i_1 j_1} \dots U_{i_n j_n} \bar{U}_{k_1 l_1} \dots \bar{U}_{k_n l_n} dU
 ```
+where $U$ is a $d \times d$ unitary matrix ($U U^\dagger = I$). The integral is taken with respect
+to the Haar measure, which is the unique translation-invariant probability measure on the compact
+Lie group $U(d)$.
 
-The result is expressed in terms of the dimension $d$ and Kronecker deltas
-matching the indices.
+The result is expressed in terms of the dimension $d$ and Kronecker deltas matching the indices.
 
-## Theory
+## Theory: Weingarten Calculus
 
-The integration relies on the **Weingarten Calculus**. The general formula for
-the integral is given by:
+The integration relies on the **Weingarten Calculus**, a combinatorial method for evaluating
+integrals over compact groups.
+
+### The Integration Formula
+
+The general formula for the integral is given by [Collins & Śniady, 2006]:
 
 ```math
 \int_{U(d)} U_{i_1 j_1} \dots U_{i_n j_n} \bar{U}_{k_1 l_1} \dots \bar{U}_{k_n l_n} dU = \sum_{\sigma, \tau \in S_n} \delta_{i, k_\sigma} \delta_{j, l_\tau} \text{Wg}(\sigma \tau^{-1}, d)
 ```
 
-where $S_n$ is the symmetric group of degree $n$ (permutations of $n$ elements),
-$\delta_{i, k_\sigma} = \prod_{m=1}^n \delta_{i_m, k_{\sigma(m)}}$ is the
-contraction of row indices, $\delta_{j, l_\tau} = \prod_{m=1}^n \delta_{j_m,
-l_{\tau(m)}}$ is the contraction of column indices, and $\text{Wg}(\pi, d)$ is
-the **Weingarten function**, which depends only on the cycle structure of the
-permutation $\pi$ and the dimension $d$.
+where:
+*   $S_n$ is the symmetric group of permutations of $\{1, \dots, n\}$.
+*   $\delta_{i, k_\sigma} = \prod_{m=1}^n \delta_{i_m, k_{\sigma(m)}}$ contracts row indices according to $\sigma$.
+*   $\delta_{j, l_\tau} = \prod_{m=1}^n \delta_{j_m, l_{\tau(m)}}$ contracts column indices according to $\tau$.
+*   $\text{Wg}(\pi, d)$ is the **Weingarten function**, which depends only on the cycle structure of the permutation $\pi$ and the dimension $d$.
+
+### The Weingarten Function
+
+The Weingarten function $\text{Wg}(\pi, d)$ is a rational function of $d$. It is defined via
+the inverse of the Gram matrix of Schur functions or via character theory.
+
+For small $n$, the values are:
+*   **n=1**: $\text{Wg}([1], d) = \frac{1}{d}$
+*   **n=2**:
+    *   Identity $\text{Wg}([1,1], d) = \frac{1}{d^2-1}$
+    *   Transposition $\text{Wg}([2], d) = -\frac{1}{d(d^2-1)}$
+*   **n=3**:
+    *   $\text{Wg}([1,1,1], d) = \frac{d^2-2}{d(d^2-1)(d^2-4)}$
+    *   $\text{Wg}([2,1], d) = -\frac{1}{(d^2-1)(d^2-4)}$
+    *   $\text{Wg}([3], d) = \frac{2}{d(d^2-1)(d^2-4)}$
+
+IntU.jl computes these values symbolically for any $n$, using the Murnaghan-Nakayama rule
+to evaluate characters of the symmetric group.
 
 ## Implementation Details
 
@@ -38,53 +62,78 @@ IntU.jl automates the following steps:
     their indices ($i, j, k, l$).
 2.  **Degree Matching**: It checks if the number of $U$ factors matches the
     number of $\bar{U}$ factors. If they differ ($n \neq m$), the integral
-    vanishes (returns 0) due to phase invariance.
+    vanishes (returns 0) due to phase invariance ($U \to e^{i\theta}U$).
 3.  **Symbolic Summation**: It generates the sum over permutations
     $\sigma, \tau \in S_n$, computing the Kronecker delta products symbolically.
 4.  **Weingarten Evaluation**: It computes the values of $\text{Wg}(\pi, d)$
-    using character theory (via `Combinatorics.jl` and `murnaghan_nakayama`
-    rule).
+    using `Combinatorics.jl` characters.
 
-## Potential Pitfalls
+### Symbolic Dimension
 
--   **Symbolic vs Numeric Dimension**: The dimension $d$ can be symbolic
-    (`@variables d`). However, for the Weingarten function to be well-defined,
-    $d$ must typically be "large enough" ($d \ge n$). IntU.jl generally provides
-    the rational function form valid for large $d$. Singularities may occur if
-    you substitute small integer values for $d$ into the final symbolic result
-    (poles of the Weingarten function).
--   **Computational Complexity**: The sum involves $(n!)^2$ terms. While optimized
-    to group cycles, integrals with high degrees ($n > 6$) can become
-    computationally expensive.
--   **Ambiguity with Conjugates**: Ensure you use `conj()` correctly. In Julia,
-    `A'` is the conjugate transpose. IntU.jl handles `conj(U[i,j])` as
-    $\bar{U}_{ij}$.
+A key feature of IntU.jl is the ability to leave the dimension $d$ as a symbolic variable.
+This is achieved through the `SymbolicUnitary` type, which represents a Unitary matrix
+of arbitrary (symbolic) size.
+
+The macro `@symbolic_dimension` facilitates the creation of such matrices.
 
 ## Examples
+
+### 1. Basic Integration
 
 ```julia
 using IntU, Symbolics
 
+# Define a unitary matrix U of symbolic dimension d
 @variables d
-@variables U[1:d, 1:d]::Complex
-measure = dU(U, d)
+@symbolic_dimension U[1:d, 1:d]
+measure = dU(U)
 
 # 1. Norm of a matrix element
-expr = abs(U[1,1])^2 # U[1,1] * conj(U[1,1])
-integrate(expr, measure)
+# Integral of |U_{11}|^2
+expr = abs(U[1,1])^2 
+res = integrate(expr, measure)
+println(res)
 # Output: 1/d
-
-# 2. Trace moments (large d)
-tr_U = IntU.tr(U)
-expr = abs(tr_U)^4
-integrate(expr, measure)
-# Output: 2 (as d -> Infinity, converges to Gaussian moment)
 ```
 
+### 2. Higher Unitary Moments
+
+```julia
+# 2. Fourth moment
+# Integral of |U_{11}|^4
+expr2 = abs(U[1,1])^4
+res2 = integrate(expr2, measure)
+println(res2)
+# Output: 2 / (d*(d + 1))
+```
+
+### 3. Trace Moments
+
+IntU.jl can efficiently handle trace moments, which are relevant in Random Matrix Theory.
+Note that for trace moments, explicit indices are often avoided using `IntU.tr`.
+
+```julia
+# 3. Trace moments
+tr_U = IntU.tr(U)
+# Integral of |Tr(U)|^2
+res3 = integrate(abs(tr_U)^2, measure)
+println(res3)
+# Output: 1
+```
+
+## Potential Pitfalls
+
+-   **Symbolic vs Numeric Dimension**: The dimension $d$ can be symbolic.
+    However, the Weingarten function has poles at small integers ($d < n$).
+    The symbolic result assumes $d$ is generic/large. Substituting discrete values $d < n$
+    into the rational function may result in division by zero, although the integral itself
+    is well-defined.
+-   **Computational Complexity**: The sum involves $(n!)^2$ terms. While optimized
+    to group cycles, integrals with high degrees ($n > 6$) can become
+    computationally expensive. The number of terms grows factorially.
+
 ## References
-- Collins, B. (2003). Moments and Cumulants of Polynomial random variables on
-  unitary groups, the Itzykson-Zuber integral and free probability.
-  *International Mathematics Research Notices*.
-- Collins, B., & Śniady, P. (2006). Integration with respect to the Haar
-  measure on unitary, orthogonal and symplectic groups. *Communications in
-  Mathematical Physics*.
+
+1.  **Collins, B. (2003).** Moments and Cumulants of Polynomial random variables on unitary groups, the Itzykson-Zuber integral and free probability. *International Mathematics Research Notices*, 2003(17), 953-982.
+2.  **Collins, B., & Śniady, P. (2006).** Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups. *Communications in Mathematical Physics*, 264(3), 773-795. [arXiv:math-ph/0402073](https://arxiv.org/abs/math-ph/0402073)
+3.  **Puchala, Z., & Miszczak, J. A. (2017).** Symbolic integration with respect to the Haar measure on the unitary groups. *Bulletin of the Polish Academy of Sciences. Technical Sciences*, 65(1), 21-27.
