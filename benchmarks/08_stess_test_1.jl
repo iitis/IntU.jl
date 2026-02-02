@@ -134,8 +134,9 @@ function test_symplectic(N::Int)
     subsSp = [Dict(d => N)]
 
     run_example("Sp1: ∫ |S₁₁|² dSp = 1/d", S[1,1]*conj(S[1,1]), μSp, 1/d; subs=subsSp)
-    # For Sp(d), E|S11|^4 = 2 / ((d+1)(d-2))
-    run_example("Sp2: ∫ |S₁₁|⁴ dSp = 2/((d+1)(d-2))", (S[1,1]*conj(S[1,1]))^2, μSp, 2/((d+1)*(d-2)); subs=subsSp)
+    # For Sp(d), first row distribution matches U(d), so moments match.
+    # E|S11|^4 = 2 / (d(d+1))
+    run_example("Sp2: ∫ |S₁₁|⁴ dSp = 2/(d(d+1))", (S[1,1]*conj(S[1,1]))^2, μSp, 2/(d*(d+1)); subs=subsSp)
 end
 
 # ============================================================

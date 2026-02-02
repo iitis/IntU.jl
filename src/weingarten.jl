@@ -420,10 +420,9 @@ Reference:
 - Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups.
 """
 @memoize function weingarten_symplectic_val(pi, sigma, d)
-    k = length(pi)
-    # Wg^Sp(d)(pi, sigma) = (-1)^k * Wg^O(-d)(pi, sigma)
+    # Wg^Sp(d)(pi, sigma) = (-1)^count_loops(pi, sigma) * Wg^O(-d)(pi, sigma)
     # Note: d -> -d substitution.
     val_ortho = weingarten_orthogonal_val(pi, sigma, -d)
-    return ((-1)^k) * val_ortho
+    return ((-1)^count_loops(pi, sigma)) * val_ortho
 end
 

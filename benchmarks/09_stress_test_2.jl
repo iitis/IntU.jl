@@ -337,11 +337,14 @@ for N in Nvals
     expected8 = 24 // (dSp_num*(dSp_num+1)*(dSp_num+2)*(dSp_num+3))
     expected10 = 120 // (dSp_num*(dSp_num+1)*(dSp_num+2)*(dSp_num+3)*(dSp_num+4))
 
-    cases_Sp = if quick && N > 3
-        [("Sp_numeric_d_$(dSp_num)__|S11|^8", expr8, expected8)] # Skip degree 10
-    else
-        [("Sp_numeric_d_$(dSp_num)__|S11|^8", expr8, expected8),
-         ("Sp_numeric_d_$(dSp_num)__|S11|^10", expr10, expected10)]
+    cases_Sp = Any[]
+    # (a) |S11|^8 and |S11|^10
+    # Weingarten formula for Sp(2N) is singular for degree 2k if N < k.
+    if N >= 4
+        push!(cases_Sp, ("Sp_numeric_d_$(dSp_num)__|S11|^8", expr8, expected8))
+    end
+    if N >= 5 && (!quick || N == 5)
+        push!(cases_Sp, ("Sp_numeric_d_$(dSp_num)__|S11|^10", expr10, expected10))
     end
 
     for (nm, expr, expected) in cases_Sp
