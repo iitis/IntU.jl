@@ -199,7 +199,7 @@ sums and the intricacies of representation theory. Several software packages
 have been developed to automate these calculations. Notable examples include \texttt{RTNI}
 \cite{fukuda2019rtni}, a Mathematica package that offers robust functionality
 but relies on the proprietary Wolfram engine, and \texttt{Haarpy}
-\cite{motohashi2022haarpy}, a Python library that provides accessible
+\cite{cardin2024haarpy}, a Python library that provides accessible
 symbolic integration. Earlier work by Puchała and Miszczak
 \cite{puchala2017symbolic} also explored symbolic integration algorithms.
 
@@ -209,6 +209,14 @@ Furthermore, the translation from high-level, coordinate-free mathematical expre
 (e.g., traces of products) to the index-based tensor contractions required by
 Weingarten calculus is often left to the user, leading to error-prone manual
 preprocessing.
+
+While \texttt{Haarpy} supports a broader range of groups—including circular
+ensembles (COE, CSE) and permutation groups, which \texttt{IntU.jl} currently
+does not, our package focuses on maximizing performance and symbolic flexibility
+within the Unitary, Orthogonal, and Symplectic groups. A primary distinction lies
+in \texttt{IntU.jl}'s deep integration with the Julia \texttt{Symbolics.jl} ecosystem,
+treating dimensions $d$ as native symbolic rational functions rather than
+requiring separate symbolic algebra backends or manual substitutions.
 
 In this work, we present \texttt{IntU.jl}, a comprehensive Julia package
 \cite{bezanson2017julia} designed to address these challenges. \texttt{IntU.jl}
