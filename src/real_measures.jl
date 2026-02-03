@@ -2,12 +2,12 @@
 
 # Dummy types to represent the measures
 struct OrthogonalMeasure{T, N, D}
-    O::AbstractArray{T, N}
+    O::Union{AbstractArray{T, N}, Nothing}
     dim::D
 end
 
 struct SymplecticMeasure{T, N, D}
-    S::AbstractArray{T, N}
+    S::Union{AbstractArray{T, N}, Nothing}
     dim::D
 end
 
@@ -26,6 +26,7 @@ Reference:
 - Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups.
 """
 dO(O::AbstractArray{T,N}, dim) where {T,N} = OrthogonalMeasure{T,N,typeof(dim)}(O, dim)
+dO(dim) = OrthogonalMeasure{Any, 0, typeof(dim)}(nothing, dim)
 
 """
     dSp(S, dim)
@@ -42,6 +43,7 @@ Reference:
 - Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups.
 """
 dSp(S::AbstractArray{T,N}, dim) where {T,N} = SymplecticMeasure{T,N,typeof(dim)}(S, dim)
+dSp(dim) = SymplecticMeasure{Any, 0, typeof(dim)}(nothing, dim)
 
 
 """

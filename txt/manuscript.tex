@@ -129,10 +129,12 @@ implementation of the Weingarten calculus. Key features include the native
 handling of symbolic dimensions $d$ as rational functions, allowing for the
 automatic derivation of asymptotic expansions, and a high-level symbolic trace
 interface that reconstructs Weingarten graphs directly from index-free
-expressions. We discuss the underlying algorithms—including the Murnaghan-Nakayama
-rule and symplectic-orthogonal duality—and demonstrate that the package
-efficiently handles high-degree moments, significantly outperforming manual derivations
-and enabling new avenues of research in high-dimensional quantum systems.
+expressions, and a native bridge to \texttt{ITensors.jl} for integrating complex
+tensor networks. We discuss the underlying algorithms—including the
+Murnaghan-Nakayama rule and symplectic-orthogonal duality—and demonstrate that
+the package efficiently handles high-degree moments, significantly outperforming
+manual derivations and enabling new avenues of research in high-dimensional
+quantum systems.
 \end{abstract}
 
 %%
@@ -231,6 +233,9 @@ distinguishing our approach include:
     \item \textbf{Symbolic trace logic}: A high-level interface that allows users to
     integrate trace polynomials directly, with the software automatically handling
     the reduction to Weingarten graphs.
+    \item \textbf{Tensor network integration}: A native integration with
+    \texttt{ITensors.jl} \cite{fishman2022itensor}, enabling the symbolic
+    averaging of large-scale random tensor networks.
     \item \textbf{Performance}: Leveraging Julia's just-in-time compilation and
     efficient caching strategies to handle high-degree moments.
 \end{itemize}
@@ -455,6 +460,23 @@ This abstraction significantly reduces the potential for index-mismatch errors
 and renders the code nearly isomorphic to the mathematical pen-and-paper
 formulation of the problem.
 
+\subsection{ITensors.jl integration}
+\label{sec:itensors}
+Modern quantum circuit analysis and holographic duality models often rely on
+tensor network representations. \texttt{IntU.jl} provides a specialized
+extension for \texttt{ITensors.jl} \cite{fishman2022itensor}, allowing users to
+integrate entire networks of \texttt{ITensor} objects symbolically.
+
+To integrate an ITensor network, the user marks the random unitaries using the
+\texttt{ITensorUnitary} wrapper, which specifies the tensor's input and output
+indices. This explicit marking prevents ambiguities that arise from carrying
+index tags (e.g., ``Haar'') over to constant tensors. The integration routine
+then analyzes the contraction topology of the network and expands it into a sum
+of deterministically contracted ITensors, each weighted by the appropriate
+Weingarten function. This graphical Weingarten engine is significant for its
+automatic handling of large, sparse networks where manual index expansion would
+be computationally prohibitive.
+
 \section{Usage examples}
 \label{sec:examples}
 We illustrate the capabilities of \texttt{IntU.jl} with several examples, ranging
@@ -519,6 +541,33 @@ expr = abs(U[1,1])^4
 asymp_res = asymptotic(expr, measure, 4)
 # Output: 2/d^2 - 2/d^3 + 2/d^4
 \end{lstlisting}
+
+\subsection{Tensor network integration}
+Finally, we demonstrate the integration of a tensor network using the
+\texttt{ITensors.jl} interface. This approach is particularly useful for Haar
+averaging of random quantum circuits and tensor networks without explicit index
+manipulation. We define a simple network consisting of a random unitary $U$ and
+a constant tensor $A$, then compute the average $\mathbb{E}[U A]$.
+
+\begin{lstlisting}[language=Julia]
+using IntU, ITensors
+i, j = Index(2), Index(2)
+
+# Create a random ITensor and wrap it as a unitary
+U_it = randomITensor(i, j)
+U = ITensorUnitary(U_it; out_indices=[i], in_indices=[j])
+
+# A constant tensor connecting the indices
+A = randomITensor(j, i)
+
+# Integrate the network over U(2)
+result = integrate([U, A], dU(2))
+# result is a scalar ITensor with value 1/2 * tr(A)
+\end{lstlisting}
+
+This high-level approach allows for the symbolic integration of networks with
+thousands of indices, as the underlying engine operates directly on the network
+topology.
 
 \section{Implementation details}
 \label{sec:implementation}
@@ -661,6 +710,14 @@ Key observations include:
     ($d=6$), which involves contracting a 4-th degree polynomial over the
     unitary group, completes in approximately 81.1 ms, demonstrating the tool's
     applicability to quantum information tasks.
+    \item \textbf{Tensor network scaling}: The graphical engine scales efficiently
+    with both the degree $k$ and dimension $d$. As shown in Table
+    \ref{tab:itensor_benchmarks}, for a loop network of Haar unitaries, the
+    median time increases from 5.5 $\mu\text{s}$ at $k=1$ to 35 ms at $k=4$ for
+    fixed $d=2$. Dimension scaling for $k=2$ remains sub-second up to $d=50$,
+    reaching 1.3 s at $d=100$. For higher degrees like $k=3$, the overhead
+    increases more rapidly with $d$, with $d=30$ taking 17.7 s, reflecting the
+    increasing rank of intermediate tensor contractions.
 \end{enumerate}
 
 \begin{table}[ht]
@@ -700,6 +757,34 @@ engine proves capable of handling high-degree moments that are intractable by
 hand. The caching mechanism ensures that subsequent calls with the same
 parameters are virtually instantaneous.
 
+\begin{table}[ht]
+\centering
+\caption{Benchmark results for ITensor network integration (Haar measure) showing scaling with degree $k$ and dimension $d$.}
+\label{tab:itensor_benchmarks}
+\begin{tabular}{lccc}
+\hline
+Scaling Type & Degree $k$ & Dimension $d$ & Time (ms) \\
+\hline
+Degree $k$ & 1 & 2 & 0.0055 \\
+Degree $k$ & 2 & 2 & 0.052 \\
+Degree $k$ & 3 & 2 & 0.986 \\
+Degree $k$ & 4 & 2 & 35.1 \\
+\hline
+Dimension $d$ ($k=2$) & 2 & 2 & 0.049 \\
+Dimension $d$ ($k=2$) & 2 & 10 & 0.098 \\
+Dimension $d$ ($k=2$) & 2 & 50 & 48.1 \\
+Dimension $d$ ($k=2$) & 2 & 100 & 1306 \\
+\hline
+Dimension $d$ ($k=3$) & 3 & 2 & 0.861 \\
+Dimension $d$ ($k=3$) & 3 & 10 & 11.0 \\
+Dimension $d$ ($k=3$) & 3 & 20 & 2033 \\
+Dimension $d$ ($k=3$) & 3 & 30 & 17756 \\
+\hline
+Orthogonal & 6 & 3 & 579.0 \\
+\hline
+\end{tabular}
+\end{table}
+
 \section{Conclusion}
 \label{sec:conclusion}
 We have presented \texttt{IntU.jl}, a robust and extensible Julia package for
@@ -720,9 +805,9 @@ this symbolic abstraction does not come at the cost of performance, enabling the
 evaluation of high-degree moments that were previously intractable.
 
 Future development of \texttt{IntU.jl} will focus on expanding support to other
-compact Lie groups, integrating more seamlessly with tensor network libraries
-such as \texttt{ITensors.jl}, and further optimizing the asymptotic expansion
-engine for extremely large-scale problems. We believe \texttt{IntU.jl} will become
+compact Lie groups, such as the circular orthogonal and symplectic ensembles,
+and further optimizing the asymptotic expansion engine for extremely large-scale
+problems. We believe \texttt{IntU.jl} will become
 an essential utility in the toolkit of theoretical physicists and quantum
 information scientists.
 

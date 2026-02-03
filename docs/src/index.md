@@ -23,6 +23,7 @@ Pkg.add(url="https://github.com/iitis/IntU.jl")
 - [Asymptotic Expansions](asymptotic.md): Large-$d$ limit analysis.
 - [Integral Library](integral_library.md): Pre-computed standard results.
 - [QI Helpers](qi_helpers.md): Tools for Purity, Fidelity, etc.
+- [ITensors Integration](itensors.md): Symmetric integration of tensor networks.
 
 ## API Reference
 

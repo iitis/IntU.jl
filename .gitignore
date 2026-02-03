@@ -33,3 +33,4 @@ test/tmp/
 *.fdb_latexmk
 *.synctex.gz
 *.pdf
+comment.cut
