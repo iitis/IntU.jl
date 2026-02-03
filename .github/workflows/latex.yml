@@ -1,0 +1,30 @@
+name: Build LaTeX Manuscript
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - lp/* # build on user branches
+  pull_request:
+
+jobs:
+  build_latex:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Compile LaTeX Document
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: manuscript.tex
+          working_directory: txt/
+          # args: -pdf -file-line-error -halt-on-error -interaction=nonstopmode
+          # latexmk_use_lualatex: false
+          
+      - name: Upload PDF Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: manuscript
+          path: txt/manuscript.pdf

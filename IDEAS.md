@@ -39,6 +39,7 @@ functionalities that could be added:
 ~~## 5. Gaussian Unitary Ensemble (GUE)~~
 ~~*   **Description**: Support integration over Gaussian random matrices~~
 ~~    (GUE/GOE/GSE) where entries are i.i.d. Gaussian.~~
+~~*   **Features**: Includes GUE ($\beta=2$), GOE ($\beta=1$), and GSE ($\beta=4$).~~
 ~~*   **Why**: Useful for comparing Haar-random results with chaotic/Hamiltonian~~
 ~~    dynamics. This is simpler than Haar but nice to have in the same unified~~
 ~~    interface.~~
@@ -53,3 +54,26 @@ functionalities that could be added:
 ~~    will be distributed with the package.~~
 ~~*   **Why**: Instant retrieval of interesting standard results without need for~~
 ~~    re-calculation; serves as a reference library for researchers.~~
+
+## 8. Circular Ensembles (COE, CSE)
+*   **Description**: Implement integration over the Circular Orthogonal (COE) and Circular Symplectic Operations (CSE).
+*   **Why**: **[Parity with Haarpy]**. These ensembles (unitary matrices with specific symmetries) are distinct from the standard Haar measure on $U(d)$ and are supported by Haarpy.
+*   **Implementation**: Similar to GOE/GSE but for unitary matrices; requires specific Weingarten-like expansions or mappings to the unitary group.
+
+## 9. Permutation Groups
+*   **Description**: Add explicit support for integration/summation over Permutation Groups (Symmetric Group $S_n$) and Centered Permutation Groups.
+*   **Why**: **[Parity with Haarpy]**. Haarpy provides functionalities for these groups. While `IntU.jl` uses them internally for Weingarten, exposing them as a domain would allow for broader combinatorial applications.
+
+## 10. ITensors.jl Integration
+*   **Description**: Create a bridge to `ITensors.jl` to allow symbolic integration of tensor network contractions.
+*   **Why**: **[Extension]**. Allows integrating large tensor networks without manually converting them to trace expressions.
+*   **Implementation**: Convert `ITensor` objects into `IntU.jl`'s symbolic representation (or vice versa) and apply the integration engine.
+
+## 11. SU(d) Integration
+*   **Description**: Support integration over the Special Unitary group $SU(d)$.
+*   **Why**: **[Extension]**. While $U(d)$ and $SU(d)$ averages often coincide for "balanced" polynomials, they differ for polynomials with non-zero winding numbers (e.g., $\det(U)$ terms).
+*   **Implementation**: Incorporate the $\det(U)=1$ constraint into the Weingarten calculus.
+
+## 12. Advanced Asymptotics & Approximations
+*   **Description**: Extend the asymptotic engine to provide higher-order corrections or different limiting regimes.
+*   **Why**: **[Extension]**. To study finite-size corrections in detail beyond the leading order.
