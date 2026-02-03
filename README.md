@@ -1,85 +1,131 @@
 # IntU.jl
 
-**IntU.jl** is a Julia package for performing **symbolic integration over the
-Haar measure** of Unitary, $U(d)$, Orthogonal, $O(d)$, and Symplectic $Sp(d)$ groups, as well as random pure quantum states. It leverages **Weingarten Calculus** to compute integrals of polynomial functions of matrix elements exactly, supporting both concrete and **symbolic dimensions** ($d$).
+IntU.jl is a Julia package for the **symbolic** calculation of integrals over
+the Haar measure of classical compact groups ($U(d)$, $O(d)$, $Sp(d)$) and
+related ensembles. It leverages **Weingarten Calculus** to compute exact results
+for polynomial functions of matrix entries, supporting arbitrary symbolic
+dimension $d$.
 
-## Features
+## IntU in action
 
-- **Symbolic Integration**: Integrate polynomials of matrix elements $U_{ij}$, $O_{ij}$, $S_{ij}$.
-- **Multiple Groups**: Support for Unitary $U(d)$, Orthogonal $O(d)$, and Symplectic $Sp(d)$.
-- **Symbolic Dimension**: Results can depend on a symbolic variable $d$, allowing for large-$d$ analysis.
-- **Pure States**: Integration over Haar-random pure states $|\psi\rangle$.
-- **Asymptotic Expansions**: Compute Taylor series expansions of integrals in powers of $1/d$.
-- **Quantum Information Helpers**: Built-in functions for calculating average purity, fidelity, and partial traces.
-- **Symbolic Trace Logic**: Index-free integration of traces like $\mathrm{tr}(U A U^\dagger B)$.
+To introduce the main functionality of IntU, consider the problem of averaging
+$|U_{i,j}|^2$ over the unitary group, i.e., computing $\int dU |U_{i,j}|^2 =
+\int dU U_{i,j} U_{i,j}^*$.
 
-## Installation
-
-```julia
-using Pkg
-Pkg.add(url="https://github.com/iitis/IntU.jl")
-```
-
-## Usage
-
-### 1. Basic Integration over $U(d)$
-
-Calculate moments of unitary entries, e.g., $\int |U_{11}|^2 dU$.
+While numerical approaches (like sampling random matrices) can estimate this,
+they are slow and approximate. IntU provides the **exact** analytic result
+instantly, even for symbolic dimensions.
 
 ```julia
 using IntU, Symbolics
 
+# Define symbolic dimension 'd' and a unitary matrix 'U'
 @variables d
 @variables U[1:d, 1:d]::Complex
 
-# Define the Haar measure for U(d)
+# Define the Haar measure
 measure = dU(U, d)
 
-# Define an integrand: |U_{1,1}|^2
-expr = abs(U[1,1])^2
-
-# Integrate
-result = integrate(expr, measure)
-println(result)
-# Output: 1/d
+# Compute the integral of |U_{i,j}|^2
+# Note: IntU handles symbolic indices automatically if defined, 
+# but here we use concrete 1,1 for simplicity which yields the same result by symmetry.
+integrate(abs(U[1,1])^2, measure)
+# Output: 1 / d
 ```
 
-### 2. Symbolic Traces
-
-Perform symbolic integration of traces without explicit indices.
+For more complex moments, such as $\int dU |U_{1,1}|^2 |U_{1,2}|^2$, IntU handles the combinatorics (Weingarten functions) automatically:
 
 ```julia
-# Define symbolic matrices
-U_sym = SymbolicMatrix(:U, false, :U)
+integrate(abs(U[1,1])^2 * abs(U[1,2])^2, measure)
+# Output: 1 / (d * (1 + d))
+```
+
+## IntU functionality
+
+IntU implements Weingarten calculus for the Unitary, Orthogonal, and Symplectic
+groups, as well as Haar-random pure states.
+
+### Unitary group
+Unitary matrices $U$ are complex matrices satisfying $U U^\dagger = I_d$. One
+can calculate averages over the unitary Haar measure using `dU` and `integrate`.
+
+```julia
+# 4-th moment of a diagonal entry
+integrate(abs(U[1,1])^4, dU(U, d))
+# Output: 2 / (d * (1 + d))
+```
+
+### Orthogonal group
+Orthogonal matrices $O$ are real matrices satisfying $O O^T = I_d$. Averages are
+computed using the `dO` measure.
+
+```julia
+@variables O_mat[1:d, 1:d]::Real
+integrate(O_mat[1,1]^4, dO(O_mat, d))
+# Output: 3 / (d * (2 + d))
+```
+
+### Symplectic group
+Symplectic matrices $S$ are unitary matrices of even dimension $2n$ that
+preserve the symplectic form, $S \Omega S^T = \Omega$. Use `dSp`.
+
+```julia
+@variables S_mat[1:d, 1:d]::Complex
+integrate(abs(S_mat[1,1])^2, dSp(S_mat, d))
+# Output: 1 / d
+```
+
+### Random Pure States
+IntU can integrate polynomial functions of the components of a Haar-random pure
+state vector $|\psi\rangle$ of dimension $d$.
+
+```julia
+@variables dim
+@variables psi[1:dim]::Complex
+measure_psi = dPsi(psi, dim)
+
+# Average of |ψ_1|^2
+integrate(abs(psi[1])^2, measure_psi)
+# Output: 1 / dim
+```
+
+### Symbolic Traces
+IntU supports index-free notation for integrating traces of products of random
+matrices, which is often more convenient for quantum information tasks.
+
+```julia
+using IntU: tr
+# Define symbolic matrices A, B (constant) and U (random)
 A = SymbolicMatrix(:A)
 B = SymbolicMatrix(:B)
+U_sym = SymbolicMatrix(:U, false, :U) # unitary
 
-# Compute Integral of Tr(U A U' B)
-# Note: Use IntU.tr to avoid conflict with LinearAlgebra
-expr = IntU.tr(U_sym * A * U_sym' * B)
-res = integrate(expr, measure)
-println(res)
-# Output simplified: tr(A) * tr(B) / d
+# Compute ∫ tr(U A U† B) dU
+expr = tr(U_sym * A * U_sym' * B)
+integrate(expr, dU(U, d))
+# Output: tr(A)*tr(B) / d
 ```
 
-### 3. Orthogonal and Symplectic
+## Installation
+
+IntU is tested with Julia 1.11 or later. Installation can be done through the
+Pkg REPL:
 
 ```julia
-# Orthogonal O(d)
-@variables O_mat[1:d, 1:d]::Real
-m_O = dO(O_mat, d)
-integrate(O_mat[1,1]^2, m_O) # -> 1/d
-
-# Symplectic Sp(d) (d must be even)
-@variables S_mat[1:d, 1:d]::Complex
-m_Sp = dSp(S_mat, d)
-integrate(abs(S_mat[1,1])^2, m_Sp) # -> 1/d
+import Pkg; Pkg.add(url="https://github.com/iitis/IntU.jl")
 ```
 
-## Documentation
+## How to cite this work
 
-Full documentation is available in the `docs/` directory.
+If you use IntU.jl in your research, please cite:
 
-## License
-
-Apache 2.0
+```bibtex
+@misc{intu2024,
+  author = {Pawela, Łukasz and Krawiec, Adam},
+  title = {IntU.jl: Symbolic integration over the Haar measure of classical compact groups},
+  year = {2024},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/iitis/IntU.jl}}
+}
+```
