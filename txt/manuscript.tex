@@ -171,62 +171,64 @@ software</concept_desc>
 
 \section{Introduction}
 \label{sec:intro}
-Integration over the Haar measure of compact groups is a cornerstone technique in
-mathematical physics, with profound implications in random matrix theory (RMT)
-\cite{mehta2004random, forrester2010log} and quantum information theory (QIT).
-The ability to compute moments of random matrices enables the exact characterization
-of ``typical'' properties of quantum systems, such as the average entanglement
-entropy of subsystems—a concept famously pioneered by Page \cite{page1993average}.
-Furthermore, these integrals are essential for studying quantum chaos,
-scrambling, and the design of quantum circuits that approximate randomness, known
-as unitary $t$-designs \cite{brandao2016exponential}.
+Integration over the Haar measure of compact groups is a cornerstone technique
+in mathematical physics, with profound implications in random matrix theory
+(RMT) \cite{mehta2004random, forrester2010log, livan2018introduction} and
+quantum information theory (QIT) \cite{nielsen2010quantum, watrous2018theory}.
+The ability to compute moments of random matrices enables the exact
+characterization of ``typical'' properties of quantum systems, such as the
+average entanglement entropy of subsystems—a concept famously pioneered by Page
+\cite{page1993average}. Furthermore, these integrals are essential for studying
+quantum chaos, scrambling, and the design of quantum circuits that approximate
+randomness, known as unitary $t$-designs \cite{brandao2016exponential}.
 
-Historically, the evaluation of these integrals was a formidable challenge. While
-the defining properties of Haar measure were established by Hurwitz and Weyl in
-the early 20th century, a systematic method for evaluating polynomial integrals
-emerged later with the work of Weingarten \cite{weingarten1978asymptotic}. He
-showed that asymptotic integrals could be expressed as sums over permutations involving a
-weight function now called the Weingarten function. This theory was rigorously detailed
-and extended to finite $d$ by Collins \cite{collins2003moments}. The seminal
-work of Collins and Śniady \cite{collins2006integration} unified the treatment
-for the unitary, orthogonal, and symplectic groups, providing explicit combinatorial
-formulas for the Weingarten functions in terms of characters of the symmetric group (or
-related structures).
+Historically, the evaluation of these integrals was a formidable challenge.
+While the defining properties of Haar measure were established by Hurwitz and
+Weyl in the early 20th century, a systematic method for evaluating polynomial
+integrals emerged later with the work of Weingarten
+\cite{weingarten1978asymptotic}. He showed that asymptotic integrals could be
+expressed as sums over permutations involving a weight function now called the
+Weingarten function. This theory was rigorously detailed and extended to finite
+$d$ by Collins \cite{collins2003moments}. The seminal work of Collins and Śniady
+\cite{collins2006integration} unified the treatment for the unitary, orthogonal,
+and symplectic groups, providing explicit combinatorial formulas for the
+Weingarten functions in terms of characters of the symmetric group (or related
+structures).
 
 Despite the existence of these closed-form solutions, their practical evaluation
 remains non-trivial due to the combinatorial complexity of the symmetric group
 sums and the intricacies of representation theory. Several software packages
-have been developed to automate these calculations. Notable examples include \texttt{RTNI}
-\cite{fukuda2019rtni}, a Mathematica package that offers robust functionality
-but relies on the proprietary Wolfram engine, and \texttt{Haarpy}
-\cite{cardin2024haarpy}, a Python library that provides accessible
-symbolic integration. Earlier work by Puchała and Miszczak
-\cite{puchala2017symbolic} also explored symbolic integration algorithms.
+have been developed to automate these calculations. Notable examples include
+\texttt{RTNI} \cite{fukuda2019rtni}, a Mathematica package that offers robust
+functionality but relies on the proprietary Wolfram engine, and \texttt{Haarpy}
+\cite{cardin2024haarpy}, a Python library that provides accessible symbolic
+integration. Earlier work by Puchała and Miszczak \cite{puchala2017symbolic}
+also explored symbolic integration algorithms.
 
 However, existing tools often face limitations in extensibility, performance, or
 the ability to handle symbolic dimensions $d$ natively as rational functions.
-Furthermore, the translation from high-level, coordinate-free mathematical expressions
-(e.g., traces of products) to the index-based tensor contractions required by
-Weingarten calculus is often left to the user, leading to error-prone manual
-preprocessing.
+Furthermore, the translation from high-level, coordinate-free mathematical
+expressions (e.g., traces of products) to the index-based tensor contractions
+required by Weingarten calculus is often left to the user, leading to
+error-prone manual preprocessing.
 
 While \texttt{Haarpy} supports a broader range of groups—including circular
 ensembles (COE, CSE) and permutation groups, which \texttt{IntU.jl} currently
 does not, our package focuses on maximizing performance and symbolic flexibility
-within the Unitary, Orthogonal, and Symplectic groups. A primary distinction lies
-in \texttt{IntU.jl}'s deep integration with the Julia \texttt{Symbolics.jl} ecosystem,
-treating dimensions $d$ as native symbolic rational functions rather than
-requiring separate symbolic algebra backends or manual substitutions.
+within the Unitary, Orthogonal, and Symplectic groups. A primary distinction
+lies in \texttt{IntU.jl}'s deep integration with the Julia \texttt{Symbolics.jl}
+ecosystem, treating dimensions $d$ as native symbolic rational functions rather
+than requiring separate symbolic algebra backends or manual substitutions.
 
 In this work, we present \texttt{IntU.jl}, a comprehensive Julia package
 \cite{bezanson2017julia} designed to address these challenges. \texttt{IntU.jl}
 offers a pure Julia implementation of the Weingarten calculus for the Unitary
-$U(d)$, Orthogonal $O(d)$, and Symplectic $Sp(d)$ groups. Key features distinguishing
-our approach include:
+$U(d)$, Orthogonal $O(d)$, and Symplectic $Sp(d)$ groups. Key features
+distinguishing our approach include:
 \begin{itemize}
-    \item \textbf{Symbolic Dimensions}: Fully symbolic treatment of the dimension
+    \item \textbf{Symbolic dimensions}: Fully symbolic treatment of the dimension
     $d$, enabling the derivation of exact asymptotic expansions and universal scaling laws.
-    \item \textbf{Symbolic Trace Logic}: A high-level interface that allows users to
+    \item \textbf{Symbolic trace logic}: A high-level interface that allows users to
     integrate trace polynomials directly, with the software automatically handling
     the reduction to Weingarten graphs.
     \item \textbf{Performance}: Leveraging Julia's just-in-time compilation and
@@ -294,7 +296,8 @@ formula is:
 \int_{Sp(d)} S_{i_1 j_1} \dots S_{i_{2k} j_{2k}} dS = \sum_{p, q \in P_{2k}} (-1)^{\ell(p) + \ell(q)} \delta_p(\vec{i}) \delta_q(\vec{j}) \mathrm{Wg}^{Sp}(p, q, d),
 \end{equation}
 where the signs depend on the contraction structure relative to the symplectic
-form $J$.
+form $J$. For detailed closure relations on these groups, see Matsuki
+\cite{matsuki1990closure}.
 
 \texttt{IntU.jl} leverages the fundamental duality between the orthogonal and
 symplectic Weingarten functions:
@@ -329,9 +332,10 @@ The package supports a wide range of integration measures, grouped as follows:
     \texttt{Symbolics.jl} or the \texttt{@symbolic\_dimension} macro) and the
     second is the dimension, which can itself be a symbolic variable.
     \item \textbf{Quantum States}: The induced measure on pure states
-    $|\psi\rangle$ drawn from the complex projective space $\mathbb{C}P^{d-1}$,
-    accessed via \texttt{dPsi(psi, d)}. This corresponds to the distribution of
-    the first column of a Haar-random unitary matrix.
+    $|\psi\rangle$ drawn from the complex projective space $\mathbb{C}P^{d-1}$
+    \cite{zyczkowski2001induced, bengtsson2017geometry}, accessed via
+    \texttt{dPsi(psi, d)}. This corresponds to the distribution of the first
+    column of a Haar-random unitary matrix.
     \item \textbf{Gaussian Ensembles}: Measures for the Gaussian unitary (GUE),
     orthogonal (GOE), and symplectic (GSE) ensembles (\texttt{dGUE},
     \texttt{dGOE}, \texttt{dGSE}). These rely on Wick's theorem for integration
@@ -344,8 +348,9 @@ The package supports a wide range of integration measures, grouped as follows:
 \subsection{Gaussian random matrix ensembles}
 In addition to compact groups, \texttt{IntU.jl} supports integration over the
 Gaussian ensembles (GUE, GOE, GSE). These are implemented using Wick's theorem
-(Isserlis' theorem) for moment contraction. For a Gaussian Hermitian matrix
-$H$, the expectation values are determined by the pairwise contractions:
+\cite{wick1950evaluation} (Isserlis' theorem) for moment contraction. For a
+Gaussian Hermitian matrix $H$, the expectation values are determined by the
+pairwise contractions:
 \begin{itemize}
     \item \textbf{GUE}: $\langle H_{ij} \bar{H}_{kl} \rangle = \delta_{il} \delta_{jk}$, leading to $\langle \mathrm{tr}(H^2) \rangle = d^2$.
     \item \textbf{GOE}: $\langle H_{ij} H_{kl} \rangle = \delta_{ik} \delta_{jl} + \delta_{il} \delta_{jk}$ (for real symmetric $H$), leading to $\langle \mathrm{tr}(H^2) \rangle = d^2 + d$.
@@ -361,9 +366,10 @@ ensembles ($\beta=1, 2, 4$) while maintaining full support for symbolic
 dimensions $d$.
 
 \subsection{Unitary designs}
-Unitary $t$-designs are ensembles of unitary matrices that mimic the Haar
-measure up to the $t$-th moment. Specifically, a set of unitaries
-$\mathcal{D} \subset U(d)$ is a $t$-design if:
+Unitary $t$-designs \cite{dankert2009exact, gross2007evenly,
+ambainis2007quantum} are ensembles of unitary matrices that mimic the Haar
+measure up to the $t$-th moment. Specifically, a set of unitaries $\mathcal{D}
+\subset U(d)$ is a $t$-design if:
 \begin{equation}
 \mathbb{E}_{U \in \mathcal{D}} [P(U, \bar{U})] = \int_{U(d)} P(U, \bar{U}) dU
 \end{equation}
