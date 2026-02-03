@@ -21,3 +21,15 @@ Manifest.toml
 docs/build/
 docs/site/
 test/tmp/
+
+# LaTeX artifacts
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.pdf
