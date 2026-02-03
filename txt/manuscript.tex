@@ -37,7 +37,6 @@
 %% You can then either use BibTeX with the ACM-Reference-Format style,
 %% or BibLaTeX with the acmauthoryear style.
 %%
-\bibliographystyle{ACM-Reference-Format}
 \usepackage{listings}
 \usepackage{xcolor}
 
@@ -171,11 +170,12 @@ software</concept_desc>
 \maketitle
 
 \section{Introduction}
+\label{sec:intro}
 Integration over the Haar measure of compact groups is a cornerstone technique in
 mathematical physics, with profound implications in random matrix theory (RMT)
 \cite{mehta2004random, forrester2010log} and quantum information theory (QIT).
 The ability to compute moments of random matrices enables the exact characterization
-of "typical" properties of quantum systems, such as the average entanglement
+of ``typical'' properties of quantum systems, such as the average entanglement
 entropy of subsystems—a concept famously pioneered by Page \cite{page1993average}.
 Furthermore, these integrals are essential for studying quantum chaos,
 scrambling, and the design of quantum circuits that approximate randomness, known
@@ -233,18 +233,21 @@ our approach include:
     efficient caching strategies to handle high-degree moments.
 \end{itemize}
 
-The remainder of this paper is organized as follows. Section 2 reviews the
-mathematical background of Haar integration. Section 3 describes the software
-architecture and core features. Section 4 provides usage examples, and Section 5
-details the implementation. We conclude in Section 6.
+The remainder of this paper is organized as follows. Section
+\ref{sec:background} reviews the mathematical background of Haar integration.
+Section \ref{sec:features} describes the software architecture and core
+features. Section \ref{sec:examples} provides usage examples, and Section
+\ref{sec:implementation} details the implementation. We present benchmarks in
+Section \ref{sec:performance} and conclude in Section \ref{sec:conclusion}.
 
-\section{Background: Weingarten Calculus}
+\section{Background: Weingarten calculus}
+\label{sec:background}
 The core technique behind \texttt{IntU.jl} is the Weingarten calculus. For a
 compact group $G$, the integral of a polynomial in matrix elements can be
 expressed as a sum over a combinatorial set—permutations for the unitary case
 and pair partitions for the orthogonal and symplectic cases.
 
-\subsection{The Unitary Group $U(d)$}
+\subsection{The unitary group $U(d)$}
 For the unitary group $U(d)$, the integral of a polynomial of degree $k$ in both
 $U$ and $\bar{U}$ is given by:
 \begin{equation}
@@ -278,7 +281,7 @@ k - c(\sigma)$. For the identity permutation, the leading order term is
 $\mathrm{Wg}^U(\mathrm{id}, d) \approx d^{-k}$, recovering the normalization
 expected from independent Gaussian entries at the naive limit.
 
-\subsection{Orthogonal and Symplectic Groups}
+\subsection{Orthogonal and symplectic groups}
 For the orthogonal group $O(d)$ and symplectic group $Sp(d)$, the integration
 involves even moments of the matrix elements and is indexed by the set of pair
 partitions $P_{2k}$ of $\{1, \dots, 2k\}$. For $O(d)$, the integral is:
@@ -311,11 +314,12 @@ their poles dictate the dimensions for which the integration formulas are valid
 formulas and recursive relations, such as the Samuel-Weingarten recursion,
 caching results to accelerate repeated integration tasks.
 
-\section{Software Features}
+\section{Software features}
+\label{sec:features}
 \texttt{IntU.jl} is built on top of the \texttt{Symbolics.jl} ecosystem
 \cite{symbolicsjl}, providing a seamless experience for Julia users.
 
-\subsection{Groups and Measures}
+\subsection{Groups and measures}
 The package supports a wide range of integration measures, grouped as follows:
 \begin{itemize}
     \item \textbf{Compact Groups}: Standard Haar measures on the unitary $U(d)$,
@@ -337,7 +341,7 @@ The package supports a wide range of integration measures, grouped as follows:
     pseudo-randomness in quantum circuits.
 \end{itemize}
 
-\subsection{Gaussian Random Matrix Ensembles}
+\subsection{Gaussian random matrix ensembles}
 In addition to compact groups, \texttt{IntU.jl} supports integration over the
 Gaussian ensembles (GUE, GOE, GSE). These are implemented using Wick's theorem
 (Isserlis' theorem) for moment contraction. For a Gaussian Hermitian matrix
@@ -356,7 +360,7 @@ This approach allows \texttt{IntU.jl} to compute moments for all three Beta
 ensembles ($\beta=1, 2, 4$) while maintaining full support for symbolic
 dimensions $d$.
 
-\subsection{Unitary Designs}
+\subsection{Unitary designs}
 Unitary $t$-designs are ensembles of unitary matrices that mimic the Haar
 measure up to the $t$-th moment. Specifically, a set of unitaries
 $\mathcal{D} \subset U(d)$ is a $t$-design if:
@@ -378,7 +382,7 @@ This feature allows researchers to verify whether specific quantum protocols or
 randomized benchmarking schemes rely only on the $t$-moment properties of the
 sampling distribution.
 
-\subsection{Quantum Information Utilities}
+\subsection{Quantum information utilities}
 The package includes a suite of helper functions tailored for quantum information
 tasks, designed to work seamlessly with symbolic expressions:
 \begin{itemize}
@@ -401,7 +405,7 @@ These utilities reduce the boilerplate code required for setting up common
 calculations in quantum information theory, such as entanglement quantification
 and randomized benchmarking.
 
-\subsection{Symbolic Dimensions and Asymptotics}
+\subsection{Symbolic dimensions and asymptotics}
 A standout feature of \texttt{IntU.jl} is its deep support for symbolic dimensions $d$.
 By leveraging the polynomial nature of group characters and Schur functions,
 \texttt{IntU.jl} computes integrals as exact rational functions of $d$:
@@ -410,9 +414,9 @@ By leveraging the polynomial nature of group characters and Schur functions,
 \end{equation}
 where $N(d)$ and $D(d)$ are polynomials. This capability is critical for studying:
 \begin{itemize}
-    \item \textbf{Transition Points}: Identifying poles in $D(d)$ that correspond to
+    \item \textbf{Transition points}: Identifying poles in $D(d)$ that correspond to
     dimensions where the Weingarten expansion breaks down (e.g., $d < k$).
-    \item \textbf{Thermodynamic Limits}: The \texttt{asymptotic(expr, measure, order)}
+    \item \textbf{Thermodynamic limits}: The \texttt{asymptotic(expr, measure, order)}
     function computes the series expansion of the result in powers of $1/d$.
     This automates the extraction of large-$d$ behavior, facilitating the study
     of concentration of measure and asymptotic freeness.
@@ -421,7 +425,7 @@ Even when the input dimension is numeric (e.g., $d=3$), the \texttt{asymptotic}
 routine can introduce a dummy symbolic variable to perform the expansion, providing
 theoretical insights alongside numerical results.
 
-\subsection{Symbolic Trace Logic}
+\subsection{Symbolic trace logic}
 To simplify the integration of high-rank tensor networks and complex trace
 expressions, \texttt{IntU.jl} introduces a \textbf{symbolic trace logic} system.
 This system abstracts away explicit tensor indices, allowing users to define
@@ -438,20 +442,21 @@ computations in terms of coordinate-free matrix objects:
     \item \textbf{Graph Reconstruction}: During integration, the package
     interprets these lazy structures as edges in a Weingarten graph. It
     automatically reconstructs the connectivity required for pair-partition
-    matching, effectively converting the "index-free" input into the precise tensor
+    matching, effectively converting the ``index-free'' input into the precise tensor
     contractions required by the Weingarten formula.
 \end{itemize}
 This abstraction significantly reduces the potential for index-mismatch errors
 and renders the code nearly isomorphic to the mathematical pen-and-paper
 formulation of the problem.
 
-\section{Usage Examples}
+\section{Usage examples}
+\label{sec:examples}
 We illustrate the capabilities of \texttt{IntU.jl} with several examples, ranging
 from basic component-wise integration to high-level symbolic trace manipulations
 and asymptotic expansions. These examples demonstrate how the package's design
 principles facilitate practical research tasks.
 
-\subsection{Basic Integration}
+\subsection{Basic integration}
 Consider the partial moment $\int_{U(d)} |U_{11}|^2 dU$. This integral represents
 the average magnitude squared of a single entry of a Haar-random unitary matrix.
 In \texttt{IntU.jl}, this can be computed using standard symbolic variables.
@@ -496,7 +501,7 @@ result = integrate(expr, measure)
 This result neatly recovers the identity $\mathbb{E}[U A U^\dagger] =
 \mathrm{tr}(A) \mathbb{I} / d$.
 
-\subsection{Asymptotic Expansions}
+\subsection{Asymptotic expansions}
 Analyzing behavior in the large-$d$ limit is crucial for understanding
 thermodynamic properties and concentration of measure. \texttt{IntU.jl}
 facilitates this analysis by expanding exact rational results into power series.
@@ -509,14 +514,15 @@ asymp_res = asymptotic(expr, measure, 4)
 # Output: 2/d^2 - 2/d^3 + 2/d^4
 \end{lstlisting}
 
-\section{Implementation Details}
+\section{Implementation details}
+\label{sec:implementation}
 \texttt{IntU.jl} is written in pure Julia \cite{bezanson2017julia}, utilizing
 the language's multiple dispatch and metaprogramming features to build a highly
 modular and extensible system. The core architecture consists of three main
 components: the integration pipeline, the Weingarten engine, and the symbolic
 trace logic.
 
-\subsection{Integration Pipeline}
+\subsection{Integration pipeline}
 The integration process follows a systematic pipeline designed to normalize and
 dispatch symbolic expressions efficiently:
 \begin{enumerate}
@@ -537,7 +543,7 @@ dispatch symbolic expressions efficiently:
     Julia's multiple dispatch to handle different measure types without branching logic.
 \end{enumerate}
 
-\subsection{Weingarten Engine}
+\subsection{Weingarten engine}
 The calculation of Weingarten functions is computationally intensive. To achieve
 high performance, \texttt{IntU.jl} implements specialized algorithms for each group:
 \begin{itemize}
@@ -585,17 +591,34 @@ The integration strategy for these structures is twofold:
     interprets the trace cycles as edges in a graph. By identifying the relative
     positions of $U$ and $U^\dagger$ within the lazy structure, the integrator
     assigns effective indices to the intervening constant scaling matrices.
-    This effectively converts the "index-free" input into the precise tensor
+    This effectively converts the ``index-free'' input into the precise tensor
     contraction graph required by the Weingarten formula calculation, thereby
     avoiding the combinatorial explosion associated with eager index expansion.
 \end{enumerate}
 
-\section{Performance and Benchmarks}
+\section{Performance and benchmarks}
+\label{sec:performance}
 We evaluated the performance of \texttt{IntU.jl} using a suite of stress tests
 involving high-degree polynomial integrals over the Unitary, Orthogonal, and
 Symplectic groups. The benchmarks were run on a standard workstation (Julia 1.12.3).
+Specifically, we evaluated the computation time for the moments of single matrix entries,
+such as $\int |U_{11}|^{2k} dU$, for high degrees $2k \geq 8$. These integrals represent
+a standard stress test for Weingarten implementations due to their maximal combinatorial
+complexity.
 
-\subsection{Theoretical Complexity}
+All benchmarks were performed using the \texttt{BenchmarkTools.jl} package.
+Reported execution times represent the \textbf{median} of $N=30$ runs.
+Crucially, these results \textbf{exclude} the initial JIT compilation and
+warm-up time, reflecting the true steady-state performance of the library
+observed during production use. The code for these specific stress tests is
+located in \texttt{benchmarks/09\_stress\_test\_2.jl}, which can be executed via
+the reproduction script described in Section \ref{sec:availability}. Additional
+benchmarks for lower-degree moments and application examples are available in
+\texttt{benchmarks/08\_stess\_test\_1.jl}.
+
+
+
+\subsection{Theoretical complexity}
 The computational complexity of the Weingarten integration is dominated by the
 summation over the symmetric group $S_k$ (for the unitary case) or the set of
 pair partitions $M_{2k}$ (for orthogonal/symplectic cases). The size of these
@@ -607,23 +630,31 @@ terms (e.g., $10! \approx 3.6 \times 10^6$) becomes prohibitive for real-time
 symbolic manipulation, although numerical evaluation remains tractable for
 slightly higher degrees.
 
-\subsection{Benchmark Results}
+\subsection{Benchmark results}
 Table \ref{tab:benchmarks} summarizes the execution times for selected integrals.
 Key observations include:
 \begin{enumerate}
-    \item \textbf{Symbolic Overhead}: Computing integrals with symbolic dimension
+    \item \textbf{Symbolic overhead}: Computing integrals with symbolic dimension
     $d$ is computationally more demanding than fixed $d$, particularly for the
     unitary group. For example, computing $\int |U_{11}|^{10} dU$ symbolically
     took approximately 6.9 seconds, whereas the same integral for fixed $d=50$
     completed in 0.18 seconds. This overhead arises from the manipulation of
     large rational polynomials in $d$.
-    \item \textbf{Group Differences}: Orthogonal and Symplectic integrals are
+    \item \textbf{Low-degree performance}: For common use cases involving
+    lower-degree polynomials (e.g., $2k=6$), the package is extremely fast. The
+    symbolic integration of $|U_{11}|^6$ completes in approximately 8.9 ms, and
+    for the orthogonal group, computing $O_{11}^6$ takes only 0.3 ms for $d=10$.
+    \item \textbf{Group differences}: Orthogonal and Symplectic integrals are
     generally faster to compute than Unitary ones of comparable degree. This is
     typically due to the smaller size of the summation formulations (pair partitions vs permutations)
     at moderate degrees, although the number of pair partitions grows faster asymptotically.
     \item \textbf{Correctness}: All benchmarks were verified against known exact
     values or asymptotic results, confirming the numerical stability of the
     implementation even for large dimensions (e.g., $d=50$).
+    \item \textbf{Application}: The purity calculation for a bipartite state
+    ($d=6$), which involves contracting a 4-th degree polynomial over the
+    unitary group, completes in approximately 81.1 ms, demonstrating the tool's
+    applicability to quantum information tasks.
 \end{enumerate}
 
 \begin{table}[ht]
@@ -634,11 +665,13 @@ Key observations include:
 \hline
 Group & Integrand & Dimension $d$ & Time (ms) \\
 \hline
+Unitary & $|U_{11}|^6$ & Symbolic & 8.9 \\
 Unitary & $|U_{11}|^8$ & Symbolic & 156.3 \\
 Unitary & $|U_{11}|^{10}$ & Symbolic & 6912.9 \\
 Unitary & $|U_{11}|^{10}$ & $d=10$ & 193.5 \\
 Unitary & $|U_{11}|^{10}$ & $d=50$ & 183.6 \\
 \hline
+Orthogonal & $O_{11}^6$ & $d=10$ & 0.3 \\
 Orthogonal & $O_{11}^8$ & $d=20$ & 2.9 \\
 Orthogonal & $O_{11}^{10}$ & $d=20$ & 230.6 \\
 Orthogonal & $O_{11}^{10}$ & $d=50$ & 244.4 \\
@@ -647,15 +680,22 @@ Symplectic & $|S_{11}|^8$ & $d=10$ & 2.1 \\
 Symplectic & $|S_{11}|^{10}$ & $d=10$ & 4.9 \\
 Symplectic & $|S_{11}|^{10}$ & $d=20$ & 9.9 \\
 \hline
+Application & Purity & $d=6$ & 81.1 \\
+\hline
 \end{tabular}
 \end{table}
 
 The results demonstrate that \texttt{IntU.jl} remains efficient for practically
-relevant problem sizes, with the symbolic engine capable of handling high-degree
-moments that are often intractable by hand. The caching mechanism ensures that
-subsequent calls with the same parameters are virtually instantaneous.
+relevant problem sizes. The rapid execution of the purity application ($\approx$
+81 ms) highlights the library's utility for routine quantum information tasks,
+while the sub-millisecond performance for low-degree orthogonal integrals
+facilitates large-scale statistical sampling. Simultaneously, the symbolic
+engine proves capable of handling high-degree moments that are intractable by
+hand. The caching mechanism ensures that subsequent calls with the same
+parameters are virtually instantaneous.
 
 \section{Conclusion}
+\label{sec:conclusion}
 We have presented \texttt{IntU.jl}, a robust and extensible Julia package for
 performing symbolic integration over the Haar measure of the Unitary, Orthogonal,
 and Symplectic groups. By bridging the gap between the abstract theory of
@@ -680,11 +720,28 @@ engine for extremely large-scale problems. We believe \texttt{IntU.jl} will beco
 an essential utility in the toolkit of theoretical physicists and quantum
 information scientists.
 
+\section{Software availability and reproducibility}
+\label{sec:availability}
+The source code for \texttt{IntU.jl} is available on GitHub under the Apache License 2.0.
+\begin{itemize}
+    \item \textbf{Repository URL}: \url{https://github.com/iitis/IntU}
+    \item \textbf{License}: Apache License 2.0
+    \item \textbf{Version}: The results in this paper were generated using
+    version v0.3.0.
+    \item \textbf{Benchmarks}: To reproduce the benchmarks presented in Section
+    \ref{sec:performance}, execute the provided script from the repository root:
+    \begin{lstlisting}[language=bash]
+    bash benchmarks/runbenchmarks.sh
+    \end{lstlisting}
+\end{itemize}
+
+
 \begin{acks}
 LP and ZP acknowledge financial support from the National Science Center,
 grant number\ldots
 \end{acks}
 
+\bibliographystyle{ACM-Reference-Format}
 \bibliography{references}
 
 \end{document}

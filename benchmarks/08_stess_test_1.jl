@@ -2,7 +2,7 @@
 # IntU.jl Haar-integration test script (Unitary/Orthogonal/Symplectic)
 #
 # Run:
-#   julia --project=. examples/zp.jl
+#   julia --project=benchmarks benchmarks/08_stess_test_1.jl
 #
 # Notes:
 # - Keep integrands polynomial: use conj(z) explicitly instead of abs(z),
@@ -13,6 +13,8 @@
 using Symbolics
 using IntU
 using LinearAlgebra
+using BenchmarkTools
+using Statistics
 
 # --------------------------
 # Helpers
@@ -42,8 +44,10 @@ function equal_symbolic(got, expected; subs=Vector{Dict}())
     return !isempty(subs) # if we had substitutions and they all passed
 end
 
-function run_example(name, expr, μ, expected; subs=Vector{Dict}())
+function run_example(name, expr, μ, expected; subs=Vector{Dict}(), benchmark=false)
+    # Warm-up/Correctness check
     got = IntU.integrate(expr, μ)
+    
     # Simplify the result for display
     # We try simplify(expand(.)) as it is often stronger
     simplified_got = try 
@@ -57,7 +61,16 @@ function run_example(name, expr, μ, expected; subs=Vector{Dict}())
     
     ok = equal_symbolic(got, expected; subs=subs)
     status = ok ? "PASS" : "FAIL"
-    println("$status | Expect: $expected | Got: $simplified_got\n")
+    println("$status | Expect: $expected | Got: $simplified_got")
+
+    if benchmark
+        println("  -> Benchmarking...")
+        # Benchmark with median time (excluding compilation)
+        t = @benchmark IntU.integrate($expr, $μ) samples=30 evals=1
+        med_time_ms = median(t).time / 1e6
+        println("  -> Median Time: $(round(med_time_ms, digits=2)) ms")
+    end
+    println("")
     return got
 end
 
@@ -144,20 +157,20 @@ end
 # ============================================================
 function test_high_moments()
     println("------------------------------------------------------------")
-    println("Testing High-degree Moments (Degree 6) - slower due to symbolic matrix inversion")
+    println("Testing High-degree Moments (Degree 6) and Benchmarking")
     println("------------------------------------------------------------")
     
     # Unitary U(d) 6-th moment
     @variables d::Int
     @symbolic_dimension U[1:d, 1:d]
     μU = dU(U)
-    run_example("U10: ∫ |U₁₁|⁶ dU = 6/(d(d+1)(d+2))", (U[1,1]*conj(U[1,1]))^3, μU, 6/(d*(d+1)*(d+2)); subs=[Dict(d => 3)])
+    run_example("U10: ∫ |U₁₁|⁶ dU = 6/(d(d+1)(d+2)) [Symbolic d]", (U[1,1]*conj(U[1,1]))^3, μU, 6/(d*(d+1)*(d+2)); subs=[Dict(d => 3)], benchmark=true)
 
     # Orthogonal O(d) 6-th moment - slow with symbolic inversion, using concrete dimension for demonstration
     @variables O[1:1, 1:1]::Real
     println("Note: Orthogonal 6th moment is computed with concrete d=10 for speed.")
     μO_concrete = dO(O, 10)
-    run_example("O7: ∫ O₁₁⁶ dO = 15/(d(d+2)(d+4)) (concrete d=10)", O[1,1]^6, μO_concrete, 15//(10*(10+2)*(10+4)))
+    run_example("O7: ∫ O₁₁⁶ dO = 15/(d(d+2)(d+4)) [Concrete d=10]", O[1,1]^6, μO_concrete, 15//(10*(10+2)*(10+4)), benchmark=true)
 end
 
 # ============================================================
@@ -177,7 +190,7 @@ function test_application()
         purity += psi(a,b) * conj(psi(ap,b)) * psi(ap,bp) * conj(psi(a,bp))
     end
     expected_purity = (nA + nB) / (D + 1)
-    run_example("Purity (nA=2,nB=3,D=6): E[tr(ρ_A^2)]", purity, μConcrete, expected_purity)
+    run_example("Purity (nA=2,nB=3,D=6): E[tr(ρ_A^2)]", purity, μConcrete, expected_purity, benchmark=true)
 end
 
 # ============================================================
@@ -187,19 +200,19 @@ println("============================================================")
 println("Running IntU examples with symbolic dimension 'd'")
 println("============================================================\n")
 
-# Run unitary once
+# Run unitary once (no benchmark)
 test_unitary()
 
-# Run loops for low-degree moments
+# Run loops for low-degree moments (no benchmark)
 for N in 2:4
     test_orthogonal(N)
     test_symplectic(N)
 end
 
-# Run high-degree moments ONCE
+# Run high-degree moments ONCE (WITH BENCHMARK)
 test_high_moments()
 
-# Run application
+# Run application (WITH BENCHMARK)
 test_application()
 
 println("All examples completed.")
