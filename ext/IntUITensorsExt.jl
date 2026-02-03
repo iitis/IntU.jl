@@ -95,10 +95,7 @@ function _contract_with_deltas(cs::AbstractVector{ITensor}, ds::AbstractVector, 
         return wg
     end
     
-    res = all_tensors[1]
-    for i in 2:length(all_tensors)
-        res = res * all_tensors[i]
-    end
+    res = ITensors.contract(all_tensors)
     
     return wg * res
 end

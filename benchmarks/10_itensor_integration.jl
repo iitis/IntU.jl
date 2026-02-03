@@ -73,10 +73,22 @@ function run_benchmarks()
 
     # 2. Scaling with Dimension d (Haar Unitary)
     println("\n--- Haar Unitary Scaling (Dimension d) ---")
-    k = 2
+    # k=2 Scaling
+    println("--- k = 2 ---")
     for d in [2, 10, 50, 100]
-        println("Benchmark: U($d), degree=$k")
-        tensors, measure = create_trace_network(d, k, :U)
+        println("Benchmark: U($d), degree=2")
+        tensors, measure = create_trace_network(d, 2, :U)
+        integrate(tensors, measure)
+        t = @benchmark integrate($tensors, $measure)
+        display(t)
+        println()
+    end
+    
+    # k=3 Scaling (Lower max d due to memory)
+    println("--- k = 3 ---")
+    for d in [2, 10, 20, 30]
+        println("Benchmark: U($d), degree=3")
+        tensors, measure = create_trace_network(d, 3, :U)
         integrate(tensors, measure)
         t = @benchmark integrate($tensors, $measure)
         display(t)
