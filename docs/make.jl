@@ -27,6 +27,7 @@ makedocs(;
             "Symbolic Traces" => "symbolic_trace.md",
             "Asymptotics" => "asymptotic.md",
             "QI Helpers" => "qi_helpers.md",
+            "ITensors Integration" => "itensors.md",
         ],
         "API Reference" => "api.md",
     ],
