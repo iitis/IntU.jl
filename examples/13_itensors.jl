@@ -34,9 +34,9 @@ U_dag_it = randomITensor(j2, i2)
 A = randomITensor(j, j2)
 B = randomITensor(i2, i)
 
-# Wrap unitaries
-U = ITensorUnitary(U_it; out_indices=[i], in_indices=[j])
-U_dag = ITensorUnitary(U_dag_it; out_indices=[j2], in_indices=[i2], is_adj=true)
+# Wrap unitaries - explicitly specifying only indices for U
+U = ITensorUnitary(out_indices=[i], in_indices=[j])
+U_dag = ITensorUnitary(out_indices=[j2], in_indices=[i2], is_adj=true)
 
 res1 = integrate([U, A, U_dag, B], dU(2))
 print_itensor("Haar Result (scalar)", res1)
@@ -51,11 +51,8 @@ i1 = Index(3, "In1")
 o2 = Index(3, "Out2")
 i2_in = Index(3, "In2")
 
-O1_it = randomITensor(o1, i1)
-O2_it = randomITensor(o2, i2_in)
-
-O1 = ITensorUnitary(O1_it; out_indices=[o1], in_indices=[i1])
-O2 = ITensorUnitary(O2_it; out_indices=[o2], in_indices=[i2_in])
+O1 = ITensorUnitary(out_indices=[o1], in_indices=[i1])
+O2 = ITensorUnitary(out_indices=[o2], in_indices=[i2_in])
 
 # Integrate over O(3)
 res2 = integrate([O1, O2], dO(3))

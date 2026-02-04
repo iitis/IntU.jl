@@ -12,11 +12,9 @@ function create_trace_network(dim, k, measure_type=:U)
     
     if measure_type == :U
         for i in 1:k
-            U_it = randomITensor(out_indices[i], in_indices[i])
-            U = ITensorUnitary(U_it; out_indices=[out_indices[i]], in_indices=[in_indices[i]], is_adj=false)
+            U = ITensorUnitary(out_indices=[out_indices[i]], in_indices=[in_indices[i]], is_adj=false)
             
-            U_dag_it = randomITensor(in_indices[i], out_indices[i])
-            U_dag = ITensorUnitary(U_dag_it; out_indices=[in_indices[i]], in_indices=[out_indices[i]], is_adj=true)
+            U_dag = ITensorUnitary(out_indices=[in_indices[i]], in_indices=[out_indices[i]], is_adj=true)
             
             push!(tensors, U)
             push!(tensors, U_dag)
@@ -32,25 +30,21 @@ function create_trace_network(dim, k, measure_type=:U)
         return tensors, dU(dim)
     elseif measure_type == :O
         for i in 1:k
-            O_it = randomITensor(out_indices[i], in_indices[i])
-            O = ITensorUnitary(O_it; out_indices=[out_indices[i]], in_indices=[in_indices[i]], is_adj=false)
+            O = ITensorUnitary(out_indices=[out_indices[i]], in_indices=[in_indices[i]], is_adj=false)
             push!(tensors, O)
         end
         # Need even number of unitaries for O
         if isodd(k)
-            O_it = randomITensor(Index(dim), Index(dim))
-            push!(tensors, ITensorUnitary(O_it, out_indices=[inds(O_it)[1]], in_indices=[inds(O_it)[2]], is_adj=false))
+            push!(tensors, ITensorUnitary(out_indices=[out_indices[1]], in_indices=[in_indices[1]], is_adj=false)) # Placeholder
         end
         return tensors, dO(dim)
     elseif measure_type == :Sp
         for i in 1:k
-            S_it = randomITensor(out_indices[i], in_indices[i])
-            S = ITensorUnitary(S_it; out_indices=[out_indices[i]], in_indices=[in_indices[i]], is_adj=false)
+            S = ITensorUnitary(out_indices=[out_indices[i]], in_indices=[in_indices[i]], is_adj=false)
             push!(tensors, S)
         end
         if isodd(k)
-            S_it = randomITensor(Index(dim), Index(dim))
-            push!(tensors, ITensorUnitary(S_it, out_indices=[inds(S_it)[1]], in_indices=[inds(S_it)[2]], is_adj=false))
+            push!(tensors, ITensorUnitary(out_indices=[out_indices[1]], in_indices=[in_indices[1]], is_adj=false)) # Placeholder
         end
         return tensors, dSp(dim)
     end

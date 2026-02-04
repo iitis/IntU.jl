@@ -28,6 +28,10 @@ function ITensorUnitary(tensor; out_indices, in_indices, is_adj=false)
     return ITensorUnitary(tensor, out_indices, in_indices, is_adj)
 end
 
+function ITensorUnitary(; out_indices, in_indices, is_adj=false)
+    return ITensorUnitary(nothing, out_indices, in_indices, is_adj)
+end
+
 """
     integrate_graphical(constants, unitaries, dim, measure_type=:U)
 

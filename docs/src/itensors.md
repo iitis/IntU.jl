@@ -4,7 +4,7 @@ IntU.jl provides a seamless bridge to [ITensors.jl](https://github.com/ITensors/
 
 ## Basic Usage
 
-The primary way to use the integration is to wrap the tensors you wish to integrate in the `ITensorUnitary` struct.
+The primary way to use the integration is to wrap the tensors you wish to integrate in the `ITensorUnitary` struct. For pure symbolic work, you don't even need a "dummy" ITensor object; you can just specify the indices.
 
 ```julia
 using IntU, ITensors
@@ -13,16 +13,38 @@ using IntU, ITensors
 i = Index(2, "Out")
 j = Index(2, "In")
 
-# Create a random ITensor
-U_it = randomITensor(i, j)
-
-# Wrap it to mark as a Haar-random unitary
-U = ITensorUnitary(U_it; out_indices=[i], in_indices=[j])
+# Mark a Haar-random unitary by its indices
+U = ITensorUnitary(out_indices=[i], in_indices=[j])
 
 # Integrate Tr(U A) over U(2)
 A = randomITensor(j, i)
 res = integrate([U, A], dU(2))
 ```
+
+## Defining Random Unitaries
+
+The `ITensorUnitary` struct is used to mark tensors for integration. There are two primary ways to create it, depending on whether you are working purely symbolically or with existing data.
+
+### 1. Symbolic Placeholders (Recommended)
+For pure symbolic integration, you only need to specify the indices. No "dummy" ITensor object is required.
+
+```julia
+# Mark a Haar-random unitary by its indices
+U = ITensorUnitary(out_indices=[i], in_indices=[j])
+```
+
+> [!TIP]
+> This is usually the cleanest approach for deriving analytical formulas or performing benchmarks where the specific tensor values don't matter.
+
+### 2. Wrapping Existing Tensors
+If you already have an `ITensor` (e.g., from a numeric simulation) and want to integrate over its values as if it were random, you can wrap the existing object.
+
+```julia
+U_it = randomITensor(i, j)
+U = ITensorUnitary(U_it; out_indices=[i], in_indices=[j])
+```
+
+In this case, the `integrate` function will ignore the current numerical contents of `U_it` and treat it as a random placeholder. After integration, the result will correctly contract with any other tensors connected to those indices.
 
 ## Supported Measures
 
