@@ -525,6 +525,25 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type=:U)
         if _symbolic_isequal(val, 0); return 0; end
         return coeff * val
 
+    elseif measure_type == :COE
+        # Circular Orthogonal Ensemble
+        if n_u != n_bar; return 0; end
+        if n_u == 0; return coeff; end
+        
+        val = integrate_indices_coe(u_indices, u_bar_indices, dim)
+        if _symbolic_isequal(val, 0); return 0; end
+        return coeff * val
+        
+    elseif measure_type == :CSE || (measure_type isa Tuple && measure_type[1] == :CSE)
+        # Circular Symplectic Ensemble
+        if n_u != n_bar; return 0; end
+        if n_u == 0; return coeff; end
+        
+        phys_dim = measure_type isa Tuple ? measure_type[2] : dim
+        val = integrate_indices_cse(u_indices, u_bar_indices, dim, phys_dim)
+        if _symbolic_isequal(val, 0); return 0; end
+        return coeff * val
+
     elseif measure_type isa Tuple && first(measure_type) == :Design
         # Unitary t-design
         _, t_val = measure_type
