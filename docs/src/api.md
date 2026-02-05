@@ -34,6 +34,12 @@ dGSE
 dPsi
 ```
 
+### Permutation Groups
+```@docs
+dPerm
+dCPerm
+```
+
 ## Symbolic Helpers
 
 ```@docs

@@ -123,8 +123,8 @@ function integrate_indices_permutation(indices::Vector{Tuple{Int,Int}}, dim)
     # Result is 1 / (d * (d-1) * ... * (d-k+1))
     # which is (d-k)! / d!
     
-    # Handle symbolic dim
-    res = 1 // 1
+    # Handle symbolic or large numeric dim
+    res = (dim isa Integer) ? BigInt(1) // BigInt(1) : 1 // 1
     for m = 0:(k-1)
         res /= (dim - m)
     end

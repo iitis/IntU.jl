@@ -109,6 +109,23 @@ integrate(abs(psi[1])^2, measure_psi)
 # Output: 1 / dim
 ```
 
+### Permutation Groups
+IntU supports integration over the Symmetric Group $S_d$ (permutation matrices) and centered permutation matrices $Y = P - J/d$.
+
+```julia
+@variables P[1:d, 1:d]
+measure = dPerm(P, d)
+# E[P_11 * P_22]
+integrate(P[1,1] * P[2,2], measure)
+# Output: 1 / (d * (d - 1))
+
+@variables Y[1:d, 1:d]
+m_centered = dCPerm(Y, d)
+# E[Y_11^2]
+integrate(Y[1,1]^2, m_centered)
+# Output: (d - 1) / d^2
+```
+
 ### Symbolic Traces
 IntU supports index-free notation for integrating traces of products of random
 matrices, which is often more convenient for quantum information tasks.
