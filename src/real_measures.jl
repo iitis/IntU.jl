@@ -1,13 +1,13 @@
 # Real and Symplectic measures
 
 # Dummy types to represent the measures
-struct OrthogonalMeasure{T,N,D}
-    O::Union{AbstractArray{T,N},Nothing}
+struct OrthogonalMeasure{M,D}
+    O::M
     dim::D
 end
 
-struct SymplecticMeasure{T,N,D}
-    S::Union{AbstractArray{T,N},Nothing}
+struct SymplecticMeasure{M,D}
+    S::M
     dim::D
 end
 
@@ -25,8 +25,8 @@ where M_{2n} is the set of pair partitions.
 Reference:
 - Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups.
 """
-dO(O::AbstractArray{T,N}, dim) where {T,N} = OrthogonalMeasure{T,N,typeof(dim)}(O, dim)
-dO(dim) = OrthogonalMeasure{Any,0,typeof(dim)}(nothing, dim)
+dO(O, dim) = OrthogonalMeasure(O, dim)
+dO(dim) = OrthogonalMeasure(nothing, dim)
 
 """
     dSp(S, dim)
@@ -42,8 +42,8 @@ The integration formula uses the symplectic metric J and pair partitions:
 Reference:
 - Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups.
 """
-dSp(S::AbstractArray{T,N}, dim) where {T,N} = SymplecticMeasure{T,N,typeof(dim)}(S, dim)
-dSp(dim) = SymplecticMeasure{Any,0,typeof(dim)}(nothing, dim)
+dSp(S, dim) = SymplecticMeasure(S, dim)
+dSp(dim) = SymplecticMeasure(nothing, dim)
 
 
 """
