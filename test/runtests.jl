@@ -86,6 +86,22 @@ end
         include("gaussian_misc.jl")
     end
 
+    @testset verbose=true "Integral Library" begin
+        include("library.jl")
+    end
+
+    @testset verbose=true "Debug Integration" begin
+        include("debug_integration.jl")
+    end
+
+    @testset verbose=true "Circular Ensembles" begin
+        include("test_circular.jl")
+    end
+
+    @testset verbose=true "ITensors Bridge" begin
+        include("itensors_bridge.jl")
+    end
+
     @testset verbose=true "Unitary Designs" begin
         include("unitary_designs.jl")
     end
