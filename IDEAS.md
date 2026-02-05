@@ -55,10 +55,10 @@ functionalities that could be added:
 ~~*   **Why**: Instant retrieval of interesting standard results without need for~~
 ~~    re-calculation; serves as a reference library for researchers.~~
 
-## 8. Circular Ensembles (COE, CSE)
-*   **Description**: Implement integration over the Circular Orthogonal (COE) and Circular Symplectic Operations (CSE).
-*   **Why**: **[Parity with Haarpy]**. These ensembles (unitary matrices with specific symmetries) are distinct from the standard Haar measure on $U(d)$ and are supported by Haarpy.
-*   **Implementation**: Similar to GOE/GSE but for unitary matrices; requires specific Weingarten-like expansions or mappings to the unitary group.
+~~## 8. Circular Ensembles (COE, CSE)~~
+~~*   **Description**: Implement integration over the Circular Orthogonal (COE) and Circular Symplectic Operations (CSE).~~
+~~*   **Why**: **[Parity with Haarpy]**. These ensembles (unitary matrices with specific symmetries) are distinct from the standard Haar measure on $U(d)$ and are supported by Haarpy.~~
+~~*   **Implementation**: Similar to GOE/GSE but for unitary matrices; requires specific Weingarten-like expansions or mappings to the unitary group.~~
 
 ## 9. Permutation Groups
 *   **Description**: Add explicit support for integration/summation over Permutation Groups (Symmetric Group $S_n$) and Centered Permutation Groups.
