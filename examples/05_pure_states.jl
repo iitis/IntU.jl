@@ -11,22 +11,22 @@ d1 = 2
 d2 = 2
 d = d1 * d2
 @variables psi_re[1:d] psi_im[1:d]
-psi = [(psi_re[i] + im*psi_im[i]) for i in 1:d]
+psi = [(psi_re[i] + im*psi_im[i]) for i = 1:d]
 measure = dPsi(psi, d)
 
 # Average Purity of subsystem 1: E[Tr(rho1^2)]
 psi_mat = Array{Any}(undef, d1, d2)
 let idx = 1
-    for i in 1:d1
-        for j in 1:d2
-            psi_mat[i,j] = psi[idx]
+    for i = 1:d1
+        for j = 1:d2
+            psi_mat[i, j] = psi[idx]
             idx += 1
         end
     end
 end
 
-rho1 = [sum(psi_mat[i,k] * conj(psi_mat[j,k]) for k in 1:d2) for i in 1:d1, j in 1:d1]
-purity_expr = sum(rho1[i,j] * conj(rho1[i,j]) for i in 1:d1, j in 1:d1)
+rho1 = [sum(psi_mat[i, k] * conj(psi_mat[j, k]) for k = 1:d2) for i = 1:d1, j = 1:d1]
+purity_expr = sum(rho1[i, j] * conj(rho1[i, j]) for i = 1:d1, j = 1:d1)
 
 println("Calculating average purity for d1=$d1, d2=$d2...")
 avg_purity = integrate(purity_expr, measure)

@@ -10,22 +10,24 @@ d1 = 3
 m1 = dU(U1, d1)
 
 println("1.1: Integrate |u[1,1]|^2")
-res1_1 = integrate(abs(U1[1,1])^2, m1)
+res1_1 = integrate(abs(U1[1, 1])^2, m1)
 println("Result: ", res1_1, " (Expected: 1/3)")
 
 println("\n1.2: Integrate |u[1,1]*u[2,2]|^2")
-res1_2 = integrate(abs(U1[1,1]*U1[2,2])^2, m1)
+res1_2 = integrate(abs(U1[1, 1]*U1[2, 2])^2, m1)
 println("Result: ", res1_2, " (Expected: 1/8)")
 
 println("\n1.3: Integrate u[1,1]*u[2,2]*conj(u[1,2]*u[2,1])")
-res1_3 = integrate(U1[1,1]*U1[2,2]*conj(U1[1,2]*U1[2,1]), m1)
+res1_3 = integrate(U1[1, 1]*U1[2, 2]*conj(U1[1, 2]*U1[2, 1]), m1)
 println("Result: ", res1_3, " (Expected: -1/24)")
 
 
 # Example 2: Index-based integration
 println("\n--- Example 2 ---")
-I1 = [1, 1, 1, 2, 2]; J1 = [2, 2, 1, 1, 1]
-I2 = [1, 1, 1, 2, 2]; J2 = [2, 1, 1, 2, 1]
+I1 = [1, 1, 1, 2, 2];
+J1 = [2, 2, 1, 1, 1]
+I2 = [1, 1, 1, 2, 2];
+J2 = [2, 1, 1, 2, 1]
 d2 = 6
 
 u_idxs = collect(zip(I1, J1))
@@ -45,7 +47,7 @@ integrand3 = kron(U3_kron, conj.(U3_kron))
 res3 = integrate(integrand3, m3)
 println("Result matrix (size ", size(res3), "):")
 # Displaying a small part or just the fact it worked
-println("Top-left element: ", res3[1,1])
+println("Top-left element: ", res3[1, 1])
 
 
 # Example 4: Multiple unitaries
@@ -53,7 +55,7 @@ println("\n--- Example 4 ---")
 d4 = 2
 @variables U4[1:d4, 1:d4]::Complex
 @variables V4[1:d4, 1:d4]::Complex
-@variables X[1:d4^2, 1:d4^2]::Complex
+@variables X[1:(d4^2), 1:(d4^2)]::Complex
 
 mU = dU(U4, d4)
 mV = dU(V4, d4)
@@ -72,14 +74,14 @@ println("Integrating over U...")
 res4 = integrate(tmp, mU)
 println("Result size: ", size(res4))
 # Display one element
-println("res[1,1]: ", res4[1,1])
+println("res[1,1]: ", res4[1, 1])
 
 
 # Example 5: Symbolic vector integration
 println("\n--- Example 5 ---")
 d5 = 2
 @variables U5[1:d5, 1:d5]::Complex
-@variables X5[1:d5^2, 1:d5^2]::Complex
+@variables X5[1:(d5^2), 1:(d5^2)]::Complex
 m5 = dU(U5, d5)
 
 # xi = 1/sqrt(d) * vec(U)

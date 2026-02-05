@@ -24,80 +24,80 @@ using Symbolics
     # Define variables
     @variables d
     @variables O[1:3, 1:3] # symbolic matrix
-    
+
     # Measure
     m = dO(O, d)
-    
+
     @testset "2nd Moment" begin
         # int O_ij O_kl = delta_ik delta_jl / d
-        
+
         # Case 1: i=1, j=1, k=1, l=1 -> 1/d
-        expr = O[1,1] * O[1,1]
+        expr = O[1, 1] * O[1, 1]
         res = integrate(expr, m)
         @test isequal(res, 1/d)
-        
+
         # Case 2: i=1, j=1, k=2, l=2 -> 0
-        expr = O[1,1] * O[2,2]
+        expr = O[1, 1] * O[2, 2]
         res = integrate(expr, m)
         @test isequal(res, 0)
-        
+
         # Case 3: i=1, j=1, k=1, l=2 -> 0
-        expr = O[1,1] * O[1,2]
+        expr = O[1, 1] * O[1, 2]
         res = integrate(expr, m)
         @test isequal(res, 0)
-        
+
         # Case 4: i=1, j=2, k=1, l=2 -> 1/d
-        expr = O[1,2] * O[1,2]
+        expr = O[1, 2] * O[1, 2]
         res = integrate(expr, m)
         @test isequal(res, 1/d)
     end
-    
+
     @testset "Orthogonality Check" begin
         # int (O O^T)_ij = delta_ij
         # sum_k O_ik O_jk
-        
+
         # Symbolic sum
         sum_val = 0
-        for k in 1:3
-            sum_val += integrate(O[1,k] * O[1,k], m)
+        for k = 1:3
+            sum_val += integrate(O[1, k] * O[1, k], m)
         end
         # Check if simplified difference is zero
         diff = Symbolics.simplify(sum_val - 3/d)
         @test is_like_zero(diff)
-        
+
         # If we set d=3
         m3 = dO(O, 3)
         res3 = 0
-        for k in 1:3
-            res3 += integrate(O[1,k] * O[1,k], m3)
+        for k = 1:3
+            res3 += integrate(O[1, k] * O[1, k], m3)
         end
         @test res3 == 1
     end
-    
+
     @testset "4th Moment" begin
         # int O_11^4
-        expr = O[1,1]^4
+        expr = O[1, 1]^4
         res = integrate(expr, m)
         expected = 3 / (d * (d + 2))
         diff = Symbolics.simplify(res - expected)
         @test is_like_zero(diff)
     end
-    
+
     @testset "Symplectic Integration" begin
         @variables S[1:2, 1:2]::Complex
         # Use d=2 (smallest valid Sp(2n))
         mS = dSp(S, 2)
-        
+
         # S[1,1]^2 -> 0 per debug
-        res1 = integrate(S[1,1]^2, mS)
+        res1 = integrate(S[1, 1]^2, mS)
         @test is_like_zero(res1)
-        
+
         # S[1,2]*S[2,1] -> -0.5
-        res2 = integrate(S[1,2]*S[2,1], mS)
+        res2 = integrate(S[1, 2]*S[2, 1], mS)
         @test to_numeric(real(res2)) ≈ -0.5
-        
+
         # |S[1,1]|^2 -> 0.5
-        res3 = integrate(abs(S[1,1])^2, mS)
+        res3 = integrate(abs(S[1, 1])^2, mS)
         @test to_numeric(real(res3)) ≈ 0.5
     end
 end

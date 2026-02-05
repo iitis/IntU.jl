@@ -18,6 +18,8 @@ Pkg.add(url="https://github.com/iitis/IntU.jl")
 - [Unitary Integration](unitary_integration.md): Core functionality for $U(d)$.
 - [Orthogonal & Symplectic](orthogonal_integration.md): Integration over real groups.
 - [Gaussian Ensembles](gaussian_integration.md): GUE, GOE, and GSE.
+- [Circular Ensembles](circular_ensembles.md): COE, CUE, and CSE.
+- [Unitary Designs](unitary_designs.md): Exact moments of $t$-designs.
 - [Pure States](pure_states.md): Integration over random vectors.
 - [Symbolic Trace Logic](symbolic_trace.md): Index-free matrix integration.
 - [Asymptotic Expansions](asymptotic.md): Large-$d$ limit analysis.

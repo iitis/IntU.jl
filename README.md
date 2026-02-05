@@ -6,6 +6,8 @@ related ensembles. It leverages **Weingarten Calculus** to compute exact results
 for polynomial functions of matrix entries, supporting arbitrary symbolic
 dimension $d$.
 
+For detailed documentation, please visit [iitis.github.io/IntU.jl](https://iitis.github.io/IntU.jl).
+
 ## IntU in action
 
 To introduce the main functionality of IntU, consider the problem of averaging
@@ -78,6 +80,19 @@ preserve the symplectic form, $S \Omega S^T = \Omega$. Use `dSp`.
 @variables S_mat[1:d, 1:d]::Complex
 integrate(abs(S_mat[1,1])^2, dSp(S_mat, d))
 # Output: 1 / d
+```
+
+### Circular Ensembles
+IntU also supports Circular Ensembles (CUE, COE, CSE) which are commonly used in random matrix theory.
+- **CUE (Circular Unitary Ensemble)**: Equivalent to the Haar measure on $U(d)$. Use `dCUE`.
+- **COE (Circular Orthogonal Ensemble)**: Ensemble of symmetric unitary matrices. Use `dCOE`.
+- **CSE (Circular Symplectic Ensemble)**: Ensemble of self-dual unitary matrices of even dimension $2n$. Use `dCSE`.
+
+```julia
+@variables S_coe[1:d, 1:d]::Complex
+# COE moment E[|S_{1,1}|^2]
+integrate(abs(S_coe[1,1])^2, dCOE(S_coe, d))
+# Output: 2 / (d + 1)
 ```
 
 ### Random Pure States

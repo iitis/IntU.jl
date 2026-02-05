@@ -34,11 +34,6 @@ dGSE
 dPsi
 ```
 
-### Unitary Designs
-```@docs
-dDesign
-```
-
 ## Symbolic Helpers
 
 ```@docs
@@ -69,6 +64,8 @@ IntU.integrate_indices_gue
 IntU.integrate_indices_goe
 IntU.integrate_indices_orthogonal
 IntU.integrate_indices_symplectic
+IntU.integrate_indices_coe
+IntU.integrate_indices_cse
 IntU.fallback_integrate
 IntU.check_library
 IntU.tr_val

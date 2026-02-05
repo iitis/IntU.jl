@@ -12,7 +12,7 @@ function conjugate_partition(part::Vector{Int})
     # Number of columns is the first element (largest part)
     # The length of the i-th column is the number of parts >= i
     cols = part[1]
-    [count(>=(i), part) for i in 1:cols]
+    [count(>=(i), part) for i = 1:cols]
 end
 
 """
@@ -34,16 +34,16 @@ Reference:
 function character_at_id(part::Vector{Int})
     n = sum(part)
     conj_part = conjugate_partition(part)
-    
+
     # Hook length formula
     denom = 1
-    for i in 1:length(part)
-        for j in 1:part[i]
+    for i = 1:length(part)
+        for j = 1:part[i]
             term = part[i] - j + conj_part[j] - i + 1
             denom *= term
         end
     end
-    
+
     return factorial(n) // denom
 end
 
@@ -66,13 +66,13 @@ Reference:
 function murnaghan_nakayama(lambda::Vector{Int}, mu::Vector{Int})
     isempty(mu) && return isempty(lambda) ? 1 : 0
     isempty(lambda) && return 0
-    
+
     # Check if partitions have same weight
     n = sum(lambda)
     if n != sum(mu)
         return 0
     end
-    
+
     return calculate_character(lambda, mu)
 end
 
@@ -97,24 +97,24 @@ Reference:
 @memoize function irrep_dimension(part::Vector{Int}, d)
     conj_part = conjugate_partition(part)
     cols = length(part) > 0 ? part[1] : 0
-    
+
     # We need to iterate over all boxes (i, j) in the Young diagram
     prod_val = 1 // 1
-    
-    for i in 1:length(part)
-        for j in 1:part[i]
+
+    for i = 1:length(part)
+        for j = 1:part[i]
             # Hook length h_{i,j} = lambda[i] - i + lambda'[j] - j + 1
             hook_length = part[i] - i + conj_part[j] - j + 1
-            
+
             # Content c_{i,j} = j - i
             # Term = d + c_{i,j} = d + j - i
             term = d + j - i
-            
+
             # Update product
             prod_val *= (d isa Integer ? term // hook_length : term / hook_length)
         end
     end
-    
+
     return prod_val
 end
 
@@ -122,10 +122,10 @@ function get_binary_partition(part::Vector{Int})
     rev_part = reverse(part)
     prepended = [0; rev_part]
     diffs = diff(prepended)
-    
+
     res = Int[]
     for d in diffs
-        for _ in 1:d
+        for _ = 1:d
             push!(res, 1)
         end
         push!(res, 0)
@@ -138,33 +138,33 @@ function mn_inner(R::Vector{Int}, m::Vector{Int}, t::Int)
     if t > length(m)
         return 1
     end
-    
+
     target_len = m[t]
-    
+
     c = 0
     s = 1
     limit = min(target_len, length(R))
-    for j in 1:(limit-1) 
+    for j = 1:(limit-1)
         if R[j] == 0
             s = -s
         end
     end
-    
+
     len_R = length(R)
-    for i in 1:(len_R - target_len)
-        if R[i] != R[i + target_len - 1]
+    for i = 1:(len_R-target_len)
+        if R[i] != R[i+target_len-1]
             s = -s
         end
-        
-        if R[i] == 1 && R[i + target_len] == 0
+
+        if R[i] == 1 && R[i+target_len] == 0
             R[i] = 0
-            R[i + target_len] = 1
+            R[i+target_len] = 1
             c += s * mn_inner(R, m, t + 1)
             R[i] = 1
-            R[i + target_len] = 0
+            R[i+target_len] = 0
         end
     end
-    
+
     return c
 end
 
@@ -193,31 +193,34 @@ Reference:
 @memoize function weingarten(partition_type::Vector{Int}, d)
     # Wg(sigma, d) where sigma has cycle type `partition_type`.
     n = sum(partition_type)
-    
+
     # Iterate over all partitions of n
     parts = partitions(n)
-    
+
     sum_val = 0 // 1
-    
+
     for lam in parts
         # If length(lam) > d, s_lambda(1^d) = 0.
         if d isa Integer && length(lam) > d
             continue
         end
-        
+
         # char_lam(1^n) = dimension f^lambda
         f_lam = character_at_id(lam)
-        
+
         # char_lam(mu)
         chi_lam_mu = calculate_character(lam, partition_type)
-        
+
         # s_lam(1^d)
         dim_lam = irrep_dimension(lam, d)
-        
-        term = (d isa Integer ? ((f_lam)^2 * chi_lam_mu) // dim_lam : ((f_lam)^2 * chi_lam_mu) / dim_lam)
+
+        term = (
+            d isa Integer ? ((f_lam)^2 * chi_lam_mu) // dim_lam :
+            ((f_lam)^2 * chi_lam_mu) / dim_lam
+        )
         sum_val += term
     end
-    
+
     return (d isa Integer ? sum_val // (factorial(n)^2) : sum_val / (factorial(n)^2))
 end
 
@@ -236,38 +239,38 @@ These partitions are also known as **perfect matchings** of the complete graph `
 """
 @memoize function get_pair_partitions(n::Int)
     if n % 2 != 0
-        return Vector{Vector{Tuple{Int, Int}}}()
+        return Vector{Vector{Tuple{Int,Int}}}()
     end
     if n == 0
-        return [Vector{Tuple{Int, Int}}()]
+        return [Vector{Tuple{Int,Int}}()]
     end
-    
+
     # Recursive generation
-    res = Vector{Vector{Tuple{Int, Int}}}()
-    
+    res = Vector{Vector{Tuple{Int,Int}}}()
+
     # helper
     function generate(current_pairs, remaining)
         if isempty(remaining)
             push!(res, current_pairs)
             return
         end
-        
+
         first = remaining[1]
         # Try pairing `first` with each other element
-        for i in 2:length(remaining)
+        for i = 2:length(remaining)
             second = remaining[i]
-            
+
             new_pairs = copy(current_pairs)
             push!(new_pairs, (first, second))
-            
+
             new_remaining = copy(remaining)
             deleteat!(new_remaining, [1, i])
-            
+
             generate(new_pairs, new_remaining)
         end
     end
-    
-    generate(Vector{Tuple{Int, Int}}(), collect(1:n))
+
+    generate(Vector{Tuple{Int,Int}}(), collect(1:n))
     return res
 end
 
@@ -280,11 +283,11 @@ the union of two pair partitions `π` and `σ`.
 The graph has `2k` vertices. Since both `π` and `σ` are perfect matchings, 
 their union consists of disjoint cycles of even length.
 """
-function count_loops(pi::Vector{Tuple{Int, Int}}, sigma::Vector{Tuple{Int, Int}})
+function count_loops(pi::Vector{Tuple{Int,Int}}, sigma::Vector{Tuple{Int,Int}})
     n = 2 * length(pi)
     # Every vertex has exactly two neighbors: one from pi, one from sigma.
     # Use a fixed-size vector for speed.
-    neighs = Vector{Tuple{Int, Int}}(undef, n)
+    neighs = Vector{Tuple{Int,Int}}(undef, n)
     for (u, v) in pi
         neighs[u] = (v, 0)
         neighs[v] = (u, 0)
@@ -296,10 +299,10 @@ function count_loops(pi::Vector{Tuple{Int, Int}}, sigma::Vector{Tuple{Int, Int}}
         v_p = neighs[v][1]
         neighs[v] = (v_p, u)
     end
-    
+
     visited = falses(n)
     loops = 0
-    for i in 1:n
+    for i = 1:n
         if !visited[i]
             loops += 1
             curr = i
@@ -330,9 +333,9 @@ end
 
 Returns a sorted list of pairs (min, max), sorted by min, to uniquely identify a matching.
 """
-function canonicalize_pair_partition(p::Vector{Tuple{Int, Int}})
-    sorted_pairs = [Pair(min(u,v), max(u,v)) for (u,v) in p]
-    sort!(sorted_pairs, by=x->x.first)
+function canonicalize_pair_partition(p::Vector{Tuple{Int,Int}})
+    sorted_pairs = [Pair(min(u, v), max(u, v)) for (u, v) in p]
+    sort!(sorted_pairs, by = x->x.first)
     return sorted_pairs
 end
 
@@ -347,11 +350,11 @@ The Weingarten matrix is the inverse of \$G\\\$.
 @memoize function get_weingarten_orthogonal_data(k::Int, d)
     parts = get_pair_partitions(2*k)
     N = length(parts)
-    
+
     # Pre-canonicalize all partitions for lookup
     canonical_parts = Any[canonicalize_pair_partition(p) for p in parts]
-    lookup = Dict{Any, Int}(c => i for (i, c) in enumerate(canonical_parts))
-    
+    lookup = Dict{Any,Int}(c => i for (i, c) in enumerate(canonical_parts))
+
     # Build Gram matrix
     # Determine type
     val_sample = d^1
@@ -359,10 +362,10 @@ The Weingarten matrix is the inverse of \$G\\\$.
     if d isa Integer
         T = Rational{Int}
     end
-    
+
     G = zeros(T, N, N)
-    for i in 1:N
-        for j in 1:N
+    for i = 1:N
+        for j = 1:N
             loops = count_loops(parts[i], parts[j])
             if d isa Integer
                 G[i, j] = (d^loops) // 1
@@ -371,14 +374,14 @@ The Weingarten matrix is the inverse of \$G\\\$.
             end
         end
     end
-    
+
     # Invert G
     Wg_mat = try
         inv(G)
     catch e
         error("Failed to invert O(d) Gram matrix for k=\$k. Error: \$e")
     end
-    
+
     return Wg_mat, lookup
 end
 
@@ -390,17 +393,21 @@ Returns the **Orthogonal Weingarten function** value \\\\text{Wg}^O(\\\\pi, \\\\
 Reference:
 - Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups.
 """
-function weingarten_orthogonal_val(pi::Vector{Tuple{Int, Int}}, sigma::Vector{Tuple{Int, Int}}, d)
+function weingarten_orthogonal_val(
+    pi::Vector{Tuple{Int,Int}},
+    sigma::Vector{Tuple{Int,Int}},
+    d,
+)
     k = length(pi)
     Wg_mat, lookup = get_weingarten_orthogonal_data(k, d)
-    
+
     idx_pi = get(lookup, canonicalize_pair_partition(pi), nothing)
     idx_sigma = get(lookup, canonicalize_pair_partition(sigma), nothing)
-    
+
     if idx_pi === nothing || idx_sigma === nothing
         error("Partition not found in generated set for k=\$k")
     end
-    
+
     return Wg_mat[idx_pi, idx_sigma]
 end
 
@@ -425,4 +432,3 @@ Reference:
     val_ortho = weingarten_orthogonal_val(pi, sigma, -d)
     return ((-1)^count_loops(pi, sigma)) * val_ortho
 end
-

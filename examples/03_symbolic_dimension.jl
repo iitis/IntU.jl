@@ -14,13 +14,13 @@ measure = dU(U)
 
 # 1. Integrate |U_11|^2
 println("\n1. Integrating |U_11|^2 ...")
-expr1 = abs(U[1,1])^2
+expr1 = abs(U[1, 1])^2
 res1 = integrate(expr1, measure)
 println("Result: $res1 (Expected: 1/d)")
 
 # 2. Integrate |U_11|^4
 println("\n2. Integrating |U_11|^4 ...")
-expr2 = abs(U[1,1])^4
+expr2 = abs(U[1, 1])^4
 res2 = integrate(expr2, measure)
 # Expected Wg([1,1], d) * 2 = 2 / (d*(d+1))
 # Wait, for |U_11|^4, n=2. Combinations are (1,1) (1,1) bar(1,1) bar(1,1).
@@ -38,7 +38,7 @@ println("\n3. Integrating |U_11*U_22 - U_12*U_21|^2 ...")
 # Since U is lazy infinite, we must explicitly slice it or construct the minor
 # U[1:2, 1:2] usually works if getindex supports ranges, but our lazy implementation
 # might only be optimized for scalar indexing implicitly or we can just build the matrix.
-U_mat = [U[i,j] for i in 1:2, j in 1:2]
+U_mat = [U[i, j] for i = 1:2, j = 1:2]
 minor = det(U_mat)
 expr3 = abs(minor)^2
 res3 = integrate(expr3, measure)

@@ -4,23 +4,31 @@ using BenchmarkTools
 using LinearAlgebra
 
 # Helper to create a loop/trace network of degree k
-function create_trace_network(dim, k, measure_type=:U)
-    out_indices = [Index(dim, "Out,$i") for i in 1:k]
-    in_indices = [Index(dim, "In,$i") for i in 1:k]
-    
+function create_trace_network(dim, k, measure_type = :U)
+    out_indices = [Index(dim, "Out,$i") for i = 1:k]
+    in_indices = [Index(dim, "In,$i") for i = 1:k]
+
     tensors = Any[]
-    
+
     if measure_type == :U
-        for i in 1:k
-            U = ITensorUnitary(out_indices=[out_indices[i]], in_indices=[in_indices[i]], is_adj=false)
-            
-            U_dag = ITensorUnitary(out_indices=[in_indices[i]], in_indices=[out_indices[i]], is_adj=true)
-            
+        for i = 1:k
+            U = ITensorUnitary(
+                out_indices = [out_indices[i]],
+                in_indices = [in_indices[i]],
+                is_adj = false,
+            )
+
+            U_dag = ITensorUnitary(
+                out_indices = [in_indices[i]],
+                in_indices = [out_indices[i]],
+                is_adj = true,
+            )
+
             push!(tensors, U)
             push!(tensors, U_dag)
         end
         # Create a trace by connecting Out[i] to In[i+1] and In[i] to Out[i+1] etc.
-        for i in 1:k
+        for i = 1:k
             next_i = (i % k) + 1
             A = randomITensor(in_indices[i], out_indices[next_i])
             B = randomITensor(in_indices[next_i], out_indices[i])
@@ -29,22 +37,44 @@ function create_trace_network(dim, k, measure_type=:U)
         end
         return tensors, dU(dim)
     elseif measure_type == :O
-        for i in 1:k
-            O = ITensorUnitary(out_indices=[out_indices[i]], in_indices=[in_indices[i]], is_adj=false)
+        for i = 1:k
+            O = ITensorUnitary(
+                out_indices = [out_indices[i]],
+                in_indices = [in_indices[i]],
+                is_adj = false,
+            )
             push!(tensors, O)
         end
         # Need even number of unitaries for O
         if isodd(k)
-            push!(tensors, ITensorUnitary(out_indices=[out_indices[1]], in_indices=[in_indices[1]], is_adj=false)) # Placeholder
+            push!(
+                tensors,
+                ITensorUnitary(
+                    out_indices = [out_indices[1]],
+                    in_indices = [in_indices[1]],
+                    is_adj = false,
+                ),
+            ) # Placeholder
         end
         return tensors, dO(dim)
     elseif measure_type == :Sp
-        for i in 1:k
-            S = ITensorUnitary(out_indices=[out_indices[i]], in_indices=[in_indices[i]], is_adj=false)
+        for i = 1:k
+            S = ITensorUnitary(
+                out_indices = [out_indices[i]],
+                in_indices = [in_indices[i]],
+                is_adj = false,
+            )
             push!(tensors, S)
         end
         if isodd(k)
-            push!(tensors, ITensorUnitary(out_indices=[out_indices[1]], in_indices=[in_indices[1]], is_adj=false)) # Placeholder
+            push!(
+                tensors,
+                ITensorUnitary(
+                    out_indices = [out_indices[1]],
+                    in_indices = [in_indices[1]],
+                    is_adj = false,
+                ),
+            ) # Placeholder
         end
         return tensors, dSp(dim)
     end
@@ -77,7 +107,7 @@ function run_benchmarks()
         display(t)
         println()
     end
-    
+
     # k=3 Scaling (Lower max d due to memory)
     println("--- k = 3 ---")
     for d in [2, 10, 20, 30]

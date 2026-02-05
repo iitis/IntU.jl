@@ -54,66 +54,66 @@ function partial_trace(M, dims, subsystem)
     # We'll implement this using Symbolics-friendly indexing.
     # We can represent M[i1, i2, ..., in; j1, j2, ..., jn]
     # And sum over ik == jk for k == subsystem.
-    
+
     # For now, let's implement bipartite specifically as it's the most common case,
     # or a generic one if possible.
-    
+
     target_subs = filter(i -> i != subsystem, 1:n)
     target_dims = dims[target_subs]
     new_dim = prod(target_dims)
-    
+
     res = Matrix{Complex{Num}}(undef, new_dim, new_dim)
-    
+
     # Helper to calculate strides correctly
     function get_strides(d)
         strds = Vector{Int}(undef, length(d))
         s = 1
-        for i in length(d):-1:1
+        for i = length(d):-1:1
             strds[i] = s
             s *= d[i]
         end
         return strds
     end
-    
+
     full_strides = get_strides(dims)
     target_strides = get_strides(target_dims)
-    
+
     # Helper to convert flat index to multi-index
     function to_multi(idx, d, strds)
         m = Vector{Int}(undef, length(d))
         idx -= 1
-        for i in 1:length(d)
+        for i = 1:length(d)
             m[i] = div(idx, strds[i]) + 1
             idx %= strds[i]
         end
         return m
     end
-    
+
     # Helper to convert multi-index back to flat
     function to_flat(m, strds)
         idx = 0
-        for i in 1:length(m)
+        for i = 1:length(m)
             idx += (m[i] - 1) * strds[i]
         end
         return idx + 1
     end
 
     traced_dim = dims[subsystem]
-    
-    for i in 1:new_dim
-        for j in 1:new_dim
+
+    for i = 1:new_dim
+        for j = 1:new_dim
             m_i = to_multi(i, target_dims, target_strides)
             m_j = to_multi(j, target_dims, target_strides)
-            
+
             # Sum over the subsystem index
             val = 0
-            for k in 1:traced_dim
+            for k = 1:traced_dim
                 full_m_i = Vector{Int}(undef, n)
                 full_m_j = Vector{Int}(undef, n)
-                
+
                 # Reconstruct full multi-indices
                 curr_target = 1
-                for s in 1:n
+                for s = 1:n
                     if s == subsystem
                         full_m_i[s] = k
                         full_m_j[s] = k
@@ -123,7 +123,7 @@ function partial_trace(M, dims, subsystem)
                         curr_target += 1
                     end
                 end
-                
+
                 idx_i = to_flat(full_m_i, full_strides)
                 idx_j = to_flat(full_m_j, full_strides)
                 val += M[idx_i, idx_j]
@@ -131,6 +131,6 @@ function partial_trace(M, dims, subsystem)
             res[i, j] = val
         end
     end
-    
+
     return res
 end
