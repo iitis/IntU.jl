@@ -34,18 +34,6 @@ dGSE
 dPsi
 ```
 
-### Unitary Designs
-```@docs
-dDesign
-```
-
-### Circular Ensembles
-```@docs
-dCUE
-dCOE
-dCSE
-```
-
 ## Symbolic Helpers
 
 ```@docs

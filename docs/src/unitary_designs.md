@@ -19,6 +19,10 @@ Usage:
 
 Use the `dDesign(U, dim, t)` function to define a measure representing a unitary $t$-design.
 
+```@docs
+dDesign
+```
+
 ```julia
 using IntU, Symbolics
 
