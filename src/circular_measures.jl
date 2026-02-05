@@ -323,39 +323,39 @@ function integrate_indices_coe(
         return 0
     end
 
-    # For columns (dummies), we don't have constraints, we sum over taus.
-    # BUT we can iterate over taus and compute the loop weight.
-    # Optimisation: The loop weight depends only on the cycle structure of tau relative to the (12)(34)... pairing?
-    # No, it depends on tau structure relative to the pairing of columns.
-    # Since we sum over ALL taus, and valid_sigmas is restricted, maybe we can simplify?
-    # Wg(sigma tau^-1) depends on tau.
-    # Loop weight depends on tau.
-    # This is slightly expensive: (2m)! permutations.
-    # For m=2, 4! = 24.
-    # For m=3, 6! = 720.
-    # For m=4, 8! = 40320. Getting slow.
-    # Is there a way to avoid summing all taus?
-    # The sum \\sum_tau d^{loops(tau)} Wg(sigma tau^-1) is actually a known quantity?
-    # This looks like convolution in the group algebra.
-
-    # However, for now, let's implement brute force sum over tau for correctness, or limit 'm'.
-    # Given typical use cases, m=1,2,3 is common. m=4 is rare.
+    n_fact = try
+        factorial(n)
+    catch
+        # Overflow protection if n is huge, though n is small here
+        BigInt(1)
+    end
+    
+    # Check if we are summing over the full group
+    is_full_group = length(valid_sigmas) == n_fact
 
     permutations_n = collect(permutations(1:n))
 
     total = 0 // 1
 
-    # Precompute loop weights for all taus?
-    # Or just iterate.
+    if is_full_group
+        # Optimization: Factorize sum
+        # \sum_{\sigma, \tau} Wg(\sigma \tau^{-1}) d^{loops(\tau)}
+        # = (\sum_z Wg(z)) * (\sum_\tau d^{loops(\tau)})
+        
+        # 1. Sum over Weingarten values
+        sum_wg = 0 // 1
+        for p in permutations_n
+            val = weingarten(get_cycle_type(p), dim)
+            sum_wg += val
+        end
+        
+        if _symbolic_isequal(sum_wg, 0)
+            return 0
+        end
 
-    for sigma in valid_sigmas
+        # 2. Sum over loop weights
+        sum_loops = 0 // 1
         for tau in permutations_n
-
-            # Calculate loop weight for columns
-            # Graph has vertices 1..m (for a) and 1..m (for b). 
-            # Vertices labeled 1..m (a), m+1..2m (b).
-            # Edges from tau: for r in 1..2m, edge between ceil(r/2) and m + ceil(tau[r]/2).
-
             uf = IntDisjointSets(2 * m)
             for r = 1:n
                 u = div(r - 1, 2) + 1
@@ -364,22 +364,41 @@ function integrate_indices_coe(
                 union!(uf, u, m + v)
             end
             loops = num_groups(uf)
-
-            # Wg val
-            inv_tau = invperm(tau)
-            P = [sigma[inv_tau[i]] for i = 1:n]
-            wg_val = weingarten(get_cycle_type(P), dim)
-
-            if _symbolic_isequal(wg_val, 0)
-                continue
-            end
-
+            
             weight = (dim isa Integer ? dim : dim)^loops
-            total += weight * wg_val
+            sum_loops += weight
         end
-    end
+        
+        return sum_wg * sum_loops
 
-    return total
+    else
+        # Fallback: Full double sum
+        for sigma in valid_sigmas
+            for tau in permutations_n
+                # ... Same loop logic ...
+                uf = IntDisjointSets(2 * m)
+                for r = 1:n
+                    u = div(r - 1, 2) + 1
+                    v_raw = tau[r]
+                    v = div(v_raw - 1, 2) + 1
+                    union!(uf, u, m + v)
+                end
+                loops = num_groups(uf)
+
+                inv_tau = invperm(tau)
+                P = [sigma[inv_tau[i]] for i = 1:n]
+                wg_val = weingarten(get_cycle_type(P), dim)
+
+                if _symbolic_isequal(wg_val, 0)
+                    continue
+                end
+
+                weight = (dim isa Integer ? dim : dim)^loops
+                total += weight * wg_val
+            end
+        end
+        return total
+    end
 end
 
 
