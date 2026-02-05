@@ -80,6 +80,19 @@ integrate(abs(S_mat[1,1])^2, dSp(S_mat, d))
 # Output: 1 / d
 ```
 
+### Circular Ensembles
+IntU also supports Circular Ensembles (CUE, COE, CSE) which are commonly used in random matrix theory.
+- **CUE (Circular Unitary Ensemble)**: Equivalent to the Haar measure on $U(d)$. Use `dCUE`.
+- **COE (Circular Orthogonal Ensemble)**: Ensemble of symmetric unitary matrices. Use `dCOE`.
+- **CSE (Circular Symplectic Ensemble)**: Ensemble of self-dual unitary matrices of even dimension $2n$. Use `dCSE`.
+
+```julia
+@variables S_coe[1:d, 1:d]::Complex
+# COE moment E[|S_{1,1}|^2]
+integrate(abs(S_coe[1,1])^2, dCOE(S_coe, d))
+# Output: 2 / (d + 1)
+```
+
 ### Random Pure States
 IntU can integrate polynomial functions of the components of a Haar-random pure
 state vector $|\psi\rangle$ of dimension $d$.

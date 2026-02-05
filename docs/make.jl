@@ -21,6 +21,7 @@ makedocs(;
             "Unitary Integration" => "unitary_integration.md",
             "Unitary Designs" => "unitary_designs.md",
             "Orthogonal & Symplectic" => "orthogonal_integration.md",
+            "Circular Ensembles" => "circular_ensembles.md",
 
             "Gaussian Ensembles" => "gaussian_integration.md",
             "Pure States" => "pure_states.md",
