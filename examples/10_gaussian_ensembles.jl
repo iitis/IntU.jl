@@ -6,7 +6,7 @@ println("=== Gaussian Ensembles Integration ===\n")
 # --- 1. Explicit Matrix (Small N) ---
 N = 2
 println("1. Explicit Matrix (N=$N)")
-H_explicit = [Symbolics.variable(:H, i, j) for i in 1:N, j in 1:N]
+H_explicit = [Symbolics.variable(:H, i, j) for i = 1:N, j = 1:N]
 
 println("--- GUE ---")
 res_gue2 = simplify(integrate(IntU.tr(H_explicit^2), dGUE(H_explicit, N)))

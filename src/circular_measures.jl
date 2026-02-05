@@ -9,12 +9,12 @@ This is mathematically equivalent to the Haar measure on U(d).
 dCUE(U, dim) = dU(U, dim)
 
 # Dummy types for new measures
-struct COEMeasure{M, D}
+struct COEMeasure{M,D}
     S::M
     dim::D
 end
 
-struct CSEMeasure{M, D}
+struct CSEMeasure{M,D}
     S::M
     dim::D
 end
@@ -53,87 +53,101 @@ end
 function fallback_integrate(expr, measure::COEMeasure)
     S_sym = measure.S
     dim = measure.dim
-    
-    subs_dict = Dict{Any, Any}()
-    S_atomic_lookup = Dict{Any, Tuple{Int, Int}}()
-    
+
+    subs_dict = Dict{Any,Any}()
+    S_atomic_lookup = Dict{Any,Tuple{Int,Int}}()
+
     if S_sym isa AbstractArray
-        for i in 1:size(S_sym, 1)
-            for j in 1:size(S_sym, 2)
-                s_ij_num = _safe_Num(S_sym[i,j])
+        for i = 1:size(S_sym, 1)
+            for j = 1:size(S_sym, 2)
+                s_ij_num = _safe_Num(S_sym[i, j])
                 s_ij_un = Symbolics.unwrap(s_ij_num)
                 # We use :S as a marker
                 s_atomic = Symbolics.variable(:S_atomic, i, j)
                 s_bar_atomic = Symbolics.variable(:S_bar_atomic, i, j)
-                
+
                 S_atomic_lookup[Symbolics.unwrap(s_atomic)] = (i, j)
                 S_atomic_lookup[Symbolics.unwrap(s_bar_atomic)] = (i, j)
-                
+
                 subs_dict[s_ij_un] = s_atomic
-                
+
                 c_ij_un = Symbolics.unwrap(conj(s_ij_num))
                 subs_dict[c_ij_un] = s_bar_atomic
-                
+
                 bc_ij_un = Symbolics.unwrap(Base.conj(s_ij_num))
                 subs_dict[bc_ij_un] = s_bar_atomic
             end
         end
     end
-    
+
     # Use standard LookupMatcher. We map everything to :S type internally for process_term
     # But wait, `process_term` uses types :U, :U_bar.
     # We can reuse the same matcher if we map S_atomic -> (:U, i, j) and S_bar_atomic -> (:U_bar, i, j).
     # Then `process_term` will return U_indices and U_bar_indices.
     # We can then pass these to `integrate_indices_coe`.
-    
+
     # Remap lookup for matcher
     matcher = LookupMatcher(
-        Dict(k => (v[1], v[2]) for (k,v) in S_atomic_lookup if occursin("S_atomic", string(k))),
-        Dict(k => (v[1], v[2]) for (k,v) in S_atomic_lookup if occursin("S_bar_atomic", string(k)))
+        Dict(
+            k => (v[1], v[2]) for
+            (k, v) in S_atomic_lookup if occursin("S_atomic", string(k))
+        ),
+        Dict(
+            k => (v[1], v[2]) for
+            (k, v) in S_atomic_lookup if occursin("S_bar_atomic", string(k))
+        ),
     )
-    
+
     return _robust_real_num(_integrate_core(expr, dim, subs_dict, matcher, :COE))
 end
 
 function fallback_integrate(expr, measure::CSEMeasure)
     S_sym = measure.S
     dim = measure.dim
-    
-    subs_dict = Dict{Any, Any}()
-    S_atomic_lookup = Dict{Any, Tuple{Int, Int}}()
-    
+
+    subs_dict = Dict{Any,Any}()
+    S_atomic_lookup = Dict{Any,Tuple{Int,Int}}()
+
     # Similar to COE
     if S_sym isa AbstractArray
-        for i in 1:size(S_sym, 1)
-            for j in 1:size(S_sym, 2)
-                s_ij_num = _safe_Num(S_sym[i,j])
+        for i = 1:size(S_sym, 1)
+            for j = 1:size(S_sym, 2)
+                s_ij_num = _safe_Num(S_sym[i, j])
                 s_ij_un = Symbolics.unwrap(s_ij_num)
-                
+
                 s_atomic = Symbolics.variable(:S_atomic, i, j)
                 s_bar_atomic = Symbolics.variable(:S_bar_atomic, i, j)
-                
+
                 S_atomic_lookup[Symbolics.unwrap(s_atomic)] = (i, j)
                 S_atomic_lookup[Symbolics.unwrap(s_bar_atomic)] = (i, j)
-                
+
                 subs_dict[s_ij_un] = s_atomic
-                
+
                 c_ij_un = Symbolics.unwrap(conj(s_ij_num))
                 subs_dict[c_ij_un] = s_bar_atomic
-                
+
                 bc_ij_un = Symbolics.unwrap(Base.conj(s_ij_num))
                 subs_dict[bc_ij_un] = s_bar_atomic
             end
         end
     end
-    
+
     # Use standard LookupMatcher.
     matcher = LookupMatcher(
-        Dict(k => (v[1], v[2]) for (k,v) in S_atomic_lookup if occursin("S_atomic", string(k))),
-        Dict(k => (v[1], v[2]) for (k,v) in S_atomic_lookup if occursin("S_bar_atomic", string(k)))
+        Dict(
+            k => (v[1], v[2]) for
+            (k, v) in S_atomic_lookup if occursin("S_atomic", string(k))
+        ),
+        Dict(
+            k => (v[1], v[2]) for
+            (k, v) in S_atomic_lookup if occursin("S_bar_atomic", string(k))
+        ),
     )
-    
+
     phys_dim = S_sym isa AbstractArray ? size(S_sym, 1) : 0
-    return _robust_real_num(_integrate_core(expr, dim, subs_dict, matcher, (:CSE, phys_dim)))
+    return _robust_real_num(
+        _integrate_core(expr, dim, subs_dict, matcher, (:CSE, phys_dim)),
+    )
 end
 
 
@@ -264,47 +278,51 @@ For each \$r \\in 1..2m\$:
 Count connected components in this bipartite graph using standard DFS/BFS/UnionFind.
 Exponent of d is the number of connected components.
 """
-function integrate_indices_coe(indices::Vector{Tuple{Int, Int}}, U_bar_indices::Vector{Tuple{Int, Int}}, dim)
+function integrate_indices_coe(
+    indices::Vector{Tuple{Int,Int}},
+    U_bar_indices::Vector{Tuple{Int,Int}},
+    dim,
+)
     # Re-structure arguments to match integrate_indices signature
     # process_term splits indices into U and U_bar.
     # Here, U_indices correspond to S terms, U_bar_indices correspond to S_bar terms.
     # Note: process_term treats S as U-type and S_bar as U_bar-type.
-    
+
     n_s = length(indices)
     n_s_bar = length(U_bar_indices)
-    
+
     if n_s != n_s_bar
         return 0
     end
-    
+
     m = n_s # This is 'm' in comments above
     n = 2 * m # Total U matrices
-    
+
     # Unpack indices
     # S_ij -> U_ia U_ja
     # S_pq_bar -> U_pb_bar U_qb_bar
-    
+
     # Row indices for the 2n U matrices
     U_rows = Vector{Int}(undef, n)
-    for k in 1:m
+    for k = 1:m
         i, j = indices[k]
         U_rows[2k-1] = i
         U_rows[2k] = j
     end
-    
+
     U_bar_rows = Vector{Int}(undef, n)
-    for k in 1:m
+    for k = 1:m
         p, q = U_bar_indices[k]
         U_bar_rows[2k-1] = p
         U_bar_rows[2k] = q
     end
-    
+
     # We iterate over permutations valid for ROWS
     valid_sigmas = get_matching_permutations(U_rows, U_bar_rows)
     if isempty(valid_sigmas)
         return 0
     end
-    
+
     # For columns (dummies), we don't have constraints, we sum over taus.
     # BUT we can iterate over taus and compute the loop weight.
     # Optimisation: The loop weight depends only on the cycle structure of tau relative to the (12)(34)... pairing?
@@ -319,48 +337,48 @@ function integrate_indices_coe(indices::Vector{Tuple{Int, Int}}, U_bar_indices::
     # Is there a way to avoid summing all taus?
     # The sum \\sum_tau d^{loops(tau)} Wg(sigma tau^-1) is actually a known quantity?
     # This looks like convolution in the group algebra.
-    
+
     # However, for now, let's implement brute force sum over tau for correctness, or limit 'm'.
     # Given typical use cases, m=1,2,3 is common. m=4 is rare.
-    
+
     permutations_n = collect(permutations(1:n))
-    
+
     total = 0 // 1
-    
+
     # Precompute loop weights for all taus?
     # Or just iterate.
-    
+
     for sigma in valid_sigmas
         for tau in permutations_n
-             
+
             # Calculate loop weight for columns
             # Graph has vertices 1..m (for a) and 1..m (for b). 
             # Vertices labeled 1..m (a), m+1..2m (b).
             # Edges from tau: for r in 1..2m, edge between ceil(r/2) and m + ceil(tau[r]/2).
-            
+
             uf = IntDisjointSets(2 * m)
-            for r in 1:n
+            for r = 1:n
                 u = div(r - 1, 2) + 1
                 v_raw = tau[r]
                 v = div(v_raw - 1, 2) + 1
                 union!(uf, u, m + v)
             end
             loops = num_groups(uf)
-            
+
             # Wg val
             inv_tau = invperm(tau)
-            P = [sigma[inv_tau[i]] for i in 1:n]
+            P = [sigma[inv_tau[i]] for i = 1:n]
             wg_val = weingarten(get_cycle_type(P), dim)
-            
+
             if _symbolic_isequal(wg_val, 0)
                 continue
             end
-            
+
             weight = (dim isa Integer ? dim : dim)^loops
             total += weight * wg_val
         end
     end
-    
+
     return total
 end
 
@@ -497,234 +515,248 @@ Implementation detail:
 Use a DisjointSet with parity?
 "Weighted Union Find" or just BFS.
 """
-function integrate_indices_cse(indices::Vector{Tuple{Int, Int}}, U_bar_indices::Vector{Tuple{Int, Int}}, dim, phys_dim)
+function integrate_indices_cse(
+    indices::Vector{Tuple{Int,Int}},
+    U_bar_indices::Vector{Tuple{Int,Int}},
+    dim,
+    phys_dim,
+)
     n_s = length(indices)
     n_s_bar = length(U_bar_indices)
-    
-    if n_s != n_s_bar; return 0; end
-    
+
+    if n_s != n_s_bar
+        ;
+        return 0;
+    end
+
     m = n_s
     n = 2 * m
     # Use phys_dim for symplectic structure J
     # dim is the integration parameter (which might be symbolic)
     half_dim = div(phys_dim, 2) # N
-    
+
     # 1. Expand Indices
     # S_ij -> sgn(j)*[ U_{i, a}, U_{pair(j), pair(a)}, sgn(a) ]
     # Bar S_pq -> sgn(q)*[ Ubar_{p, b}, Ubar_{pair(q), pair(b)}, sgn(b) ]
-    
+
     U_rows = Vector{Int}(undef, n)
     # Signs from fixed indices
     fixed_sign_coeff = 1
-    
+
     # Helper for sign/pair
     get_sign(idx) = (idx <= half_dim ? 1 : -1)
     get_pair(idx) = (idx <= half_dim ? idx + half_dim : idx - half_dim)
-    
-    for k in 1:m
+
+    for k = 1:m
         i, j = indices[k]
         # U term 1: U_{i, a} -> row i. col index 2k-1 (map to a_k)
         U_rows[2k-1] = i
         # U term 2: U_{pair(j), pair(a)} -> row pair(j). col index 2k (map to pair(a_k))
         U_rows[2k] = get_pair(j)
-        
+
         fixed_sign_coeff *= get_sign(j)
     end
-    
+
     U_bar_rows = Vector{Int}(undef, n)
-    for k in 1:m
+    for k = 1:m
         p, q = U_bar_indices[k]
         # Ubar term 1: Ubar_{p, b} -> row p. col index 2k-1 (map to b_k)
         U_bar_rows[2k-1] = p
         # Ubar term 2: Ubar_{pair(q), pair(b)} -> row pair(q). col index 2k (map to pair(b_k))
         U_bar_rows[2k] = get_pair(q)
-        
+
         fixed_sign_coeff *= get_sign(q)
     end
-    
+
     # Valid Sigmas (Row permutations)
     valid_sigmas = get_matching_permutations(U_rows, U_bar_rows)
-    
+
     if isempty(valid_sigmas)
         return 0
     end
-    
+
     permutations_n = collect(permutations(1:n))
     total_val = 0 // 1
-    
+
     for sigma in valid_sigmas
         for tau in permutations_n
-             
-             # Compute Loop Weight for Columns
-             # Vertices: 1..2m (representing slots for U-cols), 1..2m (slots for Ubar-cols)
-             # Wait, abstracting to a_k, b_k is better.
-             # Variables: a_1..a_m, b_1..b_m. Total 2m vars.
-             # Each var x \in {1..2N}. 
-             # We trace connected components.
-             # Edge types:
-             # 1. Equality (sign +1)
-             # 2. Pair (sign -1 effectively, or rather x = pair(y))
-             
-             # Relations:
-             # U-col(2k-1) is a_k.
-             # U-col(2k) is pair(a_k).
-             
-             # Ubar-col(2k-1) is b_k.
-             # Ubar-col(2k) is pair(b_k).
-             
-             # Tau relation: U-col(r) == Ubar-col(tau(r))
-             
-             # Let's build a graph of 4m nodes (the slots).
-             # We define "type" of each slot relative to the variable.
-             # Slot (L, 2k-1) -> Type: (Var: a_k, IsPair: false)
-             # Slot (L, 2k)   -> Type: (Var: a_k, IsPair: true)
-             # Slot (R, 2k-1) -> Type: (Var: b_k, IsPair: false)
-             # Slot (R, 2k)   -> Type: (Var: b_k, IsPair: true)
-             
-             # Tau connects Slot (L, r) to Slot (R, tau(r)).
-             # This implies:
-             # Value(L, r) = Value(R, tau(r))
-             # i.e. 
-             # (IsPair(L,r) ? pair(a_k) : a_k) = (IsPair(R, tau(r)) ? pair(b_l) : b_l)
-             
-             # This relation connects a_k and b_l.
-             # logical relation: a_k = pair^{p1+p2}(b_l).
-             # If IsPair flags are same, a_k = b_l.
-             # If different, a_k = pair(b_l).
-             
-             # We use UnionFind with parity.
-             # Struct: parent[i], parity[i].
-             # i in 1..2m (indices of vars a_1..a_m, b_1..b_m).
-             # 1..m : a's. m+1..2m : b's.
-             
-             uf_parent = collect(1:2*m)
-             uf_parity = zeros(Int, 2*m) # 0 for same, 1 for pair
-             
-             function find(i)
-                 if uf_parent[i] == i
-                     return i, 0
-                 end
-                 root, root_parity = find(uf_parent[i])
-                 # Path compression could be done but simpler to just trace
-                 # Let's do simple path compression
-                 uf_parent[i] = root
-                 uf_parity[i] = (uf_parity[i] + root_parity) % 2
-                 return root, uf_parity[i]
-             end
-             
-             function unite(i, j, p)
-                 # i related to j with parity p (0: equal, 1: pair)
-                 # i ~ pair^p(j)
-                 root_i, par_i = find(i)
-                 root_j, par_j = find(j)
-                 
-                 if root_i != root_j
-                     uf_parent[root_i] = root_j
-                     # par_i + new_rel + par_j term = p
-                     # new_rel = p - par_i - par_j
-                     uf_parity[root_i] = (p - par_i - par_j) % 2
-                     if uf_parity[root_i] < 0; uf_parity[root_i] += 2; end
-                     return true # Success
-                 else
-                     # Check consistency
-                     current_rel = (par_i - par_j) % 2
-                     if current_rel < 0; current_rel += 2; end
-                     if current_rel != p
-                         return false # Contradiction (x = pair(x))
-                     end
-                     return true
-                 end
-             end
-             
-             possible = true
-             for r in 1:n # 1..2m
-                 # Connection: L_r <-> R_tau(r)
-                 
-                 # Identify L_r
-                 var_idx_L = div(r - 1, 2) + 1 # 1..m
-                 is_pair_L = ((r - 1) % 2 == 1) # 2k is pair, 2k-1 is not
-                 
-                 # Identify R_tau(r)
-                 tr = tau[r]
-                 var_idx_R = m + div(tr - 1, 2) + 1 # m+1..2m
-                 is_pair_R = ((tr - 1) % 2 == 1)
-                 
-                 # Relation: L_r = R_tr
-                 # pair^{is_pair_L}(var_L) = pair^{is_pair_R}(var_R)
-                 # var_L = pair^{is_pair_L + is_pair_R}(var_R)
-                 # parity = (is_pair_L + is_pair_R) % 2
-                 
-                 parity = (is_pair_L != is_pair_R ? 1 : 0) 
-                 # Julia bool arithmetic
-                 
-                 if !unite(var_idx_L, var_idx_R, Int(parity) % 2)
-                     possible = false
-                     break
-                 end
-             end
-             
-             if !possible
-                 continue
-             end
-             
-             # Calculate weight
-             # Count independent components
-             # Each component contributes a sum.
-             # Sum = sum_x ( prod of signs )
-             # Signs:
-             # variable a_k contributes sign(a_k).
-             # variable b_k contributes sign(b_k).
-             
-             # For a component, express every member variable v in terms of root R.
-             # v = pair^{rel}(R).
-             # sign(v) = sign(pair^{rel}(R)) = (-1)^{rel} * sign(R).
-             
-             # Product of signs for all variables in component:
-             # P = prod_{v in comp} sign(v) = prod_{v} ((-1)^{dist(v,R)} * sign(R))
-             #   = (-1)^{sum dist} * sign(R)^{size(comp)}
-             
-             # Total Sum = sum_{R=1..2N} P(R).
-             # P(R) = const * sign(R)^K.
-             # If K is even, sign(R)^K = 1. Sum = 2N.
-             # If K is odd, sign(R)^K = sign(R). Sum = 0.
-             
-             # Total weight = product over components of Sum(comp).
-             
-             roots = unique([find(i)[1] for i in 1:2*m])
-             term_weight = 1
-             
-             for root in roots
-                 # Identify members
-                 members = [i for i in 1:2*m if find(i)[1] == root]
-                 K = length(members)
-                 
-                 # Calculate (-1)^{sum dist}
-                 dist_sum = sum([find(i)[2] for i in members])
-                 prefactor = (-1)^dist_sum
-                 
-                 comp_val = 0
-                 if K % 2 == 0
-                     comp_val = dim # 2N
-                 else
-                     comp_val = 0
-                 end
-                 
-                 term_weight *= prefactor * comp_val
-             end
-             
-             if _symbolic_isequal(term_weight, 0)
-                 continue
-             end
-             
-             # Weingarten Val
-             inv_tau = invperm(tau)
-             P = [sigma[inv_tau[i]] for i in 1:n]
-             wg_val = weingarten(get_cycle_type(P), dim)
-             
-             total_val += term_weight * wg_val
+
+            # Compute Loop Weight for Columns
+            # Vertices: 1..2m (representing slots for U-cols), 1..2m (slots for Ubar-cols)
+            # Wait, abstracting to a_k, b_k is better.
+            # Variables: a_1..a_m, b_1..b_m. Total 2m vars.
+            # Each var x \in {1..2N}. 
+            # We trace connected components.
+            # Edge types:
+            # 1. Equality (sign +1)
+            # 2. Pair (sign -1 effectively, or rather x = pair(y))
+
+            # Relations:
+            # U-col(2k-1) is a_k.
+            # U-col(2k) is pair(a_k).
+
+            # Ubar-col(2k-1) is b_k.
+            # Ubar-col(2k) is pair(b_k).
+
+            # Tau relation: U-col(r) == Ubar-col(tau(r))
+
+            # Let's build a graph of 4m nodes (the slots).
+            # We define "type" of each slot relative to the variable.
+            # Slot (L, 2k-1) -> Type: (Var: a_k, IsPair: false)
+            # Slot (L, 2k)   -> Type: (Var: a_k, IsPair: true)
+            # Slot (R, 2k-1) -> Type: (Var: b_k, IsPair: false)
+            # Slot (R, 2k)   -> Type: (Var: b_k, IsPair: true)
+
+            # Tau connects Slot (L, r) to Slot (R, tau(r)).
+            # This implies:
+            # Value(L, r) = Value(R, tau(r))
+            # i.e. 
+            # (IsPair(L,r) ? pair(a_k) : a_k) = (IsPair(R, tau(r)) ? pair(b_l) : b_l)
+
+            # This relation connects a_k and b_l.
+            # logical relation: a_k = pair^{p1+p2}(b_l).
+            # If IsPair flags are same, a_k = b_l.
+            # If different, a_k = pair(b_l).
+
+            # We use UnionFind with parity.
+            # Struct: parent[i], parity[i].
+            # i in 1..2m (indices of vars a_1..a_m, b_1..b_m).
+            # 1..m : a's. m+1..2m : b's.
+
+            uf_parent = collect(1:(2*m))
+            uf_parity = zeros(Int, 2*m) # 0 for same, 1 for pair
+
+            function find(i)
+                if uf_parent[i] == i
+                    return i, 0
+                end
+                root, root_parity = find(uf_parent[i])
+                # Path compression could be done but simpler to just trace
+                # Let's do simple path compression
+                uf_parent[i] = root
+                uf_parity[i] = (uf_parity[i] + root_parity) % 2
+                return root, uf_parity[i]
+            end
+
+            function unite(i, j, p)
+                # i related to j with parity p (0: equal, 1: pair)
+                # i ~ pair^p(j)
+                root_i, par_i = find(i)
+                root_j, par_j = find(j)
+
+                if root_i != root_j
+                    uf_parent[root_i] = root_j
+                    # par_i + new_rel + par_j term = p
+                    # new_rel = p - par_i - par_j
+                    uf_parity[root_i] = (p - par_i - par_j) % 2
+                    if uf_parity[root_i] < 0
+                        ;
+                        uf_parity[root_i] += 2;
+                    end
+                    return true # Success
+                else
+                    # Check consistency
+                    current_rel = (par_i - par_j) % 2
+                    if current_rel < 0
+                        ;
+                        current_rel += 2;
+                    end
+                    if current_rel != p
+                        return false # Contradiction (x = pair(x))
+                    end
+                    return true
+                end
+            end
+
+            possible = true
+            for r = 1:n # 1..2m
+                # Connection: L_r <-> R_tau(r)
+
+                # Identify L_r
+                var_idx_L = div(r - 1, 2) + 1 # 1..m
+                is_pair_L = ((r - 1) % 2 == 1) # 2k is pair, 2k-1 is not
+
+                # Identify R_tau(r)
+                tr = tau[r]
+                var_idx_R = m + div(tr - 1, 2) + 1 # m+1..2m
+                is_pair_R = ((tr - 1) % 2 == 1)
+
+                # Relation: L_r = R_tr
+                # pair^{is_pair_L}(var_L) = pair^{is_pair_R}(var_R)
+                # var_L = pair^{is_pair_L + is_pair_R}(var_R)
+                # parity = (is_pair_L + is_pair_R) % 2
+
+                parity = (is_pair_L != is_pair_R ? 1 : 0)
+                # Julia bool arithmetic
+
+                if !unite(var_idx_L, var_idx_R, Int(parity) % 2)
+                    possible = false
+                    break
+                end
+            end
+
+            if !possible
+                continue
+            end
+
+            # Calculate weight
+            # Count independent components
+            # Each component contributes a sum.
+            # Sum = sum_x ( prod of signs )
+            # Signs:
+            # variable a_k contributes sign(a_k).
+            # variable b_k contributes sign(b_k).
+
+            # For a component, express every member variable v in terms of root R.
+            # v = pair^{rel}(R).
+            # sign(v) = sign(pair^{rel}(R)) = (-1)^{rel} * sign(R).
+
+            # Product of signs for all variables in component:
+            # P = prod_{v in comp} sign(v) = prod_{v} ((-1)^{dist(v,R)} * sign(R))
+            #   = (-1)^{sum dist} * sign(R)^{size(comp)}
+
+            # Total Sum = sum_{R=1..2N} P(R).
+            # P(R) = const * sign(R)^K.
+            # If K is even, sign(R)^K = 1. Sum = 2N.
+            # If K is odd, sign(R)^K = sign(R). Sum = 0.
+
+            # Total weight = product over components of Sum(comp).
+
+            roots = unique([find(i)[1] for i = 1:(2*m)])
+            term_weight = 1
+
+            for root in roots
+                # Identify members
+                members = [i for i = 1:(2*m) if find(i)[1] == root]
+                K = length(members)
+
+                # Calculate (-1)^{sum dist}
+                dist_sum = sum([find(i)[2] for i in members])
+                prefactor = (-1)^dist_sum
+
+                comp_val = 0
+                if K % 2 == 0
+                    comp_val = dim # 2N
+                else
+                    comp_val = 0
+                end
+
+                term_weight *= prefactor * comp_val
+            end
+
+            if _symbolic_isequal(term_weight, 0)
+                continue
+            end
+
+            # Weingarten Val
+            inv_tau = invperm(tau)
+            P = [sigma[inv_tau[i]] for i = 1:n]
+            wg_val = weingarten(get_cycle_type(P), dim)
+
+            total_val += term_weight * wg_val
         end
     end
-    
+
     return fixed_sign_coeff * total_val
 end
 

@@ -9,17 +9,17 @@ function benchmark_trace_moments(d_vals, k_vals)
         @variables U[1:d, 1:d]::Complex
         measure = dU(U, d)
         tr_U = IntU.tr(U)
-        
+
         for k in k_vals
             if k > d
                 continue
             end
             expr = abs(tr_U)^(2*k)
             println("  k=$k (Moment $(2*k))")
-            
+
             # Warmuo
             integrate(expr, measure)
-            
+
             # Benchmark
             t = @benchmark integrate($expr, $measure)
             display(t)

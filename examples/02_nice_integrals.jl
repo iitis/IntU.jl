@@ -17,22 +17,29 @@ println("Expected moments: k! (1, 2, 6, 24...) for d >= k")
 # Using overloaded tr(U)
 tr_U = IntU.tr(U)
 
-for k in 1:d_val
+for k = 1:d_val
     # |Tr(U)|^(2k) = (Tr(U) * conj(Tr(U)))^k = abs(Tr(U))^(2k)
     # Using our new abs support:
     expr = abs(tr_U)^(2*k)
-    
+
     # Note: For k=3 (power 6), the expansion generates many terms. 
     # It might take a moment.
-    
+
     print("k=$k (Moment $(2*k))... ")
     val = integrate(expr, measure)
     expected = factorial(k)
     println("Result: $val (Expected: $expected)")
-    
+
     # Use isequal for symbolic objects and abs for numerical ones
-    is_correct = isequal(val, expected) || (try abs(Symbolics.unwrap(val) - expected) < 1e-10 catch; false end)
-    
+    is_correct =
+        isequal(val, expected) || (
+            try
+                abs(Symbolics.unwrap(val) - expected) < 1e-10
+            catch
+                ; false
+            end
+        )
+
     if !is_correct
         println("  (Note: Deviation expected if d < k? Here d=$d_val, k=$k. d >= k holds.)")
     end
@@ -42,7 +49,7 @@ end
 println("\n--- Integral of a Minor ---")
 # Let's verify that the integral of the squared modulus of a 2x2 minor is related to d.
 # Minor M = U_11 U_22 - U_12 U_21 = det(U[1:2, 1:2])
-minor_2x2 = U[1,1]*U[2,2] - U[1,2]*U[2,1]
+minor_2x2 = U[1, 1]*U[2, 2] - U[1, 2]*U[2, 1]
 expr_minor = abs(minor_2x2)^2
 
 println("Integrating |U_11 U_22 - U_12 U_21|^2 ...")

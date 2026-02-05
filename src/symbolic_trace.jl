@@ -139,11 +139,17 @@ end
 
 # Pow: LazyTrace ^ Integer
 function Base.:^(a::LazyTrace, n::Integer)
-    if n == 0; return LazyTrace([], 1); end
-    if n == 1; return a; end
+    if n == 0
+        ;
+        return LazyTrace([], 1);
+    end
+    if n == 1
+        ;
+        return a;
+    end
     # Repeat cycles n times
     new_cycles = Vector{Vector{SymbolicMatrix}}()
-    for _ in 1:n
+    for _ = 1:n
         append!(new_cycles, a.cycles)
     end
     return LazyTrace(new_cycles, a.prefactor^n)
@@ -193,7 +199,7 @@ function tr_val(factors::Vector{SymbolicMatrix})
     if isempty(factors)
         return 1 # Should handle dim separately, but trace of empty is not passed here usually
     end
-    
+
     # Construct a nice string representation
     # e.g. "tr(A * B)"
     s_parts = String[]
@@ -201,8 +207,7 @@ function tr_val(factors::Vector{SymbolicMatrix})
         push!(s_parts, string(f))
     end
     name = "tr_val(" * join(s_parts, "*") * ")"
-    return Symbolics.variable(Symbol(name); T=Real)
+    return Symbolics.variable(Symbol(name); T = Real)
 end
 # Symbolics metadata might go here if needed.
 # Actually, we rely on Term wrapping it.
-

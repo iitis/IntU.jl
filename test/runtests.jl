@@ -14,18 +14,18 @@ function to_numeric(x)
     if sim_un isa Number
         return sim_un
     end
-    
+
     # Try brute force substitution
     sim2 = Symbolics.substitute(sim, Dict())
     sim2_un = Symbolics.unwrap(sim2)
     if sim2_un isa Number
         return sim2_un
     end
-    
+
     if IntU._symbolic_isequal(sim, 0) || IntU._symbolic_isequal(sim2, 0)
         return 0.0
     end
-    
+
     # Last resort: try evaluating
     try
         val = eval(Meta.parse(string(sim)))
@@ -34,7 +34,7 @@ function to_numeric(x)
         end
     catch
     end
-    
+
     if IntU._symbolic_isequal(sim, 0)
         return 0.0
     end
@@ -45,7 +45,7 @@ end
     @testset verbose=true "Aqua Tests" begin
         include("aqua.jl")
     end
-    
+
     @testset verbose=true "Weingarten Calculus" begin
         include("weingarten.jl")
     end
@@ -102,4 +102,3 @@ end
         include("unitary_designs.jl")
     end
 end
-

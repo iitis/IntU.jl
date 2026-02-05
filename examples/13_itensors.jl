@@ -35,8 +35,8 @@ A = randomITensor(j, j2)
 B = randomITensor(i2, i)
 
 # Wrap unitaries - explicitly specifying only indices for U
-U = ITensorUnitary(out_indices=[i], in_indices=[j])
-U_dag = ITensorUnitary(out_indices=[j2], in_indices=[i2], is_adj=true)
+U = ITensorUnitary(out_indices = [i], in_indices = [j])
+U_dag = ITensorUnitary(out_indices = [j2], in_indices = [i2], is_adj = true)
 
 res1 = integrate([U, A, U_dag, B], dU(2))
 print_itensor("Haar Result (scalar)", res1)
@@ -51,8 +51,8 @@ i1 = Index(3, "In1")
 o2 = Index(3, "Out2")
 i2_in = Index(3, "In2")
 
-O1 = ITensorUnitary(out_indices=[o1], in_indices=[i1])
-O2 = ITensorUnitary(out_indices=[o2], in_indices=[i2_in])
+O1 = ITensorUnitary(out_indices = [o1], in_indices = [i1])
+O2 = ITensorUnitary(out_indices = [o2], in_indices = [i2_in])
 
 # Integrate over O(3)
 res2 = integrate([O1, O2], dO(3))
@@ -73,8 +73,8 @@ e2 = Index(d, "S2_In")
 S1_it = randomITensor(s1, e1)
 S2_it = randomITensor(s2, e2)
 
-S1 = ITensorUnitary(S1_it; out_indices=[s1], in_indices=[e1])
-S2 = ITensorUnitary(S2_it; out_indices=[s2], in_indices=[e2])
+S1 = ITensorUnitary(S1_it; out_indices = [s1], in_indices = [e1])
+S2 = ITensorUnitary(S2_it; out_indices = [s2], in_indices = [e2])
 
 res3 = integrate([S1, S2], dSp(d))
 print_itensor("Symplectic Result", res3)
@@ -88,8 +88,8 @@ u_out = Index(2, "Out")
 u_in = Index(2, "In")
 U_it = randomITensor(u_out, u_in)
 
-U_wrap = ITensorUnitary(U_it; out_indices=[u_out], in_indices=[u_in])
-U_dag_wrap = ITensorUnitary(U_it; out_indices=[u_in], in_indices=[u_out], is_adj=true) # Simplified dag for example
+U_wrap = ITensorUnitary(U_it; out_indices = [u_out], in_indices = [u_in])
+U_dag_wrap = ITensorUnitary(U_it; out_indices = [u_in], in_indices = [u_out], is_adj = true) # Simplified dag for example
 
 # 2-design should match Haar for degree 2 polynomials
 measure_2 = dDesign(nothing, 2, 2)
@@ -109,8 +109,9 @@ i_sym = Index(2, "Out") # ITensors needs a numeric size for the object
 j_sym = Index(2, "In")
 U_it_sym = randomITensor(i_sym, j_sym)
 
-U_sym_wrap = ITensorUnitary(U_it_sym; out_indices=[i_sym], in_indices=[j_sym])
-U_dag_sym_wrap = ITensorUnitary(U_it_sym; out_indices=[j_sym], in_indices=[i_sym], is_adj=true)
+U_sym_wrap = ITensorUnitary(U_it_sym; out_indices = [i_sym], in_indices = [j_sym])
+U_dag_sym_wrap =
+    ITensorUnitary(U_it_sym; out_indices = [j_sym], in_indices = [i_sym], is_adj = true)
 
 # Integrate over U(d_sym) - just 1 moment for simplicity
 res_sym = integrate([U_sym_wrap, U_dag_sym_wrap], dDesign(nothing, d_sym, 1))
@@ -130,11 +131,13 @@ idx_v_in = Index(2, "V,In")
 U_it = randomITensor(idx_u_out, idx_u_in)
 V_it = randomITensor(idx_v_out, idx_v_in)
 
-U_w = ITensorUnitary(U_it; out_indices=[idx_u_out], in_indices=[idx_u_in])
-U_dag_w = ITensorUnitary(U_it; out_indices=[idx_u_in], in_indices=[idx_u_out], is_adj=true)
+U_w = ITensorUnitary(U_it; out_indices = [idx_u_out], in_indices = [idx_u_in])
+U_dag_w =
+    ITensorUnitary(U_it; out_indices = [idx_u_in], in_indices = [idx_u_out], is_adj = true)
 
-V_w = ITensorUnitary(V_it; out_indices=[idx_v_out], in_indices=[idx_v_in])
-V_dag_w = ITensorUnitary(V_it; out_indices=[idx_v_in], in_indices=[idx_v_out], is_adj=true)
+V_w = ITensorUnitary(V_it; out_indices = [idx_v_out], in_indices = [idx_v_in])
+V_dag_w =
+    ITensorUnitary(V_it; out_indices = [idx_v_in], in_indices = [idx_v_out], is_adj = true)
 
 println("Integrating E_V [ E_U [ (U ⊗ U') ⊗ (V ⊗ V') ] ]")
 

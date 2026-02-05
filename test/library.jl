@@ -4,45 +4,45 @@ using Symbolics
 
 @testset "Integral Library" begin
     @variables d
-    
+
     @testset "Haar Unitary Trace" begin
         U = SymbolicMatrix(:U, false, :U)
         A = SymbolicMatrix(:A)
         B = SymbolicMatrix(:B)
-        
+
         expr = IntU.tr(U * A * U' * B)
         res = integrate(expr, dU(U, d))
-        
+
         # Expected: (tr(A) * tr(B)) / d
         # tr_val returns a symbolic variable
         expected = (IntU.tr_val([A]) * IntU.tr_val([B])) / d
         @test isequal(res, expected)
     end
-    
+
     @testset "GUE Moments" begin
         H = SymbolicMatrix(:H)
-        
+
         @test isequal(integrate(IntU.tr(H^2), dGUE(H, d)), d^2)
         @test isequal(integrate(IntU.tr(H^4), dGUE(H, d)), 2d^3 + d)
         @test isequal(integrate(IntU.tr(H^6), dGUE(H, d)), 5d^4 + 10d^2)
     end
-    
+
     @testset "GOE Moments" begin
         H = SymbolicMatrix(:H)
         @test isequal(integrate(IntU.tr(H^2), dGOE(H, d)), d^2 + d)
         @test isequal(integrate(IntU.tr(H^4), dGOE(H, d)), 2d^3 + 5d^2 + 5d)
     end
-    
+
     @testset "GSE Moments" begin
         H = SymbolicMatrix(:H)
         @test isequal(integrate(IntU.tr(H^2), dGSE(H, d)), d^2 - d)
         @test isequal(integrate(IntU.tr(H^4), dGSE(H, d)), 2d^3 - 5d^2 + 5d)
     end
-    
+
     @testset "Fallback Check" begin
         # Something not in library
         @variables U[1:2, 1:2]::Complex
-        expr = U[1,1] * conj(U[1,1])
+        expr = U[1, 1] * conj(U[1, 1])
         res = integrate(expr, dU(U, d))
         @test isequal(res, 1/d)
     end

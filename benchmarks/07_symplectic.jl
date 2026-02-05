@@ -11,21 +11,21 @@ function benchmark_symplectic(k, d_val)
     # For Sp, let's use a non-zero integral like S[1, m+1] * S[m+1, 1]
     m = div(d_val, 2)
     expr = S[1, m+1] * S[m+1, 1]
-    
+
     if k > 1
         # Add more terms to increase complexity
-        for i in 2:k
+        for i = 2:k
             expr *= S[i, m+i] * S[m+i, i]
         end
     end
-    
+
     println("\nk = $k, d = $d_val (Product of $k Symplectic pairs)")
     @btime integrate($expr, $measure)
 end
 
 # Warmup
 @variables S_warm[1:2, 1:2]::Complex
-integrate(S_warm[1,2]*S_warm[2,1], dSp(S_warm, 2))
+integrate(S_warm[1, 2]*S_warm[2, 1], dSp(S_warm, 2))
 
 benchmark_symplectic(1, 2)
 benchmark_symplectic(1, 4)
