@@ -60,5 +60,5 @@ benchmark_cue(2, N_val)
 
 # k=3 (6th moment) - Complexity grows
 benchmark_coe(3, N_val)
-# benchmark_cse(3, N_val) # CSE might be slower due to loop counting logic?
+benchmark_cse(3, N_val) # CSE might be slower due to loop counting logic?
 benchmark_cue(3, N_val)

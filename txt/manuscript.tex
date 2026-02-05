@@ -122,7 +122,7 @@ Symbolic integration over the Haar measure of compact groups is a computational
 cornerstone in quantum information science and random matrix theory. We present
 \texttt{IntU.jl}, a comprehensive Julia package for computing exact expectations
 of polynomial functions over the unitary $U(d)$, orthogonal $O(d)$, symplectic
-$Sp(d)$ groups, and Circular Ensembles (CUE, COE, CSE), as well as random pure
+$Sp(d)$ groups, and circular ensembles (CUE, COE, CSE), as well as random pure
 quantum states. Unlike existing tools that often rely on proprietary engines or
 lack support for symbolic parameters, \texttt{IntU.jl} provides a fully
 open-source, performant implementation of the Weingarten calculus. Key features
@@ -789,10 +789,10 @@ Symplectic & $|S_{11}|^8$ & $d=10$ & 2.1 \\
 Symplectic & $|S_{11}|^{10}$ & $d=10$ & 4.9 \\
 Symplectic & $|S_{11}|^{10}$ & $d=20$ & 9.9 \\
 \hline
-Circ. Orthogonal & $|S_{11}|^2$ & Symbolic & 1.0 \\
-Circ. Orthogonal & $|S_{11}|^4$ & Symbolic & 166.9 \\
+Circ. Orthogonal & $|S_{11}|^2$ & Symbolic & 0.8 \\
+Circ. Orthogonal & $|S_{11}|^4$ & Symbolic & 7.9 \\
 Circ. Symplectic & $|S_{11}|^2$ & Symbolic & 0.8 \\
-Circ. Symplectic & $|S_{11}|^4$ & Symbolic & 29.9 \\
+Circ. Symplectic & $|S_{11}|^4$ & Symbolic & 30.1 \\
 \hline
 Application & Purity & $d=6$ & 81.1 \\
 \hline
@@ -804,9 +804,10 @@ relevant problem sizes. The rapid execution of the purity application ($\approx$
 81 ms) highlights the library's utility for routine quantum information tasks,
 while the sub-millisecond performance for low-degree orthogonal integrals
 facilitates large-scale statistical sampling. We further note that the circular
-ensembles (COE/CSE) maintain competitive performance, with the circular
-symplectic ensemble (CSE) showing notably efficient scaling for higher moments
-compared to the orthogonal case. Simultaneously, the symbolic engine proves
+ensembles (COE/CSE) maintain competitive performance. For highly symmetric
+integrands, such as powers of a single matrix entry, the COE integration engine
+utilizes an optimized factorization that significantly reduces the combinatorial
+overhead. Simultaneously, the symbolic engine proves
 capable of handling high-degree moments that are intractable by hand. The
 caching mechanism ensures that subsequent calls with the same parameters are
 virtually instantaneous.
