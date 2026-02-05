@@ -6,6 +6,8 @@ related ensembles. It leverages **Weingarten Calculus** to compute exact results
 for polynomial functions of matrix entries, supporting arbitrary symbolic
 dimension $d$.
 
+For detailed documentation, please visit [iitis.github.io/IntU.jl](https://iitis.github.io/IntU.jl).
+
 ## IntU in action
 
 To introduce the main functionality of IntU, consider the problem of averaging

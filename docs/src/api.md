@@ -39,6 +39,13 @@ dPsi
 dDesign
 ```
 
+### Circular Ensembles
+```@docs
+dCUE
+dCOE
+dCSE
+```
+
 ## Symbolic Helpers
 
 ```@docs
