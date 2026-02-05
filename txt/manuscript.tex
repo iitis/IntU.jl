@@ -121,20 +121,20 @@
 Symbolic integration over the Haar measure of compact groups is a computational
 cornerstone in quantum information science and random matrix theory. We present
 \texttt{IntU.jl}, a comprehensive Julia package for computing exact expectations
-of polynomial functions over the unitary $U(d)$, orthogonal $O(d)$, and
-symplectic $Sp(d)$ groups, as well as random pure quantum states. Unlike
-existing tools that often rely on proprietary engines or lack support for
-symbolic parameters, \texttt{IntU.jl} provides a fully open-source, performant
-implementation of the Weingarten calculus. Key features include the native
-handling of symbolic dimensions $d$ as rational functions, allowing for the
-automatic derivation of asymptotic expansions, and a high-level symbolic trace
-interface that reconstructs Weingarten graphs directly from index-free
-expressions, and a native bridge to \texttt{ITensors.jl} for integrating complex
-tensor networks. We discuss the underlying algorithms—including the
-Murnaghan-Nakayama rule and symplectic-orthogonal duality—and demonstrate that
-the package efficiently handles high-degree moments, significantly outperforming
-manual derivations and enabling new avenues of research in high-dimensional
-quantum systems.
+of polynomial functions over the unitary $U(d)$, orthogonal $O(d)$, symplectic
+$Sp(d)$ groups, and Circular Ensembles (CUE, COE, CSE), as well as random pure
+quantum states. Unlike existing tools that often rely on proprietary engines or
+lack support for symbolic parameters, \texttt{IntU.jl} provides a fully
+open-source, performant implementation of the Weingarten calculus. Key features
+include the native handling of symbolic dimensions $d$ as rational functions,
+allowing for the automatic derivation of asymptotic expansions, and a high-level
+symbolic trace interface that reconstructs Weingarten graphs directly from
+index-free expressions, and a native bridge to \texttt{ITensors.jl} for
+integrating complex tensor networks. We discuss the underlying
+algorithms—including the Murnaghan-Nakayama rule and symplectic-orthogonal
+duality—and demonstrate that the package efficiently handles high-degree
+moments, significantly outperforming manual derivations and enabling new avenues
+of research in high-dimensional quantum systems.
 \end{abstract}
 
 %%
@@ -214,18 +214,18 @@ expressions (e.g., traces of products) to the index-based tensor contractions
 required by Weingarten calculus is often left to the user, leading to
 error-prone manual preprocessing.
 
-While \texttt{Haarpy} supports a broader range of groups—including circular
-ensembles (COE, CSE) and permutation groups, which \texttt{IntU.jl} currently
-does not, our package focuses on maximizing performance and symbolic flexibility
-within the Unitary, Orthogonal, and Symplectic groups. A primary distinction
-lies in \texttt{IntU.jl}'s deep integration with the Julia \texttt{Symbolics.jl}
-ecosystem, treating dimensions $d$ as native symbolic rational functions rather
-than requiring separate symbolic algebra backends or manual substitutions.
+While \texttt{Haarpy} supports permutation groups, which \texttt{IntU.jl}
+currently does not, our package provides parity with circular ensembles and
+focuses on maximizing performance and symbolic flexibility within the compact
+group integration domain. A primary distinction lies in \texttt{IntU.jl}'s deep
+integration with the Julia \texttt{Symbolics.jl} ecosystem, treating dimensions
+$d$ as native symbolic rational functions rather than requiring separate
+symbolic algebra backends or manual substitutions.
 
 In this work, we present \texttt{IntU.jl}, a comprehensive Julia package
 \cite{bezanson2017julia} designed to address these challenges. \texttt{IntU.jl}
-offers a pure Julia implementation of the Weingarten calculus for the Unitary
-$U(d)$, Orthogonal $O(d)$, and Symplectic $Sp(d)$ groups. Key features
+offers a pure Julia implementation of the Weingarten calculus for the unitary
+$U(d)$, orthogonal $O(d)$, and symplectic $Sp(d)$ groups. Key features
 distinguishing our approach include:
 \begin{itemize}
     \item \textbf{Symbolic dimensions}: Fully symbolic treatment of the dimension
@@ -330,22 +330,26 @@ caching results to accelerate repeated integration tasks.
 \subsection{Groups and measures}
 The package supports a wide range of integration measures, grouped as follows:
 \begin{itemize}
-    \item \textbf{Compact Groups}: Standard Haar measures on the unitary $U(d)$,
+    \item \textbf{Compact groups}: Standard Haar measures on the unitary $U(d)$,
     orthogonal $O(d)$, and symplectic $Sp(d)$ groups. These are defined via
     \texttt{dU(U, d)}, \texttt{dO(O, d)}, and \texttt{dSp(S, d)}, where the
     first argument is a symbolic matrix variable (constructed via
     \texttt{Symbolics.jl} or the \texttt{@symbolic\_dimension} macro) and the
     second is the dimension, which can itself be a symbolic variable.
-    \item \textbf{Quantum States}: The induced measure on pure states
+    \item \textbf{Circular ensembles}: Measures for the circular unitary (CUE),
+    orthogonal (COE), and symplectic (CSE) ensembles. While CUE is equivalent to
+    the Haar measure on $U(d)$, COE and CSE represent symmetric and self-dual
+    unitary matrices, respectively.
+    \item \textbf{Quantum states}: The induced measure on pure states
     $|\psi\rangle$ drawn from the complex projective space $\mathbb{C}P^{d-1}$
     \cite{zyczkowski2001induced, bengtsson2017geometry}, accessed via
     \texttt{dPsi(psi, d)}. This corresponds to the distribution of the first
     column of a Haar-random unitary matrix.
-    \item \textbf{Gaussian Ensembles}: Measures for the Gaussian unitary (GUE),
+    \item \textbf{Gaussian ensembles}: Measures for the Gaussian unitary (GUE),
     orthogonal (GOE), and symplectic (GSE) ensembles (\texttt{dGUE},
     \texttt{dGOE}, \texttt{dGSE}). These rely on Wick's theorem for integration
     rather than Weingarten calculus.
-    \item \textbf{Unitary Designs}: Unitary $t$-designs (\texttt{dDesign}),
+    \item \textbf{Unitary designs}: Unitary $t$-designs (\texttt{dDesign}),
     which mimic the first $t$ moments of the Haar measure, useful for studying
     pseudo-randomness in quantum circuits.
 \end{itemize}
@@ -369,6 +373,27 @@ pairwise contractions:
 This approach allows \texttt{IntU.jl} to compute moments for all three Beta
 ensembles ($\beta=1, 2, 4$) while maintaining full support for symbolic
 dimensions $d$.
+
+\subsection{Circular ensembles}
+\texttt{IntU.jl} also supports integration over the circular ensembles of random
+unitary matrices, which are important in the study of quantum chaos and
+symmetric spaces.
+\begin{itemize}
+    \item \textbf{CUE (Circular unitary ensemble)}: This corresponds to the
+    standard Haar measure on $U(d)$. The matrices are unitary without further
+    symmetry constraints.
+    \item \textbf{COE (Circular orthogonal ensemble)}: Consists of symmetric
+    unitary matrices ($S = S^T$). These are constructed as $S = U U^T$ where $U$
+    is Haar-distributed on $U(d)$. \texttt{IntU.jl} handles integrals over COE
+    by mapping the moments of $S$ to higher-order moments of $U$, reducing the
+    problem to standard unitary Weingarten calculus.
+    \item \textbf{CSE (Circular symplectic ensemble)}: Consists of self-dual
+    unitary matrices ($S = U U^R$, where $U^R = J U^T J^T$ is the dual
+    transpose). The integration is similarly performed by mapping to $U(2d)$
+    integrals.
+\end{itemize}
+These measures are accessed via \texttt{dCOE(S, d)}, \texttt{dCSE(S, d)}, and
+\texttt{dCUE(U, d)} (alias for \texttt{dU}).
 
 \subsection{Unitary designs}
 Unitary $t$-designs \cite{dankert2009exact, gross2007evenly,
@@ -505,7 +530,29 @@ The result $1/d$ confirms the expected normalization: since the rows and columns
 of a unitary matrix are unit vectors, the average squared magnitude of any entry
 must be $1/d$.
 
-\subsection{Symbolic Trace Logic}
+\subsection{Circular ensembles}
+For the circular ensembles, we can observe distinct statistical properties
+compared to the standard Haar measure. Here, we compute the second moment of a
+diagonal entry for the symmetric (COE) and self-dual (CSE) cases:
+
+\begin{lstlisting}[language=Julia]
+@variables S[1:d, 1:d]
+
+# Circular Orthogonal Ensemble (S is symmetric)
+measure_coe = dCOE(S, d)
+res_coe = integrate(abs(S[1,1])^2, measure_coe)
+# Output: 2/(d+1)
+
+# Circular Symplectic Ensemble (S is self-dual)
+measure_cse = dCSE(S, d)
+res_cse = integrate(abs(S[1,1])^2, measure_cse)
+# Output: 1/(d-1)
+\end{lstlisting}
+
+These results contrast with the Haar unitary value of $1/d$, reflecting the
+constraints imposed by the respective symmetries ($S=S^T$ and $S=S^R$).
+
+\subsection{Symbolic trace logic}
 For more complex expressions involving traces of random matrices, manual index
 contraction is error-prone. The symbolic trace interface simplifies the
 workflow by allowing users to define the calculation in coordinate-free notation.
@@ -601,7 +648,7 @@ dispatch symbolic expressions efficiently:
 The calculation of Weingarten functions is computationally intensive. To achieve
 high performance, \texttt{IntU.jl} implements specialized algorithms for each group:
 \begin{itemize}
-    \item \textbf{Unitary Group}: Characters of the symmetric group are computed
+    \item \textbf{Unitary group}: Characters of the symmetric group are computed
     using the Murnaghan-Nakayama rule, which is significantly faster than determinantal
     formulas for sparse partitions. Dimensions of irreducible representations $s_{\lambda, d}(1)$
     are computed via the Hook-Content formula:
@@ -611,7 +658,7 @@ high performance, \texttt{IntU.jl} implements specialized algorithms for each gr
     where $c_{i,j} = j-i$ is the content and $h_{i,j}$ is the hook length. This formulation
     allows the package to handle symbolic dimensions natively, producing exact rational functions
     of $d$.
-    \item \textbf{Orthogonal/Symplectic Groups}: For these groups, the package generates pair partitions
+    \item \textbf{Orthogonal and symplectic groups}: For these groups, the package generates pair partitions
     recursively, canonicalizing them (typically as sorted pairs) to enable $\mathcal{O}(1)$ lookup.
     It constructs the Gram matrix $G_{\pi, \sigma} = d^{\ell(\pi, \sigma)}$, where $\ell(\pi, \sigma)$
     is the number of loops in the graph formed by pair partitions $\pi$ and $\sigma$. The formulation
@@ -627,7 +674,7 @@ high performance, \texttt{IntU.jl} implements specialized algorithms for each gr
     reuse across different partition structures and integration orders.
 \end{itemize}
 
-\subsection{Symbolic Trace Logic}
+\subsection{Symbolic trace logic}
 To handle high-level expressions, \texttt{IntU.jl} introduces specialized
 abstract types: \texttt{LazyTrace} and \texttt{LazySum}. These structures maintain
 the algebraic form of trace products (e.g., $\mathrm{tr}(A B) \mathrm{tr}(C)$)
@@ -653,8 +700,8 @@ The integration strategy for these structures is twofold:
 \section{Performance and benchmarks}
 \label{sec:performance}
 We evaluated the performance of \texttt{IntU.jl} using a suite of stress tests
-involving high-degree polynomial integrals over the Unitary, Orthogonal, and
-Symplectic groups. The benchmarks were run on a standard workstation (Julia 1.12.3).
+involving high-degree polynomial integrals over the unitary, orthogonal, and
+symplectic groups. The benchmarks were run on a standard workstation (Julia 1.12.3).
 Specifically, we evaluated the computation time for the moments of single matrix entries,
 such as $\int |U_{11}|^{2k} dU$, for high degrees $2k \geq 8$. These integrals represent
 a standard stress test for Weingarten implementations due to their maximal combinatorial
@@ -698,8 +745,8 @@ Key observations include:
     lower-degree polynomials (e.g., $2k=6$), the package is extremely fast. The
     symbolic integration of $|U_{11}|^6$ completes in approximately 8.9 ms, and
     for the orthogonal group, computing $O_{11}^6$ takes only 0.3 ms for $d=10$.
-    \item \textbf{Group differences}: Orthogonal and Symplectic integrals are
-    generally faster to compute than Unitary ones of comparable degree. This is
+    \item \textbf{Group differences}: Orthogonal and symplectic integrals are
+    generally faster to compute than unitary ones of comparable degree. This is
     typically due to the smaller size of the summation formulations (pair partitions vs permutations)
     at moderate degrees, although the number of pair partitions grows faster asymptotically.
     \item \textbf{Correctness}: All benchmarks were verified against known exact
@@ -742,6 +789,11 @@ Symplectic & $|S_{11}|^8$ & $d=10$ & 2.1 \\
 Symplectic & $|S_{11}|^{10}$ & $d=10$ & 4.9 \\
 Symplectic & $|S_{11}|^{10}$ & $d=20$ & 9.9 \\
 \hline
+Circ. Orthogonal & $|S_{11}|^2$ & Symbolic & 1.0 \\
+Circ. Orthogonal & $|S_{11}|^4$ & Symbolic & 166.9 \\
+Circ. Symplectic & $|S_{11}|^2$ & Symbolic & 0.8 \\
+Circ. Symplectic & $|S_{11}|^4$ & Symbolic & 29.9 \\
+\hline
 Application & Purity & $d=6$ & 81.1 \\
 \hline
 \end{tabular}
@@ -751,14 +803,18 @@ The results demonstrate that \texttt{IntU.jl} remains efficient for practically
 relevant problem sizes. The rapid execution of the purity application ($\approx$
 81 ms) highlights the library's utility for routine quantum information tasks,
 while the sub-millisecond performance for low-degree orthogonal integrals
-facilitates large-scale statistical sampling. Simultaneously, the symbolic
-engine proves capable of handling high-degree moments that are intractable by
-hand. The caching mechanism ensures that subsequent calls with the same
-parameters are virtually instantaneous.
+facilitates large-scale statistical sampling. We further note that the circular
+ensembles (COE/CSE) maintain competitive performance, with the circular
+symplectic ensemble (CSE) showing notably efficient scaling for higher moments
+compared to the orthogonal case. Simultaneously, the symbolic engine proves
+capable of handling high-degree moments that are intractable by hand. The
+caching mechanism ensures that subsequent calls with the same parameters are
+virtually instantaneous.
 
 \begin{table}[ht]
 \centering
-\caption{Benchmark results for ITensor network integration (Haar measure) showing scaling with degree $k$ and dimension $d$.}
+\caption{Benchmark results for ITensor network integration (Haar measure)
+showing scaling with degree $k$ and dimension $d$.}
 \label{tab:itensor_benchmarks}
 \begin{tabular}{lccc}
 \hline
@@ -804,7 +860,7 @@ this symbolic abstraction does not come at the cost of performance, enabling the
 evaluation of high-degree moments that were previously intractable.
 
 Future development of \texttt{IntU.jl} will focus on expanding support to other
-compact Lie groups, such as the circular orthogonal and symplectic ensembles,
+compact Lie groups, such as the permutation groups (symmetric group $S_n$),
 and further optimizing the asymptotic expansion engine for extremely large-scale
 problems. We believe \texttt{IntU.jl} will become
 an essential utility in the toolkit of theoretical physicists and quantum
