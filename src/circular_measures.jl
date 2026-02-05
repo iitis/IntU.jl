@@ -342,19 +342,31 @@ function integrate_indices_coe(
         # \sum_{\sigma, \tau} Wg(\sigma \tau^{-1}) d^{loops(\tau)}
         # = (\sum_z Wg(z)) * (\sum_\tau d^{loops(\tau)})
         
-        # 1. Sum over Weingarten values
+        # 1. Sum over Weingarten values (grouped by cycle type)
         sum_wg = 0 // 1
-        for p in permutations_n
-            val = weingarten(get_cycle_type(p), dim)
-            sum_wg += val
+        for p_type in partitions(n)
+            # Count permutations with this cycle type
+            # formula: n! / (prod k^c_k * c_k!)
+            counts = Dict{Int, Int}()
+            for x in p_type
+                counts[x] = get(counts, x, 0) + 1
+            end
+            denom = 1
+            for (k, c) in counts
+                denom *= (k^c) * factorial(c)
+            end
+            p_count = factorial(n) // denom
+            
+            val = weingarten(p_type, dim)
+            sum_wg += p_count * val
         end
         
         if _symbolic_isequal(sum_wg, 0)
             return 0
         end
 
-        # 2. Sum over loop weights
-        sum_loops = 0 // 1
+        # 2. Sum over loop weights (grouped by loop count)
+        loop_counts = Dict{Int, Int}()
         for tau in permutations_n
             uf = IntDisjointSets(2 * m)
             for r = 1:n
@@ -364,38 +376,48 @@ function integrate_indices_coe(
                 union!(uf, u, m + v)
             end
             loops = num_groups(uf)
-            
-            weight = (dim isa Integer ? dim : dim)^loops
-            sum_loops += weight
+            loop_counts[loops] = get(loop_counts, loops, 0) + 1
+        end
+        
+        sum_loops = 0 // 1
+        for (loops, count) in loop_counts
+            sum_loops += count * (dim isa Integer ? dim : dim)^loops
         end
         
         return sum_wg * sum_loops
 
     else
         # Fallback: Full double sum
-        for sigma in valid_sigmas
-            for tau in permutations_n
-                # ... Same loop logic ...
-                uf = IntDisjointSets(2 * m)
-                for r = 1:n
-                    u = div(r - 1, 2) + 1
-                    v_raw = tau[r]
-                    v = div(v_raw - 1, 2) + 1
-                    union!(uf, u, m + v)
-                end
-                loops = num_groups(uf)
-
-                inv_tau = invperm(tau)
-                P = [sigma[inv_tau[i]] for i = 1:n]
-                wg_val = weingarten(get_cycle_type(P), dim)
-
-                if _symbolic_isequal(wg_val, 0)
-                    continue
-                end
-
-                weight = (dim isa Integer ? dim : dim)^loops
-                total += weight * wg_val
+        # Group terms by cycle type to minimize Symbolics overhead
+        wg_coeffs = Dict{Vector{Int}, Any}()
+        
+        for tau in permutations_n
+            # Calculate loop weight for columns
+            uf = IntDisjointSets(2 * m)
+            for r = 1:n
+                u = div(r - 1, 2) + 1
+                v_raw = tau[r]
+                v = div(v_raw - 1, 2) + 1
+                union!(uf, u, m + v)
             end
+            loops = num_groups(uf)
+            weight = (dim isa Integer ? dim : dim)^loops
+            
+            if _symbolic_isequal(weight, 0)
+                continue
+            end
+
+            inv_tau = invperm(tau)
+            for sigma in valid_sigmas
+                P = [sigma[inv_tau[i]] for i = 1:n]
+                cycles = get_cycle_type(P)
+                wg_coeffs[cycles] = get(wg_coeffs, cycles, 0) + weight
+            end
+        end
+
+        total = 0 // 1
+        for (cycles, coeff) in wg_coeffs
+            total += coeff * weingarten(cycles, dim)
         end
         return total
     end
@@ -597,184 +619,109 @@ function integrate_indices_cse(
     permutations_n = collect(permutations(1:n))
     total_val = 0 // 1
 
-    for sigma in valid_sigmas
-        for tau in permutations_n
+    # Group terms by cycle type to minimize Symbolics overhead
+    wg_coeffs = Dict{Vector{Int}, Any}()
 
-            # Compute Loop Weight for Columns
-            # Vertices: 1..2m (representing slots for U-cols), 1..2m (slots for Ubar-cols)
-            # Wait, abstracting to a_k, b_k is better.
-            # Variables: a_1..a_m, b_1..b_m. Total 2m vars.
-            # Each var x \in {1..2N}. 
-            # We trace connected components.
-            # Edge types:
-            # 1. Equality (sign +1)
-            # 2. Pair (sign -1 effectively, or rather x = pair(y))
+    for tau in permutations_n
+        # Compute Loop Weight for Columns once per tau
+        possible = true
+        uf_parent = collect(1:(2*m))
+        uf_parity = zeros(Int, 2*m)
 
-            # Relations:
-            # U-col(2k-1) is a_k.
-            # U-col(2k) is pair(a_k).
-
-            # Ubar-col(2k-1) is b_k.
-            # Ubar-col(2k) is pair(b_k).
-
-            # Tau relation: U-col(r) == Ubar-col(tau(r))
-
-            # Let's build a graph of 4m nodes (the slots).
-            # We define "type" of each slot relative to the variable.
-            # Slot (L, 2k-1) -> Type: (Var: a_k, IsPair: false)
-            # Slot (L, 2k)   -> Type: (Var: a_k, IsPair: true)
-            # Slot (R, 2k-1) -> Type: (Var: b_k, IsPair: false)
-            # Slot (R, 2k)   -> Type: (Var: b_k, IsPair: true)
-
-            # Tau connects Slot (L, r) to Slot (R, tau(r)).
-            # This implies:
-            # Value(L, r) = Value(R, tau(r))
-            # i.e. 
-            # (IsPair(L,r) ? pair(a_k) : a_k) = (IsPair(R, tau(r)) ? pair(b_l) : b_l)
-
-            # This relation connects a_k and b_l.
-            # logical relation: a_k = pair^{p1+p2}(b_l).
-            # If IsPair flags are same, a_k = b_l.
-            # If different, a_k = pair(b_l).
-
-            # We use UnionFind with parity.
-            # Struct: parent[i], parity[i].
-            # i in 1..2m (indices of vars a_1..a_m, b_1..b_m).
-            # 1..m : a's. m+1..2m : b's.
-
-            uf_parent = collect(1:(2*m))
-            uf_parity = zeros(Int, 2*m) # 0 for same, 1 for pair
-
-            function find(i)
-                if uf_parent[i] == i
-                    return i, 0
-                end
-                root, root_parity = find(uf_parent[i])
-                # Path compression could be done but simpler to just trace
-                # Let's do simple path compression
-                uf_parent[i] = root
-                uf_parity[i] = (uf_parity[i] + root_parity) % 2
-                return root, uf_parity[i]
+        function find_local(idx)
+            if uf_parent[idx] == idx
+                return idx, 0
             end
+            root, root_parity = find_local(uf_parent[idx])
+            uf_parent[idx] = root
+            uf_parity[idx] = (uf_parity[idx] + root_parity) % 2
+            return root, uf_parity[idx]
+        end
 
-            function unite(i, j, p)
-                # i related to j with parity p (0: equal, 1: pair)
-                # i ~ pair^p(j)
-                root_i, par_i = find(i)
-                root_j, par_j = find(j)
+        function unite_local(i, j, p)
+            root_i, par_i = find_local(i)
+            root_j, par_j = find_local(j)
+            if root_i != root_j
+                uf_parent[root_i] = root_j
+                uf_parity[root_i] = (p - par_i - par_j) % 2
+                if uf_parity[root_i] < 0
+                    uf_parity[root_i] += 2
+                end
+                return true
+            else
+                current_rel = (par_i - par_j) % 2
+                if current_rel < 0
+                    current_rel += 2
+                end
+                return current_rel == p
+            end
+        end
 
-                if root_i != root_j
-                    uf_parent[root_i] = root_j
-                    # par_i + new_rel + par_j term = p
-                    # new_rel = p - par_i - par_j
-                    uf_parity[root_i] = (p - par_i - par_j) % 2
-                    if uf_parity[root_i] < 0
-                        ;
-                        uf_parity[root_i] += 2;
+        for r = 1:n
+            var_idx_L = div(r - 1, 2) + 1
+            is_pair_L = ((r - 1) % 2 == 1)
+            tr = tau[r]
+            var_idx_R = m + div(tr - 1, 2) + 1
+            is_pair_R = ((tr - 1) % 2 == 1)
+            parity = (is_pair_L != is_pair_R ? 1 : 0)
+
+            if !unite_local(var_idx_L, var_idx_R, Int(parity) % 2)
+                possible = false
+                break
+            end
+        end
+
+        if !possible
+            continue
+        end
+
+        term_weight = 1 // 1
+        # Count components and handle signs
+        processed = zeros(Bool, 2*m)
+        for i = 1:(2*m)
+            if !processed[i]
+                root, _ = find_local(i)
+                # All members of this component
+                members = Int[]
+                for j = i:(2*m)
+                    rj, _ = find_local(j)
+                    if rj == root
+                        push!(members, j)
+                        processed[j] = true
                     end
-                    return true # Success
+                end
+                
+                K = length(members)
+                dist_sum = sum(find_local(j)[2] for j in members)
+                prefactor = (-1)^dist_sum
+                
+                if K % 2 == 0
+                    term_weight *= prefactor * dim
                 else
-                    # Check consistency
-                    current_rel = (par_i - par_j) % 2
-                    if current_rel < 0
-                        ;
-                        current_rel += 2;
-                    end
-                    if current_rel != p
-                        return false # Contradiction (x = pair(x))
-                    end
-                    return true
-                end
-            end
-
-            possible = true
-            for r = 1:n # 1..2m
-                # Connection: L_r <-> R_tau(r)
-
-                # Identify L_r
-                var_idx_L = div(r - 1, 2) + 1 # 1..m
-                is_pair_L = ((r - 1) % 2 == 1) # 2k is pair, 2k-1 is not
-
-                # Identify R_tau(r)
-                tr = tau[r]
-                var_idx_R = m + div(tr - 1, 2) + 1 # m+1..2m
-                is_pair_R = ((tr - 1) % 2 == 1)
-
-                # Relation: L_r = R_tr
-                # pair^{is_pair_L}(var_L) = pair^{is_pair_R}(var_R)
-                # var_L = pair^{is_pair_L + is_pair_R}(var_R)
-                # parity = (is_pair_L + is_pair_R) % 2
-
-                parity = (is_pair_L != is_pair_R ? 1 : 0)
-                # Julia bool arithmetic
-
-                if !unite(var_idx_L, var_idx_R, Int(parity) % 2)
-                    possible = false
+                    term_weight = 0
                     break
                 end
             end
+        end
 
-            if !possible
-                continue
-            end
+        if _symbolic_isequal(term_weight, 0)
+            continue
+        end
 
-            # Calculate weight
-            # Count independent components
-            # Each component contributes a sum.
-            # Sum = sum_x ( prod of signs )
-            # Signs:
-            # variable a_k contributes sign(a_k).
-            # variable b_k contributes sign(b_k).
-
-            # For a component, express every member variable v in terms of root R.
-            # v = pair^{rel}(R).
-            # sign(v) = sign(pair^{rel}(R)) = (-1)^{rel} * sign(R).
-
-            # Product of signs for all variables in component:
-            # P = prod_{v in comp} sign(v) = prod_{v} ((-1)^{dist(v,R)} * sign(R))
-            #   = (-1)^{sum dist} * sign(R)^{size(comp)}
-
-            # Total Sum = sum_{R=1..2N} P(R).
-            # P(R) = const * sign(R)^K.
-            # If K is even, sign(R)^K = 1. Sum = 2N.
-            # If K is odd, sign(R)^K = sign(R). Sum = 0.
-
-            # Total weight = product over components of Sum(comp).
-
-            roots = unique([find(i)[1] for i = 1:(2*m)])
-            term_weight = 1
-
-            for root in roots
-                # Identify members
-                members = [i for i = 1:(2*m) if find(i)[1] == root]
-                K = length(members)
-
-                # Calculate (-1)^{sum dist}
-                dist_sum = sum([find(i)[2] for i in members])
-                prefactor = (-1)^dist_sum
-
-                comp_val = 0
-                if K % 2 == 0
-                    comp_val = dim # 2N
-                else
-                    comp_val = 0
-                end
-
-                term_weight *= prefactor * comp_val
-            end
-
-            if _symbolic_isequal(term_weight, 0)
-                continue
-            end
-
-            # Weingarten Val
-            inv_tau = invperm(tau)
+        # Inner loop over sigma: record cycle types
+        inv_tau = invperm(tau)
+        for sigma in valid_sigmas
             P = [sigma[inv_tau[i]] for i = 1:n]
-            wg_val = weingarten(get_cycle_type(P), dim)
-
-            total_val += term_weight * wg_val
+            cycles = get_cycle_type(P)
+            wg_coeffs[cycles] = get(wg_coeffs, cycles, 0) + term_weight
         end
     end
+
+    # Final assembly of symbolic result
+    for (cycles, coeff) in wg_coeffs
+        total_val += coeff * weingarten(cycles, dim)
+    end
+    return total_val
 
     return fixed_sign_coeff * total_val
 end

@@ -790,9 +790,11 @@ Symplectic & $|S_{11}|^{10}$ & $d=10$ & 4.9 \\
 Symplectic & $|S_{11}|^{10}$ & $d=20$ & 9.9 \\
 \hline
 Circ. Orthogonal & $|S_{11}|^2$ & Symbolic & 0.8 \\
-Circ. Orthogonal & $|S_{11}|^4$ & Symbolic & 7.9 \\
+Circ. Orthogonal & $|S_{11}|^4$ & Symbolic & 2.3 \\
+Circ. Orthogonal & $|S_{11}|^6$ & Symbolic & 11.8 \\
 Circ. Symplectic & $|S_{11}|^2$ & Symbolic & 0.8 \\
-Circ. Symplectic & $|S_{11}|^4$ & Symbolic & 30.1 \\
+Circ. Symplectic & $|S_{11}|^4$ & Symbolic & 2.7 \\
+Circ. Symplectic & $|S_{11}|^6$ & Symbolic & 81.7 \\
 \hline
 Application & Purity & $d=6$ & 81.1 \\
 \hline
@@ -804,10 +806,12 @@ relevant problem sizes. The rapid execution of the purity application ($\approx$
 81 ms) highlights the library's utility for routine quantum information tasks,
 while the sub-millisecond performance for low-degree orthogonal integrals
 facilitates large-scale statistical sampling. We further note that the circular
-ensembles (COE/CSE) maintain competitive performance. For highly symmetric
-integrands, such as powers of a single matrix entry, the COE integration engine
-utilizes an optimized factorization that significantly reduces the combinatorial
-overhead. Simultaneously, the symbolic engine proves
+ensembles (COE/CSE) maintain excellent performance. For highly symmetric
+integrands, such as powers of a single matrix entry, the integration engine
+utilizes an optimized grouped-summation technique that significantly reduces
+symbolic overhead by collecting terms with identical cycle types. Consequently,
+high-degree moments such as $|S_{11}|^6$ are computed in under 100~ms.
+Simultaneously, the symbolic engine proves
 capable of handling high-degree moments that are intractable by hand. The
 caching mechanism ensures that subsequent calls with the same parameters are
 virtually instantaneous.
