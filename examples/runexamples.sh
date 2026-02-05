@@ -10,7 +10,7 @@ echo "========================================"
 for f in examples/*.jl; do
     echo ""
     echo ">>> Running $f"
-    julia --project=. "$f"
+    julia --project="examples/" "$f"
 done
 
 echo ""

@@ -31,6 +31,11 @@ measure = dU(U, d)
 # but here we use concrete 1,1 for simplicity which yields the same result by symmetry.
 integrate(abs(U[1,1])^2, measure)
 # Output: 1 / d
+
+# New: Convenient measure constructors
+measure = dU(d) # No matrix variable required
+integrate(abs(U[1,1])^2, measure)
+# Output: 1 / d
 ```
 
 For more complex moments, such as $\int dU |U_{1,1}|^2 |U_{1,2}|^2$, IntU handles the combinatorics (Weingarten functions) automatically:
@@ -102,8 +107,22 @@ U_sym = SymbolicMatrix(:U, false, :U) # unitary
 
 # Compute ∫ tr(U A U† B) dU
 expr = tr(U_sym * A * U_sym' * B)
-integrate(expr, dU(U, d))
+integrate(expr, dU(d))
 # Output: tr(A)*tr(B) / d
+```
+
+## ITensors.jl Integration
+
+IntU.jl provides a bridge to [ITensors.jl](https://github.com/ITensors/ITensors.jl) for symbolic integration of tensor networks.
+
+```julia
+using IntU, ITensors
+i, j = Index(2), Index(2)
+U_it = randomITensor(i, j)
+U = ITensorUnitary(U_it; out_indices=[i], in_indices=[j])
+
+A = randomITensor(j, i)
+res = integrate([U, A], dU(2))
 ```
 
 ## Installation

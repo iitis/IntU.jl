@@ -64,10 +64,10 @@ functionalities that could be added:
 *   **Description**: Add explicit support for integration/summation over Permutation Groups (Symmetric Group $S_n$) and Centered Permutation Groups.
 *   **Why**: **[Parity with Haarpy]**. Haarpy provides functionalities for these groups. While `IntU.jl` uses them internally for Weingarten, exposing them as a domain would allow for broader combinatorial applications.
 
-## 10. ITensors.jl Integration
-*   **Description**: Create a bridge to `ITensors.jl` to allow symbolic integration of tensor network contractions.
-*   **Why**: **[Extension]**. Allows integrating large tensor networks without manually converting them to trace expressions.
-*   **Implementation**: Convert `ITensor` objects into `IntU.jl`'s symbolic representation (or vice versa) and apply the integration engine.
+~~## 10. ITensors.jl Integration~~
+~~*   **Description**: Create a bridge to `ITensors.jl` to allow symbolic integration of tensor network contractions.~~
+~~*   **Why**: **[Extension]**. Allows integrating large tensor networks without manually converting them to trace expressions.~~
+~~*   **Implementation**: Convert `ITensor` objects into `IntU.jl`'s symbolic representation (or vice versa) and apply the integration engine.~~
 
 ## 11. SU(d) Integration
 *   **Description**: Support integration over the Special Unitary group $SU(d)$.

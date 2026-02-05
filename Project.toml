@@ -11,6 +11,12 @@ Memoization = "6fafb56a-5788-4b4e-91ca-c0cea6611c73"
 SymbolicUtils = "d1185830-fcd6-423d-90d6-eec64667417b"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
+[weakdeps]
+ITensors = "9136182c-28ba-11e9-034c-db136f33ea42"
+
+[extensions]
+IntUITensorsExt = "ITensors"
+
 [compat]
 Aqua = "0.8.14"
 Combinatorics = "1"
@@ -19,6 +25,7 @@ LinearAlgebra = "1.11, 1.12"
 Memoization = "0.2.2"
 SymbolicUtils = "4"
 Symbolics = "7"
+ITensors = "0.3, 0.6"
 Test = "1.11, 1.12"
 julia = "1.11, 1.12"
 

@@ -23,6 +23,7 @@ include("real_measures.jl")
 include("gaussian_measures.jl")
 include("unitary_designs.jl")
 include("circular_measures.jl")
+include("itensors_integration.jl")
 
 
 # Quantum Information helpers
@@ -40,5 +41,6 @@ export get_pair_partitions, canonicalize_pair_partition, conjugate_partition, co
 export AbstractIndexMatcher, LookupMatcher, _integrate_core, SymbolicUnitary, process_term
 
 export SymbolicMatrix, tr_lazy, LazyTrace, LazySum
+export integrate_graphical, GraphicalUnitary, ITensorUnitary
 
 end # module

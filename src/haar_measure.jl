@@ -118,6 +118,7 @@ Reference:
 - Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups.
 """
 dU(U, dim) = HaarMeasure(U, dim)
+dU(dim) = HaarMeasure(nothing, dim)
 dU(S::SymbolicUnitary) = HaarMeasure(S, S.dim)
 
 """
