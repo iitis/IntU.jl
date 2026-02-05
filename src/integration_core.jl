@@ -443,6 +443,11 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
                     end
                     return
                 end
+            elseif op == (/)
+                # Traverse numerator, but divide coeff by denominator
+                traverse(args[1])
+                coeff /= args[2]
+                return
             elseif op == conj || op == Base.conj
                 inner = Symbolics.unwrap(args[1])
                 match_res_inner = match_index(matcher, inner)
@@ -641,6 +646,19 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
         end
 
         val = integrate_indices(u_indices, u_bar_indices, dim)
+        if _symbolic_isequal(val, 0)
+            return 0
+        end
+        return coeff * val
+    elseif measure_type == :Perm
+        all_indices = [u_indices; u_bar_indices]
+        n_total = length(all_indices)
+
+        if n_total == 0
+            return coeff
+        end
+
+        val = integrate_indices_permutation(all_indices, dim)
         if _symbolic_isequal(val, 0)
             return 0
         end
