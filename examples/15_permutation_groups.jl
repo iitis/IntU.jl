@@ -62,3 +62,13 @@ result6 = integrate(expr6, m_centered)
 println("Result: ", result6)
 println("Simplified: ", Symbolics.simplify(result6))
 println("Expected (d=4): ", (d_val - 1) / d_val^2)
+
+# 4. Symbolic Traces with Symbolics.jl arrays
+println("\n4. Symbolic Traces with Symbolics.jl arrays")
+@variables A[1:2, 1:2]
+# E[tr(P * A)] = sum(A) / d
+expr7 = Symbolics.scalarize(IntU.tr(P_sym * A))
+println("Integrating: tr(P * A)")
+result7 = integrate(expr7, measure_sym)
+println("Result: ", Symbolics.simplify(result7))
+# Expected: (A[1,1] + A[1,2] + A[2,1] + A[2,2]) / d
