@@ -60,9 +60,9 @@ functionalities that could be added:
 ~~*   **Why**: **[Parity with Haarpy]**. These ensembles (unitary matrices with specific symmetries) are distinct from the standard Haar measure on $U(d)$ and are supported by Haarpy.~~
 ~~*   **Implementation**: Similar to GOE/GSE but for unitary matrices; requires specific Weingarten-like expansions or mappings to the unitary group.~~
 
-## 9. Permutation Groups
-*   **Description**: Add explicit support for integration/summation over Permutation Groups (Symmetric Group $S_n$) and Centered Permutation Groups.
-*   **Why**: **[Parity with Haarpy]**. Haarpy provides functionalities for these groups. While `IntU.jl` uses them internally for Weingarten, exposing them as a domain would allow for broader combinatorial applications.
+~~## 9. Permutation Groups~~
+~~*   **Description**: Add explicit support for integration/summation over Permutation Groups (Symmetric Group $S_n$) and Centered Permutation Groups.~~
+~~*   **Why**: **[Parity with Haarpy]**. Haarpy provides functionalities for these groups. While `IntU.jl` uses them internally for Weingarten, exposing them as a domain would allow for broader combinatorial applications.~~
 
 ~~## 10. ITensors.jl Integration~~
 ~~*   **Description**: Create a bridge to `ITensors.jl` to allow symbolic integration of tensor network contractions.~~

@@ -122,19 +122,20 @@ Symbolic integration over the Haar measure of compact groups is a computational
 cornerstone in quantum information science and random matrix theory. We present
 \texttt{IntU.jl}, a comprehensive Julia package for computing exact expectations
 of polynomial functions over the unitary $U(d)$, orthogonal $O(d)$, symplectic
-$Sp(d)$ groups, and circular ensembles (CUE, COE, CSE), as well as random pure
-quantum states. Unlike existing tools that often rely on proprietary engines or
-lack support for symbolic parameters, \texttt{IntU.jl} provides a fully
-open-source, performant implementation of the Weingarten calculus. Key features
-include the native handling of symbolic dimensions $d$ as rational functions,
-allowing for the automatic derivation of asymptotic expansions, and a high-level
-symbolic trace interface that reconstructs Weingarten graphs directly from
-index-free expressions, and a native bridge to \texttt{ITensors.jl} for
-integrating complex tensor networks. We discuss the underlying
-algorithms—including the Murnaghan-Nakayama rule and symplectic-orthogonal
-duality—and demonstrate that the package efficiently handles high-degree
-moments, significantly outperforming manual derivations and enabling new avenues
-of research in high-dimensional quantum systems.
+$Sp(d)$, permutation group $S_d$, circular ensembles (CUE, COE, CSE), and
+Gaussian ensembles (GUE, GOE, GSE), as well as random pure quantum states and
+unitary $t$-designs. Unlike existing tools that often rely on proprietary engines
+or lack support for symbolic parameters, \texttt{IntU.jl} provides a fully
+open-source, performant implementation of the Weingarten calculus and Wick
+contractions. Key features include the native handling of symbolic dimensions $d$
+as rational functions, allowing for the automatic derivation of asymptotic
+expansions, a high-level symbolic trace interface that reconstructs Weingarten
+graphs directly from index-free expressions, and a native bridge to
+\texttt{ITensors.jl} for integrating complex tensor networks. We discuss the
+underlying algorithms—including the Murnaghan-Nakayama rule and
+symplectic-orthogonal duality—and demonstrate that the package efficiently
+handles high-degree moments and complex quantum information metrics,
+significantly outperforming manual derivations.
 \end{abstract}
 
 %%
@@ -186,8 +187,8 @@ randomness, known as unitary $t$-designs \cite{brandao2016exponential}.
 
 Historically, the evaluation of these integrals was a formidable challenge.
 While the defining properties of Haar measure were established by Hurwitz and
-Weyl in the early 20th century, a systematic method for evaluating polynomial
-integrals emerged later with the work of Weingarten
+Weyl in the early 20$^\mathrm{th}$ century, a systematic method for evaluating
+polynomial integrals emerged later with the work of Weingarten
 \cite{weingarten1978asymptotic}. He showed that asymptotic integrals could be
 expressed as sums over permutations involving a weight function now called the
 Weingarten function. This theory was rigorously detailed and extended to finite
@@ -212,30 +213,40 @@ the ability to handle symbolic dimensions $d$ natively as rational functions.
 Furthermore, the translation from high-level, coordinate-free mathematical
 expressions (e.g., traces of products) to the index-based tensor contractions
 required by Weingarten calculus is often left to the user, leading to
-error-prone manual preprocessing.
-
-While \texttt{Haarpy} supports permutation groups, which \texttt{IntU.jl}
-currently does not, our package provides parity with circular ensembles and
+error-prone manual preprocessing. \texttt{IntU.jl} addresses these issues and
 focuses on maximizing performance and symbolic flexibility within the compact
 group integration domain. A primary distinction lies in \texttt{IntU.jl}'s deep
 integration with the Julia \texttt{Symbolics.jl} ecosystem, treating dimensions
 $d$ as native symbolic rational functions rather than requiring separate
 symbolic algebra backends or manual substitutions.
 
-In this work, we present \texttt{IntU.jl}, a comprehensive Julia package
-\cite{bezanson2017julia} designed to address these challenges. \texttt{IntU.jl}
-offers a pure Julia implementation of the Weingarten calculus for the unitary
-$U(d)$, orthogonal $O(d)$, and symplectic $Sp(d)$ groups. Key features
+Beyond compact groups, the package provides comprehensive support for the beta
+ensembles of random matrix theory (GUE, GOE, GSE) via Wick's theorem, as well as
+circular ensembles and unitary $t$-designs. This diverse ensemble support,
+combined with specialized utilities for quantum information metrics like purity
+and fidelity, makes \texttt{IntU.jl} a versatile environment for both
+theoretical derivations and complex numerical experiments.
+
+\texttt{IntU.jl} offers a pure Julia implementation of the Weingarten calculus for
+the unitary $U(d)$, orthogonal $O(d)$, and symplectic $Sp(d)$ groups, as well as
+combinatorial integration for the symmetric group $S_d$. Key features
 distinguishing our approach include:
 \begin{itemize}
-    \item \textbf{Symbolic dimensions}: Fully symbolic treatment of the dimension
-    $d$, enabling the derivation of exact asymptotic expansions and universal scaling laws.
+    \item \textbf{Diverse ensemble support}: Unified integration over compact
+    groups, circular ensembles, Gaussian ensembles (GUE, GOE, GSE), random pure
+    states, and unitary $t$-designs.
+    \item \textbf{Symbolic dimensions and asymptotics}: Fully symbolic treatment of
+    the dimension $d$, enabling the derivation of exact asymptotic expansions and
+    universal scaling laws via automated Laurent series.
     \item \textbf{Symbolic trace logic}: A high-level interface that allows users to
     integrate trace polynomials directly, with the software automatically handling
     the reduction to Weingarten graphs.
     \item \textbf{Tensor network integration}: A native integration with
     \texttt{ITensors.jl} \cite{fishman2022itensor}, enabling the symbolic
     averaging of large-scale random tensor networks.
+    \item \textbf{Quantum information utilities}: Specialized functions for
+    computing averages of purity, fidelity, and partial traces of symbolic
+    subsystems.
     \item \textbf{Performance}: Leveraging Julia's just-in-time compilation and
     efficient caching strategies to handle high-degree moments.
 \end{itemize}
@@ -322,6 +333,16 @@ their poles dictate the dimensions for which the integration formulas are valid
 formulas and recursive relations, such as the Samuel-Weingarten recursion,
 caching results to accelerate repeated integration tasks.
 
+\subsection{Permutation group $S_d$}
+The symmetric group $S_d$ consists of $d \times d$ permutation matrices. For a
+monomial in the matrix entries $P_{i,j}$, the integral is non-zero only if the
+indices are consistent with a permutation (i.e., all row indices are distinct
+and all column indices are distinct). The result is:
+\begin{equation}
+\int_{S_d} P_{i_1 j_1} \dots P_{i_k j_k} dP = \frac{(d-k)!}{d!},
+\end{equation}
+where $k$ is the number of distinct index pairs.
+
 \section{Software features}
 \label{sec:features}
 \texttt{IntU.jl} is built on top of the \texttt{Symbolics.jl} ecosystem
@@ -345,6 +366,9 @@ The package supports a wide range of integration measures, grouped as follows:
     \cite{zyczkowski2001induced, bengtsson2017geometry}, accessed via
     \texttt{dPsi(psi, d)}. This corresponds to the distribution of the first
     column of a Haar-random unitary matrix.
+    \item \textbf{Permutation groups}: Measures for the Symmetric Group $S_d$
+    (\texttt{dPerm}) and the ensemble of centered permutation matrices
+    (\texttt{dCPerm}). Centered permutations $Y$ satisfy $Y_{ij} = P_{ij} - 1/d$, where $P \in S_d$.
     \item \textbf{Gaussian ensembles}: Measures for the Gaussian unitary (GUE),
     orthogonal (GOE), and symplectic (GSE) ensembles (\texttt{dGUE},
     \texttt{dGOE}, \texttt{dGSE}). These rely on Wick's theorem for integration
@@ -398,8 +422,8 @@ These measures are accessed via \texttt{dCOE(S, d)}, \texttt{dCSE(S, d)}, and
 \subsection{Unitary designs}
 Unitary $t$-designs \cite{dankert2009exact, gross2007evenly,
 ambainis2007quantum} are ensembles of unitary matrices that mimic the Haar
-measure up to the $t$-th moment. Specifically, a set of unitaries $\mathcal{D}
-\subset U(d)$ is a $t$-design if:
+measure up to the $t^\mathrm{th}$ moment. Specifically, a set of unitaries
+$\mathcal{D} \subset U(d)$ is a $t$-design if:
 \begin{equation}
 \mathbb{E}_{U \in \mathcal{D}} [P(U, \bar{U})] = \int_{U(d)} P(U, \bar{U}) dU
 \end{equation}
@@ -614,7 +638,26 @@ result = integrate([U, A], dU(2))
 This high-level approach allows for the symbolic integration of networks with
 thousands of indices, as the underlying engine operates directly on the network
 topology.
+ 
+\subsection{Permutation groups}
+Symbolic integration over the Symmetric Group $S_d$ is particularly useful for
+combinatorial problems and studying centered permutation ensembles.
+\begin{lstlisting}[language=Julia]
+@variables d
+@variables P[1:d, 1:d]
+measure = dPerm(P, d)
 
+# Average of a product of entries
+integrate(P[1,1] * P[2,2], measure)
+# Output: 1 / (d * (d - 1))
+
+# Centered permutations Y = P - J/d
+@variables Y[1:d, 1:d]
+m_centered = dCPerm(Y, d)
+integrate(Y[1,1]^2, m_centered)
+# Output: (d - 1) / d^2
+\end{lstlisting}
+ 
 \section{Implementation details}
 \label{sec:implementation}
 \texttt{IntU.jl} is written in pure Julia \cite{bezanson2017julia}, utilizing
@@ -753,9 +796,9 @@ Key observations include:
     values or asymptotic results, confirming the numerical stability of the
     implementation even for large dimensions (e.g., $d=50$).
     \item \textbf{Application}: The purity calculation for a bipartite state
-    ($d=6$), which involves contracting a 4-th degree polynomial over the
-    unitary group, completes in approximately 81.1 ms, demonstrating the tool's
-    applicability to quantum information tasks.
+    ($d=6$), which involves contracting a 4$^\mathrm{th}$ degree polynomial over
+    the unitary group, completes in approximately 81.1 ms, demonstrating the
+    tool's applicability to quantum information tasks.
     \item \textbf{Tensor network scaling}: The graphical engine scales efficiently
     with both the degree $k$ and dimension $d$. As shown in Table
     \ref{tab:itensor_benchmarks}, for a loop network of Haar unitaries, the
@@ -764,6 +807,11 @@ Key observations include:
     reaching 1.3 s at $d=100$. For higher degrees like $k=3$, the overhead
     increases more rapidly with $d$, with $d=30$ taking 16.8 s, reflecting the
     increasing rank of intermediate tensor contractions.
+    \item \textbf{Permutation groups}: Integration over the symmetric group
+    $S_d$ is exceptionally fast due to its combinatorial nature. Computing the
+    10$^\mathrm{th}$ moment $P_{11}^{10}$ for $d=100$ takes only 65.7 ms. This
+    high performance extends to the centered permutation ensemble, which remains
+    efficient even after polynomial expansion.
 \end{enumerate}
 
 \begin{table}[ht]
@@ -795,6 +843,10 @@ Circ. Orthogonal & $|S_{11}|^6$ & Symbolic & 11.8 \\
 Circ. Symplectic & $|S_{11}|^2$ & Symbolic & 0.8 \\
 Circ. Symplectic & $|S_{11}|^4$ & Symbolic & 2.7 \\
 Circ. Symplectic & $|S_{11}|^6$ & Symbolic & 81.7 \\
+\hline
+Permutation & $P_{11}^{10}$ & $d=100$ & 65.7 \\
+Permutation & $\mathrm{tr}(PA)^2$ & $d=4$ & 24.3 \\
+Centered Perm. & $Y_{11}^4$ & $d=10$ & 1.4 \\
 \hline
 Application & Purity & $d=6$ & 81.1 \\
 \hline
