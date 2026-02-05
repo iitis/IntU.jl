@@ -31,8 +31,20 @@ function IntU._create_deltas(idxs1::Vector, idxs2::Vector)
     return [(idxs1[i], idxs2[i]) for i in 1:length(idxs1)]
 end
 
+# State control for mock behavior
+const mock_mode = Ref(:Unitary)
+
+# Consolidate _contract_with_deltas definition
 function IntU._contract_with_deltas(cs, ds, wg)
-    return string(wg) * " * ResultWithDeltas"
+    if mock_mode[] == :Unitary
+        return string(wg) * " * Tr(A)Tr(B)"
+    elseif mock_mode[] == :Orthogonal
+        return string(wg) * " * Tr(O1 O2)"
+    elseif mock_mode[] == :Symplectic
+        return string(wg) * " * Tr(O1 O2)"
+    else
+        return string(wg) * " * ResultWithDeltas"
+    end
 end
 
 @testset "ITensors Bridge Mock" begin
@@ -56,10 +68,7 @@ end
     constants = [A, B]
     unitaries = [U, U_dag]
     
-    # Redefine for the test case
-    function IntU._contract_with_deltas(cs, ds, wg)
-        return string(wg) * " * Tr(A)Tr(B)"
-    end
+    mock_mode[] = :Unitary
     
     res = integrate_graphical(constants, unitaries, 2, :U) # dim=2
     
@@ -73,9 +82,7 @@ end
     O1 = GraphicalUnitary([idx1], [idx2], false)
     O2 = GraphicalUnitary([idx2], [idx1], false) # Loop
     
-    function IntU._contract_with_deltas(cs, ds, wg)
-        return string(wg) * " * Tr(O1 O2)"
-    end
+    mock_mode[] = :Orthogonal
     
     # Orthogonal integration for n=2
     # weingarten_orthogonal_val sum
@@ -88,6 +95,8 @@ end
     function IntU._create_deltas_symplectic(idxs1, idxs2, dim)
         return ["J($dim)"]
     end
+    
+    mock_mode[] = :Symplectic
     
     res_sp = integrate_graphical([], [O1, O2], 2, :Sp)
     @test contains(res_sp, "Tr(O1 O2)")

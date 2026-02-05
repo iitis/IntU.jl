@@ -90,10 +90,6 @@ end
         include("library.jl")
     end
 
-    @testset verbose=true "Debug Integration" begin
-        include("debug_integration.jl")
-    end
-
     @testset verbose=true "Circular Ensembles" begin
         include("test_circular.jl")
     end

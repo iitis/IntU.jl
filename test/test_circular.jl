@@ -3,34 +3,9 @@ using Symbolics
 using LinearAlgebra
 using Test
 
-# Helper to convert symbolic results to numbers - similar to runtests.jl
-function to_numeric(x)
-    x_un = Symbolics.unwrap(x)
-    if x_un isa Number
-        return x_un
-    end
-    # If it's a symbolic constant, try to simplify
-    sim = simplify(x)
-    sim_un = Symbolics.unwrap(sim)
-    if sim_un isa Number
-        return sim_un
-    end
-    
-    # Try evaluating
-    try
-        val = eval(Symbolics.toexpr(sim_un))
-        if val isa Number
-            return val
-        end
-    catch
-    end
-    
-    return x_un
-end
-
 @testset "Circular Ensembles" begin
     @variables d
-    
+
     # helper for symbolic zero check
     function sym_iszero(x)
         # 1. Quick check

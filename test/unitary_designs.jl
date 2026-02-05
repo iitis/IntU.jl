@@ -2,38 +2,6 @@ using IntU
 using Test
 using Symbolics
 
-# Helper to convert symbolic results to numbers
-function to_numeric(x)
-    x_un = Symbolics.unwrap(x)
-    if x_un isa Number
-        return x_un
-    end
-    sim = Symbolics.simplify(x)
-    sim_un = Symbolics.unwrap(sim)
-    if sim_un isa Number
-        return sim_un
-    end
-    if IntU._symbolic_isequal(sim, 0)
-        return 0.0
-    end
-    # Simple substitution
-    sim2 = Symbolics.substitute(sim, Dict())
-    sim2_un = Symbolics.unwrap(sim2)
-    if sim2_un isa Number; return sim2_un; end
-    
-    # Last resort: try evaluating
-    try
-        val = eval(Meta.parse(string(sim)))
-        if val isa Number
-            return val
-        end
-    catch
-    end
-    
-    return x_un
-end
-
-
 
 @testset verbose=true "Unitary t-Designs" begin
     d_val = 3
