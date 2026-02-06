@@ -74,9 +74,9 @@ functionalities that could be added:
 ~~*   **Why**: **[Extension]**. While $U(d)$ and $SU(d)$ averages often coincide for "balanced" polynomials, they differ for polynomials with non-zero winding numbers (e.g., $\det(U)$ terms).~~
 ~~*   **Implementation**: Incorporate the $\det(U)=1$ constraint into the Weingarten calculus.~~
 
-## 12. Advanced Asymptotics & Approximations
-*   **Description**: Extend the asymptotic engine to provide higher-order corrections or different limiting regimes.
-*   **Why**: **[Extension]**. To study finite-size corrections in detail beyond the leading order.
+~~## 12. Advanced Asymptotics & Approximations~~
+~~*   **Description**: Extend the asymptotic engine to provide higher-order corrections or different limiting regimes.~~
+~~*   **Why**: **[Extension]**. To study finite-size corrections in detail beyond the leading order.~~
 
 ## 13. Stiefel Manifolds (Random Isometries)
 *   **Description**: Support integration over the Stiefel manifold $V_k(\mathbb{C}^d)$, representing $d \times k$ matrices with orthonormal columns.
@@ -93,8 +93,8 @@ functionalities that could be added:
 *   **Why**: **[Advanced RMT]**. Corner-stone of random matrix theory with deep connections to partition functions and character expansions.
 *   **Implementation**: Requires implementation of the HCIZ formula involving determinants of exponentials or character-based expansions.
 
-## 16. Diagonal Unitary Matrices (Torus group)
-*   **Description**: Support for integration over the group of diagonal unitary matrices (the torus $T^d$).
-*   **Why**: **[New Measure]**. Useful for phase-averaging and studying the diagonal part of random matrix transformations.
-*   **Implementation**: Simpler than full Haar; reduces to independent phase integrations for each diagonal entry.
+~~## 16. Diagonal Unitary Matrices (Torus group)~~
+~~*   **Description**: Support for integration over the group of diagonal unitary matrices (the torus $T^d$).~~
+~~*   **Why**: **[New Measure]**. Useful for phase-averaging and studying the diagonal part of random matrix transformations.~~
+~~*   **Implementation**: Simpler than full Haar; reduces to independent phase integrations for each diagonal entry.~~
 

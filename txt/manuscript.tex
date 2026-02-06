@@ -124,18 +124,19 @@ cornerstone in quantum information science and random matrix theory. We present
 of polynomial functions over the unitary $U(d)$, special unitary $SU(d)$,
 orthogonal $O(d)$, symplectic $Sp(d)$, permutation group $S_d$, circular
 ensembles (CUE, COE, CSE), and Gaussian ensembles (GUE, GOE, GSE), as well as
-random pure quantum states and unitary $t$-designs. Unlike existing tools that
-often rely on proprietary engines or lack support for symbolic parameters,
-\texttt{IntU.jl} provides a fully open-source, performant implementation of the
-Weingarten calculus and Wick contractions. Key features include the native
-handling of symbolic dimensions $d$ as rational functions, allowing for the
-automatic derivation of asymptotic expansions, a high-level symbolic trace
-interface that reconstructs Weingarten graphs directly from index-free
-expressions, and a native bridge to \texttt{ITensors.jl} for integrating complex
-tensor networks. We discuss the underlying algorithms—including the
-Murnaghan-Nakayama rule and symplectic-orthogonal duality—and demonstrate that
-the package efficiently handles high-degree moments and complex quantum
-information metrics, significantly outperforming manual derivations.
+random pure quantum states, diagonal unitary matrices, and unitary $t$-designs.
+Unlike existing tools that often rely on proprietary engines or lack support for
+symbolic parameters, \texttt{IntU.jl} provides a fully open-source, performant
+implementation of the Weingarten calculus and Wick contractions. Key features
+include the native handling of symbolic dimensions $d$ as rational functions,
+allowing for the automatic derivation of asymptotic expansions, a high-level
+symbolic trace interface that reconstructs Weingarten graphs directly from
+index-free expressions, and a native bridge to \texttt{ITensors.jl} for
+integrating complex tensor networks. We discuss the underlying
+algorithms—including the Murnaghan-Nakayama rule and symplectic-orthogonal
+duality—and demonstrate that the package efficiently handles high-degree moments
+and complex quantum information metrics, significantly outperforming manual
+derivations.
 \end{abstract}
 
 %%
@@ -234,7 +235,7 @@ symmetric group $S_d$. Key features distinguishing our approach include:
 \begin{itemize}
     \item \textbf{Diverse ensemble support}: Unified integration over compact
     groups, circular ensembles, Gaussian ensembles (GUE, GOE, GSE), random pure
-    states, and unitary $t$-designs.
+    states, diagonal unitary matrices (torus group), and unitary $t$-designs.
     \item \textbf{Symbolic dimensions and asymptotics}: Fully symbolic treatment of
     the dimension $d$, enabling the derivation of exact asymptotic expansions and
     universal scaling laws via automated Laurent series.
@@ -390,6 +391,9 @@ The package supports a wide range of integration measures, grouped as follows:
     \item \textbf{Unitary designs}: Unitary $t$-designs (\texttt{dDesign}),
     which mimic the first $t$ moments of the Haar measure, useful for studying
     pseudo-randomness in quantum circuits.
+    \item \textbf{Diagonal unitary matrices}: Integration over the torus group
+    $T^d$ (\texttt{dDiagUnitary}), representing independent phase averaging for
+    each diagonal entry.
 \end{itemize}
 
 \subsection{Gaussian random matrix ensembles}
@@ -685,6 +689,18 @@ m_centered = dCPerm(Y, d)
 integrate(Y[1,1]^2, m_centered)
 # Output: (d - 1) / d^2
 \end{lstlisting}
+
+\subsection{Diagonal unitary matrices}
+For the group of diagonal unitary matrices, integration reduces to independent
+phase averaging.
+\begin{lstlisting}[language=Julia]
+@variables V[1:d, 1:d]::Complex
+measure = dDiagUnitary(V, d)
+
+# Average of |V_11|^2
+integrate(abs(V[1,1])^2, measure)
+# Output: 1
+\end{lstlisting}
  
 \section{Implementation details}
 \label{sec:implementation}
@@ -739,6 +755,12 @@ high performance, \texttt{IntU.jl} implements specialized algorithms for each gr
     \mathrm{Wg}^{Sp}(p, q, d) = (-1)^{k + \mathrm{loops}(p, q)} \mathrm{Wg}^O(p, q, -d),
     \end{equation}
     avoiding the need for a separate symplectic solver.
+    \item \textbf{Diagonal unitary matrices}: For the torus group $T^d$, the
+    integration is performed by verifying that the integrand is composed of
+    diagonal elements and checking the multiset correspondence of indices
+    between $V$ and $\bar{V}$ factors. This specialized engine avoids Weingarten
+    functions entirely, providing significant performance gains for
+    phase-averaging tasks.
     \item \textbf{Memoization}: All computed characters, dimensions, and
     Weingarten values are cached using the \texttt{Memoize.jl} package. Memoization occurs
     at the granular level of individual character and dimension calls, ensuring maximizing
