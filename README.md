@@ -134,6 +134,19 @@ integrate(Y[1,1]^2, m_centered)
 # Output: (d - 1) / d^2
 ```
 
+### Diagonal Unitary Matrices (Torus group)
+IntU supports integration over the group of diagonal unitary matrices, which
+corresponds to independent phase averaging for each diagonal entry.
+
+```julia
+@variables V[1:d, 1:d]::Complex
+measure = dDiagUnitary(V, d)
+
+# E[|V_11|^2]
+integrate(abs(V[1,1])^2, measure)
+# Output: 1
+```
+
 ### Symbolic Traces
 IntU supports index-free notation for integrating traces of products of random
 matrices, which is often more convenient for quantum information tasks.

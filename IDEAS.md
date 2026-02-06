@@ -77,3 +77,24 @@ functionalities that could be added:
 ## 12. Advanced Asymptotics & Approximations
 *   **Description**: Extend the asymptotic engine to provide higher-order corrections or different limiting regimes.
 *   **Why**: **[Extension]**. To study finite-size corrections in detail beyond the leading order.
+
+## 13. Stiefel Manifolds (Random Isometries)
+*   **Description**: Support integration over the Stiefel manifold $V_k(\mathbb{C}^d)$, representing $d \times k$ matrices with orthonormal columns.
+*   **Why**: **[Generalization]**. Generalizes Haar-random states ($k=1$) to random subspaces and isometries. Crucial for analyzing Tensor Networks and quantum codes.
+*   **Implementation**: Can be realized by integrating over the full Unitary group $U(d)$ but restricting the observation to the first $k$ columns.
+
+## 14. Ginibre Ensembles (Non-Hermitian)
+*   **Description**: Add support for real, complex, and symplectic Ginibre ensembles (matrices with i.i.d. Gaussian entries).
+*   **Why**: **[New Physics]**. Enables the study of non-Hermitian Hamiltonians and dissipative quantum dynamics using the same symbolic engine.
+*   **Implementation**: Standard Gaussian integration (Wick calculations) applied to matrix entries.
+
+## 15. Harish-Chandra-Itzykson-Zuber (HCIZ) Integrals
+*   **Description**: Support for calculating integrals of the form $\int_{U(d)} dU \exp(t \text{Tr}(A U B U^\dagger))$.
+*   **Why**: **[Advanced RMT]**. Corner-stone of random matrix theory with deep connections to partition functions and character expansions.
+*   **Implementation**: Requires implementation of the HCIZ formula involving determinants of exponentials or character-based expansions.
+
+## 16. Diagonal Unitary Matrices (Torus group)
+*   **Description**: Support for integration over the group of diagonal unitary matrices (the torus $T^d$).
+*   **Why**: **[New Measure]**. Useful for phase-averaging and studying the diagonal part of random matrix transformations.
+*   **Implementation**: Simpler than full Haar; reduces to independent phase integrations for each diagonal entry.
+

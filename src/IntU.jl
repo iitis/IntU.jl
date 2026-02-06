@@ -26,6 +26,7 @@ include("circular_measures.jl")
 include("permutation_measures.jl")
 include("itensors_integration.jl")
 include("su_measure.jl")
+include("diagonal_unitary.jl")
 
 
 # Quantum Information helpers
@@ -47,6 +48,7 @@ export integrate,
     dGUE,
     dGOE,
     dGSE,
+    dDiagUnitary,
     integrate_indices,
     tr,
     det,

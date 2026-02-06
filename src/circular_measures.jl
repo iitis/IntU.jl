@@ -28,7 +28,7 @@ They can be modeled as
 ```math
 S = U U^T
 ```
-where $U \sim \text{Haar}(U(N))$.
+where \$U \sim \text{Haar}(U(N))\$.
 """
 dCOE(S, dim) = COEMeasure(S, dim)
 
@@ -44,7 +44,7 @@ They can be modeled as
 ```math
 S = U U^R
 ```
-where $U \sim \text{Haar}(U(2N))$.
+where \$U \sim \text{Haar}(U(2N))\$.
 Note: The dimension `dim` corresponds to the size of the matrix, so it must be 2N.
 """
 dCSE(S, dim) = CSEMeasure(S, dim)
@@ -186,8 +186,8 @@ This is effectively $U_{ik}$ and $U_{jk}$. Both are "U" type (not conjugate).
 This is two "U\_bar" type.
 
 So detailed mapping:
-- For every occurrence of $S_{ij}$, we generate two geometric U terms: $U_{ia}$ and $U_{ja}$ where 'a' is a fresh summation index.
-- For every occurrence of $\bar{S}_{ij}$, we generate two geometric U\_bar terms: $\bar{U}_{ib}$ and $\bar{U}_{jb}$ where 'b' is a fresh summation index.
+- For every occurrence of \$S_{ij}\$, we generate two geometric U terms: \$U_{ia}\$ and \$U_{ja}\$ where 'a' is a fresh summation index.
+- For every occurrence of \$\bar{S}_{ij}\$, we generate two geometric U\_bar terms: \$\bar{U}_{ib}\$ and \$\bar{U}_{jb}\$ where 'b' is a fresh summation index.
 
 We then call `integrate_indices` (Haar) on the resulting collection of U and U\_bar indices.
 Since we are summing over the dummy indices (a and b), we effectively perform the Weingarten summation.
@@ -227,15 +227,15 @@ Integration result is:
 \sum_{\sigma, \tau \in S_{2m}} \delta_{rows} \delta_{cols} Wg(\sigma \tau^{-1}, dim)
 ```
 
-$\delta_{rows}$ connects external indices $i, j, p, q$.
-$\delta_{cols}$ connects the dummy indices a, b.
+\$\delta_{rows}\$ connects external indices \$i, j, p, q\$.
+\$\delta_{cols}\$ connects the dummy indices a, b.
 ```math
 \delta_{cols} = \prod_{r=1}^{2m} \delta(col(U)_r, col(Ubar)_{\tau(r)})
 ```
-Col(U)_r is $a_{\lceil r/2 \rceil}$.
-Col(Ubar)_s is $b_{\lceil s/2 \rceil}$.
-So we have $\delta(a_{\lceil r/2 \rceil}, b_{\lceil \tau(r)/2 \rceil})$.
-We sum over all $a_1...a_m$ and $b_1...b_m$.
+Col(U)_r is \$a_{\lceil r/2 \rceil}\$.
+Col(Ubar)_s is \$b_{\lceil s/2 \rceil}\$.
+So we have \$\delta(a_{\lceil r/2 \rceil}, b_{\lceil \tau(r)/2 \rceil})\$.
+We sum over all \$a_1...a_m\$ and \$b_1...b_m\$.
 Wait, the summation over dummy indices is independent for each 'a' and 'b' if they weren't connected by deltas.
 But here we have restrictions.
 Actually, we sum over $a_k$ and $b_k$.

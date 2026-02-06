@@ -109,4 +109,8 @@ end
     @testset verbose=true "SU(d) Integration" begin
         include("su_tests.jl")
     end
+
+    @testset verbose=true "Diagonal Unitary Integration" begin
+        include("test_diagonal_unitary.jl")
+    end
 end

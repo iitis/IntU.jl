@@ -17,6 +17,7 @@ Pkg.add(url="https://github.com/iitis/IntU.jl")
 
 - [Unitary Integration](unitary_integration.md): Core functionality for $U(d)$.
 - [Special Unitary Group](su_integration.md): Integration over SU(d).
+- [Diagonal Unitaries](diagonal_unitary.md): Integration over the Torus group.
 - [Orthogonal & Symplectic](orthogonal_integration.md): Integration over real groups.
 - [Gaussian Ensembles](gaussian_integration.md): GUE, GOE, and GSE.
 - [Circular Ensembles](circular_ensembles.md): COE, CUE, and CSE.
