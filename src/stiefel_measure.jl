@@ -12,13 +12,20 @@ Haar-random unitary matrix U(d).
 Reference:
 - Edelman, A., Arias, T. A., & Smith, S. T. (1998). The geometry of algorithms with orthogonality constraints.
 """
+dStiefel(V, dim, k) = StiefelMeasure(V, dim, k)
+
+
+"""
+    StiefelMeasure(V, dim, k)
+
+Internal type representing the measure on the Stiefel manifold. 
+Users should use `dStiefel` constructor.
+"""
 struct StiefelMeasure{M,D,K}
     V::M
     dim::D
     k::K
 end
-
-dStiefel(V, dim, k) = StiefelMeasure(V, dim, k)
 
 """
     integrate(expr, measure::StiefelMeasure)
