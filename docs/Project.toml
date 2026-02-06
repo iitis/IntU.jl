@@ -1,3 +1,4 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 IntU = "70c8b9a1-b4c5-4d7a-a56e-8e7e6495d68b"
+Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"

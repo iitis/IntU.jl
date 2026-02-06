@@ -27,6 +27,7 @@ include("permutation_measures.jl")
 include("itensors_integration.jl")
 include("su_measure.jl")
 include("diagonal_unitary.jl")
+include("stiefel_measure.jl")
 
 
 # Quantum Information helpers
@@ -49,6 +50,7 @@ export integrate,
     dGOE,
     dGSE,
     dDiagUnitary,
+    dStiefel,
     integrate_indices,
     tr,
     det,

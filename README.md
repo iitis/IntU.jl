@@ -164,6 +164,20 @@ integrate(expr, dU(d))
 # Output: tr(A)*tr(B) / d
 ```
 
+### Stiefel Manifolds
+IntU supports integration over the Stiefel manifold $V_k(\mathbb{C}^d)$, which represents the set of $d \times k$ matrices with orthonormal columns. This generalizes Haar-random pure states ($k=1$).
+
+```julia
+@variables d
+k = 2
+V = [Symbolics.variable(Symbol("V_$(i)_$(j)"), T=Complex{Num}) for i=1:3, j=1:k] 
+measure = dStiefel(V, d, k)
+
+# E[|V_{1,1}|^2]
+integrate(abs(V[1,1])^2, measure)
+# Output: 1 / d
+```
+
 ## ITensors.jl Integration
 
 IntU.jl provides a bridge to [ITensors.jl](https://github.com/ITensors/ITensors.jl) for symbolic integration of tensor networks.

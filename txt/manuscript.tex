@@ -391,6 +391,10 @@ The package supports a wide range of integration measures, grouped as follows:
     \item \textbf{Unitary designs}: Unitary $t$-designs (\texttt{dDesign}),
     which mimic the first $t$ moments of the Haar measure, useful for studying
     pseudo-randomness in quantum circuits.
+    \item \textbf{Stiefel manifolds}: The Stiefel manifold $V_k(\mathbb{C}^d)$,
+    representing $d \times k$ matrices with orthonormal columns. This
+    generalizes Haar-random pure states ($k=1$) and is implemented via
+    \texttt{dStiefel(V, d, k)}.
     \item \textbf{Diagonal unitary matrices}: Integration over the torus group
     $T^d$ (\texttt{dDiagUnitary}), representing independent phase averaging for
     each diagonal entry.
@@ -702,6 +706,23 @@ integrate(abs(V[1,1])^2, measure)
 # Output: 1
 \end{lstlisting}
  
+\subsection{Stiefel manifolds}
+Integration over the Stiefel manifold $V_k(\mathbb{C}^d)$ is supported,
+generalizing pure states to higher-rank orthonormal frames. This is crucial for
+variational quantum algorithms and tensor network optimization
+\cite{edelman1998geometry}.
+
+\begin{lstlisting}[language=Julia]
+@variables d
+k = 2
+V = [Symbolics.variable(Symbol("V_$(i)_$(j)"), T=Complex{Num}) for i=1:3, j=1:k] 
+measure = dStiefel(V, d, k)
+
+# E[|V_{1,1}|^2]
+integrate(abs(V[1,1])^2, measure)
+# Output: 1 / d
+\end{lstlisting}
+
 \section{Implementation details}
 \label{sec:implementation}
 \texttt{IntU.jl} is written in pure Julia \cite{bezanson2017julia}, utilizing
