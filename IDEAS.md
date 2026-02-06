@@ -69,10 +69,10 @@ functionalities that could be added:
 ~~*   **Why**: **[Extension]**. Allows integrating large tensor networks without manually converting them to trace expressions.~~
 ~~*   **Implementation**: Convert `ITensor` objects into `IntU.jl`'s symbolic representation (or vice versa) and apply the integration engine.~~
 
-## 11. SU(d) Integration
-*   **Description**: Support integration over the Special Unitary group $SU(d)$.
-*   **Why**: **[Extension]**. While $U(d)$ and $SU(d)$ averages often coincide for "balanced" polynomials, they differ for polynomials with non-zero winding numbers (e.g., $\det(U)$ terms).
-*   **Implementation**: Incorporate the $\det(U)=1$ constraint into the Weingarten calculus.
+~~## 11. SU(d) Integration~~
+~~*   **Description**: Support integration over the Special Unitary group $SU(d)$.~~
+~~*   **Why**: **[Extension]**. While $U(d)$ and $SU(d)$ averages often coincide for "balanced" polynomials, they differ for polynomials with non-zero winding numbers (e.g., $\det(U)$ terms).~~
+~~*   **Implementation**: Incorporate the $\det(U)=1$ constraint into the Weingarten calculus.~~
 
 ## 12. Advanced Asymptotics & Approximations
 *   **Description**: Extend the asymptotic engine to provide higher-order corrections or different limiting regimes.

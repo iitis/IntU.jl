@@ -105,4 +105,8 @@ end
     @testset verbose=true "Permutation Groups" begin
         include("permutation_groups.jl")
     end
+
+    @testset verbose=true "SU(d) Integration" begin
+        include("su_tests.jl")
+    end
 end

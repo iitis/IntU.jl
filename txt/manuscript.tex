@@ -121,21 +121,21 @@
 Symbolic integration over the Haar measure of compact groups is a computational
 cornerstone in quantum information science and random matrix theory. We present
 \texttt{IntU.jl}, a comprehensive Julia package for computing exact expectations
-of polynomial functions over the unitary $U(d)$, orthogonal $O(d)$, symplectic
-$Sp(d)$, permutation group $S_d$, circular ensembles (CUE, COE, CSE), and
-Gaussian ensembles (GUE, GOE, GSE), as well as random pure quantum states and
-unitary $t$-designs. Unlike existing tools that often rely on proprietary engines
-or lack support for symbolic parameters, \texttt{IntU.jl} provides a fully
-open-source, performant implementation of the Weingarten calculus and Wick
-contractions. Key features include the native handling of symbolic dimensions $d$
-as rational functions, allowing for the automatic derivation of asymptotic
-expansions, a high-level symbolic trace interface that reconstructs Weingarten
-graphs directly from index-free expressions, and a native bridge to
-\texttt{ITensors.jl} for integrating complex tensor networks. We discuss the
-underlying algorithms—including the Murnaghan-Nakayama rule and
-symplectic-orthogonal duality—and demonstrate that the package efficiently
-handles high-degree moments and complex quantum information metrics,
-significantly outperforming manual derivations.
+of polynomial functions over the unitary $U(d)$, special unitary $SU(d)$,
+orthogonal $O(d)$, symplectic $Sp(d)$, permutation group $S_d$, circular
+ensembles (CUE, COE, CSE), and Gaussian ensembles (GUE, GOE, GSE), as well as
+random pure quantum states and unitary $t$-designs. Unlike existing tools that
+often rely on proprietary engines or lack support for symbolic parameters,
+\texttt{IntU.jl} provides a fully open-source, performant implementation of the
+Weingarten calculus and Wick contractions. Key features include the native
+handling of symbolic dimensions $d$ as rational functions, allowing for the
+automatic derivation of asymptotic expansions, a high-level symbolic trace
+interface that reconstructs Weingarten graphs directly from index-free
+expressions, and a native bridge to \texttt{ITensors.jl} for integrating complex
+tensor networks. We discuss the underlying algorithms—including the
+Murnaghan-Nakayama rule and symplectic-orthogonal duality—and demonstrate that
+the package efficiently handles high-degree moments and complex quantum
+information metrics, significantly outperforming manual derivations.
 \end{abstract}
 
 %%
@@ -227,10 +227,10 @@ combined with specialized utilities for quantum information metrics like purity
 and fidelity, makes \texttt{IntU.jl} a versatile environment for both
 theoretical derivations and complex numerical experiments.
 
-\texttt{IntU.jl} offers a pure Julia implementation of the Weingarten calculus for
-the unitary $U(d)$, orthogonal $O(d)$, and symplectic $Sp(d)$ groups, as well as
-combinatorial integration for the symmetric group $S_d$. Key features
-distinguishing our approach include:
+\texttt{IntU.jl} offers a pure Julia implementation of the Weingarten calculus
+for the unitary $U(d)$, special unitary $SU(d)$, orthogonal $O(d)$, and
+symplectic $Sp(d)$ groups, as well as combinatorial integration for the
+symmetric group $S_d$. Key features distinguishing our approach include:
 \begin{itemize}
     \item \textbf{Diverse ensemble support}: Unified integration over compact
     groups, circular ensembles, Gaussian ensembles (GUE, GOE, GSE), random pure
@@ -299,6 +299,16 @@ k - c(\sigma)$. For the identity permutation, the leading order term is
 $\mathrm{Wg}^U(\mathrm{id}, d) \approx d^{-k}$, recovering the normalization
 expected from independent Gaussian entries at the naive limit.
 
+\subsection{Special Unitary group $SU(d)$}
+The Special Unitary group $SU(d)$ consists of unitary matrices with unit
+determinant. In the stable range regime (large $d$), integration over $SU(d)$
+coincides with $U(d)$ for balanced polynomials (where the number of $U$ and
+$\bar{U}$ indices matches). For unbalanced polynomials, which would typically
+involve $\epsilon$-tensor contractions at specific finite dimensions, the stable
+range integral vanishes. \texttt{IntU.jl} currently supports this stable range
+behavior, treating $SU(d)$ integrals as equivalent to $U(d)$ for balanced
+moments and zero otherwise.
+
 \subsection{Orthogonal and symplectic groups}
 For the orthogonal group $O(d)$ and symplectic group $Sp(d)$, the integration
 involves even moments of the matrix elements and is indexed by the set of pair
@@ -357,6 +367,10 @@ The package supports a wide range of integration measures, grouped as follows:
     first argument is a symbolic matrix variable (constructed via
     \texttt{Symbolics.jl} or the \texttt{@symbolic\_dimension} macro) and the
     second is the dimension, which can itself be a symbolic variable.
+    \item \textbf{Special unitary group}: The Haar measure on $SU(d)$, accessed
+    via \texttt{dSU(U, d)}. This measure enforces the $U(d)$ integration logic
+    for balanced moments while strictly annihilating unbalanced terms,
+    consistent with the large-$d$ limit.
     \item \textbf{Circular ensembles}: Measures for the circular unitary (CUE),
     orthogonal (COE), and symplectic (CSE) ensembles. While CUE is equivalent to
     the Haar measure on $U(d)$, COE and CSE represent symmetric and self-dual
@@ -575,6 +589,20 @@ res_cse = integrate(abs(S[1,1])^2, measure_cse)
 
 These results contrast with the Haar unitary value of $1/d$, reflecting the
 constraints imposed by the respective symmetries ($S=S^T$ and $S=S^R$).
+
+\subsection{Special unitary group}
+For the special unitary group $SU(d)$, the integration behaves similarly to
+$U(d)$ for balanced moments but differs for unbalanced ones.
+\begin{lstlisting}[language=Julia]
+measure = dSU(U, d)
+# Balanced moment: E[|U_11|^2] matches U(d)
+integrate(abs(U[1,1])^2, measure)
+# Output: 1/d
+
+# Unbalanced moment: E[U_11]
+integrate(U[1,1], measure)
+# Output: 0
+\end{lstlisting}
 
 \subsection{Symbolic trace logic}
 For more complex expressions involving traces of random matrices, manual index
@@ -900,12 +928,12 @@ Orthogonal & 6 & 3 & 589.0 \\
 \section{Conclusion}
 \label{sec:conclusion}
 We have presented \texttt{IntU.jl}, a robust and extensible Julia package for
-performing symbolic integration over the Haar measure of the Unitary, Orthogonal,
-and Symplectic groups. By bridging the gap between the abstract theory of
-Weingarten calculus and practical computation, \texttt{IntU.jl} empowers
-researchers to rigorously derive properties of random quantum channels, higher-order
-entanglement statistics, and scrambling measures without resorting to brittle or
-approximate numerical sampling.
+performing symbolic integration over the Haar measure of the unitary, special
+unitary, orthogonal, and symplectic groups. By bridging the gap between the
+abstract theory of Weingarten calculus and practical computation,
+\texttt{IntU.jl} empowers researchers to rigorously derive properties of random
+quantum channels, higher-order entanglement statistics, and scrambling measures
+without resorting to brittle or approximate numerical sampling.
 
 The package's core strengths lie in its unified treatment of compact groups,
 its native handling of symbolic dimensions via rational functions, and its
@@ -916,11 +944,11 @@ demonstrated by the benchmarks, the optimized Julia implementation ensures that
 this symbolic abstraction does not come at the cost of performance, enabling the
 evaluation of high-degree moments that were previously intractable.
 
-Future development of \texttt{IntU.jl} will focus on expanding support to other
-compact Lie groups, such as the permutation groups (symmetric group $S_n$),
-and further optimizing the asymptotic expansion engine for extremely large-scale
-problems. We believe \texttt{IntU.jl} will become
-an essential utility in the toolkit of theoretical physicists and quantum
+Future development of \texttt{IntU.jl} will focus on expanding support to
+exceptional Lie groups, integrating finite-$d$ corrections for $SU(d)$ beyond
+the stable range, and further optimizing the asymptotic expansion engine for
+extremely large-scale problems. We believe \texttt{IntU.jl} will become an
+essential utility in the toolkit of theoretical physicists and quantum
 information scientists.
 
 \section{Software availability and reproducibility}

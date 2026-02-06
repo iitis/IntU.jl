@@ -62,6 +62,14 @@ integrate(abs(U[1,1])^4, dU(U, d))
 # Output: 2 / (d * (1 + d))
 ```
 
+### Special Unitary Group
+The Special Unitary group $SU(d)$ consists of unitary matrices with determinant 1. Use `dSU`.
+
+```julia
+integrate(abs(U[1,1])^2, dSU(U, d))
+# Output: 1/d
+```
+
 ### Orthogonal group
 Orthogonal matrices $O$ are real matrices satisfying $O O^T = I_d$. Averages are
 computed using the `dO` measure.
