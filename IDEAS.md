@@ -78,10 +78,10 @@ functionalities that could be added:
 ~~*   **Description**: Extend the asymptotic engine to provide higher-order corrections or different limiting regimes.~~
 ~~*   **Why**: **[Extension]**. To study finite-size corrections in detail beyond the leading order.~~
 
-## 13. Stiefel Manifolds (Random Isometries)
-*   **Description**: Support integration over the Stiefel manifold $V_k(\mathbb{C}^d)$, representing $d \times k$ matrices with orthonormal columns.
-*   **Why**: **[Generalization]**. Generalizes Haar-random states ($k=1$) to random subspaces and isometries. Crucial for analyzing Tensor Networks and quantum codes.
-*   **Implementation**: Can be realized by integrating over the full Unitary group $U(d)$ but restricting the observation to the first $k$ columns.
+~~## 13. Stiefel Manifolds (Random Isometries)~~
+~~*   **Description**: Support integration over the Stiefel manifold $V_k(\mathbb{C}^d)$, representing $d \times k$ matrices with orthonormal columns.~~
+~~*   **Why**: **[Generalization]**. Generalizes Haar-random states ($k=1$) to random subspaces and isometries. Crucial for analyzing Tensor Networks and quantum codes.~~
+~~*   **Implementation**: Can be realized by integrating over the full Unitary group $U(d)$ but restricting the observation to the first $k$ columns.~~
 
 ## 14. Ginibre Ensembles (Non-Hermitian)
 *   **Description**: Add support for real, complex, and symplectic Ginibre ensembles (matrices with i.i.d. Gaussian entries).

@@ -26,6 +26,7 @@ makedocs(;
             "Circular Ensembles" => "circular_ensembles.md",
             "Gaussian Ensembles" => "gaussian_integration.md",
             "Pure States" => "pure_states.md",
+            "Stiefel Manifolds" => "stiefel_manifold.md",
             "Symbolic Traces" => "symbolic_trace.md",
             "Asymptotics" => "asymptotic.md",
             "QI Helpers" => "qi_helpers.md",
