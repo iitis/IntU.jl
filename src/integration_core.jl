@@ -663,6 +663,31 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
             return 0
         end
         return coeff * val
+    elseif measure_type == :DiagUnitary
+        if n_u != n_bar
+            return 0
+        end
+        if n_u == 0
+            return coeff
+        end
+
+        # Check diagonal condition for all indices
+        for (i, j) in u_indices
+            if i != j
+                return 0
+            end
+        end
+        for (i, j) in u_bar_indices
+            if i != j
+                return 0
+            end
+        end
+
+        val = integrate_indices_diagonal(u_indices, u_bar_indices, dim)
+        if _symbolic_isequal(val, 0)
+            return 0
+        end
+        return coeff * val
     else
         error("Unknown measure type: $measure_type")
     end
@@ -1416,4 +1441,37 @@ function _expand_asymptotic(ex, d, order)
     end
 
     return Symbolics.simplify(total)
+end
+
+"""
+    integrate_indices_diagonal(U_idxs, U_bar_idxs, dim)
+
+Low-level integration function for the Diagonal Unitary group (Torus).
+The integral is non-zero (equal to 1) only if the multisets of indices 
+of U and U_bar are identical.
+Indices are already checked to be diagonal (i == j) in process_term.
+"""
+function integrate_indices_diagonal(
+    U_idxs::Vector{Tuple{Int,Int}},
+    U_bar_idxs::Vector{Tuple{Int,Int}},
+    dim,
+)
+    n = length(U_idxs)
+    if n != length(U_bar_idxs)
+        return 0
+    end
+
+    # Extract the indices (only rows since they are diagonal)
+    rows_u = [x[1] for x in U_idxs]
+    rows_ubar = [x[1] for x in U_bar_idxs]
+
+    # Check if multisets match
+    sort!(rows_u)
+    sort!(rows_ubar)
+
+    if rows_u == rows_ubar
+        return 1
+    else
+        return 0
+    end
 end

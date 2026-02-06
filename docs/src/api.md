@@ -40,6 +40,12 @@ dPerm
 dCPerm
 ```
 
+### Diagonal Unitary Matrices
+```@docs
+dDiagUnitary
+IntU.DiagonalUnitaryMeasure
+```
+
 ## Symbolic Helpers
 
 ```@docs
@@ -73,6 +79,7 @@ IntU.integrate_indices_symplectic
 IntU.integrate_indices_coe
 IntU.integrate_indices_cse
 IntU.integrate_indices_permutation
+IntU.integrate_indices_diagonal
 IntU.fallback_integrate
 IntU.check_library
 IntU.tr_val
