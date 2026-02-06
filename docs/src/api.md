@@ -72,6 +72,7 @@ IntU.integrate_indices_orthogonal
 IntU.integrate_indices_symplectic
 IntU.integrate_indices_coe
 IntU.integrate_indices_cse
+IntU.integrate_indices_permutation
 IntU.fallback_integrate
 IntU.check_library
 IntU.tr_val

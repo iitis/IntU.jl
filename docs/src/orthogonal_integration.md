@@ -62,7 +62,9 @@ IntU.jl assumes the standard symplectic form $J$:
 J = \begin{pmatrix} 0 & I_n \\ -I_n & 0 \end{pmatrix}
 ```
 Or in tensor block structure. This matrix is used to relate the conjugate entries to the entries themselves:
-$$ \bar{S}_{ij} = (J S J^T)_{ij} $$
+```math
+\bar{S}_{ij} = (J S J^T)_{ij}
+```
 IntU.jl handles `conj(S[i,j])` by automatically substituting it with the appropriate linear combination of $S$ entries and $J$ factors before integration.
 
 ### Theory

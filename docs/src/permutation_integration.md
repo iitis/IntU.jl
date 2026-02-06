@@ -9,8 +9,10 @@ permutation matrices. A permutation matrix $P$ has exactly one entry equal to
 $1$ in each row and column, with all other entries being $0$.
 
 Integration over $S_d$ in IntU.jl computes the uniform average over this
-discrete set: $$\mathbb{E}_{P \in S_d}[f(P)] = \frac{1}{d!} \sum_{P \in S_d}
-f(P)$$
+discrete set:
+```math
+\mathbb{E}_{P \in S_d}[f(P)] = \frac{1}{d!} \sum_{P \in S_d} f(P)
+```
 
 ### Usage
 
@@ -39,9 +41,10 @@ follows simple combinatorial rules:
 1. **Consistency**: If the set of pairs $\{(i_m, j_m)\}$ overlaps in rows but
    not columns (e.g., $P_{11}P_{12}$) or vice versa, the integral is **$0$**
    because no permutation matrix can have two $1$s in the same row or column.
-2. **Result**: If the $k$ pairs are consistent with a permutation (i.e., all
    $i_m$ are distinct and all $j_m$ are distinct), the result is:
-   $$\mathbb{E}[P_{i_1, j_1} \dots P_{i_k, j_k}] = \frac{(d-k)!}{d!}$$
+```math
+\mathbb{E}[P_{i_1, j_1} \dots P_{i_k, j_k}] = \frac{(d-k)!}{d!}
+```
 
 ---
 
@@ -50,10 +53,15 @@ follows simple combinatorial rules:
 The **Centered Permutation Ensemble** consists of matrices $Y$ obtained by
 subtracting the "flat" matrix $J/d$ (where $J$ is the all-ones matrix) from a
 permutation matrix $P \in S_d$:
-$$Y = P - \frac{1}{d} J, \quad Y_{ij} = P_{ij} - \frac{1}{d}$$
+```math
+Y = P - \frac{1}{d} J, \quad Y_{ij} = P_{ij} - \frac{1}{d}
+```
 
-These matrices are "centered" because they satisfy: $$\sum_{i=1}^d Y_{ij} = 0,
-\quad \sum_{j=1}^d Y_{ij} = 0$$ This ensemble is particularly useful in studying
+These matrices are "centered" because they satisfy:
+```math
+\sum_{i=1}^d Y_{ij} = 0, \quad \sum_{j=1}^d Y_{ij} = 0
+```
+This ensemble is particularly useful in studying
 fluctuations and correlations in permutations.
 
 ### Usage
