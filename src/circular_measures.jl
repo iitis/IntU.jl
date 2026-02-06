@@ -19,21 +19,32 @@ struct CSEMeasure{M,D}
     dim::D
 end
 
-"""
+@doc raw"""
     dCOE(S, dim)
 
 Defines the Circular Orthogonal Ensemble (COE) measure on U(N).
 Matrices in COE are symmetric unitary matrices.
-They can be modeled as \$S = U U^T\$ where \$U \\sim \\text{Haar}(U(N))\$.
+They can be modeled as
+```math
+S = U U^T
+```
+where $U \sim \text{Haar}(U(N))$.
 """
 dCOE(S, dim) = COEMeasure(S, dim)
 
-"""
+@doc raw"""
     dCSE(S, dim)
 
 Defines the Circular Symplectic Ensemble (CSE) measure on U(2N).
-Matrices in CSE are self-dual unitary matrices (\$S = S^R = J S^T J^T\$).
-They can be modeled as \$S = U U^R\$ where \$U \\sim \\text{Haar}(U(2N))\$.
+Matrices in CSE are self-dual unitary matrices:
+```math
+S = S^R = J S^T J^T
+```
+They can be modeled as
+```math
+S = U U^R
+```
+where $U \sim \text{Haar}(U(2N))$.
 Note: The dimension `dim` corresponds to the size of the matrix, so it must be 2N.
 """
 dCSE(S, dim) = CSEMeasure(S, dim)
@@ -152,26 +163,33 @@ end
 
 
 
-"""
+@doc raw"""
     integrate_indices_coe(all_indices, dim)
 
 Integration of COE terms. 
-Mapping: \$S_{ij} = \\sum_k U_{ik} U_{jk}\$.
+Mapping:
+```math
+S_{ij} = \sum_k U_{ik} U_{jk}
+```
 Each S index pair (i,j) maps to two U index pairs:
-(i, k_new) and (j, k_new) where k_new is summed over.
+(i, k\_new) and (j, k\_new) where k\_new is summed over.
 
-Note: S is symmetric, so distinguishing U and U^T in \$U U^T\$ matters for index placement.
-\$S_{ij} = (U U^T)_{ij} = \\sum_k U_{ik} (U^T)_{kj} = \\sum_k U_{ik} U_{jk}\$.
-This is effectively \$U_{ik}\$ and \$U_{jk}\$. Both are "U" type (not conjugate).
+Note: S is symmetric, so distinguishing U and U^T in $U U^T$ matters for index placement.
+```math
+S_{ij} = (U U^T)_{ij} = \sum_k U_{ik} (U^T)_{kj} = \sum_k U_{ik} U_{jk}
+```
+This is effectively $U_{ik}$ and $U_{jk}$. Both are "U" type (not conjugate).
 
-\$\\bar{S}_{ij} = \\overline{\\sum_k U_{ik} U_{jk}} = \\sum_k \\bar{U}_{ik} \\bar{U}_{jk}\$.
-This is two "U_bar" type.
+```math
+\bar{S}_{ij} = \overline{\sum_k U_{ik} U_{jk}} = \sum_k \bar{U}_{ik} \bar{U}_{jk}
+```
+This is two "U\_bar" type.
 
 So detailed mapping:
-- For every occurrence of \$S_{ij}\$, we generate two geometric U terms: \$U_{ia}\$ and \$U_{ja}\$ where 'a' is a fresh summation index.
-- For every occurrence of \$\\bar{S}_{ij}\$, we generate two geometric U_bar terms: \$\\bar{U}_{ib}\$ and \$\\bar{U}_{jb}\$ where 'b' is a fresh summation index.
+- For every occurrence of $S_{ij}$, we generate two geometric U terms: $U_{ia}$ and $U_{ja}$ where 'a' is a fresh summation index.
+- For every occurrence of $\bar{S}_{ij}$, we generate two geometric U\_bar terms: $\bar{U}_{ib}$ and $\bar{U}_{jb}$ where 'b' is a fresh summation index.
 
-We then call `integrate_indices` (Haar) on the resulting collection of U and U_bar indices.
+We then call `integrate_indices` (Haar) on the resulting collection of U and U\_bar indices.
 Since we are summing over the dummy indices (a and b), we effectively perform the Weingarten summation.
 However, since 'a' and 'b' are dummy indices, summing over them is equivalent to contracting the tensors.
 The `integrate_indices` function expects fixed indices.
@@ -179,14 +197,16 @@ But wait, we can leave 'a', 'b' as symbolic, get the result (which will contain 
 Alternatively, we can modify the Weingarten summation to handle the contraction directly.
 
 Let's use the property of Haar integral:
-\$\\int U_{i_1 j_1} ... dU = \\sum_{\\sigma, \\tau} \\delta_{i, k_\\sigma} \\delta_{j, l_\\tau} Wg\$.
+```math
+\int U_{i_1 j_1} ... dU = \sum_{\sigma, \tau} \delta_{i, k_\sigma} \delta_{j, l_\tau} Wg
+```
 
 Here, our indices are partly fixed (external i, j) and partly dummy (internal summation).
-Let's call the dummy indices \$d_1, d_2, ...\$.
-We have \$S_{i_1 j_1} ... S_{i_m j_m} \\bar{S}_{p_1 q_1} ... \\bar{S}_{p_m q_m}\$.
+Let's call the dummy indices $d_1, d_2, ...$.
+We have $S_{i_1 j_1} ... S_{i_m j_m} \bar{S}_{p_1 q_1} ... \bar{S}_{p_m q_m}$.
 Maps to:
-\$U_{i_1 a_1} U_{j_1 a_1} ... U_{i_m a_m} U_{j_m a_m}\$
-\$\\bar{U}_{p_1 b_1} \\bar{U}_{q_1 b_1} ... \\bar{U}_{p_m b_m} \\bar{U}_{q_m b_m}\$
+$U_{i_1 a_1} U_{j_1 a_1} ... U_{i_m a_m} U_{j_m a_m}$
+$\bar{U}_{p_1 b_1} \bar{U}_{q_1 b_1} ... \bar{U}_{p_m b_m} \bar{U}_{q_m b_m}$
 
 Total 2m U terms and 2m U_bar terms.
 Let's collect indices.
@@ -203,60 +223,64 @@ U_bar indices (row, col):
 (2m). (q_m, b_m)
 
 Integration result is:
-\$\\sum_{\\sigma, \\tau \\in S_{2m}} \\delta_{rows} \\delta_{cols} Wg(\\sigma \\tau^{-1}, dim)\$
+```math
+\sum_{\sigma, \tau \in S_{2m}} \delta_{rows} \delta_{cols} Wg(\sigma \tau^{-1}, dim)
+```
 
-\$\\delta_{rows}\$ connects external indices \$i, j, p, q\$.
-\$\\delta_{cols}\$ connects the dummy indices \$a, b\$.
-\$\\delta_{cols} = \\prod_{r=1}^{2m} \\delta(col(U)_r, col(Ubar)_{\\tau(r)}) \$.
-Col(U)_r is \$a_{\\lceil r/2 \\rceil}\$.
-Col(Ubar)_s is \$b_{\\lceil s/2 \\rceil}\$.
-So we have \$\\delta(a_{\\lceil r/2 \\rceil}, b_{\\lceil \\tau(r)/2 \\rceil})\$.
-We sum over all \$a_1...a_m\$ and \$b_1...b_m\$.
+$\delta_{rows}$ connects external indices $i, j, p, q$.
+$\delta_{cols}$ connects the dummy indices a, b.
+```math
+\delta_{cols} = \prod_{r=1}^{2m} \delta(col(U)_r, col(Ubar)_{\tau(r)})
+```
+Col(U)_r is $a_{\lceil r/2 \rceil}$.
+Col(Ubar)_s is $b_{\lceil s/2 \rceil}$.
+So we have $\delta(a_{\lceil r/2 \rceil}, b_{\lceil \tau(r)/2 \rceil})$.
+We sum over all $a_1...a_m$ and $b_1...b_m$.
 Wait, the summation over dummy indices is independent for each 'a' and 'b' if they weren't connected by deltas.
 But here we have restrictions.
-Actually, we sum over \$a_k\$ and \$b_k\$.
-The expression is \$\\sum_{a, b} \\delta_{cols} ...\$
-The \$\\delta_{cols}\$ forces certain a's and b's to be equal.
-Specifically, for a fixed \$\\tau\$, the product of deltas identifying \$a\$s and \$b\$s can be viewed as a graph or partition.
+Actually, we sum over $a_k$ and $b_k$.
+The expression is $\sum_{a, b} \delta_{cols} ...$
+The $\delta_{cols}$ forces certain a's and b's to be equal.
+Specifically, for a fixed $\tau$, the product of deltas identifying a's and b's can be viewed as a graph or partition.
 Each connected component in this identification must share the same value.
-Since we sum over \$a_k, b_k \\in 1..dim\$, each free connected component contributes a factor of \$dim\$.
-So the sum over \$a, b\$ of \$\\delta_{cols}\$ is simply \$dim^{Loops(\\tau)}\$.
+Since we sum over $a_k, b_k \in 1..dim$, each free connected component contributes a factor of $dim$.
+So the sum over a, b of $\delta_{cols}$ is simply $dim^{Loops(\tau)}$.
 
 Let's trace the loops.
-We have m "source" nodes \$a_1...a_m\$ (each appearing twice) and m "target" nodes \$b_1...b_m\$ (each appearing twice).
+We have m "source" nodes $a_1...a_m$ (each appearing twice) and m "target" nodes $b_1...b_m$ (each appearing twice).
 Or simpler:
 We have 2m positions for U-cols.
-Positions 1,2 have value \$a_1\$.
-Positions 3,4 have value \$a_2\$.
+Positions 1,2 have value $a_1$.
+Positions 3,4 have value $a_2$.
 ...
-Positions 2m-1, 2m have value \$a_m\$.
+Positions 2m-1, 2m have value $a_m$.
 
 We have 2m positions for Ubar-cols.
-Positions 1,2 have value \$b_1\$.
+Positions 1,2 have value $b_1$.
 ...
-Positions 2m-1, 2m have value \$b_m\$.
+Positions 2m-1, 2m have value $b_m$.
 
-\$\\tau\$ maps U-col position \$r\$ to Ubar-col position \$\\tau(r)\$.
+$\tau$ maps U-col position $r$ to Ubar-col position $\tau(r)$.
 This imposes constraints.
-If we view identifying \$a_k\$ with \$b_l\$ as an edge, we are counting connected components.
-Vertices: \$a_1...a_m, b_1...b_m\$. Total 2m vertices.
+If we view identifying $a_k$ with $b_l$ as an edge, we are counting connected components.
+Vertices: $a_1...a_m, b_1...b_m$. Total 2m vertices.
 Constraints:
-From structure: 'U-col 2k-1' is same node as 'U-col 2k' (both are \$a_k\$).
-From structure: 'Ubar-col 2k-1' is same node as 'Ubar-col 2k' (both are \$b_k\$).
-From \$\\tau\$: 'U-col r' same as 'Ubar-col \$\\tau(r)\$'.
+From structure: 'U-col 2k-1' is same node as 'U-col 2k' (both are $a_k$).
+From structure: 'Ubar-col 2k-1' is same node as 'Ubar-col 2k' (both are $b_k$).
+From $\tau$: 'U-col r' same as 'Ubar-col $\tau(r)$'.
 
 This creates a graph where vertices are the 2m dummy indices (or sets thereof).
 Let's formalize.
-Graph with 2m vertices \$1..2m\$ representing the \$a_k\$'s and \$b_k\$'s? No.
-Graph with \$2m\$ vertices representing the column slots on LHS (U) and \$2m\$ vertices on RHS (Ubar).
-LHS slots (2k-1, 2k) are connected (same \$a_k\$).
-RHS slots (2k-1, 2k) are connected (same \$b_k\$).
-\$\\tau\$ connects LHS i to RHS \$\\tau(i)\$.
+Graph with 2m vertices $1..2m$ representing the a_k's and b_k's? No.
+Graph with $2m$ vertices representing the column slots on LHS (U) and $2m$ vertices on RHS (Ubar).
+LHS slots (2k-1, 2k) are connected (same $a_k$).
+RHS slots (2k-1, 2k) are connected (same $b_k$).
+$\tau$ connects LHS i to RHS $\tau(i)$.
 The number of connected components of this graph is the number of independent variables = number of loops.
-Since each component contributes a factor of \$d\$, the contraction value is \$d^{#components}\$.
+Since each component contributes a factor of $d$, the contraction value is $d^{\#components}$.
 Note: Total vertices = 4m. Edges = m (LHS pairs) + m (RHS pairs) + 2m (Tau).
 Wait, we sum over a, b.
-So we essentially multiply the Weingarten weight by \$d^{#loops}\$.
+So we essentially multiply the Weingarten weight by $d^{\#loops}$.
 
 Algorithm for loops:
 Start with disjoint sets of 4m "points"? No, simpler.
@@ -265,16 +289,16 @@ Total 4m slots.
 Union-find:
 1. Unite (LHS 2k-1, LHS 2k) for k=1..m.
 2. Unite (RHS 2k-1, RHS 2k) for k=1..m.
-3. Unite (LHS r, RHS \$\\tau(r)\$) for r=1..2m.
-Count components. But wait, we are uniting slots to see which \$a_k\$ and \$b_l\$ are same.
+3. Unite (LHS r, RHS $\tau(r)$) for r=1..2m.
+Count components. But wait, we are uniting slots to see which $a_k$ and $b_l$ are same.
 No, we need to count how many free variables remain.
-Variables are \$a_1..a_m\$ and \$b_1..b_m\$.
-Constraints: \$\\tau(r) = s \\implies a_{\\lceil r/2 \\rceil} = b_{\\lceil s/2 \\rceil}\$.
-So we have 2m "variable nodes" (\$a_1..a_m, b_1..b_m\$).
-For each \$r \\in 1..2m\$:
-   u = \$\\lceil r/2 \\rceil\$ (index of a)
-   v = \$\\lceil \\tau(r)/2 \\rceil\$ (index of b)
-   add edge between \$a_u\$ and \$b_v\$.
+Variables are $a_1..a_m$ and $b_1..b_m$.
+Constraints: $\tau(r) = s \implies a_{\lceil r/2 \rceil} = b_{\lceil s/2 \rceil}$.
+So we have 2m "variable nodes" ($a_1..a_m, b_1..b_m$).
+For each $r \in 1..2m$:
+   u = $\lceil r/2 \rceil$ (index of a)
+   v = $\lceil \tau(r)/2 \rceil$ (index of b)
+   add edge between $a_u$ and $b_v$.
 Count connected components in this bipartite graph using standard DFS/BFS/UnionFind.
 Exponent of d is the number of connected components.
 """
@@ -424,87 +448,115 @@ function integrate_indices_coe(
 end
 
 
-"""
+@doc raw"""
     integrate_indices_cse(indices, U_bar_indices, dim)
 
 Integration of CSE terms.
-Mapping: \$S_{ij} = \\sum_k U_{ik} (U^R)_{kj} = \\sum_{k,x,y} U_{ik} J_{kx} U_{yx} (-J_{yj})\$.
-Mapping \$\\bar{S}_{pq} = \\sum_{z,w,v} \\bar{U}_{pz} \\bar{J}_{zw} \\bar{U}_{vw} (-\\bar{J}_{v_q})\$.
+Mapping:
+```math
+S_{ij} = \sum_k U_{ik} (U^R)_{kj} = \sum_{k,x,y} U_{ik} J_{kx} U_{yx} (-J_{yj})
+```
+Mapping
+```math
+\bar{S}_{pq} = \sum_{z,w,v} \bar{U}_{pz} \bar{J}_{zw} \bar{U}_{vw} (-\bar{J}_{v_q})
+```
 
 Wait, this expansion is getting messy.
 Let's use a simpler mapping.
-\$S_{ij} = (U U^R)_{ij}\$.
+```math
+S_{ij} = (U U^R)_{ij}
+```
 We map monomials in S to monomials in U.
 Pairs of indices for U:
-S term \$k\$: \$S_{i_k j_k}\$.
+S term $k$: $S_{i_k j_k}$.
 Becomes:
-\$U_{i_k a_k}\$ (standard U)
-\$U_{j_k b_k}\$ ??? No.
-\$(U^R)_{a_k j_k}\$. This is entry of \$U^R\$.
-\$(U^R)_{aj} = (J U^T J^T)_{aj} = \\sum_{xy} J_{ax} U_{yx} (J^T)_{yj} = \\sum_{xy} J_{ax} U_{yx} (-J_{jy})\$.
-Since \$J\$ has only one non-zero entry per row, the sums collapse.
-\$J_{ax}\$ is non-zero when \$x = pair(a)\$ with sign.
-\$(U^R)_{aj} = sign(a) sign(j) U_{pair(j), pair(a)}\$.
-Where pair(k) maps \$k \\to k+N\$ (or similar) and sign handles the symplectic part.
+$U_{i_k a_k}$ (standard U)
+$U_{j_k b_k}$ ??? No.
+$(U^R)_{a_k j_k}$. This is entry of $U^R$.
+```math
+(U^R)_{aj} = (J U^T J^T)_{aj} = \sum_{xy} J_{ax} U_{yx} (J^T)_{yj} = \sum_{xy} J_{ax} U_{yx} (-J_{jy})
+```
+Since $J$ has only one non-zero entry per row, the sums collapse.
+$J_{ax}$ is non-zero when $x = pair(a)$ with sign.
+```math
+(U^R)_{aj} = sign(a) sign(j) U_{pair(j), pair(a)}
+```
+Where pair(k) maps $k \to k+N$ (or similar) and sign handles the symplectic part.
 
 Let's define the symplectic stricture explicitly.
 Assume dim = 2N.
-\$J = \\begin{pmatrix} 0 & I_N \\\\ -I_N & 0 \\end{pmatrix}\$.
-Indices \$1..2N\$.
-pair(k): if \$k \\le N\$, \$k+N\$. If \$k > N\$, \$k-N\$.
-sign(k): if \$k \\le N\$, +1. If \$k > N\$, -1. (Actually \$J_{k, pair(k)}\$)
-\$J_{xy} = \\delta_{y, pair(x)} \\cdot sign(x)\$.
+$J = \begin{pmatrix} 0 & I_N \\ -I_N & 0 \end{pmatrix}$.
+Indices $1..2N$.
+pair(k): if $k \le N$, $k+N$. If $k > N$, $k-N$.
+sign(k): if $k \le N$, +1. If $k > N$, -1. (Actually $J_{k, pair(k)}$)
+```math
+J_{xy} = \delta_{y, pair(x)} \cdot sign(x)
+```
 
-Then \$(U^R)_{aj} = \\sum_{xy} (\\delta_{x, pair(a)} sign(a)) U_{yx} (\\delta_{y, pair(j)} sign(j) (-1))\$.
-Check \$J^T = -J\$, so \$(J^T)_{yj} = -J_{yj} = -(\\delta_{j, pair(y)} sign(y))\$.
-Wait, \$J_{yj} = -J_{jy}\$.
-So \$(J^T)_{yj} = J_{jy}\$.
-Let's stick to standard def. \$(J^T)_{yj} = J_{jy}\$.
-\$J_{jy} = \\delta_{y, pair(j)} sign(j)\$.
-So \$(U^R)_{aj} = \\sum_{xy} \\delta_{x, pair(a)} sign(a) U_{yx} \\delta_{y, pair(j)} sign(j)\$.
+Then
+```math
+(U^R)_{aj} = \sum_{xy} (\delta_{x, pair(a)} sign(a)) U_{yx} (\delta_{y, pair(j)} sign(j) (-1))
+```
+Check $J^T = -J$, so $(J^T)_{yj} = -J_{yj} = -(\delta_{j, pair(y)} sign(y))$.
+Wait, $J_{yj} = -J_{jy}$.
+So $(J^T)_{yj} = J_{jy}$.
+Let's stick to standard def. $(J^T)_{yj} = J_{jy}$.
+$J_{jy} = \delta_{y, pair(j)} sign(j)$.
+So
+```math
+(U^R)_{aj} = \sum_{xy} \delta_{x, pair(a)} sign(a) U_{yx} \delta_{y, pair(j)} sign(j)
+```
 Substitute x, y:
 x = pair(a)
 y = pair(j)
-Term = \$sign(a) sign(j) U_{pair(j), pair(a)}\$.
+Term = $sign(a) sign(j) U_{pair(j), pair(a)}$.
 
-So \$S_{ij} = \\sum_a U_{ia} (U^R)_{aj} = \\sum_a U_{ia} (sign(a) sign(j) U_{pair(j), pair(a)})\$.
-Variables: \$a\$ sums from 1 to 2N.
-We have product of \$U_{i,a}\$ and \$U_{pair(j), pair(a)}\$.
-Coefficients: \$sign(a) sign(j)\$.
+So
+```math
+S_{ij} = \sum_a U_{ia} (U^R)_{aj} = \sum_a U_{ia} (sign(a) sign(j) U_{pair(j), pair(a)})
+```
+Variables: a sums from 1 to 2N.
+We have product of $U_{i,a}$ and $U_{pair(j), pair(a)}$.
+Coefficients: $sign(a) sign(j)$.
 
-Similarly for \$\\bar{S}_{pq}\$.
-\$\\bar{S} = \\overline{U U^R} = \\bar{U} \\overline{U^R} = \\bar{U} (U^R)^*\$.
-\$(U^R)^* = (U^R)^T\\dagger = (J U^T J^T)^* = J U^\\dagger J^T = J \\bar{U}^T J^T = \\bar{U^R}\$.
-So \$\\bar{S}_{pq} = \\sum_b \\bar{U}_{pb} (\\bar{U}^R)_{bq}\$.
-And assuming \$\\bar{U}^R\$ follows same logic (just with bar):
-\$(\\bar{U}^R)_{bq} = sign(b) sign(q) \\bar{U}_{pair(q), pair(b)}\$.
+Similarly for $\bar{S}_{pq}$.
+$\bar{S} = \overline{U U^R} = \bar{U} \overline{U^R} = \bar{U} (U^R)^*$.
+$(U^R)^* = (U^R)^T\dagger = (J U^T J^T)^* = J U^\dagger J^T = J \bar{U}^T J^T = \bar{U^R}$.
+So
+```math
+\bar{S}_{pq} = \sum_b \bar{U}_{pb} (\bar{U}^R)_{bq}
+```
+And assuming $\bar{U}^R$ follows same logic (just with bar):
+```math
+(\bar{U}^R)_{bq} = sign(b) sign(q) \bar{U}_{pair(q), pair(b)}
+```
 
 So mapping:
-Each \$S_{ij}\$ becomes sum over \$a\$:
- \$(sign(j) sign(a)) \\cdot U_{i, a} \\cdot U_{pair(j), pair(a)}\$.
-Each \$\\bar{S}_{pq}\$ becomes sum over \$b\$:
- \$(sign(q) sign(b)) \\cdot \\bar{U}_{p, b} \\cdot \\bar{U}_{pair(q), pair(b)}\$.
+Each $S_{ij}$ becomes sum over a:
+ $(sign(j) sign(a)) \cdot U_{i, a} \cdot U_{pair(j), pair(a)}$.
+Each $\bar{S}_{pq}$ becomes sum over b:
+ $(sign(q) sign(b)) \cdot \bar{U}_{p, b} \cdot \bar{U}_{pair(q), pair(b)}$.
 
 We need to implement this transformation.
 1. Generate the U indices and U_bar indices.
 2. Track the coefficients (signs).
-3. Sum over dummy variables \$a, b\$.
+3. Sum over dummy variables a, b.
 
 Summation logic is similar to COE:
 Integration result is sum over valid sigmas (connecting external row indices) and valid taus (connecting column indices).
 Weight: product of signs * sum over dummy a,b of delta-contractions.
-Delta contractions link \$a, pair(a), b, pair(b)\$.
-Graph vertices: 2m dummy pairs \$(a_k, pair(a_k))\$ and \$(b_k, pair(b_k))\$.
-Wait, \$a_k\$ determines \$pair(a_k)\$. The variable is just \$a_k\$.
-Terms involving \$a_k\$:
-1. \$U\$-col at position (2k-1) is \$a_k\$.
-2. \$U\$-col at position (2k) is \$pair(a_k)\$.
-3. Coefficient \$sign(a_k)\$.
+Delta contractions link a, pair(a), b, pair(b).
+Graph vertices: 2m dummy pairs $(a_k, pair(a_k))$ and $(b_k, pair(b_k))$.
+Wait, $a_k$ determines $pair(a_k)$. The variable is just $a_k$.
+Terms involving $a_k$:
+1. $U$-col at position (2k-1) is $a_k$.
+2. $U$-col at position (2k) is $pair(a_k)$.
+3. Coefficient $sign(a_k)$.
 
-Terms involving \$b_k\$:
-1. \$Ubar\$-col at position (2k-1) is \$b_k\$.
-2. \$Ubar\$-col at position (2k) is \$pair(b_k)\$.
-3. Coefficient \$sign(b_k)\$.
+Terms involving $b_k$:
+1. $Ubar$-col at position (2k-1) is $b_k$.
+2. $Ubar$-col at position (2k) is $pair(b_k)$.
+3. Coefficient $sign(b_k)$.
 
 We iterate over taus (permutations of 1..2n).
 Tau connects U-cols to Ubar-cols.
@@ -513,43 +565,46 @@ U-col(2k) = pair(U-col(2k-1)).
 Ubar-col(2k) = pair(Ubar-col(2k-1)).
 Tau connects U-col to Ubar-col.
 
-Also we must sum \$ \\sum_{a_1...} \\prod sign(a_k) sign(b_k) \\dots \$.
+Also we must sum
+```math
+\sum_{a_1...} \prod sign(a_k) sign(b_k) \dots
+```
 This "signed loop" count is tricky.
-For COE, it was just \$d^{loops}\$.
-Here, the value of \$a_k\$ affects the sign.
-\$sign(x)\$ is +1 for \$1..N\$, -1 for \$N+1..2N\$.
-\$pair(x)\$ flips between the two halves.
-So \$sign(pair(x)) = -sign(x)\$.
+For COE, it was just $d^{loops}$.
+Here, the value of $a_k$ affects the sign.
+$sign(x)$ is +1 for $1..N$, -1 for $N+1..2N$.
+$pair(x)$ flips between the two halves.
+So $sign(pair(x)) = -sign(x)$.
 
 Let's look at the constraints.
-We have a graph where nodes are "variables" \$a_1..a_m, b_1..b_m\$.
-Constraint from U-cols: \$col(2k) = pair(col(2k-1))\$.
-Constraint from Ubar-cols: \$col(2k) = pair(col(2k-1))\$.
-Constraint from Tau: \$col(r) = col(\\tau(r))\$ (U to Ubar).
+We have a graph where nodes are "variables" $a_1..a_m, b_1..b_m$.
+Constraint from U-cols: $col(2k) = pair(col(2k-1))$.
+Constraint from Ubar-cols: $col(2k) = pair(col(2k-1))$.
+Constraint from Tau: $col(r) = col(\tau(r))$ (U to Ubar).
 
 Let's analyze dependency chain.
-Start with \$a_1\$.
-Equation 1: \$val(U, 2) = pair(val(U, 1)) = pair(a_1)\$.
-Equation 2: \$val(U, 1) = a_1\$.
-Equation 3: \$val(U, r) = val(Ubar, \\tau(r))\$.
-This links \$a\$'s and \$b\$'s with 'pair' operations.
-\$x = pair(y)\$ means they are coupled.
-Any connected component of variables determines all variables in terms of one free variable (say \$x\$).
-Relations are always of form \$x = y\$ or \$x = pair(y)\$.
-If we traverse a loop and get \$x = x\$, it's consistent.
-If \$x = pair(x)\$, it's impossible (since \$k \\ne k+N\$). Component kills the term (0).
-If consistent, we have 1 free variable \$x \\in 1..2N\$.
-We need to sum \$ \\prod sign(...) \$.
-The signs depend on \$a\$'s and \$b\$'s.
-Each \$a_k\$ contributes \$sign(a_k)\$. Each \$b_k\$ contributes \$sign(b_k)\$.
-External signs \$sign(j)\$ and \$sign(q)\$ are constant factors.
+Start with $a_1$.
+Equation 1: $val(U, 2) = pair(val(U, 1)) = pair(a_1)$.
+Equation 2: $val(U, 1) = a_1$.
+Equation 3: $val(U, r) = val(Ubar, \tau(r))$.
+This links a's and b's with 'pair' operations.
+$x = pair(y)$ means they are coupled.
+Any connected component of variables determines all variables in terms of one free variable (say $x$).
+Relations are always of form $x = y$ or $x = pair(y)$.
+If we traverse a loop and get $x = x$, it's consistent.
+If $x = pair(x)$, it's impossible (since $k \ne k+N$). Component kills the term (0).
+If consistent, we have 1 free variable $x \in 1..2N$.
+We need to sum $\prod sign(...) $.
+The signs depend on a's and b's.
+Each $a_k$ contributes $sign(a_k)$. Each $b_k$ contributes $sign(b_k)$.
+External signs $sign(j)$ and $sign(q)$ are constant factors.
 We need to track how many "sign-flips" (pair operations) we traverse.
-Actually, \$sign(pair(x)) = -sign(x)\$.
-So we can express every variable in the component as \$x\$ or \$pair(x)\$, i.e., having sign \$s_0\$ or \$-s_0\$.
+Actually, $sign(pair(x)) = -sign(x)$.
+So we can express every variable in the component as $x$ or $pair(x)$, i.e., having sign $s_0$ or $-s_0$.
 Then we check if the product of signs over the component sums to non-zero.
-Sum over \$x \\in 1..2N\$ of \$(sign(x))^K\$.
-If K is even, sum is \$2N\$.
-If K is odd, sum is \$\\sum sign(x) = (N * 1) + (N * -1) = 0\$.
+Sum over $x \in 1..2N$ of $(sign(x))^K$.
+If K is even, sum is $2N$.
+If K is odd, sum is $\sum sign(x) = (N * 1) + (N * -1) = 0$.
 So we just need to count parity of references to 'sign'.
 
 Implementation detail:

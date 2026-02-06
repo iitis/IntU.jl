@@ -345,7 +345,7 @@ end
 Internal function to generate the **Orthogonal Weingarten matrix**. 
 The matrix \$G\$ is a Gram matrix of size \$(2k-1)!! \\times (2k-1)!!\$ where 
 \$G_{\\pi, \\sigma} = d^{\\ell(\\pi, \\sigma)}\$.
-The Weingarten matrix is the inverse of \$G\\\$.
+The Weingarten matrix is the inverse of \$G\$.
 """
 @memoize function get_weingarten_orthogonal_data(k::Int, d)
     parts = get_pair_partitions(2*k)

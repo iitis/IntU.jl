@@ -23,6 +23,7 @@ include("real_measures.jl")
 include("gaussian_measures.jl")
 include("unitary_designs.jl")
 include("circular_measures.jl")
+include("permutation_measures.jl")
 include("itensors_integration.jl")
 
 
@@ -54,6 +55,7 @@ export integrate,
     dDesign,
     symbolic_dimension_unitary,
     @symbolic_dimension
+export dPerm, dCPerm
 export dCOE, dCSE, dCUE
 export weingarten, weingarten_orthogonal_val, weingarten_symplectic_val
 export get_pair_partitions,
