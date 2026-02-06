@@ -18,6 +18,14 @@ end
 Base.size(::SymbolicUnitary) = (typemax(Int), typemax(Int))
 Base.getindex(S::SymbolicUnitary, i::Integer, j::Integer) = S.func(i, j)
 
+# Custom show to avoid printing infinite matrix
+function Base.show(io::IO, U::SymbolicUnitary)
+    print(io, "SymbolicUnitary($(U.name))")
+end
+function Base.show(io::IO, ::MIME"text/plain", U::SymbolicUnitary)
+    print(io, "SymbolicUnitary($(U.name), dim=$(U.dim))")
+end
+
 """
     symbolic_dimension_unitary(dim; name=:U)
 

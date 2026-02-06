@@ -25,6 +25,7 @@ include("unitary_designs.jl")
 include("circular_measures.jl")
 include("permutation_measures.jl")
 include("itensors_integration.jl")
+include("su_measure.jl")
 
 
 # Quantum Information helpers
@@ -38,6 +39,7 @@ import Symbolics: Num
 export integrate,
     asymptotic,
     dU,
+    dSU,
     dPsi,
     dO,
     dSp,
