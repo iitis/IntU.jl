@@ -129,14 +129,14 @@ Unlike existing tools that often rely on proprietary engines or lack support for
 symbolic parameters, \texttt{IntU.jl} provides a fully open-source, performant
 implementation of the Weingarten calculus and Wick contractions. Key features
 include the native handling of symbolic dimensions $d$ as rational functions,
-allowing for the automatic derivation of asymptotic expansions, a high-level
-symbolic trace interface that reconstructs Weingarten graphs directly from
-index-free expressions, and a native bridge to \texttt{ITensors.jl} for
-integrating complex tensor networks. We discuss the underlying
-algorithms—including the Murnaghan-Nakayama rule and symplectic-orthogonal
-duality—and demonstrate that the package efficiently handles high-degree moments
-and complex quantum information metrics, significantly outperforming manual
-derivations.
+direct integration of matrix-valued expressions, allowing for the automatic
+derivation of asymptotic expansions, a high-level symbolic trace interface that
+reconstructs Weingarten graphs directly from index-free expressions, and a
+native bridge to \texttt{ITensors.jl} for integrating complex tensor networks.
+We discuss the underlying algorithms—including the Murnaghan-Nakayama rule and
+symplectic-orthogonal duality—and demonstrate that the package efficiently
+handles high-degree moments and complex quantum information metrics,
+significantly outperforming manual derivations.
 \end{abstract}
 
 %%
@@ -1041,7 +1041,7 @@ The source code for \texttt{IntU.jl} is available on GitHub under the Apache Lic
     \item \textbf{Repository URL}: \url{https://github.com/iitis/IntU}
     \item \textbf{License}: Apache License 2.0
     \item \textbf{Version}: The results in this paper were generated using
-    version v0.3.0.
+    version v0.4.0.
     \item \textbf{Benchmarks}: To reproduce the benchmarks presented in Section
     \ref{sec:performance}, execute the provided script from the repository root:
     \begin{lstlisting}[language=bash]
