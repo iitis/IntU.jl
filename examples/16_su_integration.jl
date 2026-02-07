@@ -25,15 +25,26 @@ println("Expected: 1/d")
 println("")
 
 # Example 1b: Matrix Integration (SU(d) -> Identity)
+# Example 1b: Matrix Integration (SU(d) -> Identity)
 println("--- 2b. Matrix Integration ---")
 println("Integrating U * U' (should be Identity)")
-# Collect to ensure matrix
-U_mat = collect(U)
-res_mat = integrate(U_mat * U_mat', measure)
-# Just print result for U_11 term (should be 1) and U_12 (should be 0)
-println("Result[1,1]: ", res_mat[1,1])
-println("Result[1,2]: ", res_mat[1,2])
-println("")
+
+# To demonstrate matrix integration, we define a fixed-size symbolic matrix (N=3).
+# We must use the matching numeric dimension d=3 for the measure to recover Identity
+# (since matrix multiplication sums over the fixed column count).
+@variables U_mat[1:3, 1:3]::Complex
+d_numeric = 3
+measure_mat = dSU(U_mat, d_numeric)
+
+# We can now collect into a Julia Matrix and multiply
+expr_mat = collect(U_mat * U_mat')
+
+println("Integrating 3x3 matrix U * U' over SU(3)...")
+res_mat = integrate(expr_mat, measure_mat)
+display(res_mat)
+
+println("Result[1,1]: ", res_mat[1,1], " (Expected: 1)")
+println("Result[1,2]: ", res_mat[1,2], " (Expected: 0)")
 
 # Example 2: Unbalanced Moment
 # E[ U_11 ] = 0
