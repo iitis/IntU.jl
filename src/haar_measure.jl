@@ -130,12 +130,6 @@ dU(U, dim) = HaarMeasure(U, dim)
 dU(dim) = HaarMeasure(nothing, dim)
 dU(S::SymbolicUnitary) = HaarMeasure(S, S.dim)
 
-"""
-    integrate(expr, measure::HaarMeasure)
-"""
-function integrate(expr::AbstractArray, measure::HaarMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
 
 function fallback_integrate(expr, measure::HaarMeasure)
     U_input = measure.U
@@ -211,23 +205,14 @@ Uses the graphical Weingarten calculus.
 """
 function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
     dim = measure.dim
-    prefactor = t.prefactor
 
     if isempty(t.cycles)
-        return prefactor
+        return t.prefactor
     end
 
     # 1. Identify U and U_dag instances across ALL cycles
     U_indices = Int[]
     U_bar_indices = Int[]
-
-    # Flattened list of factors for indexing
-    # We need to map global index back to (cycle_idx, pos_in_cycle) if needed,
-    # but mainly we need to know connectivity.
-
-    # Connectivity structure:
-    # A slot at global_idx connects to global_next_idx.
-    # If cycle ends, global_next_idx wraps to start of THAT cycle.
 
     total_factors = 0
     cycle_ranges = UnitRange{Int}[]
@@ -255,23 +240,66 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
         return 0
     end
 
-    if n_U == 0
-        # Product of constant traces
-        # evaluate each cycle
-        val = prefactor
-        for cycle in t.cycles
-            if isempty(cycle)
-                val *= dim
-            else
-                val *= tr_val(cycle)
-            end
-        end
-        return val
+    # Handle case with no U/U_bar (all constant traces)
+    all_slots = sort([U_indices; U_bar_indices])
+    if isempty(all_slots)
+        return _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
     end
 
-
     # 2. Build Wires
-    # Map from U/U_bar index (global) to next U/U_bar index (global) and the path of constants between them.
+    wires = _build_wires(U_indices, U_bar_indices, cycle_ranges, all_factors)
+
+    # Calculate constant part (cycles with no U/U_bar)
+    constant_part = _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
+
+    # 3. Weingarten Sum
+    u_map = Dict{Int,Int}(idx => m for (m, idx) in enumerate(U_indices))
+    ub_map = Dict{Int,Int}(idx => m for (m, idx) in enumerate(U_bar_indices))
+
+    permutations = collect(Combinatorics.permutations(1:n_U))
+    total_val = 0
+
+    for sigma in permutations
+        for tau in permutations
+
+            inv_tau = invperm(tau)
+            P = [sigma[inv_tau[i]] for i = 1:n_U]
+            cycle_type = get_cycle_type(P)
+            wg_val = weingarten(cycle_type, dim)
+
+            if _symbolic_isequal(wg_val, 0)
+                continue
+            end
+
+            visited_U = falses(n_U)
+            visited_Ub = falses(n_U)
+            current_term_traces = []
+
+            # Check U cycles
+            for start_m = 1:n_U
+                if !visited_U[start_m]
+                    val = _traverse_trace_cycle(start_m, 1, sigma, inv_tau, wires, u_map, ub_map, visited_U, visited_Ub, U_indices, U_bar_indices, dim)
+                    push!(current_term_traces, val)
+                end
+            end
+
+            # Check Ub cycles (if any isolated ones exist)
+            for start_m = 1:n_U_bar
+                if !visited_Ub[start_m]
+                    val = _traverse_trace_cycle(start_m, 2, sigma, inv_tau, wires, u_map, ub_map, visited_U, visited_Ub, U_indices, U_bar_indices, dim)
+                    push!(current_term_traces, val)
+                end
+            end
+
+            term_prod = isempty(current_term_traces) ? 1 : prod(current_term_traces)
+            total_val += term_prod * wg_val
+        end
+    end
+
+    return constant_part * total_val
+end
+
+function _build_wires(U_indices, U_bar_indices, cycle_ranges, all_factors)
     wires = Dict{Int,Any}()
     all_slots = sort([U_indices; U_bar_indices])
     n_slots = length(all_slots)
@@ -318,10 +346,11 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
             end
         end
     end
+    return wires
+end
 
-    # Handle cycles that have NO U/U_bar (constant traces)
-    # These just multiply the total result.
-    constant_part = prefactor
+function _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
+    constant_part = t.prefactor
     for (cid, rng) in enumerate(cycle_ranges)
         # Check if any slot in rng is in all_slots
         has_U = false
@@ -341,146 +370,57 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
             end
         end
     end
+    return constant_part
+end
 
-    # 3. Weingarten Sum (Same as before, operating on global indices)
-    u_map = Dict{Int,Int}()
-    for (m, idx) in enumerate(U_indices)
-        u_map[idx] = m
-    end
-    ub_map = Dict{Int,Int}()
-    for (m, idx) in enumerate(U_bar_indices)
-        ub_map[idx] = m
-    end
-
-    permutations = collect(Combinatorics.permutations(1:n_U))
-    total_val = 0
-
-    for sigma in permutations
-        for tau in permutations
-
-            inv_tau = invperm(tau)
-            P = [sigma[inv_tau[i]] for i = 1:n_U]
-            cycle_type = get_cycle_type(P)
-            wg_val = weingarten(cycle_type, dim)
-
-            if _symbolic_isequal(wg_val, 0)
-                continue
+function _traverse_trace_cycle(start_m, start_type, sigma, inv_tau, wires, u_map, ub_map, visited_U, visited_Ub, U_indices, U_bar_indices, dim)
+    curr_trace_factors = SymbolicMatrix[]
+    curr_type = start_type
+    curr_idx = start_m
+    
+    while true
+        if curr_type == 1
+            if visited_U[curr_idx]
+                break
             end
-
-            visited_U = falses(n_U)
-            visited_Ub = falses(n_U)
-            current_term_traces = []
-
-            for start_m = 1:n_U
-                if !visited_U[start_m]
-                    curr_trace_factors = SymbolicMatrix[]
-                    curr_type = 1
-                    curr_idx = start_m
-
-                    while true
-                        if curr_type == 1
-                            if visited_U[curr_idx]
-                                break
-                            end
-                            visited_U[curr_idx] = true
-                            next_ub_m = sigma[curr_idx]
-                            start_factor_idx = U_bar_indices[next_ub_m]
-                            dest_factor_idx, mat_segment = wires[start_factor_idx]
-                            if mat_segment !== nothing
-                                append!(curr_trace_factors, mat_segment)
-                            end
-                            if haskey(u_map, dest_factor_idx)
-                                curr_type = 1;
-                                curr_idx = u_map[dest_factor_idx]
-                            else
-                                curr_type = 2;
-                                curr_idx = ub_map[dest_factor_idx]
-                            end
-                        else
-                            if visited_Ub[curr_idx]
-                                break
-                            end
-                            visited_Ub[curr_idx] = true
-                            next_u_m = inv_tau[curr_idx]
-                            start_factor_idx = U_indices[next_u_m]
-                            dest_factor_idx, mat_segment = wires[start_factor_idx]
-                            if mat_segment !== nothing
-                                append!(curr_trace_factors, mat_segment)
-                            end
-                            if haskey(u_map, dest_factor_idx)
-                                curr_type = 1;
-                                curr_idx = u_map[dest_factor_idx]
-                            else
-                                curr_type = 2;
-                                curr_idx = ub_map[dest_factor_idx]
-                            end
-                        end
-                    end
-                    if isempty(curr_trace_factors)
-                        push!(current_term_traces, dim)
-                    else
-                        push!(current_term_traces, tr_val(curr_trace_factors))
-                    end
-                end
+            visited_U[curr_idx] = true
+            next_ub_m = sigma[curr_idx]
+            start_factor_idx = U_bar_indices[next_ub_m]
+            dest_factor_idx, mat_segment = wires[start_factor_idx]
+            if mat_segment !== nothing
+                append!(curr_trace_factors, mat_segment)
             end
-
-            # Check Ub cycles (if any isolated ones exist - theoretically shouldn't for global pairing graph)
-            for start_m = 1:n_U_bar
-                if !visited_Ub[start_m]
-                    curr_trace_factors = SymbolicMatrix[]
-                    curr_type = 2
-                    curr_idx = start_m
-                    while true
-                        if curr_type == 1
-                            if visited_U[curr_idx]
-                                break
-                            end
-                            visited_U[curr_idx] = true
-                            next_ub_m = sigma[curr_idx]
-                            start_factor_idx = U_bar_indices[next_ub_m]
-                            dest_factor_idx, mat_segment = wires[start_factor_idx]
-                            if mat_segment !== nothing
-                                append!(curr_trace_factors, mat_segment)
-                            end
-                            if haskey(u_map, dest_factor_idx)
-                                curr_type = 1;
-                                curr_idx = u_map[dest_factor_idx]
-                            else
-                                curr_type = 2;
-                                curr_idx = ub_map[dest_factor_idx]
-                            end
-                        else
-                            if visited_Ub[curr_idx]
-                                break
-                            end
-                            visited_Ub[curr_idx] = true
-                            next_u_m = inv_tau[curr_idx]
-                            start_factor_idx = U_indices[next_u_m]
-                            dest_factor_idx, mat_segment = wires[start_factor_idx]
-                            if mat_segment !== nothing
-                                append!(curr_trace_factors, mat_segment)
-                            end
-                            if haskey(u_map, dest_factor_idx)
-                                curr_type = 1;
-                                curr_idx = u_map[dest_factor_idx]
-                            else
-                                curr_type = 2;
-                                curr_idx = ub_map[dest_factor_idx]
-                            end
-                        end
-                    end
-                    if isempty(curr_trace_factors)
-                        push!(current_term_traces, dim)
-                    else
-                        push!(current_term_traces, tr_val(curr_trace_factors))
-                    end
-                end
+            if haskey(u_map, dest_factor_idx)
+                curr_type = 1;
+                curr_idx = u_map[dest_factor_idx]
+            else
+                curr_type = 2;
+                curr_idx = ub_map[dest_factor_idx]
             end
-
-            term_prod = isempty(current_term_traces) ? 1 : prod(current_term_traces)
-            total_val += term_prod * wg_val
+        else
+            if visited_Ub[curr_idx]
+                break
+            end
+            visited_Ub[curr_idx] = true
+            next_u_m = inv_tau[curr_idx]
+            start_factor_idx = U_indices[next_u_m]
+            dest_factor_idx, mat_segment = wires[start_factor_idx]
+            if mat_segment !== nothing
+                append!(curr_trace_factors, mat_segment)
+            end
+            if haskey(u_map, dest_factor_idx)
+                curr_type = 1;
+                curr_idx = u_map[dest_factor_idx]
+            else
+                curr_type = 2;
+                curr_idx = ub_map[dest_factor_idx]
+            end
         end
     end
-
-    return constant_part * total_val
+    
+    if isempty(curr_trace_factors)
+        return dim
+    else
+        return tr_val(curr_trace_factors)
+    end
 end

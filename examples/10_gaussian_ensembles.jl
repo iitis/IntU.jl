@@ -19,7 +19,18 @@ println("<Tr(H^2)>_GOE = ", res_goe2, " (Expected: $(N^2 + N))")
 println("--- GSE ---")
 res_gse2 = simplify(integrate(IntU.tr(H_explicit^2), dGSE(H_explicit, N)))
 println("<Tr(H^2)>_GSE = ", res_gse2, " (Expected: $(N^2 - N))")
+println("<Tr(H^2)>_GSE = ", res_gse2, " (Expected: $(N^2 - N))")
 
+println("\n--- Matrix Averages ---")
+println("<H>_GUE (Should be 0 matrix):")
+res_mean = integrate(H_explicit, dGUE(H_explicit, N))
+println(res_mean)
+
+println("<H^2>_GUE (Should be Diagonal matrix N*I):")
+res_sq = integrate(H_explicit^2, dGUE(H_explicit, N))
+# Simply result for display
+res_sq_simp = map(x -> simplify(x), res_sq)
+display(res_sq_simp)
 
 # --- 2. Symbolic Dimension and Traces ---
 println("\n2. Symbolic Dimension and Traces")

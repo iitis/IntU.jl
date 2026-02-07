@@ -121,6 +121,20 @@ println(res3)
 # Output: 1
 ```
 
+### 4. Matrix Integration
+
+New in v0.2: You can integrate matrix-valued expressions directly. The function `integrate` will element-wise integrate any `AbstractArray` passed to it.
+
+```julia
+using LinearAlgebra
+
+# Integrate U * U' (should be identity)
+# We collect the symbolic expression to a Matrix{Num} to ensure it's treated as an array of expressions
+expr_mat = collect(U * U')
+res_mat = integrate(expr_mat, measure)
+# Result is the Identity matrix
+```
+
 ## Potential Pitfalls
 
 -   **Symbolic vs Numeric Dimension**: The dimension $d$ can be symbolic.

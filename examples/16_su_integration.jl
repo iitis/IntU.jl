@@ -24,6 +24,17 @@ println("Result: ", res_balanced)
 println("Expected: 1/d")
 println("")
 
+# Example 1b: Matrix Integration (SU(d) -> Identity)
+println("--- 2b. Matrix Integration ---")
+println("Integrating U * U' (should be Identity)")
+# Collect to ensure matrix
+U_mat = collect(U)
+res_mat = integrate(U_mat * U_mat', measure)
+# Just print result for U_11 term (should be 1) and U_12 (should be 0)
+println("Result[1,1]: ", res_mat[1,1])
+println("Result[1,2]: ", res_mat[1,2])
+println("")
+
 # Example 2: Unbalanced Moment
 # E[ U_11 ] = 0
 println("--- 3. Unbalanced Moment ---")

@@ -1,3 +1,8 @@
+using IntU
+using Test
+using Symbolics
+using LinearAlgebra
+
 @testset "GUE Integration" begin
     # Test for N=3
     N = 3
@@ -38,5 +43,27 @@
         # < H_12^2 > = 0
         res3 = integrate(H[1, 2]^2, meas)
         @test to_numeric(res3) == 0
+    end
+
+    @testset "Matrix Integration Checks" begin
+        # < H > = 0
+        res_mat = integrate(H, meas)
+        @test all(x -> to_numeric(x) == 0, res_mat)
+        
+        # < H^2 > should have diagonals N and off-diagonals 0
+        # Use collect to ensure expression is definitely a Matrix{Num} before integration if needed,
+        # though H is already a Matrix{Num} from definition.
+        
+        res_mat2 = integrate(H^2, meas)
+        expected_diag = N
+        
+        for i in 1:N, j in 1:N
+            val = to_numeric(res_mat2[i, j])
+            if i == j
+                @test val == expected_diag
+            else
+                @test val == 0
+            end
+        end
     end
 end

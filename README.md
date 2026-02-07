@@ -12,11 +12,25 @@ For detailed documentation, please visit [iitis.github.io/IntU.jl](https://iitis
 
 To introduce the main functionality of IntU, consider the problem of averaging
 $|U_{i,j}|^2$ over the unitary group, i.e., computing $\int dU |U_{i,j}|^2 =
-\int dU U_{i,j} U_{i,j}^*$.
+\int dU U_{i,j} U_{k,l}^* dU$.
 
 While numerical approaches (like sampling random matrices) can estimate this,
 they are slow and approximate. IntU provides the **exact** analytic result
 instantly, even for symbolic dimensions.
+
+**New Feature**: You can now integrate matrix-valued expressions directly!
+```julia
+using IntU, Symbolics, LinearAlgebra
+
+d = 3
+@variables U[1:d, 1:d]::Complex
+measure = dU(U, d)
+
+# Integrate the matrix expression U * U'
+# This performs element-wise integration automatically
+res = integrate(collect(U * U'), measure)
+# Output: Identity Matrix (I)
+```
 
 ```julia
 using IntU, Symbolics
@@ -190,6 +204,38 @@ U = ITensorUnitary(U_it; out_indices=[i], in_indices=[j])
 
 A = randomITensor(j, i)
 res = integrate([U, A], dU(2))
+```
+
+## Running Examples and Benchmarks
+
+IntU.jl comes with a comprehensive set of examples and benchmarks.
+
+### Examples
+
+You can run all examples at once using the provided script:
+
+```bash
+sh examples/runexamples.sh
+```
+
+To run a single example, pass the example number to the script. For instance, to run `01_basics.jl`:
+
+```bash
+sh examples/runexamples.sh 01
+```
+
+### Benchmarks
+
+To run all benchmarks:
+
+```bash
+sh benchmarks/runbenchmarks.sh
+```
+
+To run a single benchmark, pass the number to the script:
+
+```bash
+sh benchmarks/runbenchmarks.sh 01
 ```
 
 ## Installation

@@ -1,4 +1,5 @@
 using IntU
+using IntU
 using Symbolics
 using LinearAlgebra
 
@@ -51,8 +52,20 @@ println("--- 5. Higher Order Correlation ---")
 println("Computing E[ |V_11|^2 * |V_22|^2 ]...")
 expr4 = abs2(V[1, 1]) * abs2(V[2, 2])
 res4 = integrate(expr4, measure)
-println("Result: ", res4)
 println("Expected: 1")
+println("")
+
+# Example 5: Matrix Integration
+println("--- 6. Matrix Integration ---")
+println("Integrating V * V' (should be Identity)")
+# Collect to ensure standard matrix structure
+V_mat = collect(V)
+res_V = integrate(V_mat * V_mat', measure)
+
+println("Result[1,1]: ", res_V[1,1])
+println("Expected: 1")
+println("Result[1,2]: ", res_V[1,2])
+println("Expected: 0")
 println("")
 
 println("\nDone.")

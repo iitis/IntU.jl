@@ -89,6 +89,14 @@ function fallback_integrate(expr, measure::OrthogonalMeasure)
     return _robust_real_num(_integrate_core(expr, dim, subs_dict, matcher, :O))
 end
 
+function _j_pair_sign(idx, n)
+    if idx <= n
+        return idx + n, 1
+    else
+        return idx - n, -1
+    end
+end
+
 function fallback_integrate(expr, measure::SymplecticMeasure)
     S_sym = measure.S
     dim = measure.dim
@@ -99,7 +107,7 @@ function fallback_integrate(expr, measure::SymplecticMeasure)
     # Check dimensions
     N = size(S_sym, 1)
     if isodd(N)
-        error("Symplectic matrix dimension must be even, got \$N")
+        error("Symplectic matrix dimension must be even, got $N")
     end
     n_half = N ÷ 2
 
@@ -130,28 +138,15 @@ function fallback_integrate(expr, measure::SymplecticMeasure)
                 # \bar{S}_{ij} = J_{ip} S_{pq} (J^T)_{qj} = J_{ip} S_{pq} (-J_{qj})
                 # p = pair(i), q = pair(j)
 
-                # Helper for J-pair and sign
-                function j_pair_sign(idx, n)
-                    if idx <= n
-                        return idx + n, 1
-                    else
-                        return idx - n, -1
-                    end
-                end
-
-                p, sign_i = j_pair_sign(i, n_half)
-                q, sign_j = j_pair_sign(j, n_half) # Note: this calculates sign for J_{j, q} NOT J_{q, j}
+                p, sign_i = _j_pair_sign(i, n_half)
+                q, sign_j = _j_pair_sign(j, n_half) 
+                
                 # We need -J_{q, j}.
                 # J_{pair(j), j}.
                 # if j <= n, q=j+n. J_{j+n, j} = -1. -J = 1.
                 # if j > n, q=j-n. J_{j-n, j} = 1. -J = -1.
-                # My logic in thought process: "sign(l, n)" was "if l <= n then 1 else -1".
-                # Let's re-verify.
-                # Term is -J_{q, j}. q = pair(j).
-                # If j <= n, q = j+n. J_{q, j} = J_{j+n, j} = -1. Term = 1.
-                # If j > n, q = j-n. J_{q, j} = J_{j-n, j} = 1. Term = -1.
-                # So coeff_j = (j <= n ? 1 : -1).
-                # My j_pair_sign returns 1 if idx<=n. Correct.
+                # The logic simplifies to coeff_j = (j <= n ? 1 : -1).
+                # _j_pair_sign returns 1 if idx<=n. Correct.
 
                 coeff = sign_i * sign_j
 

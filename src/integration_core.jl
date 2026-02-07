@@ -278,6 +278,16 @@ function integrate(expr::LazySum, measure)
 end
 
 """
+    integrate(expr::AbstractArray, measure)
+
+Performs element-wise integration of a matrix or array of expressions.
+Returns an array of the same shape containing integrated values.
+"""
+function integrate(expr::AbstractArray, measure)
+    return map(t -> integrate(t, measure), expr)
+end
+
+"""
     integrate(expr, measure)
 
 Top-level integration function. It first checks the [Pre-computed Integral Library](@ref) 
