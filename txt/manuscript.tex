@@ -398,6 +398,9 @@ The package supports a wide range of integration measures, grouped as follows:
     \item \textbf{Diagonal unitary matrices}: Integration over the torus group
     $T^d$ (\texttt{dDiagUnitary}), representing independent phase averaging for
     each diagonal entry.
+    \item \textbf{Matrix integration}: Native support for integrating
+    AbstractArray-valued expressions, enabling coordinate-free validation of
+    matrix identities (e.g., $\mathbb{E}[U U^\dagger] = I$).
 \end{itemize}
 
 \subsection{Gaussian random matrix ensembles}
@@ -610,6 +613,20 @@ integrate(abs(U[1,1])^2, measure)
 # Unbalanced moment: E[U_11]
 integrate(U[1,1], measure)
 # Output: 0
+\end{lstlisting}
+
+\subsection{Matrix integration}
+\texttt{IntU.jl} allows for the direct integration of matrix-valued expressions.
+This eliminates the need for manual element-wise iteration or broadcasting,
+automatically performing the integration over all array entries. For Haar-random
+unitary matrices, we verify the relation $\int U U^\dagger dU = I$:
+\begin{lstlisting}[language=Julia]
+@variables U[1:d, 1:d]
+measure = dU(U, d)
+# Integrate the matrix product U * U'
+# IntU handles the element-wise operations internally
+res = integrate(collect(U * U'), measure)
+# Output: Identity Matrix I
 \end{lstlisting}
 
 \subsection{Symbolic trace logic}
@@ -965,6 +982,29 @@ Dimension $d$ ($k=3$) & 3 & 30 & 16800 \\
 \hline
 Orthogonal & 6 & 3 & 589.0 \\
 \hline
+\end{tabular}
+\end{table}
+
+\subsection{Matrix integration benchmarks}
+We evaluated the performance of generic matrix integration by computing
+$\mathbb{E}[U U^\dagger]$ for $N \times N$ symbolic matrices over $U(d)$. The
+results (Table \ref{tab:matrix_bench}) demonstrate efficient scaling, as IntU
+automatically handles the element-wise operations.
+
+\begin{table}[h]
+\centering
+\caption{Benchmark results for matrix integration $\mathbb{E}[U U^\dagger]$ over
+$U(d)$. Timings are for constructing and integrating the full $N \times N$
+matrix of expressions.}
+\label{tab:matrix_bench}
+\begin{tabular}{ccc}
+\toprule
+Matrix Size ($N$) & Mean Time (ms) & Allocations (MiB) \\
+\midrule
+$2 \times 2$ & 1.90 & 0.81 \\
+$3 \times 3$ & 6.51 & 3.03 \\
+$4 \times 4$ & 16.3 & 8.26 \\
+\bottomrule
 \end{tabular}
 \end{table}
 
