@@ -484,7 +484,7 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
     end
 
     is_gaussian = (measure_type === :GUE || measure_type === :GOE || measure_type === :GSE)
-    coeff = is_gaussian ? 1 // 1 : BigInt(1) // BigInt(1)
+    coeff = 1 // 1
     u_indices = Vector{Tuple{Int,Int}}()
     u_bar_indices = Vector{Tuple{Int,Int}}()
 
@@ -674,7 +674,7 @@ function integrate_indices(
         end
     end
 
-    total = dim isa Integer ? 0 // 1 : BigInt(0) // BigInt(1)
+    total = 0 // 1
     for (ct, count) in cycle_counts
         wg_val = weingarten(ct, dim)
         total += count * wg_val
@@ -791,7 +791,7 @@ function integrate_indices_orthogonal(indices::Vector{Tuple{Int,Int}}, dim)
         sigma_counts[c_sigma] = get(sigma_counts, c_sigma, 0) + 1
     end
 
-    total = dim isa Integer ? 0 // 1 : BigInt(0) // BigInt(1)
+    total = 0 // 1
     for (c_pi, count_pi) in pi_counts
         for (c_sigma, count_sigma) in sigma_counts
             val = weingarten_orthogonal_val(c_pi, c_sigma, dim)
@@ -881,7 +881,7 @@ function integrate_indices_symplectic(indices::Vector{Tuple{Int,Int}}, dim)
     # Check if dim is clearly integer for simplified J evaluation
     dim_int = dim isa Integer ? dim : nothing
 
-    total = dim isa Integer ? 0 // 1 : BigInt(0) // BigInt(1)
+    total = 0 // 1
 
     # Optimization: Filter partitions that yield non-zero J-contraction first?
     # J_{uv} is non-zero only if |u - v| = d/2 (appropriately signed).
@@ -912,7 +912,7 @@ function integrate_indices_symplectic(indices::Vector{Tuple{Int,Int}}, dim)
     end
 
     # Results are already grouped by pi in pi_contractions/sigma_contractions
-    total = dim isa Integer ? 0 // 1 : BigInt(0) // BigInt(1)
+    total = 0 // 1
 
     for (pi, val_pi) in pi_contractions
         for (sigma, val_sigma) in sigma_contractions

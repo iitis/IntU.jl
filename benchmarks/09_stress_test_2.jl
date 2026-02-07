@@ -161,6 +161,15 @@ U_cases = [
     ),
 ]
 
+function safe_eq(x, y)
+    try
+        val = (x == y)
+        return val isa Bool ? val : false
+    catch
+        return false
+    end
+end
+
 for (name, expr, expected) in U_cases
     got, bm = bench_integrate(expr, μU; samples = samples)
     diff0 = sym_is_zero(got - expected)
@@ -170,7 +179,7 @@ for (name, expr, expected) in U_cases
         g = eval_at(got, d, dv)
         e = eval_at(expected, d, dv)
         numeric_checks[string(dv)] =
-            Dict("got" => safe_string(g), "expected" => safe_string(e), "ok" => (g == e))
+            Dict("got" => safe_string(g), "expected" => safe_string(e), "ok" => safe_eq(g, e))
     end
 
     println("[U(d)] $name")
@@ -247,7 +256,7 @@ for (name, expr, k) in O_cases
             numeric_checks[string(dv)] = Dict(
                 "got" => safe_string(g),
                 "expected" => safe_string(e),
-                "ok" => (g == e),
+                "ok" => safe_eq(g, e),
             )
         end
     end
