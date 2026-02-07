@@ -867,19 +867,18 @@ Table \ref{tab:benchmarks} summarizes the execution times for selected integrals
 Key observations include:
 \begin{enumerate}
     \item \textbf{Symbolic overhead}: Computing integrals with symbolic dimension
-    $d$ is computationally more demanding than fixed $d$, particularly for the
-    unitary group. For example, computing $\int |U_{11}|^{10} dU$ symbolically
-    took approximately 6.9 seconds, whereas the same integral for fixed $d=50$
-    completed in 0.18 seconds. This overhead arises from the manipulation of
-    large rational polynomials in $d$.
+    $d$ is computationally demanding, but optimization strategies significantly reduce this cost.
+    For example, computing $\int |U_{11}|^{10} dU$ symbolically
+    took approximately 46 ms, achieving performance comparable to fixed $d=50$ numeric integration ($47$ ms).
+    This efficiency leverages the grouping of identical cycle structures in the Weingarten sum.
     \item \textbf{Low-degree performance}: For common use cases involving
     lower-degree polynomials (e.g., $2k=6$), the package is extremely fast. The
-    symbolic integration of $|U_{11}|^6$ completes in approximately 8.9 ms, and
+    symbolic integration of $|U_{11}|^6$ completes in approximately 4 ms, and
     for the orthogonal group, computing $O_{11}^6$ takes only 0.3 ms for $d=10$.
     \item \textbf{Group differences}: Orthogonal and symplectic integrals are
-    generally faster to compute than unitary ones of comparable degree. This is
-    typically due to the smaller size of the summation formulations (pair partitions vs permutations)
-    at moderate degrees, although the number of pair partitions grows faster asymptotically.
+    comparable to unitary ones in the optimized regime. While the number of pair partitions grows
+    faster than permutations asymptotically, the overhead for moderate degrees is similar
+    due to efficient grouping strategies.
     \item \textbf{Correctness}: All benchmarks were verified against known exact
     values or asymptotic results, confirming the numerical stability of the
     implementation even for large dimensions (e.g., $d=50$).
@@ -910,16 +909,16 @@ Key observations include:
 \hline
 Group & Integrand & Dimension $d$ & Time (ms) \\
 \hline
-Unitary & $|U_{11}|^6$ & Symbolic & 8.9 \\
-Unitary & $|U_{11}|^8$ & Symbolic & 156.3 \\
-Unitary & $|U_{11}|^{10}$ & Symbolic & 6912.9 \\
-Unitary & $|U_{11}|^{10}$ & $d=10$ & 193.5 \\
-Unitary & $|U_{11}|^{10}$ & $d=50$ & 183.6 \\
+Unitary & $|U_{11}|^6$ & Symbolic & 4.1 \\
+Unitary & $|U_{11}|^8$ & Symbolic & 10.7 \\
+Unitary & $|U_{11}|^{10}$ & Symbolic & 46.2 \\
+Unitary & $|U_{11}|^{10}$ & $d=10$ & 4.4 \\
+Unitary & $|U_{11}|^{10}$ & $d=50$ & 47.7 \\
 \hline
 Orthogonal & $O_{11}^6$ & $d=10$ & 0.3 \\
-Orthogonal & $O_{11}^8$ & $d=20$ & 2.9 \\
-Orthogonal & $O_{11}^{10}$ & $d=20$ & 230.6 \\
-Orthogonal & $O_{11}^{10}$ & $d=50$ & 244.4 \\
+Orthogonal & $O_{11}^8$ & $d=20$ & 4.5 \\
+Orthogonal & $O_{11}^{10}$ & $d=20$ & 372.5 \\
+Orthogonal & $O_{11}^{10}$ & $d=50$ & 385.0 \\
 \hline
 Symplectic & $|S_{11}|^8$ & $d=10$ & 2.1 \\
 Symplectic & $|S_{11}|^{10}$ & $d=10$ & 4.9 \\

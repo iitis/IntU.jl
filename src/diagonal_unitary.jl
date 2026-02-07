@@ -28,13 +28,13 @@ function integrate(expr::AbstractArray, measure::DiagonalUnitaryMeasure)
     return map(e -> integrate(e, measure), expr)
 end
 
-function fallback_integrate(expr, measure::DiagonalUnitaryMeasure)
+function IntU.measure_info(measure::DiagonalUnitaryMeasure)
     V_sym = measure.V
     dim = measure.dim
 
     subs_dict = Dict{Any,Any}()
-    V_atomic_lookup = Dict{Any,Tuple{Int,Int}}()
-    V_bar_lookup = Dict{Any,Tuple{Int,Int}}()
+    V_atomic_lookup = Dict{Any,Tuple}()
+    V_bar_lookup = Dict{Any,Tuple}()
 
     if V_sym isa AbstractArray
         for i = 1:size(V_sym, 1)
@@ -49,16 +49,12 @@ function fallback_integrate(expr, measure::DiagonalUnitaryMeasure)
                 V_bar_lookup[Symbolics.unwrap(v_bar_atomic)] = (i, j)
 
                 subs_dict[v_ij_un] = v_atomic
-
-                c_ij_un = Symbolics.unwrap(conj(v_ij_num))
-                subs_dict[c_ij_un] = v_bar_atomic
-
-                bc_ij_un = Symbolics.unwrap(Base.conj(v_ij_num))
-                subs_dict[bc_ij_un] = v_bar_atomic
+                subs_dict[Symbolics.unwrap(conj(v_ij_num))] = v_bar_atomic
+                subs_dict[Symbolics.unwrap(Base.conj(v_ij_num))] = v_bar_atomic
             end
         end
     end
 
     matcher = LookupMatcher(V_atomic_lookup, V_bar_lookup)
-    return _robust_real_num(_integrate_core(expr, dim, subs_dict, matcher, :DiagUnitary))
+    return (subs_dict, matcher, dim, :DiagUnitary)
 end

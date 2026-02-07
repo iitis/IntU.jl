@@ -334,8 +334,8 @@ end
 Returns a sorted list of pairs (min, max), sorted by min, to uniquely identify a matching.
 """
 function canonicalize_pair_partition(p::Vector{Tuple{Int,Int}})
-    sorted_pairs = [Pair(min(u, v), max(u, v)) for (u, v) in p]
-    sort!(sorted_pairs, by = x->x.first)
+    sorted_pairs = [(min(u, v), max(u, v)) for (u, v) in p]
+    sort!(sorted_pairs, by = x -> x[1])
     return sorted_pairs
 end
 
@@ -398,11 +398,24 @@ function weingarten_orthogonal_val(
     sigma::Vector{Tuple{Int,Int}},
     d,
 )
-    k = length(pi)
+    return weingarten_orthogonal_val_canonical(
+        canonicalize_pair_partition(pi),
+        canonicalize_pair_partition(sigma),
+        d
+    )
+end
+
+"""
+    weingarten_orthogonal_val_canonical(c_pi, c_sigma, d)
+
+Internal version of `weingarten_orthogonal_val` that assumes arguments are already canonical.
+"""
+function weingarten_orthogonal_val_canonical(c_pi, c_sigma, d)
+    k = length(c_pi)
     Wg_mat, lookup = get_weingarten_orthogonal_data(k, d)
 
-    idx_pi = get(lookup, canonicalize_pair_partition(pi), nothing)
-    idx_sigma = get(lookup, canonicalize_pair_partition(sigma), nothing)
+    idx_pi = get(lookup, c_pi, nothing)
+    idx_sigma = get(lookup, c_sigma, nothing)
 
     if idx_pi === nothing || idx_sigma === nothing
         error("Partition not found in generated set for k=\$k")

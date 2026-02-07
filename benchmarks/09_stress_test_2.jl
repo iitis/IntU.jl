@@ -41,8 +41,12 @@ doublefactorial_odd(n::Int) = prod(1:2:n)  # n must be odd
 
 # Symbolic zero test (best-effort; also backs up by numeric spot-checks)
 function sym_is_zero(x)
-    xs = Symbolics.simplify(x)
-    return (xs == 0) || (xs === 0)
+    try
+        xs = Symbolics.simplify(x)
+        return (xs == 0) || (xs === 0)
+    catch
+        return false
+    end
 end
 
 function safe_string(x)
@@ -55,7 +59,12 @@ end
 
 # Evaluate symbolic expression at d = val (if d is a Symbolics variable)
 function eval_at(expr, dvar, val::Int)
-    return Symbolics.simplify(Symbolics.substitute(expr, Dict(dvar => val)))
+    subbed = Symbolics.substitute(expr, Dict(dvar => val))
+    try
+        return Symbolics.simplify(subbed)
+    catch
+        return subbed
+    end
 end
 
 function full_simplify(x)
@@ -64,7 +73,11 @@ function full_simplify(x)
         # Canonicalize by expanding then simplifying
         return Symbolics.simplify(Symbolics.expand(x))
     catch
-        return Symbolics.simplify(x)
+        try
+            return Symbolics.simplify(x)
+        catch
+            return x
+        end
     end
 end
 

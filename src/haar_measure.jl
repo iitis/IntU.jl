@@ -131,7 +131,7 @@ dU(dim) = HaarMeasure(nothing, dim)
 dU(S::SymbolicUnitary) = HaarMeasure(S, S.dim)
 
 
-function fallback_integrate(expr, measure::HaarMeasure)
+function IntU.measure_info(measure::HaarMeasure)
     U_input = measure.U
     dim = measure.dim
 
@@ -143,14 +143,14 @@ function fallback_integrate(expr, measure::HaarMeasure)
         # Regex matches name_i_j
         matcher = SymbolicMatcher(Regex("^$(U_input.name)_(\\d+)_(\\d+)\$"))
 
-        return _robust_real_num(_integrate_core(expr, dim, subs_dict, matcher))
+        return (subs_dict, matcher, dim, :U)
     else
         # Legacy array-based path
         U_sym = U_input
         # Substitute Re(U) and Im(U)
         subs_dict = Dict{Any,Any}()
-        U_atomic_lookup = Dict{Any,Tuple{Int,Int}}()
-        U_bar_lookup = Dict{Any,Tuple{Int,Int}}()
+        U_atomic_lookup = Dict{Any,Tuple}()
+        U_bar_lookup = Dict{Any,Tuple}()
 
         if U_sym isa AbstractArray
             for i = 1:size(U_sym, 1)
@@ -175,8 +175,17 @@ function fallback_integrate(expr, measure::HaarMeasure)
         end
 
         matcher = LookupMatcher(U_atomic_lookup, U_bar_lookup)
-        return _robust_real_num(_integrate_core(expr, dim, subs_dict, matcher))
+        return (subs_dict, matcher, dim, :U)
     end
+end
+
+function _manual_fallback(expr, measure::HaarMeasure)
+    # HaarMeasure still handles LazyTrace manually in fallback_integrate
+    # but we renamed that to fallback_integrate(::LazyTrace, ::HaarMeasure).
+    # Wait, the core fallback_integrate calls _manual_fallback if measure_info is not found
+    # OR if it's found but we want to handle specialized types.
+    # Actually, LazyTrace is handled by a specific dispatch.
+    error("HaarMeasure integration failed for: $(typeof(expr))")
 end
 
 """
