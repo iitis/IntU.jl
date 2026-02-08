@@ -383,8 +383,22 @@ function _integrate_core(
     
 
     # Apply rewrites again to catch complex(...) introduced by substitution
-    # NOTE: This second Postwalk was removed to improve performance on large expanded expressions.
-    # The simplification/expansion above should be sufficient.
+    # This is necessary for correct integration of pure states.
+    expanded_expr = _safe_Num(SymbolicUtils.Postwalk(x -> begin
+        ux = Symbolics.unwrap(x)
+        if Symbolics.iscall(ux) && (Symbolics.operation(ux) == complex || Symbolics.operation(ux) == Base.complex)
+            args = Symbolics.arguments(ux)
+            return args[1] + im * args[2]
+        end
+        return x
+    end)(Symbolics.unwrap(expanded_expr)))
+
+    # Expand one last time after flattening complex
+    expanded_expr = try
+        Symbolics.expand(expanded_expr)
+    catch
+        expanded_expr
+    end
 
     # Helper to traverse product
     function process_term_wrapped(term)
@@ -518,11 +532,14 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
 
     if Symbolics.iscall(term)
         op = Symbolics.operation(term)
+        args = Symbolics.arguments(term)
         if op == (+)
             return sum(
                 t -> process_term(t, matcher, dim, measure_type),
-                Symbolics.arguments(term),
+                args,
             )
+        elseif op == complex || op == Base.complex
+            return process_term(args[1], matcher, dim, measure_type) + im * process_term(args[2], matcher, dim, measure_type)
         end
     end
 
@@ -552,13 +569,12 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
         end
 
         if Symbolics.iscall(t_unwrapped)
-            op = Symbolics.operation(t_unwrapped)
-            args = Symbolics.arguments(t_unwrapped)
+            local op = Symbolics.operation(t_unwrapped)
+            local args = Symbolics.arguments(t_unwrapped)
 
             if op == (*)
                 for arg in args
-                    ;
-                    traverse(arg);
+                    traverse(arg)
                 end
                 return
             elseif op == (^)
@@ -567,15 +583,16 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
                 p = try
                     parse(Int, string(p_val))
                 catch
-                    ; nothing
+                    nothing
                 end
                 if p isa Integer
                     for _ = 1:p
-                        ;
-                        traverse(base);
+                        traverse(base)
                     end
                     return
                 end
+                traverse(base)
+                return
             elseif op == (/)
                 # Traverse numerator, but divide coeff by denominator
                 traverse(args[1])
@@ -595,7 +612,13 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
                     end
                     return
                 end
+            elseif op == complex || op == Base.complex || op == (+) || op == (-)
+                for arg in args
+                    traverse(arg)
+                end
+                return
             end
+
         end
 
         coeff *= t

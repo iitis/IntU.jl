@@ -14,7 +14,7 @@ using Test
         end
 
         # 2. Simplify and check
-        s = simplify(x)
+        s = simplify(expand(x))
         if isequal(s, 0) || isequal(s, 0.0)
             return true
         end

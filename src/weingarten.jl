@@ -117,7 +117,7 @@ Reference:
                 den *= hook_length
             end
         end
-        return num / den
+        return (1 // den) * num
     end
 end
 
@@ -225,7 +225,7 @@ Reference:
         sum_val += term
     end
 
-    return (d isa Integer ? sum_val // (n_fact^2) : sum_val / (n_fact^2))
+    return (d isa Integer ? sum_val // (n_fact^2) : sum_val * (1 // n_fact^2))
 end
 
 
