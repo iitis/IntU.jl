@@ -175,7 +175,7 @@ U_sym = SymbolicMatrix(:U, false, :U) # unitary
 # Compute ∫ tr(U A U† B) dU
 expr = tr(U_sym * A * U_sym' * B)
 integrate(expr, dU(d))
-# Output: tr(A)*tr(B) / d
+# Output: (tr(A)*tr(B)) / d
 ```
 
 ### Stiefel Manifolds
