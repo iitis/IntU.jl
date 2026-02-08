@@ -65,14 +65,19 @@ function _robust_real(x)
 
     # Try early plain value recovery
     v = Symbolics.value(x_un)
+    if v isa AbstractFloat
+        return rationalize(v, tol=1e-13)
+    end
     if v isa Real
         return v
     end
     if v isa Complex
-        if iszero(imag(v))
-            return _robust_real(real(v))
+        rv = _robust_real(real(v))
+        iv = _robust_real(imag(v))
+        if iszero(iv)
+            return rv
         end
-        return Complex(_robust_real(real(v)), _robust_real(imag(v)))
+        return Complex(rv, iv)
     end
 
     # Handle symbolic complex calls
@@ -92,18 +97,43 @@ function _robust_real(x)
     # Try symbolic simplification to see if it's real
     try
         nx = _safe_Num(x_un)
-        ix = Symbolics.simplify(imag(nx))
-        if _iszero(ix)
+        
+        # FAST PATH: If already a value, handle directly
+        v = Symbolics.value(nx)
+        if v isa AbstractFloat
+            return rationalize(v, tol=1e-13)
+        end
+        if v isa Real
+            return v
+        end
+
+        # SLOW PATH: Simplify and check again
+        nx = Symbolics.simplify(nx)
+        v = Symbolics.value(nx)
+        if v isa AbstractFloat
+            return rationalize(v, tol=1e-13)
+        end
+        if v isa Real
+            return v
+        end
+        
+        # Check if it has non-zero imaginary part
+        # Symbolics.simplify(imag(nx)) should be fast now since nx is simplified
+        if _iszero(Symbolics.simplify(imag(nx)))
             rx = Symbolics.simplify(real(nx))
             vx = Symbolics.value(rx)
+            if vx isa AbstractFloat
+                return rationalize(vx, tol=1e-13)
+            end
             if vx isa Real
                 return vx
             end
             return rx
         end
+        return nx
     catch
     end
-
+    
     return x_un
 end
 
@@ -202,7 +232,15 @@ function _integrate_core(
 
     # Rewrite rules to ensure abs(z)^2 becomes (z * conj(z)) or real^2 + imag^2
     r_abs2 = @rule abs2(~x) => (~x) * conj(~x)
-    r_abs_sq = @rule abs(~x)^2 => (~x) * conj(~x)
+    r_abs_pow = @rule abs(~x)^~n => begin
+        n_un = Symbolics.unwrap(~n)
+        if n_un isa Number && isinteger(n_un) && iseven(Int(n_un))
+            k = Int(n_un) ÷ 2
+            ((~x) * conj(~x))^k
+        else
+            nothing
+        end
+    end
     r_abs = @rule abs(~x) => hypot(real(~x), imag(~x))
 
     r_real = @rule real(~x) => (1//2) * (~x + conj(~x))
@@ -220,11 +258,42 @@ function _integrate_core(
     r_complex = @rule complex(~x, ~y) => ~x + im*~y
     r_complex_base = @rule Base.complex(~x, ~y) => ~x + im*~y
 
+    # Fix nested powers: ((x^a)^b) -> x^(a*b)
+    function power_simplifier(x, a, b)
+        new_expon = a * b
+        if isinteger(new_expon)
+            return x^Int(new_expon)
+        end
+        return x^new_expon
+    end
+    r_pow_nested = @rule ((~x)^~a)^~b => power_simplifier(~x, ~a, ~b)
+
+    # Even powers of hypot: hypot(x,y)^4 -> (x^2 + y^2)^2
+    r_hypot_pow = @rule hypot(~x, ~y)^~n => begin
+        n_un = Symbolics.unwrap(~n)
+        if n_un isa Number && isinteger(n_un) && iseven(Int(n_un))
+            k = Int(n_un) ÷ 2
+            ((~x)^2 + (~y)^2)^k
+        else
+            nothing
+        end
+    end
+
+    # Convert float integer powers to Int: x^2.0 -> x^2
+    r_float_to_int_pow = @rule (~x)^~a => begin
+        a_un = Symbolics.unwrap(~a)
+        if a_un isa AbstractFloat && isinteger(a_un)
+            (~x)^Int(a_un)
+        else
+            nothing
+        end
+    end
+
     expr_unwrapped = Symbolics.unwrap(expr)
 
     # Apply rewrites
     chain = SymbolicUtils.Chain([
-        r_abs_sq,
+        r_abs_pow,
         r_abs2,
         r_abs,
         r_real,
@@ -235,6 +304,9 @@ function _integrate_core(
         r_hypot_default,
         r_complex,
         r_complex_base,
+        r_pow_nested,
+        r_hypot_pow,
+        r_float_to_int_pow, # Add float fix
     ])
     expr_rewritten =
         SymbolicUtils.Postwalk(
@@ -247,41 +319,14 @@ function _integrate_core(
             end
         )(expr_unwrapped)
 
-    # Manual power fixing function
-    function fix_powers(t)
-        if Symbolics.iscall(t)
-            op = Symbolics.operation(t)
-            if op == (^)
-                args = Symbolics.arguments(t)
-                base = args[1]
-                expon = args[2]
-
-                if Symbolics.iscall(base) && Symbolics.operation(base) == (^)
-                    base_args = Symbolics.arguments(base)
-                    inner_base = base_args[1]
-                    inner_expon = base_args[2]
-
-                    new_expon = inner_expon * expon
-                    if isinteger(new_expon)
-                        return inner_base^Int(new_expon)
-                    else
-                        return inner_base^new_expon
-                    end
-                end
-
-                if expon isa Rational && isinteger(expon)
-                    return base^Int(expon)
-                end
-            end
-        end
-        return t
-    end
-
-    expr_rewritten = SymbolicUtils.Postwalk(fix_powers)(expr_rewritten)
+    # Manual power fixing function removed
+    
+    # expr_rewritten = SymbolicUtils.Postwalk(fix_powers)(expr_rewritten)
     if expr_rewritten isa Complex
         return _integrate_core(expr_rewritten, dim, subs_dict, matcher, measure_type)
     end
     expr_num = _safe_Num(expr_rewritten)
+    
 
     # Expand again
     try
@@ -326,24 +371,20 @@ function _integrate_core(
         robust_substitute(Symbolics.unwrap(expr_num), subs_dict)
     end
 
+
     # Expand
     expanded_expr = try
         Symbolics.expand(_safe_Num(Symbolics.unwrap(expr_subbed)))
     catch
         _safe_Num(expr_subbed)
     end
+    
+    
+    
 
     # Apply rewrites again to catch complex(...) introduced by substitution
-    expanded_expr = SymbolicUtils.Postwalk(SymbolicUtils.PassThrough(chain))(
-        Symbolics.unwrap(expanded_expr),
-    )
-    # Safe wrap and expand again to distribute
-    try
-        expanded_expr = Symbolics.expand(_safe_Num(expanded_expr))
-    catch e
-        println("DEBUG: Expansion failed: ", e)
-        expanded_expr = _safe_Num(expanded_expr)
-    end
+    # NOTE: This second Postwalk was removed to improve performance on large expanded expressions.
+    # The simplification/expansion above should be sufficient.
 
     # Helper to traverse product
     function process_term_wrapped(term)
@@ -375,7 +416,8 @@ function _integrate_core(
 
     # Handle result
     final_res = integrate_num_expr(expanded_expr)
-    return _robust_real(final_res)
+    res = _robust_real(final_res)
+    return res
 end
 
 function integrate(expr::LazySum, measure)
@@ -416,7 +458,8 @@ function fallback_integrate(expr, measure)
     info = measure_info(measure)
     if info !== nothing
         subs_dict, matcher, dim, measure_type = info
-        return _robust_real(_integrate_core(expr, dim, subs_dict, matcher, measure_type))
+        # _integrate_core already calls _robust_real on the final result
+        return _integrate_core(expr, dim, subs_dict, matcher, measure_type)
     end
     
     # Optional: fallback to manual implementation if measure_info is not provided
@@ -567,15 +610,15 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
         rule = get(INTEGRATION_RULES, first(measure_type), nothing)
     end
 
-    if rule !== nothing
-        val = rule(u_indices, u_bar_indices, dim, measure_type)
-        if _symbolic_isequal(val, 0)
-            return 0
+        if rule !== nothing
+            val = rule(u_indices, u_bar_indices, dim, measure_type)
+            if _symbolic_isequal(val, 0)
+                return 0
+            end
+            return coeff * val
+        else
+            error("Unknown measure type: $measure_type")
         end
-        return coeff * val
-    else
-        error("Unknown measure type: $measure_type")
-    end
 end
 
 # Register standard rules
@@ -791,10 +834,18 @@ function integrate_indices_orthogonal(indices::Vector{Tuple{Int,Int}}, dim)
         sigma_counts[c_sigma] = get(sigma_counts, c_sigma, 0) + 1
     end
 
+    val_mat, lookup = get_weingarten_orthogonal_data(n ÷ 2, dim)
+
     total = 0 // 1
     for (c_pi, count_pi) in pi_counts
+        idx_pi = get(lookup, c_pi, nothing)
+        idx_pi === nothing && continue
+        
         for (c_sigma, count_sigma) in sigma_counts
-            val = weingarten_orthogonal_val(c_pi, c_sigma, dim)
+            idx_sigma = get(lookup, c_sigma, nothing)
+            idx_sigma === nothing && continue
+            
+            val = val_mat[idx_pi, idx_sigma]
             total += (count_pi * count_sigma) * val
         end
     end

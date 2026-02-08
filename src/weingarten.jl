@@ -96,26 +96,29 @@ Reference:
 """
 @memoize function irrep_dimension(part::Vector{Int}, d)
     conj_part = conjugate_partition(part)
-    cols = length(part) > 0 ? part[1] : 0
-
-    # We need to iterate over all boxes (i, j) in the Young diagram
-    prod_val = 1 // 1
-
-    for i = 1:length(part)
-        for j = 1:part[i]
-            # Hook length h_{i,j} = lambda[i] - i + lambda'[j] - j + 1
-            hook_length = part[i] - i + conj_part[j] - j + 1
-
-            # Content c_{i,j} = j - i
-            # Term = d + c_{i,j} = d + j - i
-            term = d + j - i
-
-            # Update product
-            prod_val *= (d isa Integer ? term // hook_length : term / hook_length)
+    
+    if d isa Integer
+        prod_val = 1 // 1
+        for i = 1:length(part)
+            for j = 1:part[i]
+                hook_length = part[i] - i + conj_part[j] - j + 1
+                term = d + j - i
+                prod_val *= term // hook_length
+            end
         end
+        return prod_val
+    else
+        num = 1
+        den = 1
+        for i = 1:length(part)
+            for j = 1:part[i]
+                hook_length = part[i] - i + conj_part[j] - j + 1
+                num *= (d + j - i)
+                den *= hook_length
+            end
+        end
+        return num / den
     end
-
-    return prod_val
 end
 
 function get_binary_partition(part::Vector{Int})
@@ -193,6 +196,7 @@ Reference:
 @memoize function weingarten(partition_type::Vector{Int}, d)
     # Wg(sigma, d) where sigma has cycle type `partition_type`.
     n = sum(partition_type)
+    n_fact = factorial(big(n))
 
     # Iterate over all partitions of n
     parts = partitions(n)
@@ -215,13 +219,13 @@ Reference:
         dim_lam = irrep_dimension(lam, d)
 
         term = (
-            d isa Integer ? ((f_lam)^2 * chi_lam_mu) // dim_lam :
-            ((f_lam)^2 * chi_lam_mu) / dim_lam
+            d isa Integer ? (big(f_lam)^2 * chi_lam_mu) // dim_lam :
+            (big(f_lam)^2 * chi_lam_mu) / dim_lam
         )
         sum_val += term
     end
 
-    return (d isa Integer ? sum_val // (factorial(n)^2) : sum_val / (factorial(n)^2))
+    return (d isa Integer ? sum_val // (n_fact^2) : sum_val / (n_fact^2))
 end
 
 
