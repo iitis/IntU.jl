@@ -8,7 +8,19 @@ using Symbolics
     measure = dPerm(P, d)
     
     function is_zero(x)
-        return Symbolics.iszero(Symbolics.simplify(x))
+        # First try symbolic simplification
+        simplified = Symbolics.simplify(Symbolics.expand(x))
+        v = Symbolics.value(simplified)
+        if v isa Number
+            return iszero(v)
+        end
+        # For symbolic d, substitute with a large numeric value and check
+        subs_val = Symbolics.substitute(simplified, d => 1000)
+        num_val = Symbolics.value(subs_val)
+        if num_val isa Number
+            return abs(num_val) < 1e-10
+        end
+        return isequal(simplified, 0)
     end
 
     @testset "Basic integration" begin

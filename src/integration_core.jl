@@ -94,6 +94,12 @@ function _robust_real(x)
         return x_un
     end
 
+    # If the expression tree does not contain any Complex numbers or complex/imag operations,
+    # then it is Real by definition (assuming variables are Real).
+    if _is_manifestly_real(x_un)
+        return x_un
+    end
+
     # Try symbolic simplification to see if it's real
     try
         nx = _safe_Num(x_un)
@@ -135,6 +141,66 @@ function _robust_real(x)
     end
     
     return x_un
+end
+
+function _is_manifestly_real(x)
+    if x isa Real
+        return true
+    end
+    if x isa AbstractArray
+        # Check if all elements are manifestly real
+        for elem in x
+            u = Symbolics.unwrap(elem)
+            # Prevent infinite recursion for symbolic arrays where elements are getindex(self, ...)
+            if Symbolics.iscall(u) && Symbolics.operation(u) == getindex
+                args = Symbolics.arguments(u)
+                # If the first argument is specifically the array itself (or wrapped version), skip
+                # We check equality because unwrap behavior might differ
+                if args[1] === x || args[1] == x
+                    continue
+                end
+            end
+            
+            if !_is_manifestly_real(u)
+                return false
+            end
+        end
+        return true
+    end
+    if x isa Complex
+        return iszero(imag(x))
+    end
+    if SymbolicUtils.issym(x)
+        return true
+    end
+    
+    if SymbolicUtils.iscall(x)
+        op = SymbolicUtils.operation(x)
+        if op == complex || op == Base.complex || op == imag || op == Base.imag
+             return false
+        end
+        
+        # Check arguments recursively
+        args = SymbolicUtils.arguments(x)
+        for arg in args
+            if !_is_manifestly_real(arg)
+                return false
+            end
+        end
+        return true
+    end
+    
+    # Try to unwrap value (handles BasicSymbolicImpl wrappers around numbers)
+    try
+        v = Symbolics.value(x)
+        if v !== x
+            return _is_manifestly_real(v)
+        end
+    catch
+    end
+    
+    # Fallback for other types
+    return false
 end
 
 """
@@ -308,6 +374,7 @@ function _integrate_core(
         r_hypot_pow,
         r_float_to_int_pow, # Add float fix
     ])
+    # println("DEBUG: Rewriting")
     expr_rewritten =
         SymbolicUtils.Postwalk(
             SymbolicUtils.PassThrough(chain);
@@ -365,8 +432,7 @@ function _integrate_core(
     end
 
     expr_subbed = if expr_num isa Complex
-        robust_substitute(Symbolics.unwrap(real(expr_num)), subs_dict) +
-        im * robust_substitute(Symbolics.unwrap(imag(expr_num)), subs_dict)
+        robust_substitute(Symbolics.unwrap(real(expr_num)), subs_dict) + im * robust_substitute(Symbolics.unwrap(imag(expr_num)), subs_dict)
     else
         robust_substitute(Symbolics.unwrap(expr_num), subs_dict)
     end
