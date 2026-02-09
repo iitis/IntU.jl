@@ -113,4 +113,7 @@ IntU.character_at_id
 IntU.irrep_dimension
 IntU.get_weingarten_orthogonal_data
 IntU.compute_symplectic_contraction
+IntU.weingarten_orthogonal_val_canonical
+IntU.INTEGRATION_RULES
+IntU.measure_info
 ```
