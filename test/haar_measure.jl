@@ -1,6 +1,7 @@
 using IntU
 using Test
 using Symbolics
+using LinearAlgebra
 
 @testset verbose=true "Haar Measure Integration" begin
     # Define variables
@@ -45,5 +46,28 @@ using Symbolics
         end
         @test abs(to_numeric(real(sum_off))) < 1e-12
         @test abs(to_numeric(imag(sum_off))) < 1e-12
+    end
+
+    @testset "Matrix Integration Checks" begin
+        # Example 4: Matrix integration U * U' -> I
+        # We collect to ensure we are working with a Matrix{Num} and not a lazy Symbolic Array wrapper
+        # which might cause dispatch or iteration issues in some versions of Symbolics.
+        expr_mat = collect(U * U')
+        res_matrix = integrate(expr_mat, measure)
+        # res_matrix should be a 3x3 Matrix of numbers
+        @test res_matrix isa AbstractMatrix
+        @test size(res_matrix) == (3, 3)
+
+        # Expected result is Identity
+        I_mat = Matrix{Complex{Rational{Int}}}(I, 3, 3)
+        # Simplify elementwise
+        res_simp = map(x -> to_numeric(real(x)) + im*to_numeric(imag(x)), res_matrix)
+        @test res_simp ≈ I_mat
+        
+        # Example 5: U' * U -> I
+        expr_mat_2 = collect(U' * U)
+        res_matrix_2 = integrate(expr_mat_2, measure)
+        res_simp_2 = map(x -> to_numeric(real(x)) + im*to_numeric(imag(x)), res_matrix_2)
+        @test res_simp_2 ≈ I_mat
     end
 end

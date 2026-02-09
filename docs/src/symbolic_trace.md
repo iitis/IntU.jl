@@ -37,7 +37,7 @@ expr = IntU.tr(U * A * U' * A)
 # 4. Integrate
 res = integrate(expr, measure)
 println(res)
-# Output: (tr(A)^2)/d
+# Output: (tr(A)^2) / d
 ```
 
 ## Implementation Details
@@ -62,14 +62,12 @@ Information Theory without getting bogged down in index hell.
 # Product of traces
 expr = tr(U * A) * tr(U' * B)
 integrate(expr, measure)
-# Output: tr(A B) / d
+# Output: tr(A*B) / d
 
 # Sum of traces
 expr_sum = tr(U * A * U') + tr(B)
 integrate(expr_sum, measure)
-# Output: tr(A)/d * tr(I) + tr(B) = tr(A) + tr(B)
+# Output: (tr(A) / d) * tr(I_d) + tr(B) = tr(A) + tr(B)
 ```
-
-The underlying engine handles the "wiring" of indices across multiple trace cycles automatically.
 
 The underlying engine handles the "wiring" of indices across multiple trace cycles automatically.

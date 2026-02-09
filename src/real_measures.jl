@@ -57,12 +57,12 @@ function integrate(expr::AbstractArray, measure::SymplecticMeasure)
     return map(e -> integrate(e, measure), expr)
 end
 
-function fallback_integrate(expr, measure::OrthogonalMeasure)
+function IntU.measure_info(measure::OrthogonalMeasure)
     O_sym = measure.O
     dim = measure.dim
 
     subs_dict = Dict{Any,Any}()
-    O_atomic_lookup = Dict{Any,Tuple{Int,Int}}()
+    O_atomic_lookup = Dict{Any,Tuple}()
 
     if O_sym isa AbstractArray
         for i = 1:size(O_sym, 1)
@@ -83,23 +83,29 @@ function fallback_integrate(expr, measure::OrthogonalMeasure)
         end
     end
 
-    # Pass empty U_bar_lookup because O is orthogonal (real for our integration purposes effectively)
-    # We will reuse the core logic but identifying it as orthogonal measure
-    matcher = LookupMatcher(O_atomic_lookup, Dict{Any,Tuple{Int,Int}}())
-    return _robust_real_num(_integrate_core(expr, dim, subs_dict, matcher, :O))
+    matcher = LookupMatcher(O_atomic_lookup, Dict{Any,Tuple}())
+    return (subs_dict, matcher, dim, :O)
 end
 
-function fallback_integrate(expr, measure::SymplecticMeasure)
+function _j_pair_sign(idx, n)
+    if idx <= n
+        return idx + n, 1
+    else
+        return idx - n, -1
+    end
+end
+
+function IntU.measure_info(measure::SymplecticMeasure)
     S_sym = measure.S
     dim = measure.dim
 
     subs_dict = Dict{Any,Any}()
-    S_atomic_lookup = Dict{Any,Tuple{Int,Int}}()
+    S_atomic_lookup = Dict{Any,Tuple}()
 
     # Check dimensions
     N = size(S_sym, 1)
     if isodd(N)
-        error("Symplectic matrix dimension must be even, got \$N")
+        error("Symplectic matrix dimension must be even, got $N")
     end
     n_half = N ÷ 2
 
@@ -126,35 +132,10 @@ function fallback_integrate(expr, measure::SymplecticMeasure)
                 s_atomic = atomics[i, j]
                 subs_dict[s_ij_un] = s_atomic
 
-                # Handle conj(S_ij) -> S_pq * coeff
-                # \bar{S}_{ij} = J_{ip} S_{pq} (J^T)_{qj} = J_{ip} S_{pq} (-J_{qj})
-                # p = pair(i), q = pair(j)
-
-                # Helper for J-pair and sign
-                function j_pair_sign(idx, n)
-                    if idx <= n
-                        return idx + n, 1
-                    else
-                        return idx - n, -1
-                    end
-                end
-
-                p, sign_i = j_pair_sign(i, n_half)
-                q, sign_j = j_pair_sign(j, n_half) # Note: this calculates sign for J_{j, q} NOT J_{q, j}
-                # We need -J_{q, j}.
-                # J_{pair(j), j}.
-                # if j <= n, q=j+n. J_{j+n, j} = -1. -J = 1.
-                # if j > n, q=j-n. J_{j-n, j} = 1. -J = -1.
-                # My logic in thought process: "sign(l, n)" was "if l <= n then 1 else -1".
-                # Let's re-verify.
-                # Term is -J_{q, j}. q = pair(j).
-                # If j <= n, q = j+n. J_{q, j} = J_{j+n, j} = -1. Term = 1.
-                # If j > n, q = j-n. J_{q, j} = J_{j-n, j} = 1. Term = -1.
-                # So coeff_j = (j <= n ? 1 : -1).
-                # My j_pair_sign returns 1 if idx<=n. Correct.
-
+                p, sign_i = _j_pair_sign(i, n_half)
+                q, sign_j = _j_pair_sign(j, n_half) 
+                
                 coeff = sign_i * sign_j
-
                 s_mapped = atomics[p, q]
 
                 subs_dict[Symbolics.unwrap(conj(s_ij_un))] = coeff * s_mapped
@@ -163,8 +144,8 @@ function fallback_integrate(expr, measure::SymplecticMeasure)
         end
     end
 
-    matcher = LookupMatcher(S_atomic_lookup, Dict{Any,Tuple{Int,Int}}())
-    return _robust_real_num(_integrate_core(expr, dim, subs_dict, matcher, :Sp))
+    matcher = LookupMatcher(S_atomic_lookup, Dict{Any,Tuple}())
+    return (subs_dict, matcher, dim, :Sp)
 end
 
 """

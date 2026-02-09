@@ -74,3 +74,14 @@ println("\n--- Asymptotic Expansion ---")
 asymp = asymptotic(poly3, measure, 2)
 println("Asymptotic expansion of E[|V_{1,1}|^2 * |V_{1,2}|^2]:")
 println(asymp)
+
+# 5. Matrix Integration
+println("\n--- Matrix Integration ---")
+println("Integrating V' * V (should be Identity I_k)")
+# V is d x k. V' * V is k x k (here 2x2).
+# We defined V using explicit loop so it is a Matrix{Num} already.
+res_Id = integrate(V_sub' * V_sub, measure)
+
+println("Result:")
+display(res_Id)
+println("Expected: I(2)")

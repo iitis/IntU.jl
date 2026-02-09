@@ -35,24 +35,7 @@ function integrate(expr::AbstractArray, measure::SpecialUnitary)
     return map(e -> integrate(e, measure), expr)
 end
 
-function fallback_integrate(expr, measure::SpecialUnitary)
-    # Re-use the scalar integration logic from HaarMeasure
-    # But we need to ensure we catch unbalanced terms first if we want to be strict.
-    
-    # However, the current Haar integration logic in `haar_measure.jl` (used by `fallback_integrate`)
-    # ALREADY checks if n_U == n_U_bar and returns 0 if not.
-    # For U(d), this is correct: \int U_{ij} dU = 0.
-    # For SU(d), \int U_{ij} dSU is also 0.
-    # The difference appears at order d. E.g. det(U) = 1 in SU(d), but average of det(U) in U(d) is 0.
-    
-    # Since our Haar logic (Weingarten) imposes balance, reusing it is safe for 
-    # the subset of integrals that are non-zero in U(d).
-    # For terms that are zero in U(d) but non-zero in SU(d) (like det(U)), 
-    # our U(d) logic returns 0.
-    # Implementing full SU(d) support would require detecting "det-like" structures.
-    
-    # For now, we simply map to a HaarMeasure and delegate.
-    
-    haar_measure = dU(measure.U, measure.dim)
-    return fallback_integrate(expr, haar_measure)
+function IntU.measure_info(measure::SpecialUnitary)
+    # Delegates to HaarMeasure info
+    return IntU.measure_info(dU(measure.U, measure.dim))
 end

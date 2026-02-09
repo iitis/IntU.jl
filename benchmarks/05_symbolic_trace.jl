@@ -4,9 +4,8 @@ using Symbolics
 
 function run_benchmarks()
     @variables d
-    @variables u_dummy[1:1, 1:1]
-    measure = dU(u_dummy, d)
     U = SymbolicMatrix(:U, false, :U)
+    measure = dU(U, d)
     Ud = U'
 
     # Create constants

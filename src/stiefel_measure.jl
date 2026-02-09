@@ -34,31 +34,25 @@ function integrate(expr::AbstractArray, measure::StiefelMeasure)
     return map(e -> integrate(e, measure), expr)
 end
 
-function fallback_integrate(expr, measure::StiefelMeasure)
+function IntU.measure_info(measure::StiefelMeasure)
     V_input = measure.V
     dim = measure.dim
     k_dim = measure.k
 
     subs_dict = Dict{Any,Any}()
-    V_atomic_lookup = Dict{Any,Tuple{Int,Int}}()
-    V_bar_lookup = Dict{Any,Tuple{Int,Int}}()
+    V_atomic_lookup = Dict{Any,Tuple}()
+    V_bar_lookup = Dict{Any,Tuple}()
 
     # V is a d x k matrix
     if V_input isa AbstractArray
         rows = size(V_input, 1)
         cols = size(V_input, 2)
         
-        # We allow V to be symbolic or explicit, but loops logic assumes we traverse it
         for i = 1:rows
             for j = 1:cols
                 v_ij_num = _safe_Num(V_input[i, j])
                 v_ij_un = Symbolics.unwrap(v_ij_num)
                 
-                # Create atomic variables for mapping
-                # Map V_{i,j} to U_{i,j}
-                # However, since j is in range 1:k, this maps to the first k columns of U
-                
-                # Check bounds if k is explicitly given as integer
                 if k_dim isa Integer && j > k_dim
                      error("Matrix column index $j exceeds Stiefel dimension k=$k_dim")
                 end
@@ -66,23 +60,18 @@ function fallback_integrate(expr, measure::StiefelMeasure)
                 v_atomic = Symbolics.variable(:V_atomic, i, j)
                 v_bar_atomic = Symbolics.variable(:V_bar_atomic, i, j)
 
-                # Store mapping to U indices (i, j)
                 V_atomic_lookup[Symbolics.unwrap(v_atomic)] = (i, j)
                 V_bar_lookup[Symbolics.unwrap(v_bar_atomic)] = (i, j)
 
                 subs_dict[v_ij_un] = v_atomic
-
-                c_ij_un = Symbolics.unwrap(conj(v_ij_num))
-                subs_dict[c_ij_un] = v_bar_atomic
-                
-                bc_ij_un = Symbolics.unwrap(Base.conj(v_ij_num))
-                subs_dict[bc_ij_un] = v_bar_atomic
+                subs_dict[Symbolics.unwrap(conj(v_ij_num))] = v_bar_atomic
+                subs_dict[Symbolics.unwrap(Base.conj(v_ij_num))] = v_bar_atomic
             end
         end
     end
 
     matcher = LookupMatcher(V_atomic_lookup, V_bar_lookup)
-    return _robust_real_num(_integrate_core(expr, dim, subs_dict, matcher))
+    return (subs_dict, matcher, dim, :U)
 end
 
 """

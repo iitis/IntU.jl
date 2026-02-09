@@ -194,20 +194,28 @@ end
 Symbolic function representing the trace of a matrix product.
 """
 function tr_val(factors::Vector{SymbolicMatrix})
-    # Create a symbolic variable representing this trace
+    # Create a symbolic term representing this trace
     # This avoids issues with Term multiplication and simplification
     if isempty(factors)
-        return 1 # Should handle dim separately, but trace of empty is not passed here usually
+        return 1
     end
 
-    # Construct a nice string representation
-    # e.g. "tr(A * B)"
+    # Construct the inner expression
+    # e.g. "A * B"
     s_parts = String[]
     for (i, f) in enumerate(factors)
         push!(s_parts, string(f))
     end
-    name = "tr_val(" * join(s_parts, "*") * ")"
-    return Symbolics.variable(Symbol(name); T = Real)
+    
+    inner_content_name = join(s_parts, "*")
+    
+    # We use a plain symbolic variable with a name that looks like a function call.
+    # This avoids issues with Symbolics simplifying away Term objects during integration.
+    # It renders as var"tr(...)" but behaves correctly in all algebraic operations.
+    name = "tr(" * inner_content_name * ")"
+    return Num(Symbolics.variable(Symbol(name); T=Real))
 end
+
+# register_symbolic removed due to compatibility issues
 # Symbolics metadata might go here if needed.
 # Actually, we rely on Term wrapping it.

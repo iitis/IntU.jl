@@ -31,6 +31,17 @@ println("Result (symbolic sum k=1..3): ", res3)
 println("Value at d=3: ", Symbolics.substitute(res3, Dict(d => 3)))
 
 
+println("\n4. Matrix Integration Example")
+println("Integrating O * O^T (should be Identity)")
+# We need to collect symbolic array to standard Matrix{Num} to ensure element-wise integration
+O_mat = collect(O)
+res_mat = integrate(O_mat * O_mat', mO)
+
+# Check first element
+println("Result[1,1]: ", res_mat[1,1])
+println("Expected: 1")
+
+
 # --- Symplectic Group Sp(d) ---
 println("\n--- Symplectic Group Sp(d) ---")
 println("(Note: Sp(d) integration requires d to be even)")

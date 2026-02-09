@@ -73,7 +73,7 @@ end
 
 function _setup_gaussian_subs(H_sym, ensemble_type)
     subs_dict = Dict{Any,Any}()
-    H_atomic_lookup = Dict{Any,Tuple{Int,Int}}()
+    H_atomic_lookup = Dict{Any,Tuple}()
 
     if H_sym isa AbstractArray
         for i = 1:size(H_sym, 1)
@@ -117,10 +117,10 @@ function integrate(expr::AbstractArray, measure::GSEMeasure)
     return map(e -> integrate(e, measure), expr)
 end
 
-function fallback_integrate(expr, measure::GUEMeasure)
+function IntU.measure_info(measure::GUEMeasure)
     subs_dict, H_atomic_lookup = _setup_gaussian_subs(measure.H, :GUE)
-    matcher = LookupMatcher(H_atomic_lookup, Dict{Any,Tuple{Int,Int}}())
-    return _robust_real_num(_integrate_core(expr, measure.dim, subs_dict, matcher, :GUE))
+    matcher = LookupMatcher(H_atomic_lookup, Dict{Any,Tuple}())
+    return (subs_dict, matcher, measure.dim, :GUE)
 end
 
 function fallback_integrate(t::LazyTrace, measure::GUEMeasure)
@@ -231,10 +231,10 @@ function fallback_integrate(t::LazyTrace, measure::GUEMeasure)
     return total_val
 end
 
-function fallback_integrate(expr, measure::GOEMeasure)
+function IntU.measure_info(measure::GOEMeasure)
     subs_dict, H_atomic_lookup = _setup_gaussian_subs(measure.H, :GOE)
-    matcher = LookupMatcher(H_atomic_lookup, Dict{Any,Tuple{Int,Int}}())
-    return _robust_real_num(_integrate_core(expr, measure.dim, subs_dict, matcher, :GOE))
+    matcher = LookupMatcher(H_atomic_lookup, Dict{Any,Tuple}())
+    return (subs_dict, matcher, measure.dim, :GOE)
 end
 
 function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
@@ -444,10 +444,10 @@ function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
     return total_val
 end
 
-function fallback_integrate(expr, measure::GSEMeasure)
+function IntU.measure_info(measure::GSEMeasure)
     subs_dict, H_atomic_lookup = _setup_gaussian_subs(measure.H, :GSE)
-    matcher = LookupMatcher(H_atomic_lookup, Dict{Any,Tuple{Int,Int}}())
-    return _robust_real_num(_integrate_core(expr, measure.dim, subs_dict, matcher, :GSE))
+    matcher = LookupMatcher(H_atomic_lookup, Dict{Any,Tuple}())
+    return (subs_dict, matcher, measure.dim, :GSE)
 end
 
 function fallback_integrate(t::LazyTrace, measure::GSEMeasure)

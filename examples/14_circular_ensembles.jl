@@ -27,6 +27,15 @@ expr_coe_12 = S[1, 2] * conj(S[1, 2])
 res_coe_12 = simplify(integrate(expr_coe_12, m_coe); expand = true)
 println("E[|S_12|^2] = $(res_coe_12) (Expected: 1/(d+1))")
 
+println("\n--- Matrix Integration (COE) ---")
+println("Integrating S * S' (should be Identity)")
+# We collect to be safe.
+S_mat = collect(S)
+res_S = integrate(S_mat * S_mat', m_coe)
+# Simplify
+res_S_simp = map(x -> simplify(x), res_S)
+display(res_S_simp)
+
 
 # --- 2. Circular Symplectic Ensemble (CSE) ---
 println("\n--- 2. CSE (Circular Symplectic Ensemble) ---")

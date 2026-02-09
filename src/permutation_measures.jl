@@ -41,12 +41,12 @@ function integrate(expr::AbstractArray, measure::CenteredPermutationMeasure)
     return map(e -> integrate(e, measure), expr)
 end
 
-function fallback_integrate(expr, measure::PermutationMeasure)
+function IntU.measure_info(measure::PermutationMeasure)
     P_sym = measure.P
     dim = measure.dim
 
     subs_dict = Dict{Any,Any}()
-    P_atomic_lookup = Dict{Any,Tuple{Int,Int}}()
+    P_atomic_lookup = Dict{Any,Tuple}()
 
     if P_sym isa AbstractArray
         for i = 1:size(P_sym, 1)
@@ -65,16 +65,16 @@ function fallback_integrate(expr, measure::PermutationMeasure)
         end
     end
 
-    matcher = LookupMatcher(P_atomic_lookup, Dict{Any,Tuple{Int,Int}}())
-    return _robust_real_num(_integrate_core(expr, dim, subs_dict, matcher, :Perm))
+    matcher = LookupMatcher(P_atomic_lookup, Dict{Any,Tuple}())
+    return (subs_dict, matcher, dim, :Perm)
 end
 
-function fallback_integrate(expr, measure::CenteredPermutationMeasure)
+function IntU.measure_info(measure::CenteredPermutationMeasure)
     Y_sym = measure.Y
     dim = measure.dim
 
     subs_dict = Dict{Any,Any}()
-    P_atomic_lookup = Dict{Any,Tuple{Int,Int}}()
+    P_atomic_lookup = Dict{Any,Tuple}()
 
     if Y_sym isa AbstractArray
         for i = 1:size(Y_sym, 1)
@@ -93,10 +93,8 @@ function fallback_integrate(expr, measure::CenteredPermutationMeasure)
         end
     end
 
-    matcher = LookupMatcher(P_atomic_lookup, Dict{Any,Tuple{Int,Int}}())
-    # We use :Perm here because the substitution already centers it!
-    # So we integrate as a polynomial of P entries.
-    return _robust_real_num(_integrate_core(expr, dim, subs_dict, matcher, :Perm))
+    matcher = LookupMatcher(P_atomic_lookup, Dict{Any,Tuple}())
+    return (subs_dict, matcher, dim, :Perm)
 end
 
 """

@@ -96,26 +96,30 @@ Reference:
 """
 @memoize function irrep_dimension(part::Vector{Int}, d)
     conj_part = conjugate_partition(part)
-    cols = length(part) > 0 ? part[1] : 0
-
-    # We need to iterate over all boxes (i, j) in the Young diagram
-    prod_val = 1 // 1
-
-    for i = 1:length(part)
-        for j = 1:part[i]
-            # Hook length h_{i,j} = lambda[i] - i + lambda'[j] - j + 1
-            hook_length = part[i] - i + conj_part[j] - j + 1
-
-            # Content c_{i,j} = j - i
-            # Term = d + c_{i,j} = d + j - i
-            term = d + j - i
-
-            # Update product
-            prod_val *= (d isa Integer ? term // hook_length : term / hook_length)
+    
+    if d isa Integer
+        prod_val = one(Rational{BigInt})
+        for i = 1:length(part)
+            for j = 1:part[i]
+                hook_length = part[i] - i + conj_part[j] - j + 1
+                term = d + j - i
+                prod_val *= Rational{BigInt}(term, hook_length)
+            end
         end
+        return prod_val
+    else
+        num = one(Num)
+        den = one(BigInt)
+        for i = 1:length(part)
+            for j = 1:part[i]
+                hook_length = part[i] - i + conj_part[j] - j + 1
+                num *= (d + j - i)
+                den *= hook_length
+            end
+        end
+        # Keep rational coefficient separate to avoid float pollution
+        return (1 // den) * num
     end
-
-    return prod_val
 end
 
 function get_binary_partition(part::Vector{Int})
@@ -191,37 +195,95 @@ Reference:
 - Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitay, orthogonal and symplectic groups. *Communications in Mathematical Physics*.
 """
 @memoize function weingarten(partition_type::Vector{Int}, d)
-    # Wg(sigma, d) where sigma has cycle type `partition_type`.
-    n = sum(partition_type)
+    wnum, wden = weingarten_raw(partition_type, d)
+    res = wnum / wden
+    if !(d isa Integer)
+        try
+            return Symbolics.simplify(res)
+        catch
+        end
+    end
+    return res
+end
 
-    # Iterate over all partitions of n
+# Internal version that returns (numerator, denominator) for symbolic d
+@memoize function weingarten_raw(partition_type::Vector{Int}, d)
+    n = sum(partition_type)
+    n_fact = factorial(big(n))
     parts = partitions(n)
 
-    sum_val = 0 // 1
-
-    for lam in parts
-        # If length(lam) > d, s_lambda(1^d) = 0.
-        if d isa Integer && length(lam) > d
-            continue
+    if d isa Integer
+        # ... (keep existing Integer logic if needed, but we mostly care about symbolic)
+        sum_val = 0 // 1
+        for lam in parts
+            if length(lam) > d
+                continue
+            end
+            f_lam = character_at_id(lam)
+            chi_lam_mu = calculate_character(lam, partition_type)
+            dim_lam = irrep_dimension(lam, d)
+            coeff = (Rational{BigInt}(f_lam)^2) * chi_lam_mu
+            sum_val += coeff / dim_lam
+        end
+        res = sum_val / (Rational{BigInt}(n_fact)^2)
+        return res, one(Num)
+    else
+        contents_mult = Dict{Int, Int}()
+        for lam in parts
+            current_mult = Dict{Int, Int}()
+            conj_lam = conjugate_partition(lam)
+            for i in 1:length(lam)
+                for j in 1:lam[i]
+                    c = j - i
+                    current_mult[c] = get(current_mult, c, 0) + 1
+                end
+            end
+            for (c, m) in current_mult
+                contents_mult[c] = max(get(contents_mult, c, 0), m)
+            end
         end
 
-        # char_lam(1^n) = dimension f^lambda
-        f_lam = character_at_id(lam)
+        D = one(Num)
+        for (c, m) in contents_mult
+            D *= (d + c)^m
+        end
 
-        # char_lam(mu)
-        chi_lam_mu = calculate_character(lam, partition_type)
+        total_num = zero(Num)
+        for lam in parts
+            f_lam = character_at_id(lam)
+            chi_lam_mu = calculate_character(lam, partition_type)
+            den_lam = one(BigInt)
+            poly_lam = one(Num)
+            conj_lam = conjugate_partition(lam)
+            current_mult = Dict{Int, Int}()
+            for i in 1:length(lam)
+                for j in 1:lam[i]
+                    hook = lam[i] - i + conj_lam[j] - j + 1
+                    den_lam *= hook
+                    c = j - i
+                    poly_lam *= (d + c)
+                    current_mult[c] = get(current_mult, c, 0) + 1
+                end
+            end
 
-        # s_lam(1^d)
-        dim_lam = irrep_dimension(lam, d)
+            D_div_poly = one(Num)
+            for (c, m) in contents_mult
+                m_lam = get(current_mult, c, 0)
+                diff_m = m - m_lam
+                if diff_m > 0
+                    D_div_poly *= (d + c)^diff_m
+                end
+            end
 
-        term = (
-            d isa Integer ? ((f_lam)^2 * chi_lam_mu) // dim_lam :
-            ((f_lam)^2 * chi_lam_mu) / dim_lam
-        )
-        sum_val += term
+            coeff = (Rational{BigInt}(f_lam)^2) * chi_lam_mu
+            # Pre-expand the terms to keep total_num as a flattened polynomial
+            term_num = Symbolics.expand(coeff * den_lam * D_div_poly)
+            total_num += term_num
+        end
+
+        common_den = Symbolics.expand(D * (Rational{BigInt}(n_fact)^2))
+        return total_num, common_den
     end
-
-    return (d isa Integer ? sum_val // (factorial(n)^2) : sum_val / (factorial(n)^2))
 end
 
 
@@ -334,8 +396,8 @@ end
 Returns a sorted list of pairs (min, max), sorted by min, to uniquely identify a matching.
 """
 function canonicalize_pair_partition(p::Vector{Tuple{Int,Int}})
-    sorted_pairs = [Pair(min(u, v), max(u, v)) for (u, v) in p]
-    sort!(sorted_pairs, by = x->x.first)
+    sorted_pairs = [(min(u, v), max(u, v)) for (u, v) in p]
+    sort!(sorted_pairs, by = x -> x[1])
     return sorted_pairs
 end
 
@@ -398,11 +460,24 @@ function weingarten_orthogonal_val(
     sigma::Vector{Tuple{Int,Int}},
     d,
 )
-    k = length(pi)
+    return weingarten_orthogonal_val_canonical(
+        canonicalize_pair_partition(pi),
+        canonicalize_pair_partition(sigma),
+        d
+    )
+end
+
+"""
+    weingarten_orthogonal_val_canonical(c_pi, c_sigma, d)
+
+Internal version of `weingarten_orthogonal_val` that assumes arguments are already canonical.
+"""
+function weingarten_orthogonal_val_canonical(c_pi, c_sigma, d)
+    k = length(c_pi)
     Wg_mat, lookup = get_weingarten_orthogonal_data(k, d)
 
-    idx_pi = get(lookup, canonicalize_pair_partition(pi), nothing)
-    idx_sigma = get(lookup, canonicalize_pair_partition(sigma), nothing)
+    idx_pi = get(lookup, c_pi, nothing)
+    idx_sigma = get(lookup, c_sigma, nothing)
 
     if idx_pi === nothing || idx_sigma === nothing
         error("Partition not found in generated set for k=\$k")

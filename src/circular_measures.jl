@@ -61,19 +61,18 @@ function integrate(expr::AbstractArray, measure::CSEMeasure)
     return map(e -> integrate(e, measure), expr)
 end
 
-function fallback_integrate(expr, measure::COEMeasure)
+function IntU.measure_info(measure::COEMeasure)
     S_sym = measure.S
     dim = measure.dim
 
     subs_dict = Dict{Any,Any}()
-    S_atomic_lookup = Dict{Any,Tuple{Int,Int}}()
+    S_atomic_lookup = Dict{Any,Tuple}()
 
     if S_sym isa AbstractArray
         for i = 1:size(S_sym, 1)
             for j = 1:size(S_sym, 2)
                 s_ij_num = _safe_Num(S_sym[i, j])
                 s_ij_un = Symbolics.unwrap(s_ij_num)
-                # We use :S as a marker
                 s_atomic = Symbolics.variable(:S_atomic, i, j)
                 s_bar_atomic = Symbolics.variable(:S_bar_atomic, i, j)
 
@@ -81,45 +80,27 @@ function fallback_integrate(expr, measure::COEMeasure)
                 S_atomic_lookup[Symbolics.unwrap(s_bar_atomic)] = (i, j)
 
                 subs_dict[s_ij_un] = s_atomic
-
-                c_ij_un = Symbolics.unwrap(conj(s_ij_num))
-                subs_dict[c_ij_un] = s_bar_atomic
-
-                bc_ij_un = Symbolics.unwrap(Base.conj(s_ij_num))
-                subs_dict[bc_ij_un] = s_bar_atomic
+                subs_dict[Symbolics.unwrap(conj(s_ij_num))] = s_bar_atomic
+                subs_dict[Symbolics.unwrap(Base.conj(s_ij_num))] = s_bar_atomic
             end
         end
     end
 
-    # Use standard LookupMatcher. We map everything to :S type internally for process_term
-    # But wait, `process_term` uses types :U, :U_bar.
-    # We can reuse the same matcher if we map S_atomic -> (:U, i, j) and S_bar_atomic -> (:U_bar, i, j).
-    # Then `process_term` will return U_indices and U_bar_indices.
-    # We can then pass these to `integrate_indices_coe`.
-
-    # Remap lookup for matcher
     matcher = LookupMatcher(
-        Dict(
-            k => (v[1], v[2]) for
-            (k, v) in S_atomic_lookup if occursin("S_atomic", string(k))
-        ),
-        Dict(
-            k => (v[1], v[2]) for
-            (k, v) in S_atomic_lookup if occursin("S_bar_atomic", string(k))
-        ),
+        Dict(k => v for (k, v) in S_atomic_lookup if occursin("S_atomic", string(k))),
+        Dict(k => v for (k, v) in S_atomic_lookup if occursin("S_bar_atomic", string(k)))
     )
 
-    return _robust_real_num(_integrate_core(expr, dim, subs_dict, matcher, :COE))
+    return (subs_dict, matcher, dim, :COE)
 end
 
-function fallback_integrate(expr, measure::CSEMeasure)
+function IntU.measure_info(measure::CSEMeasure)
     S_sym = measure.S
     dim = measure.dim
 
     subs_dict = Dict{Any,Any}()
-    S_atomic_lookup = Dict{Any,Tuple{Int,Int}}()
+    S_atomic_lookup = Dict{Any,Tuple}()
 
-    # Similar to COE
     if S_sym isa AbstractArray
         for i = 1:size(S_sym, 1)
             for j = 1:size(S_sym, 2)
@@ -133,32 +114,19 @@ function fallback_integrate(expr, measure::CSEMeasure)
                 S_atomic_lookup[Symbolics.unwrap(s_bar_atomic)] = (i, j)
 
                 subs_dict[s_ij_un] = s_atomic
-
-                c_ij_un = Symbolics.unwrap(conj(s_ij_num))
-                subs_dict[c_ij_un] = s_bar_atomic
-
-                bc_ij_un = Symbolics.unwrap(Base.conj(s_ij_num))
-                subs_dict[bc_ij_un] = s_bar_atomic
+                subs_dict[Symbolics.unwrap(conj(s_ij_num))] = s_bar_atomic
+                subs_dict[Symbolics.unwrap(Base.conj(s_ij_num))] = s_bar_atomic
             end
         end
     end
 
-    # Use standard LookupMatcher.
     matcher = LookupMatcher(
-        Dict(
-            k => (v[1], v[2]) for
-            (k, v) in S_atomic_lookup if occursin("S_atomic", string(k))
-        ),
-        Dict(
-            k => (v[1], v[2]) for
-            (k, v) in S_atomic_lookup if occursin("S_bar_atomic", string(k))
-        ),
+        Dict(k => v for (k, v) in S_atomic_lookup if occursin("S_atomic", string(k))),
+        Dict(k => v for (k, v) in S_atomic_lookup if occursin("S_bar_atomic", string(k)))
     )
 
     phys_dim = S_sym isa AbstractArray ? size(S_sym, 1) : 0
-    return _robust_real_num(
-        _integrate_core(expr, dim, subs_dict, matcher, (:CSE, phys_dim)),
-    )
+    return (subs_dict, matcher, dim, (:CSE, phys_dim))
 end
 
 

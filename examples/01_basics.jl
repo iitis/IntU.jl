@@ -1,6 +1,6 @@
-# examples/01_basics.jl
 using IntU
 using Symbolics
+using LinearAlgebra
 
 # 1. Define the dimension and variables
 d_val = 3
@@ -25,6 +25,16 @@ result2 = integrate(expr2, measure)
 println("Result: ", result2)
 println("Expected: ", 1//(d_val^2 - 1))
 
-# 4. Example: General d formula (symbolic d is not fully supported yet, 
+# 5. Example: Matrix Integration
+# You can integrate matrix-valued expressions directly.
+# We use collect() to ensure we pass a standard Julia Matrix of symbolic numbers.
+println("\n5. Example: Matrix Integration")
+println("Integrating U * U' (should be Identity)")
+expr_mat = collect(U * U')
+result_mat = integrate(expr_mat, measure)
+println("Result[1,1]: ", result_mat[1, 1])
+println("Result is Identity? ", result_mat == I)
+
+# 6. Example: General d formula (symbolic d is not fully supported yet,
 # but we can show it matches the theoretical value for a specific d)
 println("\nNote: Theoretical value involves Weingarten function Wg(1^2, d) = 1/(d^2-1)")

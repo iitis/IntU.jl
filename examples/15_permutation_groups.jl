@@ -1,6 +1,6 @@
-# examples/15_permutation_groups.jl
 using IntU
 using Symbolics
+using LinearAlgebra
 
 # 1. Basic Integration over the Symmetric Group S_d
 # We can use a fixed dimension and concrete variables
@@ -62,6 +62,22 @@ result6 = integrate(expr6, m_centered)
 println("Result: ", result6)
 println("Simplified: ", Symbolics.simplify(result6))
 println("Expected (d=4): ", (d_val - 1) / d_val^2)
+
+println("Expected (d=4): ", (d_val - 1) / d_val^2)
+
+# 3b. Matrix Integration (Permutation Group)
+println("\n3b. Matrix Integration")
+println("Integrating P * P^T (should be Identity)")
+# P is defined as simple Symbolic array [P_ij], so it's already a matrix.
+# P * P' should integrate to I
+# Convert to standard Matrix{Num} to ensure generic integration works
+P_mat = collect(P)
+res_P = integrate(P_mat * P_mat', measure)
+
+println("Result[1,1]: ", res_P[1,1])
+println("Expected: 1")
+println("Result[1,2]: ", res_P[1,2])
+println("Expected: 0")
 
 # 4. Symbolic Traces with Symbolics.jl arrays
 println("\n4. Symbolic Traces with Symbolics.jl arrays")
