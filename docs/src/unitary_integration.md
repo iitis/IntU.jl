@@ -45,7 +45,7 @@ For small $n$, the values are:
 *   **n=1**: $\text{Wg}([1], d) = \frac{1}{d}$
 *   **n=2**:
     *   Identity $\text{Wg}([1,1], d) = \frac{1}{d^2-1}$
-    *   Transposition $\text{Wg}([2], d) = -\frac{1}{d(d^2-1)}$
+    *   Transposition $\text{Wg}([2], d) = -\frac{1}{d(d^2-1)$
 *   **n=3**:
     *   $\text{Wg}([1,1,1], d) = \frac{d^2-2}{d(d^2-1)(d^2-4)}$
     *   $\text{Wg}([2,1], d) = -\frac{1}{(d^2-1)(d^2-4)}$
@@ -109,9 +109,6 @@ println(res2)
 
 ### 3. Trace Moments
 
-IntU.jl can efficiently handle trace moments, which are relevant in Random Matrix Theory.
-Note that for trace moments, explicit indices are often avoided using `IntU.tr`.
-
 ```julia
 # 3. Trace moments
 tr_U = IntU.tr(U)
@@ -133,6 +130,28 @@ using LinearAlgebra
 expr_mat = collect(U * U')
 res_mat = integrate(expr_mat, measure)
 # Result is the Identity matrix
+```
+
+### 5. HCIZ Integrals
+
+New in v0.2: Direct support for **Harish-Chandra-Itzykson-Zuber (HCIZ)** integrals.
+
+```julia
+using IntU, LinearAlgebra
+
+# Define matrices
+A = diagm([1.0, 2.0])
+B = diagm([0.5, 1.5])
+
+# Compute ∫ dU exp(Tr(A U B U'))
+res = hciz(A, B)
+println(res)
+# Output: 20.9329...
+```
+
+```@docs
+hciz
+vandermonde_det
 ```
 
 ## Potential Pitfalls
