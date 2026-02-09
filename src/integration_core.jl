@@ -740,19 +740,40 @@ function integrate_indices(
         end
     end
 
-    total = 0 // 1
-    for (ct, count) in cycle_counts
-        wg_val = weingarten(ct, dim)
-        total += count * wg_val
-    end
-
-    if !(dim isa Integer)
-        try
-            return Symbolics.simplify(Symbolics.wrap(total))
-        catch
+    if dim isa Integer
+        total = zero(Rational{BigInt})
+        for (ct, count) in cycle_counts
+            total += count * weingarten(ct, dim)
         end
+        return total
+    else
+        # For symbolic dim, we use weingarten_raw to get polynomials over a common denominator D_n.
+        # Since all terms in the same integral share the same n, their common denominators are identical.
+        total_num = zero(Num)
+        total_den = one(Num)
+        
+        for (ct, count) in cycle_counts
+            wnum, wden = IntU.weingarten_raw(ct, dim)
+            if isequal(total_den, 1)
+                total_num = count * wnum
+                total_den = wden
+            else
+                # Since all wden are the same for the same n, we just sum numerators.
+                # Actually, in case n is different for some reason (though not in a single integrate_indices call),
+                # or if some terms previously simplified, we use a more robust check.
+                if isequal(total_den, wden)
+                    total_num += count * wnum
+                else
+                    # Fallback to general rational sum
+                    total_num = total_num * wden + count * wnum * total_den
+                    total_den = total_den * wden
+                end
+            end
+        end
+        
+        common_den = total_den # In this context, total_den should already be the common denominator D_n
+        return total_num / common_den
     end
-    return total
 end
 
 function get_matching_permutations(target::Vector{Int}, source::Vector{Int})
