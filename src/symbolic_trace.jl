@@ -207,15 +207,15 @@ function tr_val(factors::Vector{SymbolicMatrix})
         push!(s_parts, string(f))
     end
     
-    # We create an inner variable representing the content
-    # This is needed because `factors` are our custom types, not Symbolics terms.
-    # To put them inside a Term, we need a Num/Symbolic object.
     inner_content_name = join(s_parts, "*")
-    inner_var = Symbolics.variable(Symbol(inner_content_name); T=Real)
     
-    # Return a Term
-    # IntU.tr is the function head
-    return Symbolics.term(tr, inner_var)
+    # We use a plain symbolic variable with a name that looks like a function call.
+    # This avoids issues with Symbolics simplifying away Term objects during integration.
+    # It renders as var"tr(...)" but behaves correctly in all algebraic operations.
+    name = "tr(" * inner_content_name * ")"
+    return Num(Symbolics.variable(Symbol(name); T=Real))
 end
+
+# register_symbolic removed due to compatibility issues
 # Symbolics metadata might go here if needed.
 # Actually, we rely on Term wrapping it.

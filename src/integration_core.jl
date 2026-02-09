@@ -181,8 +181,8 @@ end
 """
     INTEGRATION_RULES
 
-A registry mapping measure types to their respective index integration functions.
-Each function must take `(u_indices, u_bar_indices, dim, measure_type)` as arguments.
+A dictionary mapping measure types (symbols) to their respective integration rule functions.
+Each rule function should have the signature `(u_indices, u_bar_indices, dim, measure_type)`.
 """
 const INTEGRATION_RULES = Dict{Any, Function}()
 

@@ -131,6 +131,12 @@ dU(dim) = HaarMeasure(nothing, dim)
 dU(S::SymbolicUnitary) = HaarMeasure(S, S.dim)
 
 
+"""
+    measure_info(measure)
+
+Returns a tuple `(matcher, dim, type)` for the given measure. 
+Internal function used for dispatching integration logic.
+"""
 function IntU.measure_info(measure::HaarMeasure)
     U_input = measure.U
     dim = measure.dim
@@ -266,7 +272,7 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
     ub_map = Dict{Int,Int}(idx => m for (m, idx) in enumerate(U_bar_indices))
 
     permutations = collect(Combinatorics.permutations(1:n_U))
-    total_val = 0
+    total_val = Num(0)
 
     for sigma in permutations
         for tau in permutations
@@ -280,27 +286,29 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
                 continue
             end
 
-            visited_U = falses(n_U)
-            visited_Ub = falses(n_U)
-            current_term_traces = []
+            visited_sigma_U = falses(n_U)
+            visited_sigma_Ub = falses(n_U)
+            visited_tau_U = falses(n_U)
+            visited_tau_Ub = falses(n_U)
+            current_term_traces = Num[]
 
-            # Check U cycles
+            # Check U cycles (sigma-based)
             for start_m = 1:n_U
-                if !visited_U[start_m]
-                    val = _traverse_trace_cycle(start_m, 1, sigma, inv_tau, wires, u_map, ub_map, visited_U, visited_Ub, U_indices, U_bar_indices, dim)
+                if !visited_sigma_U[start_m]
+                    val = _traverse_trace_cycle(start_m, 1, sigma, inv_tau, wires, u_map, ub_map, visited_sigma_U, visited_sigma_Ub, U_indices, U_bar_indices, dim)
                     push!(current_term_traces, val)
                 end
             end
 
-            # Check Ub cycles (if any isolated ones exist)
+            # Check Ub cycles (tau-based)
             for start_m = 1:n_U_bar
-                if !visited_Ub[start_m]
-                    val = _traverse_trace_cycle(start_m, 2, sigma, inv_tau, wires, u_map, ub_map, visited_U, visited_Ub, U_indices, U_bar_indices, dim)
+                if !visited_tau_Ub[start_m]
+                    val = _traverse_trace_cycle(start_m, 2, sigma, inv_tau, wires, u_map, ub_map, visited_tau_U, visited_tau_Ub, U_indices, U_bar_indices, dim)
                     push!(current_term_traces, val)
                 end
             end
 
-            term_prod = isempty(current_term_traces) ? 1 : prod(current_term_traces)
+            term_prod = isempty(current_term_traces) ? Num(1) : prod(current_term_traces)
             total_val += term_prod * wg_val
         end
     end
@@ -394,6 +402,7 @@ function _traverse_trace_cycle(start_m, start_type, sigma, inv_tau, wires, u_map
             end
             visited_U[curr_idx] = true
             next_ub_m = sigma[curr_idx]
+            visited_Ub[next_ub_m] = true # Match U_i to Ub_k
             start_factor_idx = U_bar_indices[next_ub_m]
             dest_factor_idx, mat_segment = wires[start_factor_idx]
             if mat_segment !== nothing
@@ -412,6 +421,7 @@ function _traverse_trace_cycle(start_m, start_type, sigma, inv_tau, wires, u_map
             end
             visited_Ub[curr_idx] = true
             next_u_m = inv_tau[curr_idx]
+            visited_U[next_u_m] = true # Match Ub_l to U_j
             start_factor_idx = U_indices[next_u_m]
             dest_factor_idx, mat_segment = wires[start_factor_idx]
             if mat_segment !== nothing
