@@ -27,8 +27,6 @@ using Symbolics
 
         t = tr_lazy(U * A * U' * B)
         res = integrate(t, measure)
-        @show res
-        @show string(res)
         s = string(res)
         # Check for presence of tr(A) and tr(B) variables
         @test occursin("tr(A)", s)
