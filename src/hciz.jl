@@ -5,7 +5,7 @@
 
 Computes the Vandermonde determinant of a vector `v`:
 ```math
-\Delta(v) = \prod_{1 \le i < j \le d} (v_i - v_j)
+\\Delta(v) = \\prod_{1 \\le i < j \\le d} (v_i - v_j)
 ```
 """
 function vandermonde_det(v::AbstractVector)
@@ -25,9 +25,9 @@ end
 
 Computes the Harish-Chandra-Itzykson-Zuber (HCIZ) integral:
 ```math
-\int_{U(d)} dU e^{\text{Tr}(A U B U^\dagger)} = \left( \prod_{p=1}^{d-1} p! \right) \frac{\det(e^{a_i b_j})_{i,j=1}^d}{\Delta(a) \Delta(b)}
+\\int_{U(d)} dU e^{\\text{Tr}(A U B U^\\dagger)} = \\left( \\prod_{p=1}^{d-1} p! \\right) \\frac{\\det(e^{a_i b_j})_{i,j=1}^d}{\\Delta(a) \\Delta(b)}
 ```
-where `a` and `b` are eigenvalues of `A` and `B`, and `\Delta` is the Vandermonde determinant.
+where `a` and `b` are eigenvalues of `A` and `B`, and `\\Delta` is the Vandermonde determinant.
 
 If A and B are matrices, their eigenvalues are extracted. Supporting:
 - Numeric matrices (via `eigen`)

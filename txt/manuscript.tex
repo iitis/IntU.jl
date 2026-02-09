@@ -403,6 +403,28 @@ The package supports a wide range of integration measures, grouped as follows:
     matrix identities (e.g., $\mathbb{E}[U U^\dagger] = I$).
 \end{itemize}
 
+\subsection{Harish-Chandra-Itzykson-Zuber (HCIZ) integrals}
+Beyond polynomial moments, \texttt{IntU.jl} supports the exact evaluation of the
+Harish-Chandra-Itzykson-Zuber (HCIZ) integral \cite{harish1958ranges,
+itzykson1980planar}, a fundamental object in random matrix theory related to the
+character expansion of the exponential function:
+\begin{equation}
+\int_{U(d)} dU e^{\text{Tr}(A U B U^\dagger)} = \left( \prod_{p=1}^{d-1} p! \right) \frac{\det(e^{a_i b_j})_{i,j=1}^d}{\Delta(a) \Delta(b)},
+\end{equation}
+where $a_i$ and $b_j$ are the eigenvalues of the source matrices $A$ and $B$,
+and $\Delta(x)$ denotes the Vandermonde determinant.
+
+\texttt{IntU.jl} provides two primary interfaces for these integrals. The
+\textbf{diagonal interface} allows users to pass vectors of eigenvalues
+directly, facilitating purely symbolic derivations where the spectrum is defined
+algebraically. The \textbf{general matrix interface} accepts arbitrary Hermitian
+matrices $A$ and $B$, automatically extracting their eigenvalues. For symbolic
+matrices, the package supports automatic eigenvalue extraction for diagonal
+forms of any dimension and general $2 \times 2$ matrices via the quadratic
+formula. For larger non-diagonal symbolic matrices, users can provide the
+eigenvalues manually. The implementation also includes a robust perturbation
+mechanism to handle numerical degeneracies in the spectrum as smooth limits.
+
 \subsection{Gaussian random matrix ensembles}
 In addition to compact groups, \texttt{IntU.jl} supports integration over the
 Gaussian ensembles (GUE, GOE, GSE). These are implemented using Wick's theorem
