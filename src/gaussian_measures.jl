@@ -15,6 +15,21 @@ struct GSEMeasure{M,D}
     dim::D
 end
 
+struct GinUEMeasure{M,D}
+    G::M
+    dim::D
+end
+
+struct GinOEMeasure{M,D}
+    G::M
+    dim::D
+end
+
+struct GinSEMeasure{M,D}
+    G::M
+    dim::D
+end
+
 """
     dGUE(H, dim)
 
@@ -66,9 +81,51 @@ Reference:
 """
 function dGSE(H, dim)
     if dim isa Integer && isodd(dim)
-        throw(ArgumentError("GSE dimension must be even, got \$dim"))
+        throw(ArgumentError("GSE dimension must be even, got $dim"))
     end
     return GSEMeasure(H, dim)
+end
+
+"""
+    dGinUE(G, dim)
+
+Defines the measure for the **Complex Ginibre Ensemble (GinUE)**.
+G is a general complex matrix with i.i.d. complex Gaussian entries.
+
+Contractions are given by:
+```math
+\\langle G_{ij} \\bar{G}_{kl} \\rangle = \\delta_{ik} \\delta_{jl}
+```
+All other contractions (including \$\\langle G_{ij} G_{kl} \\rangle\$) are zero.
+"""
+dGinUE(G, dim) = GinUEMeasure(G, dim)
+
+"""
+    dGinOE(G, dim)
+
+Defines the measure for the **Real Ginibre Ensemble (GinOE)**.
+G is a general real matrix with i.i.d. real Gaussian entries.
+
+The Wick contraction is:
+```math
+\\langle G_{ij} G_{kl} \\rangle = \\delta_{ik} \\delta_{jl}
+```
+"""
+dGinOE(G, dim) = GinOEMeasure(G, dim)
+
+"""
+    dGinSE(G, dim)
+
+Defines the measure for the **Symplectic Ginibre Ensemble (GinSE)**.
+G is a quaternionic matrix. Dimension d must be even.
+
+Uses duality relation with GinOE.
+"""
+function dGinSE(G, dim)
+    if dim isa Integer && isodd(dim)
+        throw(ArgumentError("GinSE dimension must be even, got $dim"))
+    end
+    return GinSEMeasure(G, dim)
 end
 
 function _setup_gaussian_subs(H_sym, ensemble_type)
@@ -95,6 +152,18 @@ function _setup_gaussian_subs(H_sym, ensemble_type)
                     # Real symmetric: conj(H_{ij}) = H_{ij}
                     subs_dict[Symbolics.unwrap(conj(h_ij_un))] = h_atomic
                     subs_dict[Symbolics.unwrap(Base.conj(h_ij_un))] = h_atomic
+                elseif ensemble_type == :GinUE
+                    # Non-Hermitian complex: conj(G_{ij}) = G_bar_{ij}
+                    gb_atomic = Symbolics.variable(:G_bar_atomic, i, j)
+                    H_atomic_lookup[Symbolics.unwrap(gb_atomic)] = (i, j, :conj)
+                    subs_dict[Symbolics.unwrap(conj(h_ij_un))] = gb_atomic
+                    subs_dict[Symbolics.unwrap(Base.conj(h_ij_un))] = gb_atomic
+                elseif ensemble_type in (:GinOE, :GinSE)
+                    # GinOE: RealEntries, conj(G_{ij}) = G_{ij}
+                    # GinSE: handled via GOE/GSE-like logic or simply Real mapping if we use Wick.
+                    # Actually GinOE is real entries.
+                    subs_dict[Symbolics.unwrap(conj(h_ij_un))] = h_atomic
+                    subs_dict[Symbolics.unwrap(Base.conj(h_ij_un))] = h_atomic
                 end
             end
         end
@@ -117,10 +186,40 @@ function integrate(expr::AbstractArray, measure::GSEMeasure)
     return map(e -> integrate(e, measure), expr)
 end
 
+function integrate(expr::AbstractArray, measure::GinUEMeasure)
+    return map(e -> integrate(e, measure), expr)
+end
+
+function integrate(expr::AbstractArray, measure::GinOEMeasure)
+    return map(e -> integrate(e, measure), expr)
+end
+
+function integrate(expr::AbstractArray, measure::GinSEMeasure)
+    return map(e -> integrate(e, measure), expr)
+end
+
 function IntU.measure_info(measure::GUEMeasure)
     subs_dict, H_atomic_lookup = _setup_gaussian_subs(measure.H, :GUE)
     matcher = LookupMatcher(H_atomic_lookup, Dict{Any,Tuple}())
     return (subs_dict, matcher, measure.dim, :GUE)
+end
+
+function IntU.measure_info(measure::GinUEMeasure)
+    subs_dict, H_atomic_lookup = _setup_gaussian_subs(measure.G, :GinUE)
+    matcher = LookupMatcher(H_atomic_lookup, Dict{Any,Tuple}())
+    return (subs_dict, matcher, measure.dim, :GinUE)
+end
+
+function IntU.measure_info(measure::GinOEMeasure)
+    subs_dict, H_atomic_lookup = _setup_gaussian_subs(measure.G, :GinOE)
+    matcher = LookupMatcher(H_atomic_lookup, Dict{Any,Tuple}())
+    return (subs_dict, matcher, measure.dim, :GinOE)
+end
+
+function IntU.measure_info(measure::GinSEMeasure)
+    subs_dict, H_atomic_lookup = _setup_gaussian_subs(measure.G, :GinSE)
+    matcher = LookupMatcher(H_atomic_lookup, Dict{Any,Tuple}())
+    return (subs_dict, matcher, measure.dim, :GinSE)
 end
 
 function fallback_integrate(t::LazyTrace, measure::GUEMeasure)
@@ -476,6 +575,203 @@ function fallback_integrate(t::LazyTrace, measure::GSEMeasure)
     return final_sign * res_subbed
 end
 
+function fallback_integrate(t::LazyTrace, measure::GinUEMeasure)
+    dim = measure.dim
+    if isempty(t.cycles)
+        return t.prefactor
+    end
+
+    G_name = measure.G isa SymbolicMatrix ? measure.G.name : :G
+
+    # 1. Collect all factors and find Gaussian slots
+    all_factors = SymbolicMatrix[]
+    cycle_ranges = UnitRange{Int}[]
+    total_factors = 0
+    for cycle in t.cycles
+        start_idx = total_factors + 1
+        append!(all_factors, cycle)
+        total_factors += length(cycle)
+        push!(cycle_ranges, start_idx:total_factors)
+    end
+
+    # GinUE: <G_ij G_bar_kl> = delta_ik delta_jl
+    G_indices = Int[]
+    G_bar_indices = Int[]
+    for (i, f) in enumerate(all_factors)
+        if f.name == G_name
+            if f.is_adj
+                push!(G_bar_indices, i)
+            else
+                push!(G_indices, i)
+            end
+        end
+    end
+
+    n_G = length(G_indices)
+    n_G_bar = length(G_bar_indices)
+
+    if n_G != n_G_bar
+        return 0
+    end
+
+    all_slots = sort([G_indices; G_bar_indices])
+    if isempty(all_slots)
+        return _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
+    end
+
+    wires = _build_wires(G_indices, G_bar_indices, cycle_ranges, all_factors)
+    constant_part = _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
+
+    perms = permutations(1:n_G_bar)
+    total_val = 0
+    pos_map = Dict(idx => i for (i, idx) in enumerate(all_slots))
+    
+    # Map from G index to its position in all_slots
+    # Map from G_bar index to its position in all_slots
+    
+    for p in perms
+        visited = falses(length(all_slots))
+        current_partition_traces = []
+
+        for start_pos = 1:length(all_slots)
+            if !visited[start_pos]
+                curr_trace_factors = SymbolicMatrix[]
+                curr_pos = start_pos
+                while !visited[curr_pos]
+                    visited[curr_pos] = true
+                    curr_factor_idx = all_slots[curr_pos]
+                    
+                    dest_factor_idx, mat_segment = wires[curr_factor_idx]
+                    if mat_segment !== nothing
+                        append!(curr_trace_factors, mat_segment)
+                    end
+                    
+                    # Landed at dest_factor_idx. Find its partner.
+                    if dest_factor_idx in G_indices
+                        m = findfirst(==(dest_factor_idx), G_indices)
+                        partner_idx = G_bar_indices[p[m]]
+                    else
+                        m_bar = findfirst(==(dest_factor_idx), G_bar_indices)
+                        m = findfirst(==(m_bar), p)
+                        partner_idx = G_indices[m]
+                    end
+                    
+                    curr_pos = pos_map[partner_idx]
+                end
+
+                if isempty(curr_trace_factors)
+                    push!(current_partition_traces, dim)
+                else
+                    push!(current_partition_traces, tr_val(curr_trace_factors))
+                end
+            end
+        end
+        total_val += isempty(current_partition_traces) ? 1 : prod(current_partition_traces)
+    end
+
+    return constant_part * total_val
+end
+
+function fallback_integrate(t::LazyTrace, measure::GinOEMeasure)
+    dim = measure.dim
+    if isempty(t.cycles)
+        return t.prefactor
+    end
+
+    G_name = measure.G isa SymbolicMatrix ? measure.G.name : :G
+    
+    all_factors = SymbolicMatrix[]
+    cycle_ranges = UnitRange{Int}[]
+    total_factors = 0
+    for cycle in t.cycles
+        start_idx = total_factors + 1
+        append!(all_factors, cycle)
+        total_factors += length(cycle)
+        push!(cycle_ranges, start_idx:total_factors)
+    end
+
+    G_indices = Int[]
+    for (i, f) in enumerate(all_factors)
+        if f.name == G_name
+            push!(G_indices, i)
+        end
+    end
+    
+    n_G = length(G_indices)
+    if isodd(n_G)
+        return 0
+    end
+
+    all_slots = sort(G_indices)
+    if isempty(all_slots)
+        return _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
+    end
+    
+    wires = _build_wires(G_indices, Int[], cycle_ranges, all_factors)
+    constant_part = _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
+    
+    partitions = get_pair_partitions(n_G)
+    total_val = 0
+    pos_map = Dict(idx => i for (i, idx) in enumerate(G_indices))
+    
+    for pi in partitions
+        visited = falses(n_G)
+        current_partition_traces = []
+        
+        for start_m = 1:n_G
+            if !visited[start_m]
+                curr_trace_factors = SymbolicMatrix[]
+                curr_m = start_m
+                while !visited[curr_m]
+                    visited[curr_m] = true
+                    dest_factor_idx, mat_segment = wires[G_indices[curr_m]]
+                    if mat_segment !== nothing
+                        append!(curr_trace_factors, mat_segment)
+                    end
+                    landed_m = pos_map[dest_factor_idx]
+                    
+                    # Find Wick partner
+                    partner_m = 0
+                    for (u, v) in pi
+                        if u == landed_m
+                            partner_m = v
+                            break
+                        elseif v == landed_m
+                            partner_m = u
+                            break
+                        end
+                    end
+                    curr_m = partner_m
+                end
+                
+                if isempty(curr_trace_factors)
+                    push!(current_partition_traces, dim)
+                else
+                    push!(current_partition_traces, tr_val(curr_trace_factors))
+                end
+            end
+        end
+        total_val += isempty(current_partition_traces) ? 1 : prod(current_partition_traces)
+    end
+    return constant_part * total_val
+end
+
+function fallback_integrate(t::LazyTrace, measure::GinSEMeasure)
+    G_name = measure.G isa SymbolicMatrix ? measure.G.name : :G
+    all_factors = vcat(t.cycles...)
+    n_G = count(f -> f.name == G_name, all_factors)
+
+    if isodd(n_G)
+        return 0
+    end
+
+    ginoe_res = integrate(t, dGinOE(measure.G, measure.dim))
+    dim = measure.dim
+    res_subbed = Symbolics.substitute(ginoe_res, Dict(dim => -dim))
+    final_sign = ((-1)^(n_G ÷ 2 + 1))
+    return final_sign * res_subbed
+end
+
 """
     asymptotic(expr, measure::GUEMeasure, order=1)
 """
@@ -520,6 +816,54 @@ function asymptotic(expr, measure::GSEMeasure, order = 1)
 
     d_asymp = Symbolics.variable(:d_asymp)
     m_sym = dGSE(measure.H, d_asymp)
+    exact_res = integrate(expr, m_sym)
+    return _expand_asymptotic(exact_res, d_asymp, order)
+end
+
+"""
+    asymptotic(expr, measure::GinUEMeasure, order=1)
+"""
+function asymptotic(expr, measure::GinUEMeasure, order = 1)
+    d = measure.dim
+    if d isa Symbolics.Num || !(d isa Integer)
+        exact_res = integrate(expr, measure)
+        return _expand_asymptotic(exact_res, d, order)
+    end
+
+    d_asymp = Symbolics.variable(:d_asymp)
+    m_sym = dGinUE(measure.G, d_asymp)
+    exact_res = integrate(expr, m_sym)
+    return _expand_asymptotic(exact_res, d_asymp, order)
+end
+
+"""
+    asymptotic(expr, measure::GinOEMeasure, order=1)
+"""
+function asymptotic(expr, measure::GinOEMeasure, order = 1)
+    d = measure.dim
+    if d isa Symbolics.Num || !(d isa Integer)
+        exact_res = integrate(expr, measure)
+        return _expand_asymptotic(exact_res, d, order)
+    end
+
+    d_asymp = Symbolics.variable(:d_asymp)
+    m_sym = dGinOE(measure.G, d_asymp)
+    exact_res = integrate(expr, m_sym)
+    return _expand_asymptotic(exact_res, d_asymp, order)
+end
+
+"""
+    asymptotic(expr, measure::GinSEMeasure, order=1)
+"""
+function asymptotic(expr, measure::GinSEMeasure, order = 1)
+    d = measure.dim
+    if d isa Symbolics.Num || !(d isa Integer)
+        exact_res = integrate(expr, measure)
+        return _expand_asymptotic(exact_res, d, order)
+    end
+
+    d_asymp = Symbolics.variable(:d_asymp)
+    m_sym = dGinSE(measure.G, d_asymp)
     exact_res = integrate(expr, m_sym)
     return _expand_asymptotic(exact_res, d_asymp, order)
 end
