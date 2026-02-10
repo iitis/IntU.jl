@@ -216,6 +216,3 @@ function tr_val(factors::Vector{SymbolicMatrix})
     return Num(Symbolics.variable(Symbol(name); T=Real))
 end
 
-# register_symbolic removed due to compatibility issues
-# Symbolics metadata might go here if needed.
-# Actually, we rely on Term wrapping it.

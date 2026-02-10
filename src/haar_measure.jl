@@ -186,11 +186,7 @@ function IntU.measure_info(measure::HaarMeasure)
 end
 
 function _manual_fallback(expr, measure::HaarMeasure)
-    # HaarMeasure still handles LazyTrace manually in fallback_integrate
-    # but we renamed that to fallback_integrate(::LazyTrace, ::HaarMeasure).
-    # Wait, the core fallback_integrate calls _manual_fallback if measure_info is not found
-    # OR if it's found but we want to handle specialized types.
-    # Actually, LazyTrace is handled by a specific dispatch.
+    # LazyTrace expressions are handled by fallback_integrate dispatch, not here.
     error("HaarMeasure integration failed for: $(typeof(expr))")
 end
 

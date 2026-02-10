@@ -41,12 +41,7 @@ doublefactorial_odd(n::Int) = prod(1:2:n)  # n must be odd
 
 # Symbolic zero test (best-effort; also backs up by numeric spot-checks)
 function sym_is_zero(x)
-    try
-        xs = Symbolics.simplify(x)
-        return (xs == 0) || (xs === 0)
-    catch
-        return false
-    end
+    return IntU._iszero(x)
 end
 
 function safe_string(x)

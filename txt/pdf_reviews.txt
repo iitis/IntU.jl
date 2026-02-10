@@ -1,0 +1,57 @@
+REFEREE REPORT
+“SYMBOLIC INTEGRATION WITH RESPECT TO THE HAAR
+MEASURE ON THE UNITARY GROUP IN MATHEMATICA”
+BY PUCHALA, ZBIGNIEW AND MISZCZAK, JAROSLAW
+
+The submission consists of a Mathematica package accompanied by a paper describing the theoretical background behind unitary integration, as well as the functions
+implemented in the package.
+The theory of unitary integration, although used for some time in the physical literature, has received a rigorous mathematical treatment in the works of Collins and
+Collins, Sniady. The theory, in which Weingarten functions play a crucial role, has
+been used to great effect in many areas, such as Random Matrix Theory, Mathematical
+Physics, Quantum Information Theory, Condensed Matter Physics, etc - it has become
+a common tool in any area in which random matrices play a role.
+The paper, as well as the Mathematica package, are very well written and provide the
+functionality that was aimed for: having a numerical implementation of averages over
+the unitary group, using the representation-theoretical approach based on Weingarten
+functions. The numerical methods implemented in the package will certainly prove
+useful for mathematicians, physicists and computer scientists working with random
+unitary matrices. In particular, the package has been developed with applications to
+Quantum Information Theory in mind, and some interesting examples are presented in
+the paper. A desirable feature that is missing from the computer implementation is the
+ability to use formal parameters for integration (such as the dimension). Mathematica
+has the capability for such symbolic operations and there are algorithms for dealing
+with symbolic integration, at least for reasonable moments. The size of the unitary
+group U(d) could have been treated as a symbolic variable (note that there is little
+hope to have the same for order of the symmetric group Sn . Moreover, Collins and
+Sniady also developed the theory for the orthogonal and symplectic groups, which is
+very similar, and, to some extent, consists of replacing the group algebra CSn with the
+Brauer algebra Bn . The package would have been more complete with these features
+implemented.
+Regarding the mathematical content of the paper, some remarks and criticism are in
+order. The foremost one is the lack of any analysis of the complexity of the algorithm
+used for computing the integrals. It would be interesting to know what are the maximal
+values of n (and/or d) for which the package gives an answer in a reasonable amount
+of time. Besides a very nice introduction to the subject, the theoretical contribution
+of the work under review consists in improving the computation time in some very
+special cases. The case where all the elements come from a single line (or column) of
+the unitary matrix corresponds to a spherical integral for which simpler formulas are
+available. The cases of even powers of diagonal elements (Proposition 2) and that of
+cycle permutations (Proposition 3) are new and of interest.
+1
+
+2
+
+REFEREE REPORT
+
+For these reasons, I recommend for publication.
+Below is a list of small errors, typos, and further remarks.
+(1) An an historical remark, the case of the unitary group was first treated in a
+rigorous manner by Collins in [1].
+(2) I think the presentation would be improved if a description of the algorithms
+used for the evaluation of the characters of Sn . This might also include some
+computational complexity remarks.
+References
+[1] B. Collins, Moments and Cumulants of Polynomial random variables on unitary groups, the
+Itzykson-Zuber integral and free probability. Int. Math. Res. Not. 17, 953982 (2003)
+
+

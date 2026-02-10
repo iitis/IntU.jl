@@ -10,7 +10,7 @@ function _symbolic_isequal(a, b)
     b_v = Symbolics.value(b)
     
     if a_v isa Number && b_v isa Number
-        return isequal(a_v, b_v)
+        return a_v == b_v
     end
 
     a_un = Symbolics.unwrap(a_v)
@@ -42,6 +42,13 @@ function _symbolic_isequal(a, b)
     end
     
     # Final check: are they exactly equal?
+    try
+        if a_un == b_un
+            return true
+        end
+    catch
+    end
+    
     res = isequal(a_un, b_un)
     v = Symbolics.value(res)
     return v === true
@@ -51,6 +58,15 @@ function _iszero(x)
     v = Symbolics.value(x)
     if v isa Number
         return iszero(v)
+    end
+    try
+        # Attempt to simplify and check value
+        s = Symbolics.simplify(x)
+        sv = Symbolics.value(s)
+        if sv isa Number
+            return iszero(sv)
+        end
+    catch
     end
     # If still symbolic, use symbolic equality logic
     return _symbolic_isequal(v, 0)
@@ -838,9 +854,7 @@ function integrate_indices(
                 total_num = count * wnum
                 total_den = wden
             else
-                # Since all wden are the same for the same n, we just sum numerators.
-                # Actually, in case n is different for some reason (though not in a single integrate_indices call),
-                # or if some terms previously simplified, we use a more robust check.
+                # Handle different denominators
                 if isequal(total_den, wden)
                     total_num += count * wnum
                 else
@@ -1058,9 +1072,6 @@ function integrate_indices_symplectic(indices::Vector{Tuple{Int,Int}}, dim)
 
     total = 0 // 1
 
-    # Optimization: Filter partitions that yield non-zero J-contraction first?
-    # J_{uv} is non-zero only if |u - v| = d/2 (appropriately signed).
-    # This requires looking at the actual index values.
 
     # Pre-calculate contractions
     # For each partition pi, calculate J_pi(I).
@@ -1170,8 +1181,7 @@ function integrate_indices_gue(indices::Vector{Tuple{Any,Any}}, dim)
             end
         end
         if possible
-            ;
-            total += 1;
+            total += 1
         end
     end
     return total
@@ -1254,12 +1264,10 @@ function integrate_indices_goe(indices::Vector{Tuple{Any,Any}}, dim)
             match2 = _symbolic_isequal(i1, j2) && _symbolic_isequal(j1, i2)
 
             if match1
-                ;
-                val_pair += 1;
+                val_pair += 1
             end
             if match2
-                ;
-                val_pair += 1;
+                val_pair += 1
             end
 
             if val_pair == 0
@@ -1280,8 +1288,7 @@ function _get_J(i, j, d)
     # J = [0 I; -I 0]. d must be even. n = d/2.
     # J_i, j = delta(i, j-n) - delta(i-n, j)
     if !(d isa Integer)
-        ;
-        return 0;
+        return 0
     end
     n = d ÷ 2
     if i <= n && j > n && j == i + n
@@ -1337,8 +1344,8 @@ function integrate_indices_gse(indices::Vector{Tuple{Int,Int}}, dim)
             end
 
             if possible
-                total += (term_val) # the -1^n2 is already in term_val from each jac*jbd if we are careful?
-                # Actually, -J_ac J_bd already has the minus.
+                # Sign is encoded in the J values
+                total += term_val
             end
         end
     end
@@ -1353,26 +1360,6 @@ J = [0 I; -I 0].
 """
 function compute_symplectic_contraction(partition, indices, dim)
     val = 1
-
-    # If dim is unknown, we can't evaluate J numerically easily unless indices are 
-    # constructed such that we know.
-    # But usually dim is symbolic `d`.
-    # AND indices are something like 1, 2, ...
-    # We need to know `d` to know if index i and j are symplectic pairs.
-    # If `d` is symbolic, we can't determine this range.
-
-    # However, usually when integrating, `dim` matches the matrix size indices.
-    # If the user defines `dSp(S, d)` and `S` is 2x2. Then `d=2`.
-    # If `S` is symbolic size, indices are typically symbolic too?
-    # For now, we assume numeric indices and try to infer symplectic structure.
-    # Or we assume d is the numeric size involved.
-
-    # Fallback: if d is symbolic, we check if we can convert it to number if indices are numbers.
-    # If indices are huge integers, we assume standard basis.
-
-    # CRITICAL: We need `d` to define J.
-    # If d is symbolic, we can try to look at max index?
-    # No, that's unsafe.
 
     u_unwrapped = Symbolics.unwrap(dim)
     is_d_numeric = (u_unwrapped isa Number)
@@ -1438,8 +1425,6 @@ function integrate_indices_ginue(u_indices::Vector{Tuple{Int,Int}}, ub_indices::
     if n != length(ub_indices)
         return 0
     end
-    
-    
     perms = permutations(1:n)
     total = 0
     for p in perms
@@ -1502,22 +1487,7 @@ function integrate_indices_ginse(indices::Vector{Tuple{Int,Int}}, dim)
         return 0
     end
     
-    # <Tr(G^k)>_GinSE(d) = (-1)^(k/2 + 1) * <Tr(G^k)>_GinOE(-d)
-    # This is for a single trace. For general moments, it's safer to use the same logic as GSE.
-    # However, GinOE integration doesn't depend on d!
-    # Wait, integration_indices_ginoe(indices, dim) returns a constant (number of valid partitions).
-    # So integrate_indices_ginse should also be related.
-    
-    # Actually, for Ginibre, the entries are i.i.d. Gaussian.
-    # For GinSE, the entries are quaternionic Gaussian.
-    # The duality might be more subtle than just d -> -d if the result is a constant.
-    # But usually these are used in traces where d appears from cycles.
-    
-    # Let's use the same duality logic: 
     res_oe = integrate_indices_ginoe(indices, dim)
-    # GinOE result is independent of dim.
-    # But GinSE might involve dim if we had traces.
-    # In index-based integration, dim is only used if we have traces.
     
     final_sign = ((-1)^(n ÷ 2 + 1))
     return final_sign * res_oe
@@ -1660,20 +1630,13 @@ function _expand_asymptotic(ex, d, order)
     # ex(1/eps) = f_analytic(eps) * eps^(m-n)
     diff = m - n
 
-    # We need to expand until we reach requested order in 1/d
-    # power = k + diff. We want power <= order.
-    # So k <= order - diff.
-    # But if diff is negative (polynomial), we want to capture all terms.
     max_k = order - diff
 
     for k = 0:max_k
-        # Robust evaluation at ϵ = 0
-        # Aggressively simplify to clear denominators before substitution
         val = try
             v = Symbolics.substitute(curr_deriv, Dict(ϵ => 0))
             vu = Symbolics.unwrap(v)
             if isnan(vu) || isinf(vu)
-                # If NaN/Inf, try more aggressive simplification
                 curr_sim = Symbolics.simplify(curr_deriv; expand = true)
                 Symbolics.substitute(curr_sim, Dict(ϵ => 0))
             else

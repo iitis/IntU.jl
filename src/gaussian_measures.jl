@@ -161,7 +161,6 @@ function _setup_gaussian_subs(H_sym, ensemble_type)
                 elseif ensemble_type in (:GinOE, :GinSE)
                     # GinOE: RealEntries, conj(G_{ij}) = G_{ij}
                     # GinSE: handled via GOE/GSE-like logic or simply Real mapping if we use Wick.
-                    # Actually GinOE is real entries.
                     subs_dict[Symbolics.unwrap(conj(h_ij_un))] = h_atomic
                     subs_dict[Symbolics.unwrap(Base.conj(h_ij_un))] = h_atomic
                 end
@@ -290,7 +289,6 @@ function fallback_integrate(t::LazyTrace, measure::GUEMeasure)
                     # Traverse from H_curr_m to its paired partner
                     paired_m = perm_map[curr_m]
                     # The wire starts AFTER paired_m and leads to some other H
-                    # but wait...
                     # <H_ij H_kl> means output of u connects to input of v.
                     # Output of u is the wire starting at H_indices[u].
                     # Input of v is the wire ending at H_indices[v].
@@ -514,25 +512,7 @@ function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
                 end
             end
 
-            # Since each cycle is counted twice (once per direction for real symmetric edges? 
-            # No, GOE trace graph is directed by the trace cycle but Wick edges are undirected.
-            # Actually, standard Wick logic for GOE traces:
-            # Each choices set corresponds to a single term.
-            # But the way I count cycles (starting from any port) might double count?
-            # Yes, if I start at Port 2 and go fwd, versus start at Port 1 and go bwd.
-            # In GOE, the "cycle" is undirected? No, tr(factors) is symmetric if matrices are symmetric.
-            # But SymbolicMatrix' is explicitly there.
-
-            # Re-eval: In GUE, we had directed cycles. In GOE, we have undirected cycles?
-            # But we are in a trace, which has a direction.
-            # If we go backwards, we get tr(factors'). 
-            # If factors are real symmetric, tr(factors') = tr(factors).
-
-            # To avoid double counting, we observe that each port is connected to exactly one other port.
-            # So the graph is a collection of disjoint cycles.
-            # My loop finds each cycle.
-            # If I sum over ports, I visit each cycle of length L exactly L times?
-            # No, if I visit each node in the cycle once.
+            # Each (partition, choice-set) pair contributes one term: prod of cycle traces.
 
             # The result for one choice set is prod(current_partition_traces)
             term_val =
