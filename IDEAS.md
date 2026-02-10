@@ -88,10 +88,10 @@ functionalities that could be added:
 *   **Why**: **[New Physics]**. Enables the study of non-Hermitian Hamiltonians and dissipative quantum dynamics using the same symbolic engine.
 *   **Implementation**: Standard Gaussian integration (Wick calculations) applied to matrix entries.
 
-## 15. Harish-Chandra-Itzykson-Zuber (HCIZ) Integrals
-*   **Description**: Support for calculating integrals of the form $\int_{U(d)} dU \exp(t \text{Tr}(A U B U^\dagger))$.
-*   **Why**: **[Advanced RMT]**. Corner-stone of random matrix theory with deep connections to partition functions and character expansions.
-*   **Implementation**: Requires implementation of the HCIZ formula involving determinants of exponentials or character-based expansions.
+~~## 15. Harish-Chandra-Itzykson-Zuber (HCIZ) Integrals~~
+~~*   **Description**: Support for calculating integrals of the form $\int_{U(d)} dU \exp(t \text{Tr}(A U B U^\dagger))$.~~
+~~*   **Why**: **[Advanced RMT]**. Corner-stone of random matrix theory with deep connections to partition functions and character expansions.~~
+~~*   **Implementation**: Requires implementation of the HCIZ formula involving determinants of exponentials or character-based expansions.~~
 
 ~~## 16. Diagonal Unitary Matrices (Torus group)~~
 ~~*   **Description**: Support for integration over the group of diagonal unitary matrices (the torus $T^d$).~~
