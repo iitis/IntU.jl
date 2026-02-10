@@ -113,4 +113,8 @@ end
     @testset verbose=true "Diagonal Unitary Integration" begin
         include("test_diagonal_unitary.jl")
     end
+
+    @testset verbose=true "HCIZ Integration" begin
+        include("hciz.jl")
+    end
 end

@@ -73,7 +73,6 @@ end
     res = integrate_graphical(constants, unitaries, 2, :U) # dim=2
 
     @test res == "1//2 * Tr(A)Tr(B)"
-    println("Mock Unitary result: ", res)
 
     # 2. Test Orthogonal
     # Tr(O A O B)
@@ -89,7 +88,6 @@ end
     # This is more complex to predict exactly in mock, but we check if it runs.
     res_o = integrate_graphical([], [O1, O2], 2, :O)
     @test contains(res_o, "Tr(O1 O2)")
-    println("Mock Orthogonal result: ", res_o)
 
     # 3. Test Symplectic
     function IntU._create_deltas_symplectic(idxs1, idxs2, dim)
@@ -100,5 +98,4 @@ end
 
     res_sp = integrate_graphical([], [O1, O2], 2, :Sp)
     @test contains(res_sp, "Tr(O1 O2)")
-    println("Mock Symplectic result: ", res_sp)
 end

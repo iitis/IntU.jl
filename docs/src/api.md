@@ -5,6 +5,8 @@
 ```@docs
 integrate
 asymptotic
+hciz
+vandermonde_det
 ```
 
 ## Measures

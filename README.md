@@ -170,12 +170,22 @@ using IntU: tr
 # Define symbolic matrices A, B (constant) and U (random)
 A = SymbolicMatrix(:A)
 B = SymbolicMatrix(:B)
-U_sym = SymbolicMatrix(:U, false, :U) # unitary
-
 # Compute ∫ tr(U A U† B) dU
-expr = tr(U_sym * A * U_sym' * B)
+expr = tr(SymbolicMatrix(:U, false, :U) * A * SymbolicMatrix(:U, true, :U) * B)
 integrate(expr, dU(d))
 # Output: (tr(A)*tr(B)) / d
+```
+
+### Harish-Chandra-Itzykson-Zuber (HCIZ) Integrals
+IntU supports calculating HCIZ integrals of the form $\int_{U(d)} dU \exp(\text{Tr}(A U B U^\dagger))$.
+
+```julia
+using IntU, LinearAlgebra
+A = diagm([1.0, 2.0])
+B = diagm([0.5, 1.5])
+# Compute ∫ dU exp(Tr(A U B U'))
+hciz(A, B)
+# Output: 20.9329...
 ```
 
 ### Stiefel Manifolds
