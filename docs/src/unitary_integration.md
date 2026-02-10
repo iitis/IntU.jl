@@ -149,10 +149,7 @@ println(res)
 # Output: 20.9329...
 ```
 
-```@docs
-hciz
-vandermonde_det
-```
+See the [API Reference](api.md) for more details.
 
 ## Potential Pitfalls
 
