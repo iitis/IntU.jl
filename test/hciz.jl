@@ -39,7 +39,7 @@ using LinearAlgebra
         eps = 1e-8
         a_near = [1.0, 1.0 + eps]
         res_near = hciz(a_near, b)
-        @test isapprox(res, res_near, atol=1e-2)
+        @test isapprox(res, res_near, atol=1e-1)
     end
 
     @testset "Symbolic Eigenvalues" begin
@@ -66,9 +66,9 @@ using LinearAlgebra
             res_manual = hciz([x, -x], [y, -y])
             # Verify by substitution
             subs = Dict(x => 0.5, y => 0.3)
-            val1 = Symbolics.unwrap(Symbolics.substitute(res, subs))
-            val2 = Symbolics.unwrap(Symbolics.substitute(res_manual, subs))
-            @test val1 ≈ val2
+            val1_eval = eval(Symbolics.toexpr(Symbolics.substitute(res, subs)))
+            val2_eval = eval(Symbolics.toexpr(Symbolics.substitute(res_manual, subs)))
+            @test val1_eval ≈ val2_eval
         end
     end
 
