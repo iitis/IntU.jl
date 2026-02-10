@@ -29,6 +29,9 @@ dSp
 dGUE
 dGOE
 dGSE
+dGinUE
+dGinOE
+dGinSE
 ```
 
 ### Pure States
@@ -76,6 +79,8 @@ LazyTrace
 LazySum
 IntU.integrate_indices_gue
 IntU.integrate_indices_goe
+IntU.integrate_indices_ginue
+IntU.integrate_indices_gin_oe
 IntU.integrate_indices_orthogonal
 IntU.integrate_indices_symplectic
 IntU.integrate_indices_coe
