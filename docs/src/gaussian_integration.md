@@ -37,9 +37,32 @@ The contraction rule involves the symplectic form $J$:
 ```
 IntU.jl implements GSE integration by mapping it to contractions involving the definition of the symplectic metric.
 
+## Ginibre Ensembles
+
+Ginibre ensembles consist of non-Hermitian matrices where each entry is an independent Gaussian random variable.
+
+### GinUE (Complex Ginibre Ensemble)
+
+Matrices $G$ with i.i.d. complex Gaussian entries. The contraction rule is:
+```math
+\langle G_{ij} \bar{G}_{kl} \rangle_{GinUE} = \delta_{ik} \delta_{jl}
+```
+Note that only contractions between $G$ and its complex conjugate $\bar{G}$ are non-zero.
+
+### GinOE (Real Ginibre Ensemble)
+
+Matrices $G$ with i.i.d. real Gaussian entries. The contraction rule is:
+```math
+\langle G_{ij} G_{kl} \rangle_{GinOE} = \delta_{ik} \delta_{jl}
+```
+
+### GinSE (Symplectic Ginibre Ensemble)
+
+Matrices $G$ with i.i.d. quaternionic Gaussian entries. Integrals are computed using duality relations.
+
 ## Usage
 
-You can define the Gaussian measures using `dGUE`, `dGOE`, and `dGSE`.
+You can define the Gaussian measures using `dGUE`, `dGOE`, `dGSE`, `dGinUE`, `dGinOE`, and `dGinSE`.
 
 ### GUE Example
 
@@ -56,6 +79,20 @@ measure_GUE = dGUE(H, d)
 expr = IntU.tr(H^2)
 res = integrate(expr, measure_GUE)
 println(res)
+# Output: d^2
+```
+
+### GinUE Example
+
+```julia
+# GinUE Measure with symbolic dimension
+G = SymbolicMatrix(:G)
+measure_GinUE = dGinUE(G, d)
+
+# Average Trace of G G'
+# < Tr(G G') > = d^2
+res_ginue = integrate(IntU.tr(G * G'), measure_GinUE)
+println(res_ginue)
 # Output: d^2
 ```
 
@@ -98,9 +135,9 @@ This corresponds to the normalization where the variance of off-diagonal entries
 ## Implementation Details
 
 IntU.jl automates the following steps:
-1.  **Index Collection**: Parses the expression to find all occurrences of $H$.
-2.  **Pair Partitioning**: Generates all ways to pair up the $H$ factors ($\sim (2k-1)!!$ terms).
-3.  **Contraction**: For each pair, applies the specific ensemble contraction rule (GUE, GOE, or GSE).
+1.  **Index Collection**: Parses the expression to find all occurrences of $H$ (or $G$).
+2.  **Pair Partitioning**: Generates all ways to pair up the matrix factors.
+3.  **Contraction**: For each pair, applies the specific ensemble contraction rule.
 4.  **Summation**: Sums the contributions.
 
 ## References
@@ -108,6 +145,7 @@ IntU.jl automates the following steps:
 1.  **Mehta, M. L.** (2004). *Random Matrices*. Elsevier.
 2.  **Livan, G., Novaes, M., & Vivo, P.** (2018). *Introduction to Random Matrices: Theory and Practice*. Springer.
 3.  **Wick, G. C.** (1950). The evaluation of the collision matrix. *Physical Review*, 80(2), 268.
+4.  **Ginibre, J.** (1965). Statistical ensembles of complex, real, and quaternionic matrices. *Journal of Mathematical Physics*, 6(3), 440-449.
 
 ## Pre-computed Moments
 

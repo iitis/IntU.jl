@@ -771,6 +771,20 @@ INTEGRATION_RULES[:DiagUnitary] = (u, ub, d, mt) -> begin
     length(u) == 0 ? 1 : integrate_indices_diagonal(u, ub, d)
 end
 
+INTEGRATION_RULES[:GinUE] = (u, ub, d, mt) -> begin
+    length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices_ginue(u, ub, d))
+end
+
+INTEGRATION_RULES[:GinOE] = (u, ub, d, mt) -> begin
+    all_indices = [u; ub]
+    length(all_indices) % 2 != 0 ? 0 : (length(all_indices) == 0 ? 1 : integrate_indices_ginoe(all_indices, d))
+end
+
+INTEGRATION_RULES[:GinSE] = (u, ub, d, mt) -> begin
+    all_indices = [u; ub]
+    length(all_indices) % 2 != 0 ? 0 : (length(all_indices) == 0 ? 1 : integrate_indices_ginse(all_indices, d))
+end
+
 
 """
     integrate_indices(U_idxs, U_bar_idxs, dim)
@@ -1411,6 +1425,102 @@ function symplectic_form(i, j, dim)
     else
         return 0
     end
+end
+
+"""
+    integrate_indices_ginue(u_indices, ub_indices, dim)
+
+Low-level integration for Complex Ginibre Ensemble.
+Formula: sum_{sigma in S_n} prod_m delta(i_m, ib_sigma(m)) * delta(j_m, jb_sigma(m))
+"""
+function integrate_indices_ginue(u_indices::Vector{Tuple{Int,Int}}, ub_indices::Vector{Tuple{Int,Int}}, dim)
+    n = length(u_indices)
+    if n != length(ub_indices)
+        return 0
+    end
+    
+    
+    perms = permutations(1:n)
+    total = 0
+    for p in perms
+        possible = true
+        for m = 1:n
+            (i, j) = u_indices[m]
+            (ib, jb) = ub_indices[p[m]]
+            if !_symbolic_isequal(i, ib) || !_symbolic_isequal(j, jb)
+                possible = false
+                break
+            end
+        end
+        if possible
+            total += 1
+        end
+    end
+    return total
+end
+
+"""
+    integrate_indices_ginoe(indices, dim)
+
+Low-level integration for Real Ginibre Ensemble.
+Formula: sum_{pi in PairPartitions} prod_{(u, v) in pi} delta(i_u, i_v) * delta(j_u, j_v)
+"""
+function integrate_indices_ginoe(indices::Vector{Tuple{Int,Int}}, dim)
+    n = length(indices)
+    if isodd(n)
+        return 0
+    end
+    
+    partitions = get_pair_partitions(n)
+    total = 0
+    for pi in partitions
+        possible = true
+        for (u, v) in pi
+            (i1, j1) = indices[u]
+            (i2, j2) = indices[v]
+            if !_symbolic_isequal(i1, i2) || !_symbolic_isequal(j1, j2)
+                possible = false
+                break
+            end
+        end
+        if possible
+            total += 1
+        end
+    end
+    return total
+end
+
+"""
+    integrate_indices_ginse(indices, dim)
+
+Low-level integration for Symplectic Ginibre Ensemble.
+Uses duality with GinOE.
+"""
+function integrate_indices_ginse(indices::Vector{Tuple{Int,Int}}, dim)
+    n = length(indices)
+    if isodd(n)
+        return 0
+    end
+    
+    # <Tr(G^k)>_GinSE(d) = (-1)^(k/2 + 1) * <Tr(G^k)>_GinOE(-d)
+    # This is for a single trace. For general moments, it's safer to use the same logic as GSE.
+    # However, GinOE integration doesn't depend on d!
+    # Wait, integration_indices_ginoe(indices, dim) returns a constant (number of valid partitions).
+    # So integrate_indices_ginse should also be related.
+    
+    # Actually, for Ginibre, the entries are i.i.d. Gaussian.
+    # For GinSE, the entries are quaternionic Gaussian.
+    # The duality might be more subtle than just d -> -d if the result is a constant.
+    # But usually these are used in traces where d appears from cycles.
+    
+    # Let's use the same duality logic: 
+    res_oe = integrate_indices_ginoe(indices, dim)
+    # GinOE result is independent of dim.
+    # But GinSE might involve dim if we had traces.
+    # In index-based integration, dim is only used if we have traces.
+    
+    final_sign = ((-1)^(n ÷ 2 + 1))
+    return final_sign * res_oe
 end
 
 

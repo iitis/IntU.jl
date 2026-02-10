@@ -11,7 +11,7 @@ asymptotic(expr, measure, order=1)
 ```
 
 - **expr**: The symbolic expression to integrate.
-- **measure**: The integration measure (Haar, PureState, etc.).
+- **measure**: The integration measure (Haar, PureState, GinUE, etc.).
 - **order**: The maximum power of $1/d$ to retain (default 1).
 
 ## Example

@@ -104,6 +104,21 @@ integrate(abs(S_mat[1,1])^2, dSp(S_mat, d))
 # Output: 1 / d
 ```
 
+### Ginibre Ensembles
+Ginibre ensembles consist of non-Hermitian matrices with i.i.d. Gaussian entries. 
+- **GinUE (Complex Ginibre Ensemble)**: i.i.d. complex Gaussian entries. Use `dGinUE`.
+- **GinOE (Real Ginibre Ensemble)**: i.i.d. real Gaussian entries. Use `dGinOE`.
+- **GinSE (Symplectic Ginibre Ensemble)**: i.i.d. quaternionic Gaussian entries. Use `dGinSE`.
+
+```julia
+@variables d
+# Use T=Complex{Num} for GinUE to ensure conj(G) != G
+G = [Symbolics.variable(:G, i, j, T=Complex{Num}) for i = 1:2, j = 1:2]
+# E[Tr(G G')] = d^2 = 4 (for 2x2 matrix)
+integrate(tr(G * G'), dGinUE(G, d))
+# Output: 4
+```
+
 ### Circular Ensembles
 IntU also supports Circular Ensembles (CUE, COE, CSE) which are commonly used in random matrix theory.
 - **CUE (Circular Unitary Ensemble)**: Equivalent to the Haar measure on $U(d)$. Use `dCUE`.
