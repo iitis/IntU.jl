@@ -123,7 +123,7 @@ cornerstone in quantum information science and random matrix theory. We present
 \texttt{IntU.jl}, a comprehensive Julia package for computing exact expectations
 of polynomial functions over the unitary $U(d)$, special unitary $SU(d)$,
 orthogonal $O(d)$, symplectic $Sp(d)$, permutation group $S_d$, circular
-ensembles (CUE, COE, CSE), and Gaussian ensembles (GUE, GOE, GSE), as well as
+ensembles (CUE, COE, CSE), Ginibre ensembles (GinUE, GinOE, GinSE), and Gaussian ensembles (GUE, GOE, GSE), as well as
 random pure quantum states, diagonal unitary matrices, and unitary $t$-designs.
 Unlike existing tools that often rely on proprietary engines or lack support for
 symbolic parameters, \texttt{IntU.jl} provides a fully open-source, performant
@@ -222,7 +222,7 @@ $d$ as native symbolic rational functions rather than requiring separate
 symbolic algebra backends or manual substitutions.
 
 Beyond compact groups, the package provides comprehensive support for the beta
-ensembles of random matrix theory (GUE, GOE, GSE) via Wick's theorem, as well as
+ensembles of random matrix theory (GUE, GOE, GSE, GinUE, GinOE, GinSE) via Wick's theorem, as well as
 circular ensembles and unitary $t$-designs. This diverse ensemble support,
 combined with specialized utilities for quantum information metrics like purity
 and fidelity, makes \texttt{IntU.jl} a versatile environment for both
@@ -384,10 +384,10 @@ The package supports a wide range of integration measures, grouped as follows:
     \item \textbf{Permutation groups}: Measures for the Symmetric Group $S_d$
     (\texttt{dPerm}) and the ensemble of centered permutation matrices
     (\texttt{dCPerm}). Centered permutations $Y$ satisfy $Y_{ij} = P_{ij} - 1/d$, where $P \in S_d$.
-    \item \textbf{Gaussian ensembles}: Measures for the Gaussian unitary (GUE),
-    orthogonal (GOE), and symplectic (GSE) ensembles (\texttt{dGUE},
-    \texttt{dGOE}, \texttt{dGSE}). These rely on Wick's theorem for integration
-    rather than Weingarten calculus.
+    \item \textbf{Gaussian and Ginibre ensembles}: Support for the Gaussian unitary (GUE),
+    orthogonal (GOE), and symplectic (GSE) ensembles, as well as the complex (GinUE), 
+    real (GinOE), and symplectic (GinSE) Ginibre ensembles. These rely on Wick's 
+    theorem for integration rather than Weingarten calculus.
     \item \textbf{Unitary designs}: Unitary $t$-designs (\texttt{dDesign}),
     which mimic the first $t$ moments of the Haar measure, useful for studying
     pseudo-randomness in quantum circuits.
@@ -444,6 +444,19 @@ pairwise contractions:
 This approach allows \texttt{IntU.jl} to compute moments for all three Beta
 ensembles ($\beta=1, 2, 4$) while maintaining full support for symbolic
 dimensions $d$.
+
+\subsection{Ginibre ensembles}
+Moving beyond Hermitian matrices, \texttt{IntU.jl} supports the Ginibre ensembles
+(GinUE, GinOE, GinSE) \cite{ginibre1965statistical}, which consist of
+non-Hermitian matrices with independent and identically distributed (i.i.d.)
+Gaussian entries. These are integrated using similar Wick contraction rules:
+\begin{itemize}
+    \item \textbf{GinUE}: $\langle G_{ij} \bar{G}_{kl} \rangle = \delta_{ik} \delta_{jl}$. Only contractions between $G$ and its conjugate $\bar{G}$ are non-vanishing.
+    \item \textbf{GinOE}: $\langle G_{ij} G_{kl} \rangle = \delta_{ik} \delta_{jl}$ for real entries.
+    \item \textbf{GinSE}: Quaternionic entries treated via duality relations.
+\end{itemize}
+Like the beta ensembles, these rules are implemented to support both symbolic 
+dimensions $d$ and high-level trace expressions.
 
 \subsection{Circular ensembles}
 \texttt{IntU.jl} also supports integration over the circular ensembles of random
@@ -762,6 +775,19 @@ integrate(abs(V[1,1])^2, measure)
 # Output: 1 / d
 \end{lstlisting}
 
+\subsection{Ginibre ensembles}
+Integration over Ginibre ensembles is useful for studying non-Hermitian random 
+matrix properties. We compute the second moment $\langle \mathrm{tr}(G G^\dagger) \rangle$:
+\begin{lstlisting}[language=Julia]
+@variables d
+Gs = SymbolicMatrix(:G)
+measure = dGinUE(Gs, d)
+# Compute <tr(G G')>
+expr = tr_lazy(Gs * Gs')
+result = integrate(expr, measure)
+# Output: d^2
+\end{lstlisting}
+
 \section{Implementation details}
 \label{sec:implementation}
 \texttt{IntU.jl} is written in pure Julia \cite{bezanson2017julia}, utilizing
@@ -945,6 +971,9 @@ Orthogonal & $O_{11}^{10}$ & $d=50$ & 93.3 \\
 Symplectic & $|S_{11}|^8$ & $d=10$ & 1.8 \\
 Symplectic & $|S_{11}|^{10}$ & $d=10$ & 4.9 \\
 Symplectic & $|S_{11}|^{10}$ & $d=20$ & 9.6 \\
+\hline
+GinUE & $\mathrm{tr}(GG^\dagger)$ & Symbolic & 0.01 \\
+GinUE & $\mathrm{tr}(GG^\dagger)$ & $d=4$ & 5.8 \\
 \hline
 Circ. Orthogonal & $|S_{11}|^2$ & Symbolic & 1.6 \\
 Circ. Orthogonal & $|S_{11}|^4$ & Symbolic & 7.8 \\
