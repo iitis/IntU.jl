@@ -83,10 +83,10 @@ functionalities that could be added:
 ~~*   **Why**: **[Generalization]**. Generalizes Haar-random states ($k=1$) to random subspaces and isometries. Crucial for analyzing Tensor Networks and quantum codes.~~
 ~~*   **Implementation**: Can be realized by integrating over the full Unitary group $U(d)$ but restricting the observation to the first $k$ columns.~~
 
-## 14. Ginibre Ensembles (Non-Hermitian)
-*   **Description**: Add support for real, complex, and symplectic Ginibre ensembles (matrices with i.i.d. Gaussian entries).
-*   **Why**: **[New Physics]**. Enables the study of non-Hermitian Hamiltonians and dissipative quantum dynamics using the same symbolic engine.
-*   **Implementation**: Standard Gaussian integration (Wick calculations) applied to matrix entries.
+~~## 14. Ginibre Ensembles (Non-Hermitian)~~
+~~*   **Description**: Add support for real, complex, and symplectic Ginibre ensembles (matrices with i.i.d. Gaussian entries).~~
+~~*   **Why**: **[New Physics]**. Enables the study of non-Hermitian Hamiltonians and dissipative quantum dynamics using the same symbolic engine.~~
+~~*   **Implementation**: Standard Gaussian integration (Wick calculations) applied to matrix entries.~~
 
 ~~## 15. Harish-Chandra-Itzykson-Zuber (HCIZ) Integrals~~
 ~~*   **Description**: Support for calculating integrals of the form $\int_{U(d)} dU \exp(t \text{Tr}(A U B U^\dagger))$.~~
