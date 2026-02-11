@@ -621,7 +621,7 @@ compared to the standard Haar measure. Here, we compute the second moment of a
 diagonal entry for the symmetric (COE) and self-dual (CSE) cases:
 
 \begin{lstlisting}[language=Julia]
-@variables S[1:d, 1:d]
+@symbolic_dimension S[1:d, 1:d]
 
 # Circular Orthogonal Ensemble (S is symmetric)
 measure_coe = dCOE(S, d)
@@ -657,7 +657,7 @@ This eliminates the need for manual element-wise iteration or broadcasting,
 automatically performing the integration over all array entries. For Haar-random
 unitary matrices, we verify the relation $\int U U^\dagger dU = I$:
 \begin{lstlisting}[language=Julia]
-@variables U[1:d, 1:d]
+@symbolic_dimension U[1:d, 1:d]
 measure = dU(U, d)
 # Integrate the matrix product U * U'
 # IntU handles the element-wise operations internally
@@ -733,7 +733,7 @@ Symbolic integration over the Symmetric Group $S_d$ is particularly useful for
 combinatorial problems and studying centered permutation ensembles.
 \begin{lstlisting}[language=Julia]
 @variables d
-@variables P[1:d, 1:d]
+@symbolic_dimension P[1:d, 1:d]
 measure = dPerm(P, d)
 
 # Average of a product of entries
@@ -751,7 +751,7 @@ integrate(Y[1,1]^2, m_centered)
 For the group of diagonal unitary matrices, integration reduces to independent
 phase averaging.
 \begin{lstlisting}[language=Julia]
-@variables V[1:d, 1:d]::Complex
+@symbolic_dimension V[1:d, 1:d]
 measure = dDiagUnitary(V, d)
 
 # Average of |V_11|^2
