@@ -38,7 +38,7 @@ O_mat = collect(O)
 res_mat = integrate(O_mat * O_mat', mO)
 
 # Check first element
-println("Result[1,1]: ", res_mat[1,1])
+println("Result[1,1]: ", res_mat[1, 1])
 println("Expected: 1")
 
 

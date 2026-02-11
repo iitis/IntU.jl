@@ -35,9 +35,6 @@ function to_numeric(x)
     catch
     end
 
-    if IntU._symbolic_isequal(sim, 0)
-        return 0.0
-    end
     return x_un
 end
 
@@ -101,7 +98,7 @@ end
     @testset verbose=true "Unitary Designs" begin
         include("unitary_designs.jl")
     end
-    
+
     @testset verbose=true "Permutation Groups" begin
         include("permutation_groups.jl")
     end
@@ -116,5 +113,13 @@ end
 
     @testset verbose=true "HCIZ Integration" begin
         include("hciz.jl")
+    end
+
+    @testset verbose=true "Stiefel Manifold" begin
+        include("stiefel_tests.jl")
+    end
+
+    @testset verbose=true "Ginibre Ensembles" begin
+        include("ginibre.jl")
     end
 end

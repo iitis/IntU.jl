@@ -133,8 +133,8 @@ function IntU.measure_info(measure::SymplecticMeasure)
                 subs_dict[s_ij_un] = s_atomic
 
                 p, sign_i = _j_pair_sign(i, n_half)
-                q, sign_j = _j_pair_sign(j, n_half) 
-                
+                q, sign_j = _j_pair_sign(j, n_half)
+
                 coeff = sign_i * sign_j
                 s_mapped = atomics[p, q]
 

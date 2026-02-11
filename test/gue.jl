@@ -49,15 +49,15 @@ using LinearAlgebra
         # < H > = 0
         res_mat = integrate(H, meas)
         @test all(x -> to_numeric(x) == 0, res_mat)
-        
+
         # < H^2 > should have diagonals N and off-diagonals 0
         # Use collect to ensure expression is definitely a Matrix{Num} before integration if needed,
         # though H is already a Matrix{Num} from definition.
-        
+
         res_mat2 = integrate(H^2, meas)
         expected_diag = N
-        
-        for i in 1:N, j in 1:N
+
+        for i = 1:N, j = 1:N
             val = to_numeric(res_mat2[i, j])
             if i == j
                 @test val == expected_diag

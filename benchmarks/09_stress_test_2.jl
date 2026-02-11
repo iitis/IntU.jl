@@ -41,12 +41,7 @@ doublefactorial_odd(n::Int) = prod(1:2:n)  # n must be odd
 
 # Symbolic zero test (best-effort; also backs up by numeric spot-checks)
 function sym_is_zero(x)
-    try
-        xs = Symbolics.simplify(x)
-        return (xs == 0) || (xs === 0)
-    catch
-        return false
-    end
+    return IntU._iszero(x)
 end
 
 function safe_string(x)
@@ -93,8 +88,7 @@ unitary_row_product(d, m::Int) = 1 / prod(d + i for i = 0:(m-1))
 unitary_row_square_square(d) = (2*2) / prod(d + i for i = 0:3)  # 4 / d(d+1)(d+2)(d+3)
 
 # O(d): if O_11^2 ~ Beta(1/2, (d-1)/2), then E[O_11^(2k)] = (2k-1)!! / d(d+2)...(d+2k-2)
-orth_entry_even_moment(d, k::Int) =
-    doublefactorial_odd(2k-1) / prod(d + 2i for i = 0:(k-1))
+orth_entry_even_moment(d, k::Int) = doublefactorial_odd(2k-1) / prod(d + 2i for i = 0:(k-1))
 
 # O(d): squared coordinates Dirichlet(1/2,...,1/2)
 # E[∏_{j=1}^m O_1j^2] = 1 / d(d+2)...(d+2m-2)
@@ -178,8 +172,11 @@ for (name, expr, expected) in U_cases
     for dv in dvals_symbolic
         g = eval_at(got, d, dv)
         e = eval_at(expected, d, dv)
-        numeric_checks[string(dv)] =
-            Dict("got" => safe_string(g), "expected" => safe_string(e), "ok" => safe_eq(g, e))
+        numeric_checks[string(dv)] = Dict(
+            "got" => safe_string(g),
+            "expected" => safe_string(e),
+            "ok" => safe_eq(g, e),
+        )
     end
 
     println("[U(d)] $name")

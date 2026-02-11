@@ -9,7 +9,7 @@ println("=== Ginibre Ensembles Integration Examples ===\n")
 println("1. Complex Ginibre Ensemble (GinUE)")
 N = 2
 # Specification of T=Complex{Num} is important for GinUE to ensure conj(G) != G
-G = [Symbolics.variable(:G, i, j, T=Complex{Num}) for i = 1:N, j = 1:N]
+G = [Symbolics.variable(:G, i, j, T = Complex{Num}) for i = 1:N, j = 1:N]
 meas_ginue = dGinUE(G, N)
 
 println("--- Basic Moments ---")
@@ -76,7 +76,10 @@ display(map(simplify, res_sym))
 
 # Verification
 expected_sym = tr(As) * Bs
-is_correct = all(i -> IntU._symbolic_isequal(simplify(res_sym[i]), simplify(expected_sym[i])), eachindex(res_sym))
+is_correct = all(
+    i -> IntU._symbolic_isequal(simplify(res_sym[i]), simplify(expected_sym[i])),
+    eachindex(res_sym),
+)
 println("\nMatches Tr(A)*B: ", is_correct)
 
 println("\nDone.")

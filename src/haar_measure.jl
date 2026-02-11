@@ -143,17 +143,12 @@ function IntU.measure_info(measure::HaarMeasure)
 
     # Check if U is our new SymbolicUnitary or legacy AbstractArray
     if U_input isa SymbolicUnitary
-        # Use Symbolic Matcher
-        # We don't need subs_dict for canonical variables because U(i,j) is already canonical
         subs_dict = Dict{Any,Any}()
-        # Regex matches name_i_j
         matcher = SymbolicMatcher(Regex("^$(U_input.name)_(\\d+)_(\\d+)\$"))
 
         return (subs_dict, matcher, dim, :U)
     else
-        # Legacy array-based path
         U_sym = U_input
-        # Substitute Re(U) and Im(U)
         subs_dict = Dict{Any,Any}()
         U_atomic_lookup = Dict{Any,Tuple}()
         U_bar_lookup = Dict{Any,Tuple}()
@@ -186,11 +181,7 @@ function IntU.measure_info(measure::HaarMeasure)
 end
 
 function _manual_fallback(expr, measure::HaarMeasure)
-    # HaarMeasure still handles LazyTrace manually in fallback_integrate
-    # but we renamed that to fallback_integrate(::LazyTrace, ::HaarMeasure).
-    # Wait, the core fallback_integrate calls _manual_fallback if measure_info is not found
-    # OR if it's found but we want to handle specialized types.
-    # Actually, LazyTrace is handled by a specific dispatch.
+    # LazyTrace expressions are handled by fallback_integrate dispatch, not here.
     error("HaarMeasure integration failed for: $(typeof(expr))")
 end
 
@@ -225,7 +216,7 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
         return t.prefactor
     end
 
-    # 1. Identify U and U_dag instances across ALL cycles
+    # Identify U and U_dag instances across ALL cycles
     U_indices = Int[]
     U_bar_indices = Int[]
 
@@ -261,13 +252,13 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
         return _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
     end
 
-    # 2. Build Wires
+    # Build Wires
     wires = _build_wires(U_indices, U_bar_indices, cycle_ranges, all_factors)
 
     # Calculate constant part (cycles with no U/U_bar)
     constant_part = _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
 
-    # 3. Weingarten Sum
+    # Weingarten Sum
     u_map = Dict{Int,Int}(idx => m for (m, idx) in enumerate(U_indices))
     ub_map = Dict{Int,Int}(idx => m for (m, idx) in enumerate(U_bar_indices))
 
@@ -295,7 +286,20 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
             # Check U cycles (sigma-based)
             for start_m = 1:n_U
                 if !visited_sigma_U[start_m]
-                    val = _traverse_trace_cycle(start_m, 1, sigma, inv_tau, wires, u_map, ub_map, visited_sigma_U, visited_sigma_Ub, U_indices, U_bar_indices, dim)
+                    val = _traverse_trace_cycle(
+                        start_m,
+                        1,
+                        sigma,
+                        inv_tau,
+                        wires,
+                        u_map,
+                        ub_map,
+                        visited_sigma_U,
+                        visited_sigma_Ub,
+                        U_indices,
+                        U_bar_indices,
+                        dim,
+                    )
                     push!(current_term_traces, val)
                 end
             end
@@ -303,7 +307,20 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
             # Check Ub cycles (tau-based)
             for start_m = 1:n_U_bar
                 if !visited_tau_Ub[start_m]
-                    val = _traverse_trace_cycle(start_m, 2, sigma, inv_tau, wires, u_map, ub_map, visited_tau_U, visited_tau_Ub, U_indices, U_bar_indices, dim)
+                    val = _traverse_trace_cycle(
+                        start_m,
+                        2,
+                        sigma,
+                        inv_tau,
+                        wires,
+                        u_map,
+                        ub_map,
+                        visited_tau_U,
+                        visited_tau_Ub,
+                        U_indices,
+                        U_bar_indices,
+                        dim,
+                    )
                     push!(current_term_traces, val)
                 end
             end
@@ -390,11 +407,24 @@ function _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
     return constant_part
 end
 
-function _traverse_trace_cycle(start_m, start_type, sigma, inv_tau, wires, u_map, ub_map, visited_U, visited_Ub, U_indices, U_bar_indices, dim)
+function _traverse_trace_cycle(
+    start_m,
+    start_type,
+    sigma,
+    inv_tau,
+    wires,
+    u_map,
+    ub_map,
+    visited_U,
+    visited_Ub,
+    U_indices,
+    U_bar_indices,
+    dim,
+)
     curr_trace_factors = SymbolicMatrix[]
     curr_type = start_type
     curr_idx = start_m
-    
+
     while true
         if curr_type == 1
             if visited_U[curr_idx]
@@ -436,7 +466,7 @@ function _traverse_trace_cycle(start_m, start_type, sigma, inv_tau, wires, u_map
             end
         end
     end
-    
+
     if isempty(curr_trace_factors)
         return dim
     else

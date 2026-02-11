@@ -47,14 +47,14 @@ function IntU.measure_info(measure::StiefelMeasure)
     if V_input isa AbstractArray
         rows = size(V_input, 1)
         cols = size(V_input, 2)
-        
+
         for i = 1:rows
             for j = 1:cols
                 v_ij_num = _safe_Num(V_input[i, j])
                 v_ij_un = Symbolics.unwrap(v_ij_num)
-                
+
                 if k_dim isa Integer && j > k_dim
-                     error("Matrix column index $j exceeds Stiefel dimension k=$k_dim")
+                    error("Matrix column index $j exceeds Stiefel dimension k=$k_dim")
                 end
 
                 v_atomic = Symbolics.variable(:V_atomic, i, j)

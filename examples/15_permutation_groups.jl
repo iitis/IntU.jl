@@ -34,7 +34,7 @@ println("Expected: 0")
 println("\n2. Integration with Symbolic Dimension")
 @variables d
 # For symbolic arrays, we can use a small fixed size for indices
-P_sym = [Symbolics.variable(:P, i, j) for i=1:2, j=1:2]
+P_sym = [Symbolics.variable(:P, i, j) for i = 1:2, j = 1:2]
 measure_sym = dPerm(P_sym, d)
 
 expr4 = P_sym[1, 1] * P_sym[2, 2]
@@ -74,9 +74,9 @@ println("Integrating P * P^T (should be Identity)")
 P_mat = collect(P)
 res_P = integrate(P_mat * P_mat', measure)
 
-println("Result[1,1]: ", res_P[1,1])
+println("Result[1,1]: ", res_P[1, 1])
 println("Expected: 1")
-println("Result[1,2]: ", res_P[1,2])
+println("Result[1,2]: ", res_P[1, 2])
 println("Expected: 0")
 
 # 4. Symbolic Traces with Symbolics.jl arrays

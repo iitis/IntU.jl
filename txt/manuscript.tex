@@ -854,9 +854,10 @@ high performance, \texttt{IntU.jl} implements specialized algorithms for each gr
     functions entirely, providing significant performance gains for
     phase-averaging tasks.
     \item \textbf{Memoization}: All computed characters, dimensions, and
-    Weingarten values are cached using the \texttt{Memoize.jl} package. Memoization occurs
-    at the granular level of individual character and dimension calls, ensuring maximizing
-    reuse across different partition structures and integration orders.
+    Weingarten values are cached using the \texttt{Memoization.jl} package.
+    Memoization occurs at the granular level of individual character and
+    dimension calls, ensuring maximizing reuse across different partition
+    structures and integration orders.
 \end{itemize}
 
 \subsection{Symbolic trace logic}
@@ -1097,7 +1098,7 @@ The source code for \texttt{IntU.jl} is available on GitHub under the Apache Lic
     \item \textbf{Repository URL}: \url{https://github.com/iitis/IntU}
     \item \textbf{License}: Apache License 2.0
     \item \textbf{Version}: The results in this paper were generated using
-    version v0.4.0.
+    version v0.7.0.
     \item \textbf{Benchmarks}: To reproduce the benchmarks presented in Section
     \ref{sec:performance}, execute the provided script from the repository root:
     \begin{lstlisting}[language=bash]

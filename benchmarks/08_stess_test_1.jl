@@ -19,11 +19,15 @@ using Statistics
 # --------------------------
 # Helpers
 # --------------------------
+function is_symbolic_zero(x)
+    return IntU._iszero(x)
+end
+
 function equal_symbolic(got, expected; subs = Vector{Dict}())
     # Try direct symbolic simplification first
     try
-        diff = Symbolics.simplify(got - expected)
-        if diff == 0
+        diff = got - expected
+        if is_symbolic_zero(diff)
             return true
         end
     catch
@@ -32,9 +36,11 @@ function equal_symbolic(got, expected; subs = Vector{Dict}())
     # Fallback: validate by substituting several integer values
     for s in subs
         try
-            dg = Symbolics.simplify(Symbolics.substitute(got, s))
-            de = Symbolics.simplify(Symbolics.substitute(expected, s))
-            if Symbolics.simplify(dg - de) != 0
+            dg = Symbolics.substitute(got, s)
+            de = Symbolics.substitute(expected, s)
+            if is_symbolic_zero(dg - de)
+                continue
+            else
                 return false
             end
         catch
@@ -256,7 +262,7 @@ function test_application()
     for a = 1:nA, ap = 1:nA, b = 1:nB, bp = 1:nB
         purity += psi(a, b) * conj(psi(ap, b)) * psi(ap, bp) * conj(psi(a, bp))
     end
-    expected_purity = (nA + nB) / (D + 1)
+    expected_purity = (nA + nB) // (D + 1)
     run_example(
         "Purity (nA=2,nB=3,D=6): E[tr(ρ_A^2)]",
         purity,

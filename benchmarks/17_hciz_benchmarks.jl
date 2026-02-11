@@ -9,7 +9,7 @@ function benchmark_hciz(dims)
         println("Dimension d = $d")
         A = diagm(randn(d))
         B = diagm(randn(d))
-        
+
         b = @benchmark hciz($A, $B)
         display(b)
         println("\n" * "-"^30)

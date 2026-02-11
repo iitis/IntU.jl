@@ -36,7 +36,8 @@ for k = 1:d_val
             try
                 abs(Symbolics.unwrap(val) - expected) < 1e-10
             catch
-                ; false
+                ;
+                false
             end
         )
 

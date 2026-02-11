@@ -28,8 +28,8 @@ expr3 = V[1, 1]^10 * conj(V[1, 1])^9
 println("\n--- 4. Comparison: Order 4 Moment in Haar dU vs dDiag ---")
 @variables U[1:20, 1:20]::Complex
 measure_u = dU(U, d)
-expr_comp = abs2(V[1,1]) * abs2(V[2,2])
-expr_u = abs2(U[1,1]) * abs2(U[2,2])
+expr_comp = abs2(V[1, 1]) * abs2(V[2, 2])
+expr_u = abs2(U[1, 1]) * abs2(U[2, 2])
 
 println("Diagonal:")
 @btime integrate($expr_comp, $measure)

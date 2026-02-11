@@ -34,12 +34,12 @@ using LinearAlgebra
         # Should be finite
         @test !isnan(res)
         @test !isinf(res)
-        
+
         # Check near degeneracy
         eps = 1e-8
         a_near = [1.0, 1.0 + eps]
         res_near = hciz(a_near, b)
-        @test isapprox(res, res_near, atol=1e-1)
+        @test isapprox(res, res_near, atol = 1e-1)
     end
 
     @testset "Symbolic Eigenvalues" begin

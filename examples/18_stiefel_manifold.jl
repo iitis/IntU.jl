@@ -22,7 +22,7 @@ println("Stiefel dimension k: $k")
 
 # To use IntU, we can define a symbolic matrix V
 # We use explicit Symbolics.variable to ensure clear variable names
-V = [Symbolics.variable(Symbol("V_$(i)_$(j)"), T=Complex{Num}) for i=1:3, j=1:k]
+V = [Symbolics.variable(Symbol("V_$(i)_$(j)"), T = Complex{Num}) for i = 1:3, j = 1:k]
 println("V (first 3 rows shown):")
 display(V)
 
@@ -33,9 +33,9 @@ display(V)
 # In IntU, we often define just the elements we need for the polynomial.
 
 # Let's define specific elements for a moment calculation
-v11 = Symbolics.variable(:v11, T=Complex{Num}) # V_{1,1}
-v12 = Symbolics.variable(:v12, T=Complex{Num}) # V_{1,2}
-v21 = Symbolics.variable(:v21, T=Complex{Num}) # V_{2,1}
+v11 = Symbolics.variable(:v11, T = Complex{Num}) # V_{1,1}
+v12 = Symbolics.variable(:v12, T = Complex{Num}) # V_{1,2}
+v21 = Symbolics.variable(:v21, T = Complex{Num}) # V_{2,1}
 
 # We manually mock the lookup by creating a measure with a "virtual" matrix structure
 # or we use the specific elements in a constructed array.
@@ -43,19 +43,19 @@ v21 = Symbolics.variable(:v21, T=Complex{Num}) # V_{2,1}
 # representation but limited to k columns.
 # Currently StiefelMeasure takes a matrix V.
 # Let's use a 2x2 block of V for demonstration (indices 1..2, 1..2)
-V_sub = [Symbolics.variable(Symbol("V_$(i)_$(j)"), T=Complex{Num}) for i=1:2, j=1:2]
+V_sub = [Symbolics.variable(Symbol("V_$(i)_$(j)"), T = Complex{Num}) for i = 1:2, j = 1:2]
 measure = dStiefel(V_sub, d, k)
 
 # 2. Normalization check
 # E[V_{1,1} * conj(V_{1,1})] should be 1/d
-poly1 = V_sub[1,1] * conj(V_sub[1,1])
+poly1 = V_sub[1, 1] * conj(V_sub[1, 1])
 println("\nCalculating E[|V_{1,1}|^2]...")
 res1 = integrate(poly1, measure)
 println("Result: ", Symbolics.simplify(res1))
 println("Expected: ", 1/d)
 
 # E[V_{1,1} * conj(V_{1,2})] should be 0 (orthogonality of columns)
-poly2 = V_sub[1,1] * conj(V_sub[1,2])
+poly2 = V_sub[1, 1] * conj(V_sub[1, 2])
 println("\nCalculating E[V_{1,1} * conj(V_{1,2})]...")
 res2 = integrate(poly2, measure)
 println("Result: ", Symbolics.simplify(res2))
@@ -63,7 +63,7 @@ println("Expected: ", 0)
 
 # 3. Higher moments
 # E[|V_{1,1}|^2 * |V_{1,2}|^2]
-poly3 = abs2(V_sub[1,1]) * abs2(V_sub[1,2])
+poly3 = abs2(V_sub[1, 1]) * abs2(V_sub[1, 2])
 println("\nCalculating E[|V_{1,1}|^2 * |V_{1,2}|^2]...")
 res3 = integrate(poly3, measure)
 println("Result: ", Symbolics.simplify(res3))
