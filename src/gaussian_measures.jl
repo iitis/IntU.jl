@@ -143,24 +143,19 @@ function _setup_gaussian_subs(H_sym, ensemble_type)
                 subs_dict[h_ij_un] = h_atomic
 
                 if ensemble_type in (:GUE, :GSE)
-                    # Hermitian: conj(H_{ij}) = H_{ji}
                     hb_atomic = Symbolics.variable(:H_bar_atomic, i, j)
                     H_atomic_lookup[Symbolics.unwrap(hb_atomic)] = (j, i)
                     subs_dict[Symbolics.unwrap(conj(h_ij_un))] = hb_atomic
                     subs_dict[Symbolics.unwrap(Base.conj(h_ij_un))] = hb_atomic
                 elseif ensemble_type == :GOE
-                    # Real symmetric: conj(H_{ij}) = H_{ij}
                     subs_dict[Symbolics.unwrap(conj(h_ij_un))] = h_atomic
                     subs_dict[Symbolics.unwrap(Base.conj(h_ij_un))] = h_atomic
                 elseif ensemble_type == :GinUE
-                    # Non-Hermitian complex: conj(G_{ij}) = G_bar_{ij}
                     gb_atomic = Symbolics.variable(:G_bar_atomic, i, j)
                     H_atomic_lookup[Symbolics.unwrap(gb_atomic)] = (i, j, :conj)
                     subs_dict[Symbolics.unwrap(conj(h_ij_un))] = gb_atomic
                     subs_dict[Symbolics.unwrap(Base.conj(h_ij_un))] = gb_atomic
                 elseif ensemble_type in (:GinOE, :GinSE)
-                    # GinOE: RealEntries, conj(G_{ij}) = G_{ij}
-                    # GinSE: handled via GOE/GSE-like logic or simply Real mapping if we use Wick.
                     subs_dict[Symbolics.unwrap(conj(h_ij_un))] = h_atomic
                     subs_dict[Symbolics.unwrap(Base.conj(h_ij_un))] = h_atomic
                 end
@@ -225,7 +220,7 @@ function fallback_integrate(t::LazyTrace, measure::GUEMeasure)
     factors = t.factors
     H_name = measure.H isa SymbolicMatrix ? measure.H.name : :H
 
-    # Identify indices of H factors
+
     H_indices = Int[]
     for (i, f) in enumerate(factors)
         if f.name == H_name
@@ -244,7 +239,7 @@ function fallback_integrate(t::LazyTrace, measure::GUEMeasure)
     dim = measure.dim
     n_factors = length(factors)
 
-    # Build wires between H slots
+
     wires = Dict{Int,Any}()
     for k = 1:n_H
         idx = H_indices[k]
@@ -263,20 +258,16 @@ function fallback_integrate(t::LazyTrace, measure::GUEMeasure)
     total_val = 0
 
     for pi in partitions
-        # Each pairing (u, v) in pi connects H_indices[u] and H_indices[v]
-        # In GUE, <H_ij H_kl> = delta_il delta_jk.
-        # This means we connect output(u) to input(v) AND input(u) to output(v).
-        # This is equivalent to connecting tracing through the cycle.
+        # Each pairing connects trace cycles through Wick contraction
 
-        # We can map this to a permutation in S_{n_H}.
-        # Pairing (u, v) corresponds to a swap (u v) in terms of connections.
+        # Map pairing to permutation
         perm_map = Dict{Int,Int}()
         for (u, v) in pi
             perm_map[u] = v
             perm_map[v] = u
         end
 
-        # Count cycles in the resulting connection graph
+
         visited = falses(n_H)
         current_partition_traces = []
 
@@ -286,30 +277,19 @@ function fallback_integrate(t::LazyTrace, measure::GUEMeasure)
                 curr_m = start_m
                 while !visited[curr_m]
                     visited[curr_m] = true
-                    # Traverse from H_curr_m to its paired partner
                     paired_m = perm_map[curr_m]
-                    # The wire starts AFTER paired_m and leads to some other H
-                    # <H_ij H_kl> means output of u connects to input of v.
-                    # Output of u is the wire starting at H_indices[u].
-                    # Input of v is the wire ending at H_indices[v].
-
-                    # So start at current slot, take the wire, land at next H.
-                    # Then take paired partner of that H.
-
-                    # Wire from curr_m:
                     dest_factor_idx, mat_segment = wires[H_indices[curr_m]]
                     if mat_segment !== nothing
                         append!(curr_trace_factors, mat_segment)
                     end
 
-                    # We landed at H with factor index `dest_factor_idx`.
-                    # Let's find its m-index.
+                    # Find landing slot's m-index
                     next_m = 1
                     while H_indices[next_m] != dest_factor_idx
                         next_m += 1
                     end
 
-                    # Now we are at next_m, but Wick contraction says we jump to its partner!
+                    # Wick contraction jump to partner
                     curr_m = perm_map[next_m]
                 end
 
@@ -355,15 +335,14 @@ function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
     dim = measure.dim
     n_factors = length(factors)
 
-    # Pre-build wires
-    wires = Dict{Int,Any}() # index -> (dest_idx, segment, rev_segment)
-    # rev_segment would be adjoints but H is symmetric so same.
+
+    wires = Dict{Int,Any}()
     for k = 1:n_H
         idx = H_indices[k]
         next_h_idx = H_indices[mod1(k+1, n_H)]
         prev_h_idx = H_indices[mod1(k-1, n_H)]
 
-        # Forward segment
+
         fwd_consts = SymbolicMatrix[]
         curr = mod1(idx + 1, n_factors)
         while curr != next_h_idx
@@ -371,10 +350,7 @@ function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
             curr = mod1(curr + 1, n_factors)
         end
 
-        # Backward segment (for GOE swaps)
-        # Traverses from idx backwards to prev_h_idx
-        # This is used if we enter H_idx from its "output" port and want to go to its "input" port.
-        # But for symmetric traces, it's just the reverse order of factors.
+        # Backward segment (reversed with adjoint)
         bwd_consts = SymbolicMatrix[]
         curr = mod1(idx - 1, n_factors)
         while curr != prev_h_idx
@@ -394,18 +370,16 @@ function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
     total_val = 0
 
     for pi in partitions
-        # Each pairing contributes 2^(n_H/2) terms? No.
-        # <H_ij H_kl> = delta_ik delta_jl + delta_il delta_jk.
-        # We must sum over all 2^(n_H/2) choices of contraction types.
+        # GOE: <H_ij H_kl> = δ_ik δ_jl + δ_il δ_jk
+        # Sum over all 2^(n_H/2) contraction-type choices
 
         choice_combinations = collect(Iterators.product(fill([1, 2], n_H ÷ 2)...))
 
         for choices in choice_combinations
-            # choices is a vector of 1 or 2 for each pair in pi
+
             visited = falses(n_H)
             current_partition_traces = []
 
-            # We track visited (m, port)
             visited_ports = falses(n_H, 2)
 
             for start_m = 1:n_H
@@ -503,9 +477,8 @@ function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
                 end
             end
 
-            # Each (partition, choice-set) pair contributes one term: prod of cycle traces.
 
-            # The result for one choice set is prod(current_partition_traces)
+
             term_val =
                 isempty(current_partition_traces) ? 1 : prod(current_partition_traces)
             total_val += term_val
@@ -521,9 +494,7 @@ function IntU.measure_info(measure::GSEMeasure)
 end
 
 function fallback_integrate(t::LazyTrace, measure::GSEMeasure)
-    # The moment of GSE is related to GOE by duality:
-    # <Tr(H^k)>_GSE(d) = (-1)^(k/2 + 1) * <Tr(H^k)>_GOE(-d)
-    # For multiple traces, it's more complex, but for a single LazyTrace:
+    # GSE-GOE duality: <Tr(H^k)>_GSE(d) = (-1)^(k/2+1) <Tr(H^k)>_GOE(-d)
     factors = t.factors
     H_name = measure.H isa SymbolicMatrix ? measure.H.name : :H
     n_H = count(f -> f.name == H_name, factors)
@@ -532,15 +503,14 @@ function fallback_integrate(t::LazyTrace, measure::GSEMeasure)
         return 0
     end
 
-    # 1. Integrate as GOE
+
     goe_res = integrate(t, dGOE(measure.H, measure.dim))
 
-    # 2. Substitution d -> -d
+    # Substitute d → -d
     dim = measure.dim
-    # We substitute both instances if dim is Num or just handle it
     res_subbed = Symbolics.substitute(goe_res, Dict(dim => -dim))
 
-    # 3. Apply overall sign
+
     final_sign = ((-1)^(n_H ÷ 2 + 1))
     return final_sign * res_subbed
 end
@@ -553,7 +523,7 @@ function fallback_integrate(t::LazyTrace, measure::GinUEMeasure)
 
     G_name = measure.G isa SymbolicMatrix ? measure.G.name : :G
 
-    # 1. Collect all factors and find Gaussian slots
+
     all_factors = SymbolicMatrix[]
     cycle_ranges = UnitRange{Int}[]
     total_factors = 0
@@ -564,7 +534,7 @@ function fallback_integrate(t::LazyTrace, measure::GinUEMeasure)
         push!(cycle_ranges, start_idx:total_factors)
     end
 
-    # GinUE: <G_ij G_bar_kl> = delta_ik delta_jl
+
     G_indices = Int[]
     G_bar_indices = Int[]
     for (i, f) in enumerate(all_factors)
@@ -595,9 +565,7 @@ function fallback_integrate(t::LazyTrace, measure::GinUEMeasure)
     perms = permutations(1:n_G_bar)
     total_val = 0
     pos_map = Dict(idx => i for (i, idx) in enumerate(all_slots))
-    
-    # Map from G index to its position in all_slots
-    # Map from G_bar index to its position in all_slots
+
     
     for p in perms
         visited = falses(length(all_slots))
@@ -616,7 +584,7 @@ function fallback_integrate(t::LazyTrace, measure::GinUEMeasure)
                         append!(curr_trace_factors, mat_segment)
                     end
                     
-                    # Landed at dest_factor_idx. Find its partner.
+                    # Find partner via permutation
                     if dest_factor_idx in G_indices
                         m = findfirst(==(dest_factor_idx), G_indices)
                         partner_idx = G_bar_indices[p[m]]
@@ -700,7 +668,7 @@ function fallback_integrate(t::LazyTrace, measure::GinOEMeasure)
                     end
                     landed_m = pos_map[dest_factor_idx]
                     
-                    # Find Wick partner
+
                     partner_m = 0
                     for (u, v) in pi
                         if u == landed_m

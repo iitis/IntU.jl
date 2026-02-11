@@ -143,17 +143,12 @@ function IntU.measure_info(measure::HaarMeasure)
 
     # Check if U is our new SymbolicUnitary or legacy AbstractArray
     if U_input isa SymbolicUnitary
-        # Use Symbolic Matcher
-        # We don't need subs_dict for canonical variables because U(i,j) is already canonical
         subs_dict = Dict{Any,Any}()
-        # Regex matches name_i_j
         matcher = SymbolicMatcher(Regex("^$(U_input.name)_(\\d+)_(\\d+)\$"))
 
         return (subs_dict, matcher, dim, :U)
     else
-        # Legacy array-based path
         U_sym = U_input
-        # Substitute Re(U) and Im(U)
         subs_dict = Dict{Any,Any}()
         U_atomic_lookup = Dict{Any,Tuple}()
         U_bar_lookup = Dict{Any,Tuple}()
@@ -221,7 +216,7 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
         return t.prefactor
     end
 
-    # 1. Identify U and U_dag instances across ALL cycles
+    # Identify U and U_dag instances across ALL cycles
     U_indices = Int[]
     U_bar_indices = Int[]
 
@@ -257,13 +252,13 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
         return _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
     end
 
-    # 2. Build Wires
+    # Build Wires
     wires = _build_wires(U_indices, U_bar_indices, cycle_ranges, all_factors)
 
     # Calculate constant part (cycles with no U/U_bar)
     constant_part = _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
 
-    # 3. Weingarten Sum
+    # Weingarten Sum
     u_map = Dict{Int,Int}(idx => m for (m, idx) in enumerate(U_indices))
     ub_map = Dict{Int,Int}(idx => m for (m, idx) in enumerate(U_bar_indices))
 

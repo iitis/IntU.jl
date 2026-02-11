@@ -4,29 +4,6 @@ using Symbolics
 using LinearAlgebra
 import LinearAlgebra: tr
 
-# Helper to convert symbolic results to numbers
-function to_numeric(x)
-    x_un = Symbolics.unwrap(x)
-    if x_un isa Number
-        return x_un
-    end
-    sim = Symbolics.simplify(x)
-    sim_un = Symbolics.unwrap(sim)
-    if sim_un isa Number
-        return sim_un
-    end
-    # Try brute force substitution
-    sim2 = Symbolics.substitute(sim, Dict())
-    sim2_un = Symbolics.unwrap(sim2)
-    if sim2_un isa Number
-        return sim2_un
-    end
-    if IntU._symbolic_isequal(sim, 0) || IntU._symbolic_isequal(sim2, 0)
-        return 0.0
-    end
-    return x_un
-end
-
 @testset "Ginibre Ensembles" begin
     N = 2
     # Ensure variables are Complex so conj(x) != x for GinUE

@@ -366,6 +366,7 @@ function integrate_indices_cse(
     wg_coeffs = Dict{Vector{Int}, Any}()
 
     for tau in permutations_n
+        possible = true
         uf_parent = collect(1:(2*m))
         uf_parity = zeros(Int, 2*m)
 
