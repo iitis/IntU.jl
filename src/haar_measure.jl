@@ -1,61 +1,63 @@
 # Haar measure integration
 
 """
-    SymbolicUnitary(name, func, dim)
+    LazySymbolicMatrix{D, T}
 
-A lazy, "infinite" representation of a unitary matrix. 
-It does not store entries in memory. Instead, accessing `U[i,j]` generates 
-a symbolic variable on the fly using `func`. This allows for operations 
+A lazy, "infinite" representation of a matrix with entries of type `T`.
+It does not store entries in memory. Instead, accessing `M[i,j]` generates
+a symbolic variable on the fly using `func`. This allows for operations
 on matrices of symbolic or very large dimensions without memory overhead.
 """
-struct SymbolicUnitary{D} <: AbstractMatrix{Num}
+struct LazySymbolicMatrix{D,T} <: AbstractMatrix{T}
     name::Symbol
     func::Function # Generates the variable
     dim::D
 end
 
-# Infinite size for lazy unitary to allow U[100, 100] etc
-Base.size(::SymbolicUnitary) = (typemax(Int), typemax(Int))
-Base.getindex(S::SymbolicUnitary, i::Integer, j::Integer) = S.func(i, j)
+# Infinite size for lazy matrix to allow M[100, 100] etc
+Base.size(::LazySymbolicMatrix) = (typemax(Int), typemax(Int))
+Base.getindex(M::LazySymbolicMatrix, i::Integer, j::Integer) = M.func(i, j)
 
 # Custom show to avoid printing infinite matrix
-function Base.show(io::IO, U::SymbolicUnitary)
-    print(io, "SymbolicUnitary($(U.name))")
+function Base.show(io::IO, M::LazySymbolicMatrix{D,T}) where {D,T}
+    print(io, "LazySymbolicMatrix{$(T)}($(M.name))")
 end
-function Base.show(io::IO, ::MIME"text/plain", U::SymbolicUnitary)
-    print(io, "SymbolicUnitary($(U.name), dim=$(U.dim))")
+function Base.show(io::IO, ::MIME"text/plain", M::LazySymbolicMatrix{D,T}) where {D,T}
+    print(io, "LazySymbolicMatrix{$(T)}($(M.name), dim=$(M.dim))")
 end
 
 """
-    symbolic_dimension_unitary(dim; name=:U)
+    symbolic_dimension_matrix(dim; name=:M, T=Complex{Num})
 
-Creates a lazy symbolic unitary matrix `U` with symbolic dimension `dim`.
-`U` allows accessing indices of any size (e.g. `U[i,j]`).
-To get the measure, use `dU(U)`.
+Creates a lazy symbolic matrix `M` with symbolic dimension `dim` and entry type `T`.
+`M` allows accessing indices of any size (e.g. `M[i,j]`).
 """
-function symbolic_dimension_unitary(dim; name = :U)
+function symbolic_dimension_matrix(dim; name = :M, T = Complex{Num})
     # Create variables on demand with consistent naming
-    # Ensure variables are Complex so conj(x) != x
-    gen = (i, j) -> Symbolics.variable(Symbol(name, :_, i, :_, j), T = Complex{Num})
-    return SymbolicUnitary(name, gen, dim)
+    gen = (i, j) -> Symbolics.variable(Symbol(name, :_, i, :_, j), T = T)
+    return LazySymbolicMatrix{typeof(dim),T}(name, gen, dim)
 end
 
 """
-    @symbolic_dimension U[1:d, 1:d]
+    @symbolic_dimension M[1:d, 1:d]
+    @symbolic_dimension M[1:d, 1:d] T=Real
 
-Macro to define a `SymbolicUnitary` matrix `U` with symbolic dimension `d`.
-Internal components are generated as `U_i_j`.
+Macro to define a `LazySymbolicMatrix` matrix `M` with symbolic dimension `d`.
+Optionally specify the element type `T` (e.g. `Real` or `Complex`). Defaults to `Complex{Num}`.
 
 Example:
 ```julia
 @variables d
 @symbolic_dimension U[1:d, 1:d]
 measure = dU(U)
+
+@symbolic_dimension O[1:d, 1:d] T=Real
+measure = dO(O, d)
 ```
 """
-macro symbolic_dimension(expr)
+macro symbolic_dimension(expr, options...)
     if !Meta.isexpr(expr, :ref) || length(expr.args) != 3
-        error("Usage: @symbolic_dimension U[1:d, 1:d]")
+        error("Usage: @symbolic_dimension M[1:d, 1:d] [T=Type]")
     end
 
     name = expr.args[1]
@@ -63,7 +65,6 @@ macro symbolic_dimension(expr)
     # Parse dimensions from ranges
     # Expecting 1:d
     range1 = expr.args[2]
-    range2 = expr.args[3]
 
     # Simple check for 1:d format
     if !Meta.isexpr(range1, :call) || range1.args[1] != :(:) || range1.args[2] != 1
@@ -71,19 +72,26 @@ macro symbolic_dimension(expr)
     end
 
     dim_sym = range1.args[3]
-
-    # Use the function
-    # We escape name to define it in user scope
-    # We escape dim_sym to use user's variable
+    
+    # Parse options
+    T_val = :(Complex{Num})
+    for opt in options
+        if Meta.isexpr(opt, :(=)) && opt.args[1] == :T
+             # Check if user passed Real, convert to valid symbolic type if needed
+             # or just pass it through. Symbolics usually wants `Real` or `Complex{Num}`.
+             # If user passes `Real`, `Symbolics.variable(..., T=Real)` works.
+             T_val = opt.args[2]
+        end
+    end
 
     q = quote
         $(esc(name)) =
-            symbolic_dimension_unitary($(esc(dim_sym)), name = $(QuoteNode(name)))
+            symbolic_dimension_matrix($(esc(dim_sym)), name = $(QuoteNode(name)), T = $(esc(T_val)))
     end
     return q
 end
 
-# Matcher for SymbolicUnitary
+# Matcher for LazySymbolicMatrix
 struct SymbolicMatcher <: AbstractIndexMatcher
     regex::Regex
 end
@@ -114,7 +122,7 @@ struct HaarMeasure{M,D}
 end
 """
     dU(U, dim)
-    dU(U::SymbolicUnitary)
+    dU(U::LazySymbolicMatrix)
 
 Defines the Haar measure for the Unitary group U(d).
 
@@ -128,7 +136,7 @@ Reference:
 """
 dU(U, dim) = HaarMeasure(U, dim)
 dU(dim) = HaarMeasure(nothing, dim)
-dU(S::SymbolicUnitary) = HaarMeasure(S, S.dim)
+dU(S::LazySymbolicMatrix) = HaarMeasure(S, S.dim)
 
 
 """
@@ -141,8 +149,8 @@ function IntU.measure_info(measure::HaarMeasure)
     U_input = measure.U
     dim = measure.dim
 
-    # Check if U is our new SymbolicUnitary or legacy AbstractArray
-    if U_input isa SymbolicUnitary
+    # Check if U is our new LazySymbolicMatrix or legacy AbstractArray
+    if U_input isa LazySymbolicMatrix
         subs_dict = Dict{Any,Any}()
         matcher = SymbolicMatcher(Regex("^$(U_input.name)_(\\d+)_(\\d+)\$"))
 

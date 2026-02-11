@@ -39,6 +39,10 @@ function IntU.measure_info(measure::StiefelMeasure)
     dim = measure.dim
     k_dim = measure.k
 
+    if V_input isa LazySymbolicMatrix
+        error("Symbolic dimension support is not available for the Stiefel manifold.")
+    end
+
     subs_dict = Dict{Any,Any}()
     V_atomic_lookup = Dict{Any,Tuple}()
     V_bar_lookup = Dict{Any,Tuple}()

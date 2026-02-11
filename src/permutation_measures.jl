@@ -24,6 +24,7 @@ where k is the number of distinct pairs (i, j) in the product.
 """
 dPerm(P, dim) = PermutationMeasure(P, dim)
 dPerm(dim) = PermutationMeasure(nothing, dim)
+dPerm(P::LazySymbolicMatrix) = PermutationMeasure(P, P.dim)
 
 """
     dCPerm(Y, dim)
@@ -32,6 +33,8 @@ Defines the measure for Centered Permutation matrices Y = P - J/d.
 """
 dCPerm(Y, dim) = CenteredPermutationMeasure(Y, dim)
 dCPerm(dim) = CenteredPermutationMeasure(nothing, dim)
+dCPerm(Y::LazySymbolicMatrix) = CenteredPermutationMeasure(Y, Y.dim)
+
 
 function integrate(expr::AbstractArray, measure::PermutationMeasure)
     return map(e -> integrate(e, measure), expr)
@@ -44,6 +47,10 @@ end
 function IntU.measure_info(measure::PermutationMeasure)
     P_sym = measure.P
     dim = measure.dim
+
+    if P_sym isa LazySymbolicMatrix
+        error("Symbolic dimension support is not available for the permutation group.")
+    end
 
     subs_dict = Dict{Any,Any}()
     P_atomic_lookup = Dict{Any,Tuple}()
@@ -72,7 +79,7 @@ end
 function IntU.measure_info(measure::CenteredPermutationMeasure)
     Y_sym = measure.Y
     dim = measure.dim
-
+    
     subs_dict = Dict{Any,Any}()
     P_atomic_lookup = Dict{Any,Tuple}()
 

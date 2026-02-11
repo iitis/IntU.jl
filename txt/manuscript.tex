@@ -621,6 +621,7 @@ compared to the standard Haar measure. Here, we compute the second moment of a
 diagonal entry for the symmetric (COE) and self-dual (CSE) cases:
 
 \begin{lstlisting}[language=Julia]
+@variables d
 @variables S[1:d, 1:d]
 
 # Circular Orthogonal Ensemble (S is symmetric)
@@ -734,13 +735,6 @@ combinatorial problems and studying centered permutation ensembles.
 \begin{lstlisting}[language=Julia]
 @variables d
 @variables P[1:d, 1:d]
-measure = dPerm(P, d)
-
-# Average of a product of entries
-integrate(P[1,1] * P[2,2], measure)
-# Output: 1 / (d * (d - 1))
-
-# Centered permutations Y = P - J/d
 @variables Y[1:d, 1:d]
 m_centered = dCPerm(Y, d)
 integrate(Y[1,1]^2, m_centered)
@@ -751,6 +745,7 @@ integrate(Y[1,1]^2, m_centered)
 For the group of diagonal unitary matrices, integration reduces to independent
 phase averaging.
 \begin{lstlisting}[language=Julia]
+@variables d
 @variables V[1:d, 1:d]::Complex
 measure = dDiagUnitary(V, d)
 

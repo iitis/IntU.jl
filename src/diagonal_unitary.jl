@@ -20,6 +20,7 @@ Defines the measure for the group of diagonal unitary matrices of dimension `dim
 """
 dDiagUnitary(V, dim) = DiagonalUnitaryMeasure(V, dim)
 dDiagUnitary(dim) = DiagonalUnitaryMeasure(nothing, dim)
+dDiagUnitary(V::LazySymbolicMatrix) = DiagonalUnitaryMeasure(V, V.dim)
 
 """
     integrate(expr, measure::DiagonalUnitaryMeasure)
@@ -31,6 +32,10 @@ end
 function IntU.measure_info(measure::DiagonalUnitaryMeasure)
     V_sym = measure.V
     dim = measure.dim
+
+    if V_sym isa LazySymbolicMatrix
+        error("Symbolic dimension support is not available for the diagonal unitary group.")
+    end
 
     subs_dict = Dict{Any,Any}()
     V_atomic_lookup = Dict{Any,Tuple}()

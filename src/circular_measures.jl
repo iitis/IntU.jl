@@ -28,6 +28,8 @@ S = U U^T
 where \$U \sim \text{Haar}(U(N))\$.
 """
 dCOE(S, dim) = COEMeasure(S, dim)
+dCOE(dim) = COEMeasure(nothing, dim)
+dCOE(S::LazySymbolicMatrix) = COEMeasure(S, S.dim)
 
 @doc raw"""
     dCSE(S, dim)
@@ -45,6 +47,8 @@ where \$U \sim \text{Haar}(U(2N))\$.
 Note: The dimension `dim` corresponds to the size of the matrix, so it must be 2N.
 """
 dCSE(S, dim) = CSEMeasure(S, dim)
+dCSE(dim) = CSEMeasure(nothing, dim)
+dCSE(S::LazySymbolicMatrix) = CSEMeasure(S, S.dim)
 
 
 """
@@ -61,6 +65,10 @@ end
 function IntU.measure_info(measure::COEMeasure)
     S_sym = measure.S
     dim = measure.dim
+
+    if S_sym isa LazySymbolicMatrix
+        error("Symbolic dimension support is not available for the circular orthogonal ensemble.")
+    end
 
     subs_dict = Dict{Any,Any}()
     S_atomic_lookup = Dict{Any,Tuple}()
@@ -94,6 +102,10 @@ end
 function IntU.measure_info(measure::CSEMeasure)
     S_sym = measure.S
     dim = measure.dim
+    
+    if S_sym isa LazySymbolicMatrix
+        error("Symbolic dimension support is not available for the circular symplectic ensemble.")
+    end
 
     subs_dict = Dict{Any,Any}()
     S_atomic_lookup = Dict{Any,Tuple}()

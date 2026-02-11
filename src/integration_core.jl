@@ -715,9 +715,51 @@ INTEGRATION_RULES[:O] =
 
 INTEGRATION_RULES[:Sp] =
     (u, ub, d, mt) -> begin
-        all_indices = [u; ub]
+        # Map u_bar indices to u using symplectic metric relations
+        # S_bar_{ij} = coeff * S_{p(i)p(j)}
+        # This requires d to be an integer (or at least p(i) to be resolvable)
+        
+        # We need _j_pair_sign logic here. It is not exported from real_measures?
+        # It is likely defined in IntU. Let's assume we can call it or reimplement it properly.
+        # Check if we can find _j_pair_sign in integration_core or if we need to define it.
+        # It's not in integration_core. It was in real_measures.
+        # So we cannot call it inside integration_core if it's defined later/elsewhere without import.
+        # But integration_core is included BEFORE real_measures usually?
+        # Actually in partial viewing of real_measures.jl, it was defined there.
+        # This means integration_core CANNOT depend on it if integration_core is loaded first.
+        # I should define a helper here or check if it's available.
+        # To be safe, I will implement the mapping logic locally here using a helper 
+        # or just inline it since it's simple.
+        
+        mapped_ub = Vector{Tuple{Int,Int}}()
+        total_coeff = 1
+        
+        if !isempty(ub) 
+            if !(d isa Integer)
+               # Cannot resolve symplectic pairs for symbolic dimension with explicit integer indices
+               # Fallback to 0 or error? 
+               # If indices were symbolic, maybe? But we have Int indices.
+               return 0 
+            end
+            
+            n_half = div(d, 2)
+            
+            for (i, j) in ub
+                 # _j_pair_sign logic
+                 p = (i <= n_half) ? i + n_half : i - n_half
+                 sign_i = (i <= n_half) ? 1 : -1
+                 
+                 q = (j <= n_half) ? j + n_half : j - n_half
+                 sign_j = (j <= n_half) ? 1 : -1
+                 
+                 push!(mapped_ub, (p, q))
+                 total_coeff *= (sign_i * sign_j)
+            end
+        end
+
+        all_indices = [u; mapped_ub]
         length(all_indices) % 2 != 0 ? 0 :
-        (length(all_indices) == 0 ? 1 : integrate_indices_symplectic(all_indices, d))
+        (length(all_indices) == 0 ? 1 : total_coeff * integrate_indices_symplectic(all_indices, d))
     end
 
 INTEGRATION_RULES[:GUE] =
