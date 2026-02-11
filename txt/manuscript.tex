@@ -675,7 +675,7 @@ depolarizing channel):
 
 \begin{lstlisting}[language=Julia]
 # Define symbolic matrices
-U_var = SymbolicMatrix(:U)
+U_var = SymbolicMatrix(:U, :U)
 A = SymbolicMatrix(:A); B = SymbolicMatrix(:B)
 measure = dU(U_var, d)
 

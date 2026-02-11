@@ -11,7 +11,7 @@ using LinearAlgebra
 @variables d
 # Create a Haar measure for unitary matrix U of dimension d
 # We create a symbolic matrix variable :U.
-U_var = SymbolicMatrix(:U, false, :U)
+U_var = SymbolicMatrix(:U, :U)
 # HaarMeasure expects an array for U, but for symbolic trace logic we only need the dimension d.
 # We pass a dummy 1x1 symbolic array to satisfy the constructor.
 @variables u_dummy[1:1, 1:1]

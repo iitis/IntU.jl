@@ -2,10 +2,20 @@
 
 """
     SymbolicMatrix(name::Symbol)
+    SymbolicMatrix(name::Symbol, special_type::Symbol)
     SymbolicMatrix(name::Symbol, is_adj::Bool, special_type::Symbol)
 
 A wrapper associated with a symbolic name to represent a matrix in a coordinate-free way.
-`special_type` can be `:U`, `:U_dag`, or `:Constant`.
+Used in the symbolic trace logic (via `tr_lazy`).
+
+# Special Types
+The `special_type` field determines how the matrix is handled during trace-based integration:
+- `:Constant` (default): Treated as a fixed constant matrix.
+- `:U`: Marks the matrix as a Haar-random unitary for integration under `dU`.
+- `:U_dag`: Marks the matrix as the adjoint of a Haar-random unitary.
+
+For Gaussian measures (GUE, GinUE, etc.), matrices are primarily identified by their name, 
+but using `:Constant` for fixed matrices is recommended.
 """
 struct SymbolicMatrix
     name::Symbol
@@ -14,6 +24,7 @@ struct SymbolicMatrix
 end
 
 SymbolicMatrix(name::Symbol) = SymbolicMatrix(name, false, :Constant)
+SymbolicMatrix(name::Symbol, special_type::Symbol) = SymbolicMatrix(name, false, special_type)
 
 import Base: *, adjoint, show, ^
 
@@ -198,8 +209,6 @@ function tr_val(factors::Vector{SymbolicMatrix})
         return 1
     end
 
-    # Construct the inner expression
-    # e.g. "A * B"
     s_parts = String[]
     for (i, f) in enumerate(factors)
         push!(s_parts, string(f))
@@ -207,9 +216,6 @@ function tr_val(factors::Vector{SymbolicMatrix})
 
     inner_content_name = join(s_parts, "*")
 
-    # We use a plain symbolic variable with a name that looks like a function call.
-    # This avoids issues with Symbolics simplifying away Term objects during integration.
-    # It renders as var"tr(...)" but behaves correctly in all algebraic operations.
     name = "tr(" * inner_content_name * ")"
     return Num(Symbolics.variable(Symbol(name); T = Real))
 end
