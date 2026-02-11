@@ -1,5 +1,3 @@
-# Circular Ensembles (COE, CUE, CSE)
-
 """
     dCUE(U, dim)
 
@@ -8,7 +6,6 @@ This is mathematically equivalent to the Haar measure on U(d).
 """
 dCUE(U, dim) = dU(U, dim)
 
-# Dummy types for new measures
 struct COEMeasure{M,D}
     S::M
     dim::D
@@ -169,10 +166,6 @@ function integrate_indices_coe(
     U_bar_indices::Vector{Tuple{Int,Int}},
     dim,
 )
-    # Re-structure arguments to match integrate_indices signature
-    # process_term splits indices into U and U_bar.
-    # Here, U_indices correspond to S terms, U_bar_indices correspond to S_bar terms.
-    # Note: process_term treats S as U-type and S_bar as U_bar-type.
 
     n_s = length(indices)
     n_s_bar = length(U_bar_indices)
@@ -181,14 +174,9 @@ function integrate_indices_coe(
         return 0
     end
 
-    m = n_s # This is 'm' in comments above
-    n = 2 * m # Total U matrices
+    m = n_s 
+    n = 2 * m 
 
-    # Unpack indices
-    # S_ij -> U_ia U_ja
-    # S_pq_bar -> U_pb_bar U_qb_bar
-
-    # Row indices for the 2n U matrices
     U_rows = Vector{Int}(undef, n)
     for k = 1:m
         i, j = indices[k]
@@ -203,7 +191,6 @@ function integrate_indices_coe(
         U_bar_rows[2k] = q
     end
 
-    # We iterate over permutations valid for ROWS
     valid_sigmas = get_matching_permutations(U_rows, U_bar_rows)
     if isempty(valid_sigmas)
         return 0
@@ -212,11 +199,9 @@ function integrate_indices_coe(
     n_fact = try
         factorial(n)
     catch
-        # Overflow protection if n is huge, though n is small here
         BigInt(1)
     end
     
-    # Check if we are summing over the full group
     is_full_group = length(valid_sigmas) == n_fact
 
     permutations_n = collect(permutations(1:n))
@@ -224,15 +209,8 @@ function integrate_indices_coe(
     total = 0 // 1
 
     if is_full_group
-        # Optimization: Factorize sum
-        # \sum_{\sigma, \tau} Wg(\sigma \tau^{-1}) d^{loops(\tau)}
-        # = (\sum_z Wg(z)) * (\sum_\tau d^{loops(\tau)})
-        
-        # 1. Sum over Weingarten values (grouped by cycle type)
         sum_wg = 0 // 1
         for p_type in partitions(n)
-            # Count permutations with this cycle type
-            # formula: n! / (prod k^c_k * c_k!)
             counts = Dict{Int, Int}()
             for x in p_type
                 counts[x] = get(counts, x, 0) + 1
@@ -251,7 +229,6 @@ function integrate_indices_coe(
             return 0
         end
 
-        # 2. Sum over loop weights (grouped by loop count)
         loop_counts = Dict{Int, Int}()
         for tau in permutations_n
             uf = IntDisjointSets(2 * m)
@@ -273,12 +250,9 @@ function integrate_indices_coe(
         return sum_wg * sum_loops
 
     else
-        # Fallback: Full double sum
-        # Group terms by cycle type to minimize Symbolics overhead
         wg_coeffs = Dict{Vector{Int}, Any}()
         
         for tau in permutations_n
-            # Calculate loop weight for columns
             uf = IntDisjointSets(2 * m)
             for r = 1:n
                 u = div(r - 1, 2) + 1
@@ -350,33 +324,22 @@ function integrate_indices_cse(
     n_s_bar = length(U_bar_indices)
 
     if n_s != n_s_bar
-        ;
-        return 0;
+        return 0
     end
 
     m = n_s
     n = 2 * m
-    # Use phys_dim for symplectic structure J
-    # dim is the integration parameter (which might be symbolic)
-    half_dim = div(phys_dim, 2) # N
-
-    # 1. Expand Indices
-    # S_ij -> sgn(j)*[ U_{i, a}, U_{pair(j), pair(a)}, sgn(a) ]
-    # Bar S_pq -> sgn(q)*[ Ubar_{p, b}, Ubar_{pair(q), pair(b)}, sgn(b) ]
+    half_dim = div(phys_dim, 2)
 
     U_rows = Vector{Int}(undef, n)
-    # Signs from fixed indices
     fixed_sign_coeff = 1
 
-    # Helper for sign/pair
     get_sign(idx) = (idx <= half_dim ? 1 : -1)
     get_pair(idx) = (idx <= half_dim ? idx + half_dim : idx - half_dim)
 
     for k = 1:m
         i, j = indices[k]
-        # U term 1: U_{i, a} -> row i. col index 2k-1 (map to a_k)
         U_rows[2k-1] = i
-        # U term 2: U_{pair(j), pair(a)} -> row pair(j). col index 2k (map to pair(a_k))
         U_rows[2k] = get_pair(j)
 
         fixed_sign_coeff *= get_sign(j)
@@ -385,15 +348,12 @@ function integrate_indices_cse(
     U_bar_rows = Vector{Int}(undef, n)
     for k = 1:m
         p, q = U_bar_indices[k]
-        # Ubar term 1: Ubar_{p, b} -> row p. col index 2k-1 (map to b_k)
         U_bar_rows[2k-1] = p
-        # Ubar term 2: Ubar_{pair(q), pair(b)} -> row pair(q). col index 2k (map to pair(b_k))
         U_bar_rows[2k] = get_pair(q)
 
         fixed_sign_coeff *= get_sign(q)
     end
 
-    # Valid Sigmas (Row permutations)
     valid_sigmas = get_matching_permutations(U_rows, U_bar_rows)
 
     if isempty(valid_sigmas)
@@ -403,12 +363,9 @@ function integrate_indices_cse(
     permutations_n = collect(permutations(1:n))
     total_val = 0 // 1
 
-    # Group terms by cycle type to minimize Symbolics overhead
     wg_coeffs = Dict{Vector{Int}, Any}()
 
     for tau in permutations_n
-        # Compute Loop Weight for Columns once per tau
-        possible = true
         uf_parent = collect(1:(2*m))
         uf_parity = zeros(Int, 2*m)
 
@@ -460,12 +417,10 @@ function integrate_indices_cse(
         end
 
         term_weight = 1 // 1
-        # Count components and handle signs
         processed = zeros(Bool, 2*m)
         for i = 1:(2*m)
             if !processed[i]
                 root, _ = find_local(i)
-                # All members of this component
                 members = Int[]
                 for j = i:(2*m)
                     rj, _ = find_local(j)
@@ -492,7 +447,6 @@ function integrate_indices_cse(
             continue
         end
 
-        # Inner loop over sigma: record cycle types
         inv_tau = invperm(tau)
         for sigma in valid_sigmas
             P = [sigma[inv_tau[i]] for i = 1:n]
@@ -501,7 +455,6 @@ function integrate_indices_cse(
         end
     end
 
-    # Final assembly of symbolic result
     for (cycles, coeff) in wg_coeffs
         total_val += coeff * weingarten(cycles, dim)
     end
@@ -509,5 +462,3 @@ function integrate_indices_cse(
 
     return fixed_sign_coeff * total_val
 end
-
-# End of circular ensemble measures

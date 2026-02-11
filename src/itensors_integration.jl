@@ -143,12 +143,10 @@ function _integrate_graphical_orthogonal(constants, unitaries, dim)
     # n_total must be even
     n_total = length(unitaries)
     if n_total == 0
-        ;
-        return _contract_all(constants);
+        return _contract_all(constants)
     end
     if n_total % 2 != 0
-        ;
-        return 0;
+        return 0
     end
 
     k = div(n_total, 2)
@@ -161,8 +159,7 @@ function _integrate_graphical_orthogonal(constants, unitaries, dim)
         for sigma in partitions
             wg_val = weingarten_orthogonal_val(pi, sigma, dim)
             if _iszero(wg_val)
-                ;
-                continue;
+                continue
             end
 
             # Create deltas for pi (out) and sigma (in)
@@ -200,12 +197,10 @@ function _integrate_graphical_symplectic(constants, unitaries, dim)
     # Symplectic: similar to orthogonal but with symplectic form J
     n_total = length(unitaries)
     if n_total == 0
-        ;
-        return _contract_all(constants);
+        return _contract_all(constants)
     end
     if n_total % 2 != 0
-        ;
-        return 0;
+        return 0
     end
 
     partitions = get_pair_partitions(n_total)
@@ -215,8 +210,7 @@ function _integrate_graphical_symplectic(constants, unitaries, dim)
         for sigma in partitions
             wg_val = weingarten_symplectic_val(pi, sigma, dim)
             if _iszero(wg_val)
-                ;
-                continue;
+                continue
             end
 
             # Matchings involve the symplectic form J

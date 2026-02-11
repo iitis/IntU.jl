@@ -140,12 +140,10 @@ end
 # Pow: LazyTrace ^ Integer
 function Base.:^(a::LazyTrace, n::Integer)
     if n == 0
-        ;
-        return LazyTrace([], 1);
+        return LazyTrace([], 1)
     end
     if n == 1
-        ;
-        return a;
+        return a
     end
     # Repeat cycles n times
     new_cycles = Vector{Vector{SymbolicMatrix}}()

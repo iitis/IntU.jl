@@ -1,10 +1,6 @@
-# Core integration logic
-
-# Helper to wrap complex numbers in Num safely
 _to_Num(z::Complex) = Complex(Num(real(z)), Num(imag(z)))
 _to_Num(z) = Num(z)
 
-# Helper for symbolic equality to avoid piracy
 function _symbolic_isequal(a, b)
     a_v = Symbolics.value(a)
     b_v = Symbolics.value(b)
@@ -390,7 +386,6 @@ function _integrate_core(
         r_hypot_pow,
         r_float_to_int_pow, # Add float fix
     ])
-    # println("DEBUG: Rewriting")
     expr_rewritten =
         SymbolicUtils.Postwalk(
             SymbolicUtils.PassThrough(chain);
@@ -401,10 +396,6 @@ function _integrate_core(
                 SymbolicUtils.maketerm(st, f, args, metadata)
             end
         )(expr_unwrapped)
-
-    # Manual power fixing function removed
-    
-    # expr_rewritten = SymbolicUtils.Postwalk(fix_powers)(expr_rewritten)
     if expr_rewritten isa Complex
         return _integrate_core(expr_rewritten, dim, subs_dict, matcher, measure_type)
     end
@@ -460,9 +451,6 @@ function _integrate_core(
     catch
         _safe_Num(expr_subbed)
     end
-    
-    
-    
 
     # Apply rewrites again to catch complex(...) introduced by substitution
     # This is necessary for correct integration of pure states.
@@ -945,8 +933,7 @@ Formula: sum_{pi, sigma in PairPartitions} delta_pi(i) * delta_sigma(j) * Wg(pi,
 function integrate_indices_orthogonal(indices::Vector{Tuple{Int,Int}}, dim)
     n = length(indices) # This is 2k
     if n % 2 != 0
-        ;
-        return 0;
+        return 0
     end
 
     I = [x[1] for x in indices]
@@ -1569,9 +1556,6 @@ function _expand_asymptotic(ex, d, order)
     d_num = Symbolics.wrap(d_un)
 
     # ex(1/eps) = f_analytic(eps) * eps^(m-n)
-    # We want expansion in 1/d. Let eps = 1/d.
-    # To handle rational functions correctly:
-    # Get numerator and denominator after simplification to ensure rational form
     ex_sim = try
         Symbolics.simplify(Symbolics.wrap(ex_un))
     catch
@@ -1579,7 +1563,7 @@ function _expand_asymptotic(ex, d, order)
         Symbolics.wrap(ex_un)
     end
 
-    # Handle the case where simplify result is still complex (e.g. constant complex or complex num)
+    # Handle the case where simplify result is still complex
     if ex_sim isa Complex
         re_part = _expand_asymptotic(real(ex_sim), d, order)
         im_part = _expand_asymptotic(imag(ex_sim), d, order)
@@ -1596,11 +1580,7 @@ function _expand_asymptotic(ex, d, order)
     ϵ = Symbolics.variable(:ϵ)
     ϵ_un = Symbolics.unwrap(ϵ)
 
-    # If n > m, we have positive powers of d (pole at infinity).
-    # If m >= n, we have rational part starting from (1/d)^(m-n).
-
     # f_analytic = ex(1/eps) * eps^(n-m)
-    # Use expand=true to ensure internal 1/ϵ terms are cleared immediately
     p_eps = try
         Symbolics.simplify(
             Symbolics.substitute(num, Dict(d_num => 1/ϵ)) * ϵ^n;

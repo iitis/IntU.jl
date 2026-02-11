@@ -306,8 +306,7 @@ function fallback_integrate(t::LazyTrace, measure::GUEMeasure)
                     # Let's find its m-index.
                     next_m = 1
                     while H_indices[next_m] != dest_factor_idx
-                        ;
-                        next_m += 1;
+                        next_m += 1
                     end
 
                     # Now we are at next_m, but Wick contraction says we jump to its partner!
@@ -347,12 +346,10 @@ function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
 
     n_H = length(H_indices)
     if isodd(n_H)
-        ;
-        return 0;
+        return 0
     end
     if n_H == 0
-        ;
-        return tr_val(factors);
+        return tr_val(factors)
     end
 
     dim = measure.dim
@@ -431,34 +428,31 @@ function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
                                 # Land at Port 1 (Input) of some H
                                 landed_m = 1
                                 while H_indices[landed_m] != dest_idx
-                                    ;
-                                    landed_m += 1;
+                                    landed_m += 1
                                 end
                                 visited_ports[landed_m, 1] = true
 
                                 # Use Wick contraction jump
-                                pair_idx = 0;
+                                pair_idx = 0
                                 partner_m = 0
                                 for (p_idx, (u, v)) in enumerate(pi)
                                     if u == landed_m
-                                        ;
-                                        pair_idx = p_idx;
-                                        partner_m = v;
-                                        break;
+                                        pair_idx = p_idx
+                                        partner_m = v
+                                        break
                                     end
                                     if v == landed_m
-                                        ;
-                                        pair_idx = p_idx;
-                                        partner_m = u;
-                                        break;
+                                        pair_idx = p_idx
+                                        partner_m = u
+                                        break
                                     end
                                 end
 
                                 if choices[pair_idx] == 2 # delta_il delta_jk (P1 -> P2)
-                                    curr_m = partner_m;
+                                    curr_m = partner_m
                                     curr_port = 2
                                 else # delta_ik delta_jl (P1 -> P1)
-                                    curr_m = partner_m;
+                                    curr_m = partner_m
                                     curr_port = 1
                                 end
                             else
@@ -471,33 +465,30 @@ function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
                                 # Land at Port 2 (Output) of some H
                                 landed_m = 1
                                 while H_indices[landed_m] != prev_idx
-                                    ;
-                                    landed_m += 1;
+                                    landed_m += 1
                                 end
                                 visited_ports[landed_m, 2] = true
 
-                                pair_idx = 0;
+                                pair_idx = 0
                                 partner_m = 0
                                 for (p_idx, (u, v)) in enumerate(pi)
                                     if u == landed_m
-                                        ;
-                                        pair_idx = p_idx;
-                                        partner_m = v;
-                                        break;
+                                        pair_idx = p_idx
+                                        partner_m = v
+                                        break
                                     end
                                     if v == landed_m
-                                        ;
-                                        pair_idx = p_idx;
-                                        partner_m = u;
-                                        break;
+                                        pair_idx = p_idx
+                                        partner_m = u
+                                        break
                                     end
                                 end
 
                                 if choices[pair_idx] == 2 # delta_il delta_jk (P2 -> P1)
-                                    curr_m = partner_m;
+                                    curr_m = partner_m
                                     curr_port = 1
                                 else # delta_ik delta_jl (P2 -> P2)
-                                    curr_m = partner_m;
+                                    curr_m = partner_m
                                     curr_port = 2
                                 end
                             end
@@ -538,8 +529,7 @@ function fallback_integrate(t::LazyTrace, measure::GSEMeasure)
     n_H = count(f -> f.name == H_name, factors)
 
     if isodd(n_H)
-        ;
-        return 0;
+        return 0
     end
 
     # 1. Integrate as GOE
