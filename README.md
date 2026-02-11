@@ -281,7 +281,7 @@ If you use IntU.jl in your research, please cite:
 
 ```bibtex
 @misc{intu2024,
-  author = {Pawela, Łukasz and Krawiec, Adam},
+  author = {Pawela, Łukasz and Puchała, Zbigniew},
   title = {IntU.jl: Symbolic integration over the Haar measure of classical compact groups},
   year = {2024},
   publisher = {GitHub},
