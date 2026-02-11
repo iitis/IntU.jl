@@ -1,5 +1,8 @@
 # IntU.jl
 
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://iitis.github.io/IntU.jl/stable/)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://iitis.github.io/IntU.jl/dev/)
+
 IntU.jl is a Julia package for the **symbolic** calculation of integrals over
 the Haar measure of classical compact groups ($U(d)$, $O(d)$, $Sp(d)$) and
 related ensembles. It leverages **Weingarten Calculus** to compute exact results
