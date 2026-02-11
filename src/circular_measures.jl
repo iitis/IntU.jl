@@ -459,7 +459,5 @@ function integrate_indices_cse(
     for (cycles, coeff) in wg_coeffs
         total_val += coeff * weingarten(cycles, dim)
     end
-    return total_val
-
     return fixed_sign_coeff * total_val
 end
