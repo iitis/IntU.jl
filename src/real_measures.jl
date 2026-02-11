@@ -61,6 +61,12 @@ function IntU.measure_info(measure::OrthogonalMeasure)
     O_sym = measure.O
     dim = measure.dim
 
+    if O_sym isa SymbolicUnitary
+        subs_dict = Dict{Any,Any}()
+        matcher = SymbolicMatcher(Regex("^$(O_sym.name)_(\\d+)_(\\d+)\$"))
+        return (subs_dict, matcher, dim, :O)
+    end
+
     subs_dict = Dict{Any,Any}()
     O_atomic_lookup = Dict{Any,Tuple}()
 
@@ -98,6 +104,12 @@ end
 function IntU.measure_info(measure::SymplecticMeasure)
     S_sym = measure.S
     dim = measure.dim
+
+    if S_sym isa SymbolicUnitary
+        subs_dict = Dict{Any,Any}()
+        matcher = SymbolicMatcher(Regex("^$(S_sym.name)_(\\d+)_(\\d+)\$"))
+        return (subs_dict, matcher, dim, :Sp)
+    end
 
     subs_dict = Dict{Any,Any}()
     S_atomic_lookup = Dict{Any,Tuple}()

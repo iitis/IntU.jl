@@ -927,9 +927,11 @@ Key observations include:
     symbolic integration of $|U_{11}|^6$ completes in approximately 4 ms, and
     for the orthogonal group, computing $O_{11}^6$ takes only 0.3 ms for $d=10$.
     \item \textbf{Group differences}: Orthogonal and symplectic integrals are
-    comparable to unitary ones in the optimized regime. While the number of pair partitions grows
-    faster than permutations asymptotically, the overhead for moderate degrees is similar
-    due to efficient grouping strategies.
+    comparable to unitary ones for numerical dimensions. When $d$ is symbolic, 
+    the high performance of the unitary group is maintained via Schur polynomial 
+    expansions. In contrast, orthogonal and symplectic groups experience 
+    increased symbolic overhead for higher degrees due to the requirement 
+    of inverting the symbolic Gram matrix.
     \item \textbf{Correctness}: All benchmarks were verified against known exact
     values or asymptotic results, confirming the numerical stability of the
     implementation even for large dimensions (e.g., $d=50$).
@@ -966,6 +968,8 @@ Unitary & $|U_{11}|^{10}$ & Symbolic & 12.5 \\
 Unitary & $|U_{11}|^{10}$ & $d=10$ & 5.2 \\
 Unitary & $|U_{11}|^{10}$ & $d=50$ & 46.8 \\
 \hline
+Orthogonal & $O_{11}^2$ & Symbolic & 2.8 \\
+Orthogonal & $O_{11}^4$ & Symbolic & 8891.9 \\
 Orthogonal & $O_{11}^6$ & $d=10$ & 0.2 \\
 Orthogonal & $O_{11}^8$ & $d=20$ & 1.1 \\
 Orthogonal & $O_{11}^{10}$ & $d=20$ & 80.7 \\
