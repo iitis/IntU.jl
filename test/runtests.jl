@@ -98,7 +98,7 @@ end
     @testset verbose=true "Unitary Designs" begin
         include("unitary_designs.jl")
     end
-    
+
     @testset verbose=true "Permutation Groups" begin
         include("permutation_groups.jl")
     end

@@ -85,7 +85,7 @@ function IntU.measure_info(measure::COEMeasure)
 
     matcher = LookupMatcher(
         Dict(k => v for (k, v) in S_atomic_lookup if occursin("S_atomic", string(k))),
-        Dict(k => v for (k, v) in S_atomic_lookup if occursin("S_bar_atomic", string(k)))
+        Dict(k => v for (k, v) in S_atomic_lookup if occursin("S_bar_atomic", string(k))),
     )
 
     return (subs_dict, matcher, dim, :COE)
@@ -119,7 +119,7 @@ function IntU.measure_info(measure::CSEMeasure)
 
     matcher = LookupMatcher(
         Dict(k => v for (k, v) in S_atomic_lookup if occursin("S_atomic", string(k))),
-        Dict(k => v for (k, v) in S_atomic_lookup if occursin("S_bar_atomic", string(k)))
+        Dict(k => v for (k, v) in S_atomic_lookup if occursin("S_bar_atomic", string(k))),
     )
 
     phys_dim = S_sym isa AbstractArray ? size(S_sym, 1) : 0
@@ -174,8 +174,8 @@ function integrate_indices_coe(
         return 0
     end
 
-    m = n_s 
-    n = 2 * m 
+    m = n_s
+    n = 2 * m
 
     U_rows = Vector{Int}(undef, n)
     for k = 1:m
@@ -201,7 +201,7 @@ function integrate_indices_coe(
     catch
         BigInt(1)
     end
-    
+
     is_full_group = length(valid_sigmas) == n_fact
 
     permutations_n = collect(permutations(1:n))
@@ -211,7 +211,7 @@ function integrate_indices_coe(
     if is_full_group
         sum_wg = 0 // 1
         for p_type in partitions(n)
-            counts = Dict{Int, Int}()
+            counts = Dict{Int,Int}()
             for x in p_type
                 counts[x] = get(counts, x, 0) + 1
             end
@@ -220,16 +220,16 @@ function integrate_indices_coe(
                 denom *= (k^c) * factorial(c)
             end
             p_count = factorial(n) // denom
-            
+
             val = weingarten(p_type, dim)
             sum_wg += p_count * val
         end
-        
+
         if _symbolic_isequal(sum_wg, 0)
             return 0
         end
 
-        loop_counts = Dict{Int, Int}()
+        loop_counts = Dict{Int,Int}()
         for tau in permutations_n
             uf = IntDisjointSets(2 * m)
             for r = 1:n
@@ -241,17 +241,17 @@ function integrate_indices_coe(
             loops = num_groups(uf)
             loop_counts[loops] = get(loop_counts, loops, 0) + 1
         end
-        
+
         sum_loops = 0 // 1
         for (loops, count) in loop_counts
             sum_loops += count * (dim isa Integer ? dim : dim)^loops
         end
-        
+
         return sum_wg * sum_loops
 
     else
-        wg_coeffs = Dict{Vector{Int}, Any}()
-        
+        wg_coeffs = Dict{Vector{Int},Any}()
+
         for tau in permutations_n
             uf = IntDisjointSets(2 * m)
             for r = 1:n
@@ -262,7 +262,7 @@ function integrate_indices_coe(
             end
             loops = num_groups(uf)
             weight = (dim isa Integer ? dim : dim)^loops
-            
+
             if _symbolic_isequal(weight, 0)
                 continue
             end
@@ -363,7 +363,7 @@ function integrate_indices_cse(
     permutations_n = collect(permutations(1:n))
     total_val = 0 // 1
 
-    wg_coeffs = Dict{Vector{Int}, Any}()
+    wg_coeffs = Dict{Vector{Int},Any}()
 
     for tau in permutations_n
         possible = true
@@ -430,11 +430,11 @@ function integrate_indices_cse(
                         processed[j] = true
                     end
                 end
-                
+
                 K = length(members)
                 dist_sum = sum(find_local(j)[2] for j in members)
                 prefactor = (-1)^dist_sum
-                
+
                 if K % 2 == 0
                     term_weight *= prefactor * dim
                 else

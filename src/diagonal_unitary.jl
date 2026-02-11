@@ -41,7 +41,7 @@ function IntU.measure_info(measure::DiagonalUnitaryMeasure)
             for j = 1:size(V_sym, 2)
                 v_ij_num = _safe_Num(V_sym[i, j])
                 v_ij_un = Symbolics.unwrap(v_ij_num)
-                
+
                 v_atomic = Symbolics.variable(:V_atomic, i, j)
                 v_bar_atomic = Symbolics.variable(:V_bar_atomic, i, j)
 

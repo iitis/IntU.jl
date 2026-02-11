@@ -43,8 +43,8 @@ println("Integrating 3x3 matrix U * U' over SU(3)...")
 res_mat = integrate(expr_mat, measure_mat)
 display(res_mat)
 
-println("Result[1,1]: ", res_mat[1,1], " (Expected: 1)")
-println("Result[1,2]: ", res_mat[1,2], " (Expected: 0)")
+println("Result[1,1]: ", res_mat[1, 1], " (Expected: 1)")
+println("Result[1,2]: ", res_mat[1, 2], " (Expected: 0)")
 
 # Example 2: Unbalanced Moment
 # E[ U_11 ] = 0
@@ -63,13 +63,13 @@ println("")
 println("--- 4. Higher Order Moment ---")
 println("Computing E[ |U_11 U_22|^2 ]...")
 expr_higher = abs2(U[1, 1]) * abs2(U[2, 2])
-res_higher = Symbolics.simplify(integrate(expr_higher, measure); expand=true)
+res_higher = Symbolics.simplify(integrate(expr_higher, measure); expand = true)
 println("Result: ", res_higher)
 println("Expected: 1 / (d^2 - 1)")
 
 # Verify numerically (symbolic check)
 expected = 1 / (d^2 - 1)
-diff = Symbolics.simplify(res_higher - expected; expand=true)
+diff = Symbolics.simplify(res_higher - expected; expand = true)
 println("Difference from expected: ", diff)
 
 println("\nDone.")

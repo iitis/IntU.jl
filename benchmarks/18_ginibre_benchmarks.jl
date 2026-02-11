@@ -8,7 +8,7 @@ function benchmark_ginibre(N_vals, powers)
     println("=== GinUE Benchmarks (Explicit Matrix) ===")
     for N in N_vals
         println("N = $N")
-        G = [Symbolics.variable(:G, i, j, T=Complex{Num}) for i = 1:N, j = 1:N]
+        G = [Symbolics.variable(:G, i, j, T = Complex{Num}) for i = 1:N, j = 1:N]
         meas = dGinUE(G, N)
         for p in powers
             expr = tr(G * G')^p

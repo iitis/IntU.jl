@@ -96,7 +96,7 @@ Reference:
 """
 @memoize function irrep_dimension(part::Vector{Int}, d)
     conj_part = conjugate_partition(part)
-    
+
     if d isa Integer
         prod_val = one(Rational{BigInt})
         for i = 1:length(part)
@@ -228,12 +228,12 @@ end
         res = sum_val / (Rational{BigInt}(n_fact)^2)
         return res, one(Num)
     else
-        contents_mult = Dict{Int, Int}()
+        contents_mult = Dict{Int,Int}()
         for lam in parts
-            current_mult = Dict{Int, Int}()
+            current_mult = Dict{Int,Int}()
             conj_lam = conjugate_partition(lam)
-            for i in 1:length(lam)
-                for j in 1:lam[i]
+            for i = 1:length(lam)
+                for j = 1:lam[i]
                     c = j - i
                     current_mult[c] = get(current_mult, c, 0) + 1
                 end
@@ -255,9 +255,9 @@ end
             den_lam = one(BigInt)
             poly_lam = one(Num)
             conj_lam = conjugate_partition(lam)
-            current_mult = Dict{Int, Int}()
-            for i in 1:length(lam)
-                for j in 1:lam[i]
+            current_mult = Dict{Int,Int}()
+            for i = 1:length(lam)
+                for j = 1:lam[i]
                     hook = lam[i] - i + conj_lam[j] - j + 1
                     den_lam *= hook
                     c = j - i
@@ -463,7 +463,7 @@ function weingarten_orthogonal_val(
     return weingarten_orthogonal_val_canonical(
         canonicalize_pair_partition(pi),
         canonicalize_pair_partition(sigma),
-        d
+        d,
     )
 end
 

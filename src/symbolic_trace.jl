@@ -204,13 +204,12 @@ function tr_val(factors::Vector{SymbolicMatrix})
     for (i, f) in enumerate(factors)
         push!(s_parts, string(f))
     end
-    
+
     inner_content_name = join(s_parts, "*")
-    
+
     # We use a plain symbolic variable with a name that looks like a function call.
     # This avoids issues with Symbolics simplifying away Term objects during integration.
     # It renders as var"tr(...)" but behaves correctly in all algebraic operations.
     name = "tr(" * inner_content_name * ")"
-    return Num(Symbolics.variable(Symbol(name); T=Real))
+    return Num(Symbolics.variable(Symbol(name); T = Real))
 end
-

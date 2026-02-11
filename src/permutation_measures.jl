@@ -81,7 +81,7 @@ function IntU.measure_info(measure::CenteredPermutationMeasure)
             for j = 1:size(Y_sym, 2)
                 y_ij_num = _safe_Num(Y_sym[i, j])
                 y_ij_un = Symbolics.unwrap(y_ij_num)
-                
+
                 # Y_ij = P_ij - 1/dim
                 p_atomic = Symbolics.variable(:P_atomic, i, j)
                 P_atomic_lookup[Symbolics.unwrap(p_atomic)] = (i, j)
@@ -120,12 +120,12 @@ function integrate_indices_permutation(indices::Vector{Tuple{Int,Int}}, dim)
 
     # Result is 1 / (d * (d-1) * ... * (d-k+1))
     # which is (d-k)! / d!
-    
+
     # Handle symbolic or large numeric dim
     res = (dim isa Integer) ? BigInt(1) // BigInt(1) : 1 // 1
     for m = 0:(k-1)
         res /= (dim - m)
     end
-    
+
     return res
 end

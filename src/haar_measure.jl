@@ -286,7 +286,20 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
             # Check U cycles (sigma-based)
             for start_m = 1:n_U
                 if !visited_sigma_U[start_m]
-                    val = _traverse_trace_cycle(start_m, 1, sigma, inv_tau, wires, u_map, ub_map, visited_sigma_U, visited_sigma_Ub, U_indices, U_bar_indices, dim)
+                    val = _traverse_trace_cycle(
+                        start_m,
+                        1,
+                        sigma,
+                        inv_tau,
+                        wires,
+                        u_map,
+                        ub_map,
+                        visited_sigma_U,
+                        visited_sigma_Ub,
+                        U_indices,
+                        U_bar_indices,
+                        dim,
+                    )
                     push!(current_term_traces, val)
                 end
             end
@@ -294,7 +307,20 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
             # Check Ub cycles (tau-based)
             for start_m = 1:n_U_bar
                 if !visited_tau_Ub[start_m]
-                    val = _traverse_trace_cycle(start_m, 2, sigma, inv_tau, wires, u_map, ub_map, visited_tau_U, visited_tau_Ub, U_indices, U_bar_indices, dim)
+                    val = _traverse_trace_cycle(
+                        start_m,
+                        2,
+                        sigma,
+                        inv_tau,
+                        wires,
+                        u_map,
+                        ub_map,
+                        visited_tau_U,
+                        visited_tau_Ub,
+                        U_indices,
+                        U_bar_indices,
+                        dim,
+                    )
                     push!(current_term_traces, val)
                 end
             end
@@ -381,11 +407,24 @@ function _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
     return constant_part
 end
 
-function _traverse_trace_cycle(start_m, start_type, sigma, inv_tau, wires, u_map, ub_map, visited_U, visited_Ub, U_indices, U_bar_indices, dim)
+function _traverse_trace_cycle(
+    start_m,
+    start_type,
+    sigma,
+    inv_tau,
+    wires,
+    u_map,
+    ub_map,
+    visited_U,
+    visited_Ub,
+    U_indices,
+    U_bar_indices,
+    dim,
+)
     curr_trace_factors = SymbolicMatrix[]
     curr_type = start_type
     curr_idx = start_m
-    
+
     while true
         if curr_type == 1
             if visited_U[curr_idx]
@@ -427,7 +466,7 @@ function _traverse_trace_cycle(start_m, start_type, sigma, inv_tau, wires, u_map
             end
         end
     end
-    
+
     if isempty(curr_trace_factors)
         return dim
     else

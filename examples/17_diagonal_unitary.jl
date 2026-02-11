@@ -62,9 +62,9 @@ println("Integrating V * V' (should be Identity)")
 V_mat = collect(V)
 res_V = integrate(V_mat * V_mat', measure)
 
-println("Result[1,1]: ", res_V[1,1])
+println("Result[1,1]: ", res_V[1, 1])
 println("Expected: 1")
-println("Result[1,2]: ", res_V[1,2])
+println("Result[1,2]: ", res_V[1, 2])
 println("Expected: 0")
 println("")
 

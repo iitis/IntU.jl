@@ -63,7 +63,7 @@ using LinearAlgebra
         # Simplify elementwise
         res_simp = map(x -> to_numeric(real(x)) + im*to_numeric(imag(x)), res_matrix)
         @test res_simp ≈ I_mat
-        
+
         # Example 5: U' * U -> I
         expr_mat_2 = collect(U' * U)
         res_matrix_2 = integrate(expr_mat_2, measure)

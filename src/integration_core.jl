@@ -4,39 +4,41 @@ _to_Num(z) = Num(z)
 function _symbolic_isequal(a, b)
     a_v = Symbolics.value(a)
     b_v = Symbolics.value(b)
-    
+
     if a_v isa Number && b_v isa Number
         return a_v == b_v
     end
 
     a_un = Symbolics.unwrap(a_v)
     b_un = Symbolics.unwrap(b_v)
-    
+
 
     if a_un isa Complex && b_un isa Complex
-        return _symbolic_isequal(real(a_un), real(b_un)) && 
+        return _symbolic_isequal(real(a_un), real(b_un)) &&
                _symbolic_isequal(imag(a_un), imag(b_un))
     end
-    
+
     if a_un isa Complex
         return _symbolic_isequal(real(a_un), b_un) && _iszero(imag(a_un))
     end
-    
+
     if b_un isa Complex
         return _symbolic_isequal(a_un, real(b_un)) && _iszero(imag(b_un))
     end
 
 
-    if Symbolics.iscall(a_un) && (Symbolics.operation(a_un) == complex || Symbolics.operation(a_un) == Base.complex)
+    if Symbolics.iscall(a_un) &&
+       (Symbolics.operation(a_un) == complex || Symbolics.operation(a_un) == Base.complex)
         args = Symbolics.arguments(a_un)
         return _symbolic_isequal(args[1], b_un) && _iszero(args[2])
     end
-    
-    if Symbolics.iscall(b_un) && (Symbolics.operation(b_un) == complex || Symbolics.operation(b_un) == Base.complex)
+
+    if Symbolics.iscall(b_un) &&
+       (Symbolics.operation(b_un) == complex || Symbolics.operation(b_un) == Base.complex)
         args = Symbolics.arguments(b_un)
         return _symbolic_isequal(a_un, args[1]) && _iszero(args[2])
     end
-    
+
 
     try
         if a_un == b_un
@@ -44,7 +46,7 @@ function _symbolic_isequal(a, b)
         end
     catch
     end
-    
+
     res = isequal(a_un, b_un)
     v = Symbolics.value(res)
     return v === true
@@ -76,7 +78,7 @@ function _robust_real(x)
 
     v = Symbolics.value(x_un)
     if v isa AbstractFloat
-        return rationalize(v, tol=1e-13)
+        return rationalize(v, tol = 1e-13)
     end
     if v isa Real
         return v
@@ -91,7 +93,8 @@ function _robust_real(x)
     end
 
 
-    if Symbolics.iscall(x_un) && (Symbolics.operation(x_un) == complex || Symbolics.operation(x_un) == Base.complex)
+    if Symbolics.iscall(x_un) &&
+       (Symbolics.operation(x_un) == complex || Symbolics.operation(x_un) == Base.complex)
         args = Symbolics.arguments(x_un)
         if _iszero(args[2])
             return _robust_real(args[1])
@@ -112,11 +115,11 @@ function _robust_real(x)
 
     try
         nx = _safe_Num(x_un)
-        
+
 
         v = Symbolics.value(nx)
         if v isa AbstractFloat
-            return rationalize(v, tol=1e-13)
+            return rationalize(v, tol = 1e-13)
         end
         if v isa Real
             return v
@@ -126,18 +129,18 @@ function _robust_real(x)
         nx = Symbolics.simplify(nx)
         v = Symbolics.value(nx)
         if v isa AbstractFloat
-            return rationalize(v, tol=1e-13)
+            return rationalize(v, tol = 1e-13)
         end
         if v isa Real
             return v
         end
-        
+
 
         if _iszero(Symbolics.simplify(imag(nx)))
             rx = Symbolics.simplify(real(nx))
             vx = Symbolics.value(rx)
             if vx isa AbstractFloat
-                return rationalize(vx, tol=1e-13)
+                return rationalize(vx, tol = 1e-13)
             end
             if vx isa Real
                 return vx
@@ -147,7 +150,7 @@ function _robust_real(x)
         return nx
     catch
     end
-    
+
     return x_un
 end
 
@@ -166,7 +169,7 @@ function _is_manifestly_real(x)
                     continue
                 end
             end
-            
+
             if !_is_manifestly_real(u)
                 return false
             end
@@ -179,13 +182,13 @@ function _is_manifestly_real(x)
     if SymbolicUtils.issym(x)
         return true
     end
-    
+
     if SymbolicUtils.iscall(x)
         op = SymbolicUtils.operation(x)
         if op == complex || op == Base.complex || op == imag || op == Base.imag
-             return false
+            return false
         end
-        
+
 
         args = SymbolicUtils.arguments(x)
         for arg in args
@@ -195,7 +198,7 @@ function _is_manifestly_real(x)
         end
         return true
     end
-    
+
 
     try
         v = Symbolics.value(x)
@@ -204,7 +207,7 @@ function _is_manifestly_real(x)
         end
     catch
     end
-    
+
 
     return false
 end
@@ -229,7 +232,7 @@ end
 
 function match_index(m::LookupMatcher, t)
     t_un = Symbolics.unwrap(t)
-    
+
 
     if haskey(m.U_lookup, t_un)
         v = m.U_lookup[t_un]
@@ -256,7 +259,7 @@ end
 A dictionary mapping measure types (symbols) to their respective integration rule functions.
 Each rule function should have the signature `(u_indices, u_bar_indices, dim, measure_type)`.
 """
-const INTEGRATION_RULES = Dict{Any, Function}()
+const INTEGRATION_RULES = Dict{Any,Function}()
 
 """
     _integrate_core(expr, dim, subs_dict, matcher, measure_type=:U)
@@ -380,21 +383,22 @@ function _integrate_core(
         r_hypot_pow,
         r_float_to_int_pow,
     ])
-    expr_rewritten =
-        SymbolicUtils.Postwalk(
-            SymbolicUtils.PassThrough(chain);
-            maketerm = (st, f, args, metadata; kwargs...) -> begin
-                if f == complex || f == Base.complex
-                    return args[1] + im * args[2]
-                end
-                SymbolicUtils.maketerm(st, f, args, metadata)
+    expr_rewritten = SymbolicUtils.Postwalk(
+        SymbolicUtils.PassThrough(chain);
+        maketerm = (st, f, args, metadata; kwargs...) -> begin
+            if f == complex || f == Base.complex
+                return args[1] + im * args[2]
             end
-        )(expr_unwrapped)
+            SymbolicUtils.maketerm(st, f, args, metadata)
+        end,
+    )(
+        expr_unwrapped,
+    )
     if expr_rewritten isa Complex
         return _integrate_core(expr_rewritten, dim, subs_dict, matcher, measure_type)
     end
     expr_num = _safe_Num(expr_rewritten)
-    
+
 
 
     try
@@ -431,7 +435,8 @@ function _integrate_core(
     end
 
     expr_subbed = if expr_num isa Complex
-        robust_substitute(Symbolics.unwrap(real(expr_num)), subs_dict) + im * robust_substitute(Symbolics.unwrap(imag(expr_num)), subs_dict)
+        robust_substitute(Symbolics.unwrap(real(expr_num)), subs_dict) +
+        im * robust_substitute(Symbolics.unwrap(imag(expr_num)), subs_dict)
     else
         robust_substitute(Symbolics.unwrap(expr_num), subs_dict)
     end
@@ -445,14 +450,23 @@ function _integrate_core(
     end
 
     # Flatten complex(...) calls introduced by substitution
-    expanded_expr = _safe_Num(SymbolicUtils.Postwalk(x -> begin
-        ux = Symbolics.unwrap(x)
-        if Symbolics.iscall(ux) && (Symbolics.operation(ux) == complex || Symbolics.operation(ux) == Base.complex)
-            args = Symbolics.arguments(ux)
-            return args[1] + im * args[2]
-        end
-        return x
-    end)(Symbolics.unwrap(expanded_expr)))
+    expanded_expr = _safe_Num(
+        SymbolicUtils.Postwalk(
+            x -> begin
+                ux = Symbolics.unwrap(x)
+                if Symbolics.iscall(ux) && (
+                    Symbolics.operation(ux) == complex ||
+                    Symbolics.operation(ux) == Base.complex
+                )
+                    args = Symbolics.arguments(ux)
+                    return args[1] + im * args[2]
+                end
+                return x
+            end,
+        )(
+            Symbolics.unwrap(expanded_expr),
+        ),
+    )
 
 
     expanded_expr = try
@@ -583,12 +597,10 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
         op = Symbolics.operation(term)
         args = Symbolics.arguments(term)
         if op == (+)
-            return sum(
-                t -> process_term(t, matcher, dim, measure_type),
-                args,
-            )
+            return sum(t -> process_term(t, matcher, dim, measure_type), args)
         elseif op == complex || op == Base.complex
-            return process_term(args[1], matcher, dim, measure_type) + im * process_term(args[2], matcher, dim, measure_type)
+            return process_term(args[1], matcher, dim, measure_type) +
+                   im * process_term(args[2], matcher, dim, measure_type)
         end
     end
 
@@ -678,90 +690,115 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
         rule = get(INTEGRATION_RULES, first(measure_type), nothing)
     end
 
-        if rule !== nothing
-            val = rule(u_indices, u_bar_indices, dim, measure_type)
-            if _symbolic_isequal(val, 0)
-                return 0
-            end
-            return coeff * val
-        else
-            error("Unknown measure type: $measure_type")
+    if rule !== nothing
+        val = rule(u_indices, u_bar_indices, dim, measure_type)
+        if _symbolic_isequal(val, 0)
+            return 0
         end
-end
-
-INTEGRATION_RULES[:U] = (u, ub, d, mt) -> begin
-    length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices(u, ub, d))
-end
-
-INTEGRATION_RULES[:O] = (u, ub, d, mt) -> begin
-    all_indices = [u; ub]
-    length(all_indices) % 2 != 0 ? 0 : (length(all_indices) == 0 ? 1 : integrate_indices_orthogonal(all_indices, d))
-end
-
-INTEGRATION_RULES[:Sp] = (u, ub, d, mt) -> begin
-    all_indices = [u; ub]
-    length(all_indices) % 2 != 0 ? 0 : (length(all_indices) == 0 ? 1 : integrate_indices_symplectic(all_indices, d))
-end
-
-INTEGRATION_RULES[:GUE] = (u, ub, d, mt) -> begin
-    all_indices = [u; ub]
-    length(all_indices) % 2 != 0 ? 0 : (length(all_indices) == 0 ? 1 : integrate_indices_gue(all_indices, d))
-end
-
-INTEGRATION_RULES[:GOE] = (u, ub, d, mt) -> begin
-    all_indices = [u; ub]
-    length(all_indices) % 2 != 0 ? 0 : (length(all_indices) == 0 ? 1 : integrate_indices_goe(all_indices, d))
-end
-
-INTEGRATION_RULES[:GSE] = (u, ub, d, mt) -> begin
-    all_indices = [u; ub]
-    length(all_indices) % 2 != 0 ? 0 : (length(all_indices) == 0 ? 1 : integrate_indices_gse(all_indices, d))
-end
-
-INTEGRATION_RULES[:COE] = (u, ub, d, mt) -> begin
-    length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices_coe(u, ub, d))
-end
-
-INTEGRATION_RULES[:CSE] = (u, ub, d, mt) -> begin
-    length(u) != length(ub) ? 0 : (begin
-        phys_dim = mt isa Tuple ? mt[2] : d
-        length(u) == 0 ? 1 : integrate_indices_cse(u, ub, d, phys_dim)
-    end)
-end
-
-INTEGRATION_RULES[:Design] = (u, ub, d, mt) -> begin
-    _, t_val = mt
-    if length(u) != length(ub) || length(u) > t_val
-        length(u) != length(ub) ? 0 : error("Integrand degree ($(length(u))) exceeds design order t=$t_val")
+        return coeff * val
+    else
+        error("Unknown measure type: $measure_type")
     end
-    length(u) == 0 ? 1 : integrate_indices(u, ub, d)
 end
 
-INTEGRATION_RULES[:Perm] = (u, ub, d, mt) -> begin
-    all_indices = [u; ub]
-    length(all_indices) == 0 ? 1 : integrate_indices_permutation(all_indices, d)
-end
-
-INTEGRATION_RULES[:DiagUnitary] = (u, ub, d, mt) -> begin
-    if length(u) != length(ub) || any(x -> x[1] != x[2], u) || any(x -> x[1] != x[2], ub)
-        return 0
+INTEGRATION_RULES[:U] =
+    (u, ub, d, mt) -> begin
+        length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices(u, ub, d))
     end
-    length(u) == 0 ? 1 : integrate_indices_diagonal(u, ub, d)
-end
 
-INTEGRATION_RULES[:GinUE] = (u, ub, d, mt) -> begin
-    length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices_ginue(u, ub, d))
-end
+INTEGRATION_RULES[:O] =
+    (u, ub, d, mt) -> begin
+        all_indices = [u; ub]
+        length(all_indices) % 2 != 0 ? 0 :
+        (length(all_indices) == 0 ? 1 : integrate_indices_orthogonal(all_indices, d))
+    end
 
-INTEGRATION_RULES[:GinOE] = (u, ub, d, mt) -> begin
-    all_indices = [u; ub]
-    length(all_indices) % 2 != 0 ? 0 : (length(all_indices) == 0 ? 1 : integrate_indices_ginoe(all_indices, d))
-end
+INTEGRATION_RULES[:Sp] =
+    (u, ub, d, mt) -> begin
+        all_indices = [u; ub]
+        length(all_indices) % 2 != 0 ? 0 :
+        (length(all_indices) == 0 ? 1 : integrate_indices_symplectic(all_indices, d))
+    end
 
-INTEGRATION_RULES[:GinSE] = (u, ub, d, mt) -> begin
-    all_indices = [u; ub]
-    length(all_indices) % 2 != 0 ? 0 : (length(all_indices) == 0 ? 1 : integrate_indices_ginse(all_indices, d))
-end
+INTEGRATION_RULES[:GUE] =
+    (u, ub, d, mt) -> begin
+        all_indices = [u; ub]
+        length(all_indices) % 2 != 0 ? 0 :
+        (length(all_indices) == 0 ? 1 : integrate_indices_gue(all_indices, d))
+    end
+
+INTEGRATION_RULES[:GOE] =
+    (u, ub, d, mt) -> begin
+        all_indices = [u; ub]
+        length(all_indices) % 2 != 0 ? 0 :
+        (length(all_indices) == 0 ? 1 : integrate_indices_goe(all_indices, d))
+    end
+
+INTEGRATION_RULES[:GSE] =
+    (u, ub, d, mt) -> begin
+        all_indices = [u; ub]
+        length(all_indices) % 2 != 0 ? 0 :
+        (length(all_indices) == 0 ? 1 : integrate_indices_gse(all_indices, d))
+    end
+
+INTEGRATION_RULES[:COE] =
+    (u, ub, d, mt) -> begin
+        length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices_coe(u, ub, d))
+    end
+
+INTEGRATION_RULES[:CSE] =
+    (u, ub, d, mt) -> begin
+        length(u) != length(ub) ? 0 :
+        (
+            begin
+                phys_dim = mt isa Tuple ? mt[2] : d
+                length(u) == 0 ? 1 : integrate_indices_cse(u, ub, d, phys_dim)
+            end
+        )
+    end
+
+INTEGRATION_RULES[:Design] =
+    (u, ub, d, mt) -> begin
+        _, t_val = mt
+        if length(u) != length(ub) || length(u) > t_val
+            length(u) != length(ub) ? 0 :
+            error("Integrand degree ($(length(u))) exceeds design order t=$t_val")
+        end
+        length(u) == 0 ? 1 : integrate_indices(u, ub, d)
+    end
+
+INTEGRATION_RULES[:Perm] =
+    (u, ub, d, mt) -> begin
+        all_indices = [u; ub]
+        length(all_indices) == 0 ? 1 : integrate_indices_permutation(all_indices, d)
+    end
+
+INTEGRATION_RULES[:DiagUnitary] =
+    (u, ub, d, mt) -> begin
+        if length(u) != length(ub) || any(x -> x[1] != x[2], u) || any(x -> x[1] != x[2], ub)
+            return 0
+        end
+        length(u) == 0 ? 1 : integrate_indices_diagonal(u, ub, d)
+    end
+
+INTEGRATION_RULES[:GinUE] =
+    (u, ub, d, mt) -> begin
+        length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices_ginue(u, ub, d))
+    end
+
+INTEGRATION_RULES[:GinOE] =
+    (u, ub, d, mt) -> begin
+        all_indices = [u; ub]
+        length(all_indices) % 2 != 0 ? 0 :
+        (length(all_indices) == 0 ? 1 : integrate_indices_ginoe(all_indices, d))
+    end
+
+INTEGRATION_RULES[:GinSE] =
+    (u, ub, d, mt) -> begin
+        all_indices = [u; ub]
+        length(all_indices) % 2 != 0 ? 0 :
+        (length(all_indices) == 0 ? 1 : integrate_indices_ginse(all_indices, d))
+    end
 
 
 """
@@ -808,7 +845,7 @@ function integrate_indices(
         # Symbolic dim: accumulate numerator/denominator from weingarten_raw
         total_num = zero(Num)
         total_den = one(Num)
-        
+
         for (ct, count) in cycle_counts
             wnum, wden = IntU.weingarten_raw(ct, dim)
             if isequal(total_den, 1)
@@ -823,7 +860,7 @@ function integrate_indices(
                 end
             end
         end
-        
+
         return total_num / total_den
     end
 end
@@ -935,11 +972,11 @@ function integrate_indices_orthogonal(indices::Vector{Tuple{Int,Int}}, dim)
     for (c_pi, count_pi) in pi_counts
         idx_pi = get(lookup, c_pi, nothing)
         idx_pi === nothing && continue
-        
+
         for (c_sigma, count_sigma) in sigma_counts
             idx_sigma = get(lookup, c_sigma, nothing)
             idx_sigma === nothing && continue
-            
+
             val = val_mat[idx_pi, idx_sigma]
             total += (count_pi * count_sigma) * val
         end
@@ -1342,7 +1379,11 @@ end
 Low-level integration for Complex Ginibre Ensemble.
 Formula: sum_{sigma in S_n} prod_m delta(i_m, ib_sigma(m)) * delta(j_m, jb_sigma(m))
 """
-function integrate_indices_ginue(u_indices::Vector{Tuple{Int,Int}}, ub_indices::Vector{Tuple{Int,Int}}, dim)
+function integrate_indices_ginue(
+    u_indices::Vector{Tuple{Int,Int}},
+    ub_indices::Vector{Tuple{Int,Int}},
+    dim,
+)
     n = length(u_indices)
     if n != length(ub_indices)
         return 0
@@ -1377,7 +1418,7 @@ function integrate_indices_ginoe(indices::Vector{Tuple{Int,Int}}, dim)
     if isodd(n)
         return 0
     end
-    
+
     partitions = get_pair_partitions(n)
     total = 0
     for pi in partitions
@@ -1408,15 +1449,15 @@ function integrate_indices_ginse(indices::Vector{Tuple{Int,Int}}, dim)
     if isodd(n)
         return 0
     end
-    
+
     res_oe = integrate_indices_ginoe(indices, dim)
-    
+
     final_sign = ((-1)^(n ÷ 2 + 1))
     return final_sign * res_oe
 end
 
 
-    # Overloads for symbolic arrays
+# Overloads for symbolic arrays
 """
     tr(A)
 
@@ -1513,18 +1554,12 @@ function _expand_asymptotic(ex, d, order)
 
 
     p_eps = try
-        Symbolics.simplify(
-            Symbolics.substitute(num, Dict(d_num => 1/ϵ)) * ϵ^n;
-            expand = true,
-        )
+        Symbolics.simplify(Symbolics.substitute(num, Dict(d_num => 1/ϵ)) * ϵ^n; expand = true)
     catch
         Symbolics.substitute(num, Dict(d_num => 1/ϵ)) * ϵ^n
     end
     q_eps = try
-        Symbolics.simplify(
-            Symbolics.substitute(den, Dict(d_num => 1/ϵ)) * ϵ^m;
-            expand = true,
-        )
+        Symbolics.simplify(Symbolics.substitute(den, Dict(d_num => 1/ϵ)) * ϵ^m; expand = true)
     catch
         Symbolics.substitute(den, Dict(d_num => 1/ϵ)) * ϵ^m
     end

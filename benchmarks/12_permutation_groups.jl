@@ -8,7 +8,7 @@ function benchmark_permutation(k, d_val)
     @variables P[1:d_val, 1:d_val]
     measure = dPerm(P, d_val)
     # Integral of P[1,1] * P[2,2] * ... * P[k,k]
-    expr = prod(P[i, i] for i in 1:k)
+    expr = prod(P[i, i] for i = 1:k)
 
     println("\nk = $k, d = $d_val (Integral of product of $k diagonal elements)")
     @btime integrate($expr, $measure)

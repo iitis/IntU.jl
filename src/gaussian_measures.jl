@@ -566,7 +566,7 @@ function fallback_integrate(t::LazyTrace, measure::GinUEMeasure)
     total_val = 0
     pos_map = Dict(idx => i for (i, idx) in enumerate(all_slots))
 
-    
+
     for p in perms
         visited = falses(length(all_slots))
         current_partition_traces = []
@@ -578,12 +578,12 @@ function fallback_integrate(t::LazyTrace, measure::GinUEMeasure)
                 while !visited[curr_pos]
                     visited[curr_pos] = true
                     curr_factor_idx = all_slots[curr_pos]
-                    
+
                     dest_factor_idx, mat_segment = wires[curr_factor_idx]
                     if mat_segment !== nothing
                         append!(curr_trace_factors, mat_segment)
                     end
-                    
+
                     # Find partner via permutation
                     if dest_factor_idx in G_indices
                         m = findfirst(==(dest_factor_idx), G_indices)
@@ -593,7 +593,7 @@ function fallback_integrate(t::LazyTrace, measure::GinUEMeasure)
                         m = findfirst(==(m_bar), p)
                         partner_idx = G_indices[m]
                     end
-                    
+
                     curr_pos = pos_map[partner_idx]
                 end
 
@@ -617,7 +617,7 @@ function fallback_integrate(t::LazyTrace, measure::GinOEMeasure)
     end
 
     G_name = measure.G isa SymbolicMatrix ? measure.G.name : :G
-    
+
     all_factors = SymbolicMatrix[]
     cycle_ranges = UnitRange{Int}[]
     total_factors = 0
@@ -634,7 +634,7 @@ function fallback_integrate(t::LazyTrace, measure::GinOEMeasure)
             push!(G_indices, i)
         end
     end
-    
+
     n_G = length(G_indices)
     if isodd(n_G)
         return 0
@@ -644,18 +644,18 @@ function fallback_integrate(t::LazyTrace, measure::GinOEMeasure)
     if isempty(all_slots)
         return _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
     end
-    
+
     wires = _build_wires(G_indices, Int[], cycle_ranges, all_factors)
     constant_part = _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
-    
+
     partitions = get_pair_partitions(n_G)
     total_val = 0
     pos_map = Dict(idx => i for (i, idx) in enumerate(G_indices))
-    
+
     for pi in partitions
         visited = falses(n_G)
         current_partition_traces = []
-        
+
         for start_m = 1:n_G
             if !visited[start_m]
                 curr_trace_factors = SymbolicMatrix[]
@@ -667,7 +667,7 @@ function fallback_integrate(t::LazyTrace, measure::GinOEMeasure)
                         append!(curr_trace_factors, mat_segment)
                     end
                     landed_m = pos_map[dest_factor_idx]
-                    
+
 
                     partner_m = 0
                     for (u, v) in pi
@@ -681,7 +681,7 @@ function fallback_integrate(t::LazyTrace, measure::GinOEMeasure)
                     end
                     curr_m = partner_m
                 end
-                
+
                 if isempty(curr_trace_factors)
                     push!(current_partition_traces, dim)
                 else
