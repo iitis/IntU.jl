@@ -741,7 +741,7 @@ integrate(P[1,1] * P[2,2], measure)
 # Output: 1 / (d * (d - 1))
 
 # Centered permutations Y = P - J/d
-@variables Y[1:d, 1:d]
+@symbolic_dimension Y[1:d, 1:d]
 m_centered = dCPerm(Y, d)
 integrate(Y[1,1]^2, m_centered)
 # Output: (d - 1) / d^2

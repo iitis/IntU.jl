@@ -45,6 +45,12 @@ function IntU.measure_info(measure::PermutationMeasure)
     P_sym = measure.P
     dim = measure.dim
 
+    if P_sym isa SymbolicUnitary
+        subs_dict = Dict{Any,Any}()
+        matcher = SymbolicMatcher(Regex("^$(P_sym.name)_(\\d+)_(\\d+)\$"))
+        return (subs_dict, matcher, dim, :Perm)
+    end
+
     subs_dict = Dict{Any,Any}()
     P_atomic_lookup = Dict{Any,Tuple}()
 
@@ -72,6 +78,11 @@ end
 function IntU.measure_info(measure::CenteredPermutationMeasure)
     Y_sym = measure.Y
     dim = measure.dim
+
+    if Y_sym isa SymbolicUnitary
+        
+        subs_dict = Dict{Any,Any}()
+    end
 
     subs_dict = Dict{Any,Any}()
     P_atomic_lookup = Dict{Any,Tuple}()
