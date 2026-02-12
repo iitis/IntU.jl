@@ -4,7 +4,7 @@ using Symbolics
 
 # 1. Define symbolic dimension and Matrix
 @variables d
-U = SymbolicMatrix(:U)
+U = SymbolicMatrix(:U, :U)
 
 println("=== Asymptotic Expansions in 1/d ===")
 

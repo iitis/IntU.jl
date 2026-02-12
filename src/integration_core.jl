@@ -232,22 +232,28 @@ end
 
 function match_index(m::LookupMatcher, t)
     t_un = Symbolics.unwrap(t)
+    
+    # Handle conj(x) similar to MetadataMatcher
+    is_conj = false
+    if Symbolics.iscall(t_un) && (Symbolics.operation(t_un) == conj || Symbolics.operation(t_un) == Base.conj)
+        is_conj = true
+        t_un = Symbolics.arguments(t_un)[1]
+    end
 
 
     if haskey(m.U_lookup, t_un)
         v = m.U_lookup[t_un]
-
-        if length(v) == 3 && v[3] == :conj
-            return (:U_bar, v[1], v[2])
-        else
-            return (:U, v[1], v[2])
-        end
+        orig_is_conj = (length(v) == 3 && v[3] == :conj)
+        final_is_conj = is_conj ⊻ orig_is_conj
+        
+        return (final_is_conj ? :U_bar : :U, v[1], v[2])
     end
 
 
     if haskey(m.U_bar_lookup, t_un)
         v = m.U_bar_lookup[t_un]
-        return (:U_bar, v[1], v[2])
+        final_is_conj = !is_conj
+        return (final_is_conj ? :U_bar : :U, v[1], v[2])
     end
 
     return nothing
@@ -284,7 +290,7 @@ function match_index(m::MetadataMatcher, t)
                 is_adj = get(meta, :is_adj, false)
                 final_is_conj = is_conj ⊻ is_adj
                 
-                final_tag = final_is_conj ? :U_bar : :U
+                final_tag = (m.type_tag === :U && final_is_conj) ? :U_bar : m.type_tag
                 return (final_tag, i, j)
             end
         end
@@ -299,6 +305,74 @@ A dictionary mapping measure types (symbols) to their respective integration rul
 Each rule function should have the signature `(u_indices, u_bar_indices, dim, measure_type)`.
 """
 const INTEGRATION_RULES = Dict{Any,Function}()
+
+function _extract_coeff_core(term)
+    if term isa Number
+        return term, 1
+    end
+    
+    if Symbolics.iscall(term) && Symbolics.operation(term) == (*)
+        args = Symbolics.arguments(term)
+        # Assuming coefficient is the PRODUCT of all numbers found
+        coeffs = filter(x -> x isa Number, args)
+        others = filter(x -> !(x isa Number), args)
+        
+        c = isempty(coeffs) ? 1 : prod(coeffs)
+        
+        if isempty(others)
+            core = 1
+        elseif length(others) == 1
+            core = others[1]
+        else
+            core = prod(others)
+        end
+        return c, core
+    else
+        return 1, term
+    end
+end
+
+function _is_real_sq(term)
+    # Strip potential 1 * ... wrapper if it exists (though _extract_coeff_core should handle it)
+    if Symbolics.iscall(term) && Symbolics.operation(term) == (*)
+         args = Symbolics.arguments(term)
+         if length(args) == 2 && isequal(args[1], 1)
+             term = args[2]
+         end
+    end
+
+    # real(x)^2
+    if Symbolics.iscall(term) && Symbolics.operation(term) == (^)
+        args = Symbolics.arguments(term)
+        base = args[1]
+        expon = args[2]
+        if isequal(expon, 2) && Symbolics.iscall(base) && (Symbolics.operation(base) == real || Symbolics.operation(base) == Base.real)
+             return true, Symbolics.arguments(base)[1]
+        end
+    end
+    return false, nothing
+end
+
+function _is_imag_sq(term)
+    # Strip potential 1 * ... wrapper
+    if Symbolics.iscall(term) && Symbolics.operation(term) == (*)
+         args = Symbolics.arguments(term)
+         if length(args) == 2 && isequal(args[1], 1)
+             term = args[2]
+         end
+    end
+
+    # imag(x)^2
+    if Symbolics.iscall(term) && Symbolics.operation(term) == (^)
+        args = Symbolics.arguments(term)
+        base = args[1]
+        expon = args[2]
+        if isequal(expon, 2) && Symbolics.iscall(base) && (Symbolics.operation(base) == imag || Symbolics.operation(base) == Base.imag)
+             return true, Symbolics.arguments(base)[1]
+        end
+    end
+    return false, nothing
+end
 
 """
     _integrate_core(expr, dim, subs_dict, matcher, measure_type=:U)
@@ -330,13 +404,6 @@ function _integrate_core(
 
     if expr_un isa Complex
         return _integrate_core(expr_un, dim, subs_dict, matcher, measure_type)
-    end
-
-
-    expr_num = _safe_Num(expr_un)
-    try
-        expr_num = Symbolics.expand(expr_num)
-    catch
     end
 
 
@@ -372,6 +439,18 @@ function _integrate_core(
     r_complex = @rule complex(~x, ~y) => ~x + im*~y
     r_complex_base = @rule Base.complex(~x, ~y) => ~x + im*~y
 
+    r_rev_abs2 = @rule real(~x)^2 + imag(~x)^2 => (~x) * conj(~x)
+    r_rev_abs2_coeff = @rule ~c * real(~x)^2 + ~c * imag(~x)^2 => ~c * (~x) * conj(~x)
+    
+    r_rev_abs2_base = @rule Base.real(~x)^2 + Base.imag(~x)^2 => (~x) * conj(~x)
+    r_rev_abs2_coeff_base = @rule ~c * Base.real(~x)^2 + ~c * Base.imag(~x)^2 => ~c * (~x) * conj(~x)
+    
+    r_conj_add = @rule conj(~x + ~y) => conj(~x) + conj(~y)
+    r_conj_mul = @rule conj(~x * ~y) => conj(~x) * conj(~y)
+    r_conj_pow = @rule conj((~x)^~n) => (conj(~x))^~n
+    r_conj_conj = @rule conj(conj(~x)) => ~x
+    r_conj_neg = @rule conj(-(~x)) => -(conj(~x))
+
 
     function power_simplifier(x, a, b)
         new_expon = a * b
@@ -403,10 +482,11 @@ function _integrate_core(
         end
     end
 
-    expr_unwrapped = Symbolics.unwrap(expr)
-
-
     chain = SymbolicUtils.Chain([
+        r_rev_abs2_coeff,
+        r_rev_abs2,
+        r_rev_abs2_coeff_base,
+        r_rev_abs2_base,
         r_abs_pow,
         r_abs2,
         r_abs,
@@ -418,11 +498,87 @@ function _integrate_core(
         r_hypot_default,
         r_complex,
         r_complex_base,
+        r_conj_add,
+        r_conj_mul,
+        r_conj_pow,
+        r_conj_conj,
+        r_conj_neg,
         r_pow_nested,
         r_hypot_pow,
         r_float_to_int_pow,
     ])
-    expr_rewritten = SymbolicUtils.Postwalk(
+    
+    function pair_real_imag(expr)
+        if !Symbolics.iscall(expr) || Symbolics.operation(expr) != (+)
+            return expr
+        end
+        
+        args = Symbolics.arguments(expr)
+        new_args = []
+        skip_indices = Set{Int}()
+        
+        for i = 1:length(args)
+            if i in skip_indices
+                continue
+            end
+            
+            term_i = args[i]
+            
+            c_i, core_i = _extract_coeff_core(term_i)
+            
+            is_real_sq, x_real = _is_real_sq(core_i)
+            is_imag_sq, x_imag = _is_imag_sq(core_i)
+            
+            matched = false
+            
+            if is_real_sq || is_imag_sq
+                target_x = is_real_sq ? x_real : x_imag
+                target_is_real = !is_real_sq
+                
+                for j = (i+1):length(args)
+                     if j in skip_indices
+                        continue
+                    end
+                    
+                    term_j = args[j]
+                    c_j, core_j = _extract_coeff_core(term_j)
+                    
+                    if !isequal(c_i, c_j)
+                        continue
+                    end
+                    
+                    is_real_sq_j, x_real_j = _is_real_sq(core_j)
+                    is_imag_sq_j, x_imag_j = _is_imag_sq(core_j)
+                    
+                    if target_is_real
+                        if is_real_sq_j && isequal(x_real_j, target_x)
+                            # Found match!
+                            push!(new_args, c_i * target_x * conj(target_x))
+                            push!(skip_indices, j)
+                            matched = true
+                            break
+                        end
+                    else
+                        if is_imag_sq_j && isequal(x_imag_j, target_x)
+                            # Found match!
+                            push!(new_args, c_i * target_x * conj(target_x))
+                            push!(skip_indices, j)
+                            matched = true
+                            break
+                        end
+                    end
+                end
+            end
+            
+            if !matched
+                push!(new_args, term_i)
+            end
+        end
+        
+        return sum(new_args)
+    end
+
+    expr_rewritten = SymbolicUtils.Prewalk(
         SymbolicUtils.PassThrough(chain);
         maketerm = (st, f, args, metadata; kwargs...) -> begin
             if f == complex || f == Base.complex
@@ -431,17 +587,14 @@ function _integrate_core(
             SymbolicUtils.maketerm(st, f, args, metadata)
         end,
     )(
-        expr_unwrapped,
+        expr_un,
     )
-    if expr_rewritten isa Complex
-        return _integrate_core(expr_rewritten, dim, subs_dict, matcher, measure_type)
-    end
+    
+    expr_rewritten = pair_real_imag(expr_rewritten)
+    
     expr_num = _safe_Num(expr_rewritten)
-
-
-
     try
-        expr_num = Symbolics.expand(_safe_Num(Symbolics.unwrap(expr_num)))
+        expr_num = Symbolics.expand(expr_num)
     catch
     end
 
@@ -642,6 +795,17 @@ function integrate(expr, measure)
     end
 
     return fallback_integrate(expr, measure)
+end
+
+function _integrate_core(expr::Complex{Num}, dim, subs_dict, matcher::AbstractIndexMatcher, measure_type=:U)
+    # Split into real and imaginary parts to avoid recursion
+    re = Symbolics.real(expr)
+    im = Symbolics.imag(expr)
+    
+    int_re = _integrate_core(re, dim, subs_dict, matcher, measure_type)
+    int_im = _integrate_core(im, dim, subs_dict, matcher, measure_type)
+    
+    return int_re + im * int_im # standard complex number result
 end
 
 function fallback_integrate(expr, measure)

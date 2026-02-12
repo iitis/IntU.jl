@@ -50,6 +50,16 @@ function integrate(expr::AbstractArray, measure::SymplecticMeasure)
     return map(e -> integrate(e, measure), expr)
 end
 
+# Resolve ambiguity with SymbolicMatrixProduct
+function integrate(P::SymbolicMatrixProduct, measure::OrthogonalMeasure)
+    # create a method instance for the generic SymbolicMatrixProduct integration
+    return invoke(integrate, Tuple{SymbolicMatrixProduct, Any}, P, measure)
+end
+
+function integrate(P::SymbolicMatrixProduct, measure::SymplecticMeasure)
+    return invoke(integrate, Tuple{SymbolicMatrixProduct, Any}, P, measure)
+end
+
 function IntU.measure_info(measure::OrthogonalMeasure)
     subs_dict = Dict{Any,Any}()
     matcher = MetadataMatcher(:O)

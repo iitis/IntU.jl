@@ -44,6 +44,14 @@ function hciz(A::AbstractMatrix, B::AbstractMatrix)
     return hciz(a, b)
 end
 
+function hciz(A::SymbolicMatrix, B::SymbolicMatrix)
+    if A.dim !== nothing
+        return hciz(A, B, A.dim)
+    else
+        error("Must provide dimension d for symbolic HCIZ if matrices have symbolic dimension.")
+    end
+end
+
 function hciz(A::SymbolicMatrix, B::SymbolicMatrix, d::Int)
     # Generate symbolic eigenvalues for matrices with only names
     a = [Symbolics.variable(Symbol(string(A.name) * "_$i"); T = Real) for i = 1:d]

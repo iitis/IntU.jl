@@ -6,9 +6,10 @@ using LinearAlgebra
 println("Quantum Information Example: Average Purity of a Subsystem")
 
 # 1. Setup a bipartite system (d = d1 * d2)
-@variables d1, d2
+d1 = 2
+d2 = 2
 d = d1 * d2
-U = SymbolicMatrix(:U)
+U = SymbolicMatrix(:U, :U)
 
 # 2. Start with a product state |00>
 # We represent the random state as the first column of U
@@ -36,5 +37,3 @@ println("Average Purity of Subsystem 1: ", Symbolics.simplify(avg_purity))
 println("Theoretical expectation: (d1 + d2) / (d1 * d2 + 1)")
 
 # Check for specific dimensions
-val_d2 = Symbolics.substitute(avg_purity, Dict(d1 => 2, d2 => 2))
-println("\nFor d1=2, d2=2: ", val_d2, " (Expected: 4/5 = 0.8)")

@@ -38,7 +38,7 @@ println("\n4. Verification against Weingarten integration (d=2)")
 
 A_test = diagm([1.0, 0.5])
 B_test = diagm([2.0, 1.0])
-U = SymbolicMatrix(:U, :U)
+U = SymbolicMatrix(:U, :U, 2)
 
 println("Integrating Tr(A_test * U * B_test * U') over dU(2)...")
 integrand = tr(A_test * U * B_test * U')

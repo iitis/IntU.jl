@@ -6,7 +6,7 @@ using LinearAlgebra
 # Example 1: Basic scalar integrals
 println("--- Example 1: Scalar Integrals (Symbolic d) ---")
 @variables d
-U = SymbolicMatrix(:U)
+U = SymbolicMatrix(:U, :U)
 
 println("1.1: Integrate |U[1,1]|^2")
 res1_1 = @integrate abs(U[1, 1])^2 dU(d)
@@ -37,9 +37,9 @@ println("Result: ", res2, " (Expected: -1/16200)")
 
 # Example 3: Multiple unitaries
 println("\n--- Example 3: Multiple Unitaries ---")
-@variables dU, dV
-U = SymbolicMatrix(:U)
-V = SymbolicMatrix(:V)
+@variables dU_dim, dV_dim
+U = SymbolicMatrix(:U, :U, dU_dim)
+V = SymbolicMatrix(:V, :U, dV_dim)
 X = SymbolicMatrix(:X) # Constant matrix
 
 # Complex expression with two independent unitaries
@@ -51,17 +51,17 @@ X = SymbolicMatrix(:X) # Constant matrix
 integrand3 = (U[1,1] * V[1,1]) * X[1,1] * conj(U[1,1] * V[1,1])
 
 println("Integrating over V...")
-tmp = integrate(integrand3, dU(V, dV))
+tmp = integrate(integrand3, dU(dV_dim))
 println("Integrating over U...")
-res3 = integrate(tmp, dU(U, dU))
+res3 = integrate(tmp, dU(dU_dim))
 println("Result: ", res3)
-println("Expected: X_1_1 / (dU * dV)")
+println("Expected: X_1_1 / (dU_dim * dV_dim)")
 
 
 # Example 4: Symbolic vector integration
 println("\n--- Example 4: Vector moments ---")
 @variables d
-U = SymbolicMatrix(:U)
+U = SymbolicMatrix(:U, :U)
 X = SymbolicMatrix(:X)
 
 # xi = 1/sqrt(d) * vec(U)

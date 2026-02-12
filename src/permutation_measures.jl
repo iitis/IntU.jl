@@ -26,7 +26,7 @@ where $k$ is the number of distinct pairs $(i, j)$ in the product.
 dPerm(dim) = PermutationMeasure(dim)
 dPerm(P::SymbolicMatrix) = PermutationMeasure(P.dim)
 
-"""
+@doc raw"""
     dCPerm(dim)
     dCPerm(Y::SymbolicMatrix)
 

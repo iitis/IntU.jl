@@ -5,7 +5,7 @@ using LinearAlgebra
 println("=== Diagonal Unitary Integration (Torus Group) ===\n")
 
 @variables d
-V = SymbolicMatrix(:V)
+V = SymbolicMatrix(:V, :DiagUnitary)
 
 # Define the Diagonal Unitary Measure
 # This measure integrates over matrices of form V = diag(exp(iθ_1), ..., exp(iθ_d))

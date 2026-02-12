@@ -7,14 +7,17 @@ println("=== Gaussian Ensembles Integration ===\n")
 # --- 1. Explicit Matrix (Small N) ---
 N = 2
 println("1. Explicit Matrix (N=$N)")
-@variables H_mat[1:N, 1:N]::Complex
+# Use SymbolicMatrix to ensure correct metadata for integration engine
+H_sym = SymbolicMatrix(:H_mat, :GUE, N)
+# Extract explicit matrix of variables (which now have metadata)
+H_mat = [H_sym[i,j] for i=1:N, j=1:N]
 
 println("--- GUE ---")
-res_gue = @integrate tr(H_mat^2) dGUE(H_mat, N)
+res_gue = @integrate tr(H_mat^2) dGUE(H_sym, N)
 println("<Tr(H^2)>_GUE = ", Symbolics.simplify(res_gue), " (Expected: $(N^2))")
 
 println("--- GOE ---")
-res_goe = @integrate tr(H_mat^2) dGOE(H_mat, N)
+res_goe = @integrate tr(H_mat^2) dGOE(H_sym, N)
 println("<Tr(H^2)>_GOE = ", Symbolics.simplify(res_goe), " (Expected: $(N^2 + N))")
 
 println("--- GSE ---")

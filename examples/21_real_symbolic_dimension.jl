@@ -11,7 +11,7 @@ println("=== Symbolic Dimension Integration for Real Groups ===")
 # --- Orthogonal Group O(d) ---
 println("\n--- Orthogonal Group O(d) ---")
 # Using SymbolicMatrix is the easiest way to work with symbolic dimensions
-O = SymbolicMatrix(:O)
+O = SymbolicMatrix(:O, :O)
 
 # 1. Integrate O_11^2
 println("1. Integrating O[1,1]^2 over O(d)")

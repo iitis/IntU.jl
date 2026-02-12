@@ -20,7 +20,7 @@ println("Dimension d: symbolic")
 println("Stiefel dimension k: $k")
 
 # Using SymbolicMatrix to represent the Stiefel matrix V
-V = SymbolicMatrix(:V)
+V = SymbolicMatrix(:V, :U)
 
 # 2. Normalization check
 # E[V_{1,1} * conj(V_{1,1})] should be 1/d

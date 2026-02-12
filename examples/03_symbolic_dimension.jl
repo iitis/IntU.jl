@@ -5,7 +5,7 @@ using LinearAlgebra
 
 # Define symbolic dimension
 @variables d
-U = SymbolicMatrix(:U)
+U = SymbolicMatrix(:U, :U)
 
 println("Testing symbolic dimension d with unified clean interface...")
 

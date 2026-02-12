@@ -3,14 +3,16 @@ using Symbolics
 
 # Define variables
 N = 3
-U = SymbolicMatrix(:U)
+U = SymbolicMatrix(:U, :U, N)
 
 println("--- Unitary t-Design Example ---")
 
 # Create a 2-design
 # This measure will behave like Haar measure for polynomials of degree <= 2
-# and throw an error for higher degrees.
-design2 = dDesign(U, N, 2)
+# Create a 2-design measure for U
+# dDesign(U, k) creates a k-design measure for matrix U
+k = 2
+design2 = dDesign(U, k)
 println("Created Unitary 2-Design for N=$N")
 
 # Example 1: Integrating |u11|^2 (Degree 1)

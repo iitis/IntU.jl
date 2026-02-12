@@ -8,7 +8,7 @@ println("=== Orthogonal and Symplectic Group Integration ===")
 
 # --- Orthogonal Group O(d) ---
 println("\n--- Orthogonal Group O(d) ---")
-O = SymbolicMatrix(:O)
+O = SymbolicMatrix(:O, :O)
 
 println("1. Integrating O[1,1]^2 over O(d)")
 res1 = @integrate O[1, 1]^2 dO(d)
@@ -34,7 +34,7 @@ println("\n--- Symplectic Group Sp(d) ---")
 println("(Note: Sp(d) integration usually requires fixed even d for explicit contractions)")
 
 # Measure dSp(S, d)
-S = SymbolicMatrix(:S)
+S = SymbolicMatrix(:S, :Sp)
 d_sp = 2
 
 println("1. Integrating S[1,1]*S[2,2] over Sp(2)")

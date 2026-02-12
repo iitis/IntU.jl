@@ -35,6 +35,11 @@ function integrate(expr::AbstractArray, measure::SpecialUnitary)
     return map(e -> integrate(e, measure), expr)
 end
 
+# Resolve ambiguity with SymbolicMatrixProduct
+function integrate(P::SymbolicMatrixProduct, measure::SpecialUnitary)
+    return invoke(integrate, Tuple{SymbolicMatrixProduct, Any}, P, measure)
+end
+
 function IntU.measure_info(measure::SpecialUnitary)
     # Delegates to HaarMeasure info
     return IntU.measure_info(dU(measure.dim))

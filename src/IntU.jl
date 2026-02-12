@@ -7,6 +7,15 @@ using SymbolicUtils
 using Memoization
 using DataStructures
 
+# Fix for ambiguity in Num(::Complex)
+function Symbolics.Num(z::Complex{<:Real})
+    return Symbolics.Term(complex, [z.re, z.im])
+end
+
+function Symbolics.Num(z::Complex{Num})
+    return z.re + im*z.im
+end
+
 # Core Weingarten logic
 include("weingarten.jl")
 

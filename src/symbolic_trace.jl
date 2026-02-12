@@ -19,7 +19,7 @@ The `special_type` field determines how the matrix entries are tagged via metada
 - `:DiagUnitary`: Marks the matrix as a random diagonal unitary matrix (used by `dDiagUnitary`).
 - `:GUE` / `:GOE` / `:GSE`: Marks the matrix as a member of the respective Gaussian ensemble.
 """
-struct SymbolicMatrix <: AbstractMatrix{Num}
+struct SymbolicMatrix <: AbstractMatrix{Any}
     name::Symbol
     is_adj::Bool
     special_type::Symbol 
@@ -45,7 +45,10 @@ import Base: *, adjoint, show, ^, size, getindex
 import LinearAlgebra: tr
 
 # AbstractMatrix implementation
-Base.size(::SymbolicMatrix) = (typemax(Int), typemax(Int))
+function Base.size(A::SymbolicMatrix)
+    d = A.dim === nothing ? typemax(Int) : A.dim
+    return (d, d)
+end
 function Base.getindex(A::SymbolicMatrix, i::Integer, j::Integer)
     # Generate symbol name
     s_name = Symbol(A.name, :_, i, :_, j)
@@ -56,16 +59,16 @@ function Base.getindex(A::SymbolicMatrix, i::Integer, j::Integer)
     # Create variable and attach metadata
     # We use T=Number to prevent it from being treated as Real and simplifying conj(v) -> v
     # This keeps v as an opaque complex-like symbol.
-    v = Symbolics.variable(s_name, T = Number)
+    v = Symbolics.variable(s_name, T = Complex{Real})
     
-    meta = (
-        name = A.name,
-        type = A.special_type,
-        indices = (A.is_adj ? (j, i) : (i, j)),
-        is_adj = A.is_adj
+    meta = Dict(
+        :name => A.name,
+        :type => A.special_type,
+        :indices => (A.is_adj ? (j, i) : (i, j)),
+        :is_adj => A.is_adj
     )
     
-    v = Symbolics.setmetadata(v, MatrixMetadata, meta)
+    v = Num(Symbolics.setmetadata(v, MatrixMetadata, meta))
     
     return A.is_adj ? conj(v) : v
 end
@@ -111,8 +114,41 @@ end
 
 Represents a product of SymbolicMatrices.
 """
-struct SymbolicMatrixProduct
-    factors::Vector{SymbolicMatrix}
+struct SymbolicMatrixProduct <: AbstractMatrix{Num}
+    factors::Vector{Any} # Can be SymbolicMatrix, SymbolicKron, or AbstractMatrix
+end
+
+function Base.size(P::SymbolicMatrixProduct)
+    if isempty(P.factors)
+        return (0, 0)
+    end
+    return (size(P.factors[1], 1), size(P.factors[end], 2))
+end
+
+function Base.getindex(P::SymbolicMatrixProduct, i::Integer, j::Integer)
+    # Recursively handle products
+    # For a product A * B, (AB)_ij = sum_k A_ik B_kj
+    # We only support small fixed dimensions for explicit getindex if not using tr_lazy
+    factors = P.factors
+    if length(factors) == 1
+        return factors[1][i, j]
+    end
+    
+    A = factors[1]
+    # Rest of the product
+    B = length(factors) == 2 ? factors[2] : SymbolicMatrixProduct(factors[2:end])
+    
+    dim = size(A, 2)
+    if dim isa Integer
+        return sum(A[i, k] * B[k, j] for k = 1:dim)
+    else
+        # Symbolic dimension sum. For integration, we might need a better way.
+        # But let's try to return a symbolic sum.
+        k = Symbolics.variable(:k, T = Int)
+        # return Symbolics.sum(A[i, k] * B[k, j], k => 1:dim) # Symbolics.sum is still experimental or in SymbolicUtils
+        # For now, let's use a dummy name to avoid infinite sums if it's evaluated
+        return Num(Symbolics.variable(Symbol("sum_$(A)_$(B)_$(i)_$(j)"); T = Number))
+    end
 end
 
 function *(A::SymbolicMatrix, B::SymbolicMatrix)
@@ -133,6 +169,50 @@ end
 
 function ^(A::SymbolicMatrix, n::Integer)
     return SymbolicMatrixProduct(fill(A, n))
+end
+
+"""
+    SymbolicKron
+    
+Represents the tensor product of two symbolic matrices.
+"""
+struct SymbolicKron <: AbstractMatrix{Num}
+    A::Any # SymbolicMatrix or SymbolicKron or SymbolicMatrixProduct
+    B::Any
+end
+
+function Base.size(K::SymbolicKron)
+    sA = size(K.A)
+    sB = size(K.B)
+    return (sA[1] * sB[1], sA[2] * sB[2])
+end
+
+function Base.getindex(K::SymbolicKron, i::Integer, j::Integer)
+    mA, nA = size(K.A)
+    mB, nB = size(K.B)
+    iA, iB = divrem(i - 1, mB) .+ 1
+    jA, jB = divrem(j - 1, nB) .+ 1
+    return K.A[iA, jA] * K.B[iB, jB]
+end
+
+function Base.kron(A::SymbolicMatrix, B::SymbolicMatrix)
+    return SymbolicKron(A, B)
+end
+
+function Base.kron(A::SymbolicMatrix, B::AbstractMatrix)
+    return SymbolicKron(A, B)
+end
+
+function Base.kron(A::AbstractMatrix, B::SymbolicMatrix)
+    return SymbolicKron(A, B)
+end
+
+function adjoint(P::SymbolicMatrixProduct)
+    return SymbolicMatrixProduct(reverse([adjoint(f) for f in P.factors]))
+end
+
+function adjoint(K::SymbolicKron)
+    return SymbolicKron(adjoint(K.A), adjoint(K.B))
 end
 
 function tr(A::SymbolicMatrix)

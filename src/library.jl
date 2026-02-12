@@ -37,20 +37,38 @@ function check_haar_library(expr, measure)
         if length(factors) == 4
             # Normalize cycle
             # We want to find a cyclic shift that is [U, A, U', B]
-            # where factors[1] == measure.U and factors[3] == measure.U'
             for i = 1:4
                 shifted = circshift(factors, -i+1)
-                if shifted[1].special_type == :U &&
-                   shifted[1].name ==
-                   (measure.U isa SymbolicMatrix ? measure.U.name : :nothing) &&
-                   shifted[3].special_type == :U_dag &&
-                   shifted[3].name ==
-                   (measure.U isa SymbolicMatrix ? measure.U.name : :nothing)
-
-                    A = shifted[2]
-                    B = shifted[4]
-                    return prefactor * (tr_val([A]) * tr_val([B])) / measure.dim
+                U_cand = shifted[1]
+                U_dag_cand = shifted[3]
+                
+                # Check 1: U_cand is a Unitary (:U)
+                if U_cand.special_type != :U
+                    continue
                 end
+                
+                # Check 2: Dimensions match measure
+                if !isequal(U_cand.dim, measure.dim)
+                    continue
+                end
+
+                # Check 3: U_dag_cand matches U_cand name and is adjoint pair
+                # We require them to be the same matrix, but one adjoint and one not (or opposite adjointness)
+                if U_dag_cand.special_type != :U ||
+                   U_dag_cand.name != U_cand.name ||
+                   U_dag_cand.is_adj == U_cand.is_adj
+                   continue
+                end
+                
+                # Check 4: A and B do not depend on U
+                A = shifted[2]
+                B = shifted[4]
+                
+                if A.name == U_cand.name || B.name == U_cand.name
+                    continue
+                end
+                
+                return prefactor * (tr_val([A]) * tr_val([B])) / measure.dim
             end
         end
     end

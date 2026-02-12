@@ -20,7 +20,7 @@ println(" (Expected: (tr(A) * tr(B)) / d)\n")
 
 # 2. Gaussian Unitary Ensemble (GUE) Moments
 println("2. GUE Moments")
-H = SymbolicMatrix(:H)
+H = SymbolicMatrix(:H, :GUE)
 
 m2 = @integrate tr(H^2) dGUE(H, d)
 m4 = @integrate tr(H^4) dGUE(H, d)

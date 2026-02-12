@@ -5,7 +5,7 @@ using LinearAlgebra
 # 1. Basic Integration over the Symmetric Group S_d
 println("1. Integration over S_d (d symbolic)")
 @variables d
-P = SymbolicMatrix(:P)
+P = SymbolicMatrix(:P, :Perm)
 
 # E[P_11] = 1/d
 println("Integrating: P[1, 1]")
@@ -30,7 +30,7 @@ println("Expected: 0")
 # Matrices Y = P - J/d
 println("\n2. Centered Permutation Group")
 # The library handles these as a separate measure dCPerm
-Y = SymbolicMatrix(:Y)
+Y = SymbolicMatrix(:Y, :Perm)
 
 # E[Y_11] = 0
 println("Integrating: Y[1, 1]")

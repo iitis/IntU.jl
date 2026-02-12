@@ -29,7 +29,7 @@ println("<Tr(G G^T)> = ", Symbolics.simplify(res_oe_sq), " (Expected: $(N^2))")
 # --- 3. Graphical Calculus (Symbolic Dimension) ---
 println("\n3. Graphical Calculus and Symbolic Dimension")
 @variables d
-G = SymbolicMatrix(:G)
+G = SymbolicMatrix(:G, :U)
 A = SymbolicMatrix(:A)
 B = SymbolicMatrix(:B)
 

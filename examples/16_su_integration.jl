@@ -5,7 +5,7 @@ using LinearAlgebra
 println("=== SU(d) Integration (Stable Range) ===\n")
 
 @variables d
-U = SymbolicMatrix(:U)
+U = SymbolicMatrix(:U, :U)
 
 # Define the Special Unitary Measure
 # In the stable range (d large), SU(d) integrals coincide with U(d) for balanced moments.
