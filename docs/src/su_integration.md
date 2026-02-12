@@ -14,7 +14,7 @@ Use the `dSU` measure constructor.
 ```julia
 using IntU, Symbolics
 @variables d
-U = SymbolicMatrix(:U)
+U = SymbolicMatrix(:U, :U)
 # E[|U_{1,1}|^2]
 @integrate abs(U[1,1])^2 dSU(d)
 # Output: 1/d

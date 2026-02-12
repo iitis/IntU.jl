@@ -34,18 +34,14 @@ using IntU, Symbolics
 # Define dimension
 @variables d
 # Define Orthogonal matrix
-@variables O_mat[1:d, 1:d]::Real
-measure_O = dO(O_mat, d)
-
-# 1. Squared element
-expr = O_mat[1,1]^2
-res = integrate(expr, measure_O)
+O = SymbolicMatrix(:O, :O)
+# Integrate squared element
+@integrate O[1,1]^2 dO(d)
 println(res)
 # Output: 1/d
 
 # 2. Fourth power
-expr4 = O_mat[1,1]^4
-res4 = integrate(expr4, measure_O)
+@integrate O[1,1]^4 dO(d)
 println(res4)
 # Output: 3 / (d*(d + 2))
 ```
@@ -85,18 +81,15 @@ using IntU, Symbolics
 
 @variables d
 # Define Symplectic matrix (Complex entries, unlike O(d))
-@variables S_mat[1:d, 1:d]::Complex
-measure_S = dSp(S_mat, d)
+S = SymbolicMatrix(:S, :Sp)
 
 # |S_{1,1}|^2 integration
-expr = abs(S_mat[1,1])^2
-res = integrate(expr, measure_S)
+@integrate abs(S[1,1])^2 dSp(d)
 println(res)
 # Output: 1/d
 
 # |S_{1,1}|^4 integration
-expr4 = abs(S_mat[1,1])^4
-res4 = integrate(expr4, measure_S)
+@integrate abs(S[1,1])^4 dSp(d)
 println(res4)
 # Output: 2 / ((d + 1)*(d - 2))
 ```

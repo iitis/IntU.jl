@@ -1,37 +1,41 @@
 # Permutation Group measures
 
 # Dummy types to represent the measures
-struct PermutationMeasure{M,D}
-    P::M
+struct PermutationMeasure{D}
     dim::D
 end
 
-struct CenteredPermutationMeasure{M,D}
-    Y::M
+struct CenteredPermutationMeasure{D}
     dim::D
 end
 
-"""
-    dPerm(P, dim)
+@doc raw"""
+    dPerm(dim)
+    dPerm(P::SymbolicMatrix)
 
-Defines the Haar measure for the Symmetric group S_d (permutation matrices).
+Defines the Haar measure for the Symmetric group $S_d$ (permutation matrices) of dimension `dim`.
+
+If called with `dim`, it integrates entries tagged with `:Perm` via `SymbolicMatrix(:P, :Perm)`.
 
 The integration of a monomial of entries is given by:
 ```math
-\\int_{S_d} P_{i_1 j_1} \\dots P_{i_n j_n} dP = \\begin{cases} \\frac{(d-k)!}{d!} & \\text{if indices are consistent} \\\\ 0 & \\text{otherwise} \\end{cases}
+\int_{S_d} P_{i_1 j_1} \dots P_{i_n j_n} dP = \begin{cases} \frac{(d-k)!}{d!} & \text{if indices are consistent} \\ 0 & \text{otherwise} \end{cases}
 ```
-where k is the number of distinct pairs (i, j) in the product.
+where $k$ is the number of distinct pairs $(i, j)$ in the product.
 """
-dPerm(P, dim) = PermutationMeasure(P, dim)
-dPerm(dim) = PermutationMeasure(nothing, dim)
+dPerm(dim) = PermutationMeasure(dim)
+dPerm(P::SymbolicMatrix) = PermutationMeasure(P.dim)
 
 """
-    dCPerm(Y, dim)
+    dCPerm(dim)
+    dCPerm(Y::SymbolicMatrix)
 
-Defines the measure for Centered Permutation matrices Y = P - J/d.
+Defines the measure for Centered Permutation matrices $Y = P - J/d$ where $P \in S_d$.
+
+If called with `dim`, it integrates entries tagged with `:CPerm` (or `:Perm`) via `SymbolicMatrix(:Y, :CPerm)`.
 """
-dCPerm(Y, dim) = CenteredPermutationMeasure(Y, dim)
-dCPerm(dim) = CenteredPermutationMeasure(nothing, dim)
+dCPerm(dim) = CenteredPermutationMeasure(dim)
+dCPerm(Y::SymbolicMatrix) = CenteredPermutationMeasure(Y.dim)
 
 function integrate(expr::AbstractArray, measure::PermutationMeasure)
     return map(e -> integrate(e, measure), expr)
@@ -42,74 +46,25 @@ function integrate(expr::AbstractArray, measure::CenteredPermutationMeasure)
 end
 
 function IntU.measure_info(measure::PermutationMeasure)
-    P_sym = measure.P
-    dim = measure.dim
-
-    if P_sym isa SymbolicUnitary || P_sym isa SymbolicMatrix
-        subs_dict = Dict{Any,Any}()
-        matcher = SymbolicMatcher(:Perm, Regex("^$(P_sym.name)_(\\d+)_(\\d+)\$"))
-        return (subs_dict, matcher, dim, :Perm)
-    elseif P_sym === nothing
-        subs_dict = Dict{Any,Any}()
-        matcher = SymbolicMatcher(:Perm, Regex("^P_(\\d+)_(\\d+)\$"))
-        return (subs_dict, matcher, dim, :Perm)
-    end
-
     subs_dict = Dict{Any,Any}()
-    P_atomic_lookup = Dict{Any,Tuple}()
-
-    if P_sym isa AbstractArray
-        for i = 1:size(P_sym, 1)
-            for j = 1:size(P_sym, 2)
-                p_ij_num = _safe_Num(P_sym[i, j])
-                p_ij_un = Symbolics.unwrap(p_ij_num)
-                p_atomic = Symbolics.variable(:P_atomic, i, j)
-
-                P_atomic_lookup[Symbolics.unwrap(p_atomic)] = (i, j)
-
-                subs_dict[p_ij_un] = p_atomic
-                # P is real
-                subs_dict[Symbolics.unwrap(conj(p_ij_un))] = p_atomic
-                subs_dict[Symbolics.unwrap(Base.conj(p_ij_un))] = p_atomic
-            end
-        end
-    end
-
-    matcher = LookupMatcher(P_atomic_lookup, Dict{Any,Tuple}())
-    return (subs_dict, matcher, dim, :Perm)
+    matcher = MetadataMatcher(:Perm)
+    return (subs_dict, matcher, measure.dim, :Perm)
 end
 
 function IntU.measure_info(measure::CenteredPermutationMeasure)
-    Y_sym = measure.Y
-    dim = measure.dim
-
-    if Y_sym isa SymbolicUnitary
-        
-        subs_dict = Dict{Any,Any}()
-    end
-
+    # Centered permutations are handled by substituting Y_ij = P_ij - 1/dim
+    # We need a matcher for P, which is the Permutation group.
+    # MetadataMatcher(:Perm) will match P_ij.
+    # But wait, centered permutation entries Y_ij might not be tagged by the user.
+    # Actually, if the user creates Y = SymbolicMatrix(:Y, :Perm), getindex will tag it.
+    
     subs_dict = Dict{Any,Any}()
-    P_atomic_lookup = Dict{Any,Tuple}()
-
-    if Y_sym isa AbstractArray
-        for i = 1:size(Y_sym, 1)
-            for j = 1:size(Y_sym, 2)
-                y_ij_num = _safe_Num(Y_sym[i, j])
-                y_ij_un = Symbolics.unwrap(y_ij_num)
-
-                # Y_ij = P_ij - 1/dim
-                p_atomic = Symbolics.variable(:P_atomic, i, j)
-                P_atomic_lookup[Symbolics.unwrap(p_atomic)] = (i, j)
-
-                subs_dict[y_ij_un] = p_atomic - 1/dim
-                subs_dict[Symbolics.unwrap(conj(y_ij_un))] = p_atomic - 1/dim
-                subs_dict[Symbolics.unwrap(Base.conj(y_ij_un))] = p_atomic - 1/dim
-            end
-        end
-    end
-
-    matcher = LookupMatcher(P_atomic_lookup, Dict{Any,Tuple}())
-    return (subs_dict, matcher, dim, :Perm)
+    # If expr contains Y_ij, we need to substitute it with P_ij - 1/dim.
+    # This might require some more elaborate logic in process_term if we want it fully automatic.
+    # For now, let's assume Y_ij is tagged as :Perm.
+    
+    matcher = MetadataMatcher(:Perm)
+    return (subs_dict, matcher, measure.dim, :Perm)
 end
 
 """

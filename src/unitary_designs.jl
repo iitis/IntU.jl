@@ -6,19 +6,23 @@ struct UnitaryDesign{M,D,T}
     t::T
 end
 
-"""
-    dDesign(U, dim, t)
+@doc raw"""
+    dDesign(dim, t)
+    dDesign(U::SymbolicMatrix, t)
 
-Defines a measure representing a **unitary t-design**. 
+Defines a measure representing a **unitary $t$-design**. 
 
-A t-design is a set of unitaries that reproduces the first t moments 
-of the Haar measure. Integration of any polynomial P(U, \\bar{U}) of 
-degree (q, q) with q \\le t yields the same result as the Haar measure.
+A $t$-design is a set of unitaries that reproduces the first $t$ moments 
+of the Haar measure. Integration of any polynomial $P(U, \bar{U})$ of 
+degree $(q, q)$ with $q \le t$ yields the same result as the Haar measure.
+
+If called with `dim`, it integrates entries tagged with `:U` via `SymbolicMatrix(:U, :U)`.
 
 Reference:
 - Gross, D., Audenaert, K., & Eisert, J. (2007). Evenly distributed unitaries: On the structure of unitary designs.
 """
-dDesign(U, dim, t) = UnitaryDesign(U, dim, t)
+dDesign(dim, t) = UnitaryDesign(nothing, dim, t)
+dDesign(U::SymbolicMatrix, t) = UnitaryDesign(U, U.dim, t)
 
 """
     integrate(expr, measure::UnitaryDesign)

@@ -67,7 +67,6 @@ export integrate,
     average_fidelity,
     partial_trace,
     dDesign,
-    symbolic_dimension_unitary,
     @symbolic_dimension,
     @integrate
 export dPerm, dCPerm
@@ -81,7 +80,7 @@ export get_pair_partitions,
     character_at_id,
     irrep_dimension,
     get_weingarten_orthogonal_data
-export AbstractIndexMatcher, LookupMatcher, _integrate_core, SymbolicUnitary, process_term
+export AbstractIndexMatcher, LookupMatcher, _integrate_core, process_term
 
 export SymbolicMatrix, tr_lazy, LazyTrace, LazySum
 export integrate_graphical, GraphicalUnitary, ITensorUnitary

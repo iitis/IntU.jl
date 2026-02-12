@@ -1,28 +1,29 @@
 # Stiefel Manifold integration
 
-"""
-    dStiefel(V, dim, k)
+@doc raw"""
+    dStiefel(dim, k)
+    dStiefel(V::SymbolicMatrix, k)
 
-Defines the measure for integration over the Stiefel manifold V_k(C^d).
-This manifold represents the set of d x k matrices with orthonormal columns.
+Defines the measure for integration over the Stiefel manifold $V_k(\mathbb{C}^d)$.
+This manifold represents the set of $d \times k$ matrices with orthonormal columns.
 
-The integration is performed by mapping V to the first k columns of a
-Haar-random unitary matrix U(d).
+The integration is performed by mapping $V$ to the first $k$ columns of a Haar-random unitary matrix $U(d)$.
+If called with `dim`, it integrates entries tagged with `:U` via `SymbolicMatrix(:V, :U)`.
 
 Reference:
 - Edelman, A., Arias, T. A., & Smith, S. T. (1998). The geometry of algorithms with orthogonality constraints.
 """
-dStiefel(V, dim, k) = StiefelMeasure(V, dim, k)
+dStiefel(dim, k) = StiefelMeasure(dim, k)
+dStiefel(V::SymbolicMatrix, k) = StiefelMeasure(V.dim, k)
 
 
 """
-    StiefelMeasure(V, dim, k)
+    StiefelMeasure(dim, k)
 
 Internal type representing the measure on the Stiefel manifold. 
 Users should use `dStiefel` constructor.
 """
-struct StiefelMeasure{M,D,K}
-    V::M
+struct StiefelMeasure{D,K}
     dim::D
     k::K
 end
@@ -35,49 +36,12 @@ function integrate(expr::AbstractArray, measure::StiefelMeasure)
 end
 
 function IntU.measure_info(measure::StiefelMeasure)
-    V_input = measure.V
-    dim = measure.dim
-    k_dim = measure.k
-
-    if V_input isa SymbolicMatrix
-        subs_dict = Dict{Any,Any}()
-        matcher = SymbolicMatcher(:U, Regex("^$(V_input.name)_(\\d+)_(\\d+)\$"))
-        return (subs_dict, matcher, dim, :U)
-    end
-
     subs_dict = Dict{Any,Any}()
-    V_atomic_lookup = Dict{Any,Tuple}()
-    V_bar_lookup = Dict{Any,Tuple}()
-
-    # V is a d x k matrix
-    if V_input isa AbstractArray
-        rows = size(V_input, 1)
-        cols = size(V_input, 2)
-
-        for i = 1:rows
-            for j = 1:cols
-                v_ij_num = _safe_Num(V_input[i, j])
-                v_ij_un = Symbolics.unwrap(v_ij_num)
-
-                if k_dim isa Integer && j > k_dim
-                    error("Matrix column index $j exceeds Stiefel dimension k=$k_dim")
-                end
-
-                v_atomic = Symbolics.variable(:V_atomic, i, j)
-                v_bar_atomic = Symbolics.variable(:V_bar_atomic, i, j)
-
-                V_atomic_lookup[Symbolics.unwrap(v_atomic)] = (i, j)
-                V_bar_lookup[Symbolics.unwrap(v_bar_atomic)] = (i, j)
-
-                subs_dict[v_ij_un] = v_atomic
-                subs_dict[Symbolics.unwrap(conj(v_ij_num))] = v_bar_atomic
-                subs_dict[Symbolics.unwrap(Base.conj(v_ij_num))] = v_bar_atomic
-            end
-        end
-    end
-
-    matcher = LookupMatcher(V_atomic_lookup, V_bar_lookup)
-    return (subs_dict, matcher, dim, :U)
+    # Use metadata-based matching for U. 
+    # Stiefel is just first k columns of U, handled during entry matching if needed, 
+    # but for symbolic matching we just tag as U.
+    matcher = MetadataMatcher(:U)
+    return (subs_dict, matcher, measure.dim, :U)
 end
 
 """
@@ -93,7 +57,7 @@ function asymptotic(expr, measure::StiefelMeasure, order = 1)
     end
 
     d_asymp = Symbolics.variable(:d_asymp)
-    m_sym = dStiefel(measure.V, d_asymp, measure.k)
+    m_sym = dStiefel(d_asymp, measure.k)
     exact_res = integrate(expr, m_sym)
     return _expand_asymptotic(exact_res, d_asymp, order)
 end

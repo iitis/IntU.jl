@@ -26,7 +26,7 @@ instantly, even for symbolic dimensions.
 using IntU, Symbolics, LinearAlgebra
 
 @variables d
-U = SymbolicMatrix(:U)
+U = SymbolicMatrix(:U, :U)
 # Integrate the matrix expression U * U'
 # This performs element-wise integration automatically
 res = @integrate U * U' dU(d)
@@ -38,7 +38,7 @@ using IntU, Symbolics
 
 # Define symbolic dimension 'd' and a lazy symbolic matrix 'U'
 @variables d
-U = SymbolicMatrix(:U)
+U = SymbolicMatrix(:U, :U)
 
 # Compute the integral of |U_{1,1}|^2
 @integrate abs(U[1,1])^2 dU(d)
@@ -80,7 +80,7 @@ Orthogonal matrices $O$ are real matrices satisfying $O O^T = I_d$. Averages are
 computed using the `dO` measure.
 
 ```julia
-O = SymbolicMatrix(:O)
+O = SymbolicMatrix(:O, :O)
 @integrate O[1,1]^4 dO(d)
 # Output: 3 / (d * (2 + d))
 ```
@@ -90,7 +90,7 @@ Symplectic matrices $S$ are unitary matrices of even dimension $2n$ that
 preserve the symplectic form, $S \Omega S^T = \Omega$. Use `dSp`.
 
 ```julia
-S = SymbolicMatrix(:S)
+S = SymbolicMatrix(:S, :Sp)
 @integrate abs(S[1,1])^2 dSp(d)
 # Output: 1 / d
 ```
@@ -103,9 +103,9 @@ Ginibre ensembles consist of non-Hermitian matrices with i.i.d. Gaussian entries
 
 ```julia
 @variables d
-G = SymbolicMatrix(:G)
+G = SymbolicMatrix(:G, :GUE)
 # E[Tr(G G')] = d^2
-@integrate tr_lazy(G * G') dGinUE(d)
+@integrate tr_lazy(G * G') dGUE(d)
 ```
 
 ### Circular Ensembles
@@ -116,7 +116,7 @@ IntU also supports Circular Ensembles (CUE, COE, CSE) which are commonly used in
 
 ```julia
 @variables d
-S = SymbolicMatrix(:S)
+S = SymbolicMatrix(:S, :U) # CUE is Haar unitary
 # COE moment E[|S_{1,1}|^2]
 @integrate abs(S[1,1])^2 dCOE(d)
 # Output: 2 / (d + 1)
@@ -140,7 +140,7 @@ IntU supports integration over the Symmetric group $S_d$ (permutation matrices).
 
 ```julia
 @variables d
-P = SymbolicMatrix(:P)
+P = SymbolicMatrix(:P, :Perm)
 # E[P_11]
 @integrate P[1,1] dPerm(d)
 # Output: 1 / d
@@ -151,10 +151,9 @@ IntU also supports centered permutation matrices $Y = P - J/d$.
 
 ```julia
 @variables d
-dim_val = 2
-Y = [Symbolics.variable(:Y, i, j) for i=1:dim_val, j=1:dim_val]
+Y = SymbolicMatrix(:Y, :CPerm)
 # E[Y_11^2]
-integrate(Y[1,1]^2, dCPerm(Y, d))
+@integrate Y[1,1]^2 dCPerm(d)
 # Output: (d - 1) / d^2
 ```
 
@@ -164,12 +163,10 @@ corresponds to independent phase averaging for each diagonal entry.
 
 ```julia
 @variables d
-d_val = 2
-V = [Symbolics.variable(:V, i, j, T=Complex{Num}) for i=1:d_val, j=1:d_val]
-measure = dDiagUnitary(V, d)
+V = SymbolicMatrix(:V, :DiagUnitary)
 
 # E[|V_11|^2]
-integrate(abs(V[1,1])^2, measure)
+@integrate abs(V[1,1])^2 dDiagUnitary(d)
 # Output: 1
 ```
 
@@ -182,8 +179,9 @@ using IntU: tr
 # Define symbolic matrices A, B (constant) and U (random)
 A = SymbolicMatrix(:A)
 B = SymbolicMatrix(:B)
+U = SymbolicMatrix(:U, :U)
 # Compute ∫ tr(U A U† B) dU
-expr = tr(SymbolicMatrix(:U, false, :U) * A * SymbolicMatrix(:U, true, :U) * B)
+expr = tr(U * A * U' * B)
 integrate(expr, dU(d))
 # Output: (tr(A)*tr(B)) / d
 ```
@@ -205,12 +203,9 @@ IntU supports integration over the Stiefel manifold $V_k(\mathbb{C}^d)$, which r
 
 ```julia
 @variables d
-k = 2
-V = [Symbolics.variable(Symbol("V_$(i)_$(j)"), T=Complex{Num}) for i=1:3, j=1:k] 
-measure = dStiefel(V, d, k)
-
+V = SymbolicMatrix(:V, :U) # Stiefel is first k columns of Haar unitary
 # E[|V_{1,1}|^2]
-integrate(abs(V[1,1])^2, measure)
+@integrate abs(V[1,1])^2 dStiefel(d, 2)
 # Output: 1 / d
 ```
 

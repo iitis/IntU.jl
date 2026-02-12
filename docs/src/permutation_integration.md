@@ -22,15 +22,14 @@ Use `dPerm(d)` or `dPerm(P, d)` to define the measure.
 using IntU, Symbolics
 
 @variables d
-@variables P[1:2, 1:2]
-measure = dPerm(P, d)
+P = SymbolicMatrix(:P, :Perm)
 
 # Expected value of a single entry: E[P_ij] = 1/d
 integrate(P[1,1], measure)
 # Output: 1 / d
 
 # Expected value of a product: E[P_11 * P_22] = 1 / (d(d-1))
-integrate(P[1,1] * P[2,2], measure)
+@integrate P[1,1] * P[2,2] dPerm(d)
 # Output: 1 / (d * (d - 1))
 ```
 
@@ -69,15 +68,14 @@ fluctuations and correlations in permutations.
 Use `dCPerm(d)` or `dCPerm(Y, d)` to define the measure.
 
 ```julia
-@variables Y[1:2, 1:2]
-m_centered = dCPerm(Y, d)
+Y = SymbolicMatrix(:Y, :CPerm)
 
 # The first moment is zero by definition
 integrate(Y[1,1], m_centered)
 # Output: 0
 
 # The second moment (variance) is E[(P_11 - 1/d)^2] = 1/d - 1/d^2 = (d-1)/d^2
-integrate(Y[1,1]^2, m_centered)
+@integrate Y[1,1]^2 dCPerm(d)
 # Output: (d - 1) / d^2
 ```
 

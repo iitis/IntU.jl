@@ -361,12 +361,12 @@ The package supports a wide range of integration measures, grouped as follows:
 \begin{itemize}
     \item \textbf{Compact groups}: Standard Haar measures on the unitary $U(d)$,
     orthogonal $O(d)$, and symplectic $Sp(d)$ groups. These are defined via
-    \texttt{dU(U, d)}, \texttt{dO(O, d)}, and \texttt{dSp(S, d)}, where the
+    \texttt{dU(d)}, \texttt{dO(d)}, and \texttt{dSp(d)}, where the
     first argument is a symbolic matrix variable (constructed via
     \texttt{Symbolics.jl} or the \texttt{@symbolic\_dimension} macro) and the
     second is the dimension, which can itself be a symbolic variable.
     \item \textbf{Special unitary group}: The Haar measure on $SU(d)$, accessed
-    via \texttt{dSU(U, d)}. This measure enforces the $U(d)$ integration logic
+    via \texttt{dSU(d)}. This measure enforces the $U(d)$ integration logic
     for balanced moments while strictly annihilating unbalanced terms,
     consistent with the large-$d$ limit.
     \item \textbf{Circular ensembles}: Measures for the circular unitary (CUE),
@@ -392,7 +392,7 @@ The package supports a wide range of integration measures, grouped as follows:
     \item \textbf{Stiefel manifolds}: The Stiefel manifold $V_k(\mathbb{C}^d)$,
     representing $d \times k$ matrices with orthonormal columns. This
     generalizes Haar-random pure states ($k=1$) and is implemented via
-    \texttt{dStiefel(V, d, k)}.
+    \texttt{dStiefel(d, k)}.
     \item \textbf{Diagonal unitary matrices}: Integration over the torus group
     $T^d$ (\texttt{dDiagUnitary}), representing independent phase averaging for
     each diagonal entry.
@@ -490,7 +490,7 @@ $\mathcal{D} \subset U(d)$ is a $t$-design if:
 \end{equation}
 for all polynomials $P$ of degree $q \le t$ in the entries of $U$ and $\bar{U}$.
 
-\texttt{IntU.jl} provides the \texttt{dDesign(U, d, t)} measure to represent
+\texttt{IntU.jl} provides the \texttt{dDesign(d, t)} measure to represent
 such ensembles. The implementation strictly enforces the moment-matching
 condition:
 \begin{enumerate}
@@ -605,7 +605,7 @@ of size $d \times d$:
 using IntU, Symbolics
 @variables d
 @symbolic_dimension U[1:d, 1:d]
-measure = dU(U)
+measure = dU(d)
 expr = abs(U[1,1])^2
 result = integrate(expr, measure)
 # Output: 1/d
@@ -622,8 +622,8 @@ diagonal entry for the symmetric (COE) and self-dual (CSE) cases:
 
 \begin{lstlisting}[language=Julia]
 @variables d
-S = SymbolicMatrix(:S) # For COE/CSE
-O = SymbolicMatrix(:O) # For Orthogonal group
+S = SymbolicMatrix(:S, :U) # For COE/CSE (CUE is Haar unitary)
+O = SymbolicMatrix(:O, :O) # For Orthogonal group
 
 # Circular Orthogonal Ensemble (S is symmetric)
 @integrate abs(S[1,1])^2 dCOE(d)
@@ -651,8 +651,8 @@ For the special unitary group $SU(d)$, the integration behaves similarly to
 $U(d)$ for balanced moments but differs for unbalanced ones.
 \begin{lstlisting}[language=Julia]
 @variables d
-U = SymbolicMatrix(:U)
-measure = dSU(U, d)
+U = SymbolicMatrix(:U, :U)
+measure = dSU(d)
 # Balanced moment: E[|U_11|^2] matches U(d)
 @integrate abs(U[1,1])^2 dSU(d)
 # Output: 1/d
@@ -670,7 +670,7 @@ unitary matrices, we verify the relation $\int U U^\dagger dU = I$:
 \begin{lstlisting}[language=Julia]
 using IntU, Symbolics
 @variables d
-U = SymbolicMatrix(:U)
+U = SymbolicMatrix(:U, :U)
 # Integrate the matrix product U * U'
 # IntU handles the element-wise operations internally
 @integrate U * U' dU(d)
@@ -688,7 +688,7 @@ depolarizing channel):
 \begin{lstlisting}[language=Julia]
 # Define symbolic matrices
 @variables d
-U = SymbolicMatrix(:U)
+U = SymbolicMatrix(:U, :U)
 A = SymbolicMatrix(:A); B = SymbolicMatrix(:B)
 
 # Compute integral of tr(U A U' B)
@@ -708,7 +708,7 @@ Consider the fourth moment of a matrix entry, $|U_{11}|^4$:
 
 \begin{lstlisting}[language=Julia]
 @variables d
-U = SymbolicMatrix(:U)
+U = SymbolicMatrix(:U, :U)
 expr = abs(U[1,1])^4
 # Exact result computed internally: 2/(d*(d+1))
 asymp_res = asymptotic(expr, dU(d), 4)
@@ -747,8 +747,8 @@ Symbolic integration over the Symmetric Group $S_d$ is particularly useful for
 combinatorial problems and studying centered permutation ensembles.
 \begin{lstlisting}[language=Julia]
 @variables d
-P = SymbolicMatrix(:P)
-Y = SymbolicMatrix(:Y)
+P = SymbolicMatrix(:P, :Perm)
+Y = SymbolicMatrix(:Y, :CPerm)
 
 # Average of a product of entries
 @integrate P[1,1] * P[2,2] dPerm(d)
@@ -791,7 +791,7 @@ matrix properties. We compute the second moment $\langle \mathrm{tr}(G
 G^\dagger) \rangle$:
 \begin{lstlisting}[language=Julia]
 @variables d
-G = SymbolicMatrix(:G)
+G = SymbolicMatrix(:G, :GUE)
 # Compute <tr(G G')>
 @integrate tr_lazy(G * G') dGinUE(d)
 # Output: d^2

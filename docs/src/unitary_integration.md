@@ -71,10 +71,8 @@ IntU.jl automates the following steps:
 ### Symbolic Dimension
 
 A key feature of IntU.jl is the ability to leave the dimension $d$ as a symbolic variable.
-This is achieved through the `SymbolicUnitary` type, which represents a Unitary matrix
+This is achieved through the `SymbolicMatrix` type, which represents a matrix
 of arbitrary (symbolic) size.
-
-The macro `@symbolic_dimension` facilitates the creation of such matrices.
 
 ## Examples
 
@@ -83,7 +81,7 @@ The macro `@symbolic_dimension` facilitates the creation of such matrices.
 ```julia
 using IntU, Symbolics
 @variables d
-U = SymbolicMatrix(:U)
+U = SymbolicMatrix(:U, :U)
 
 # 1. Norm of a matrix element
 # Integral of |U_{11}|^2
@@ -96,7 +94,7 @@ U = SymbolicMatrix(:U)
 ```julia
 using IntU, Symbolics
 @variables d
-U = SymbolicMatrix(:U)
+U = SymbolicMatrix(:U, :U)
 
 # 2. Fourth moment
 # Integral of |U_{11}|^4
@@ -109,7 +107,7 @@ U = SymbolicMatrix(:U)
 ```julia
 using IntU, Symbolics
 @variables d
-U = SymbolicMatrix(:U)
+U = SymbolicMatrix(:U, :U)
 
 # 3. Trace moments
 # Integral of |Tr(U)|^2
@@ -124,7 +122,7 @@ New in v0.2: You can integrate matrix-valued expressions directly. The function 
 ```julia
 using IntU, Symbolics
 @variables d
-U = SymbolicMatrix(:U)
+U = SymbolicMatrix(:U, :U)
 # E[tr(U A U' B)] = tr(A) * tr(B) / d
 A = SymbolicMatrix(:A)
 B = SymbolicMatrix(:B)

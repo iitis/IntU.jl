@@ -1,89 +1,6 @@
 # Haar measure integration
 
-"""
-    SymbolicUnitary(name, func, dim)
-
-A lazy, "infinite" representation of a unitary matrix. 
-It does not store entries in memory. Instead, accessing `U[i,j]` generates 
-a symbolic variable on the fly using `func`. This allows for operations 
-on matrices of symbolic or very large dimensions without memory overhead.
-"""
-struct SymbolicUnitary{D} <: AbstractMatrix{Num}
-    name::Symbol
-    func::Function # Generates the variable
-    dim::D
-end
-
-# Infinite size for lazy unitary to allow U[100, 100] etc
-Base.size(::SymbolicUnitary) = (typemax(Int), typemax(Int))
-Base.getindex(S::SymbolicUnitary, i::Integer, j::Integer) = S.func(i, j)
-
-# Custom show to avoid printing infinite matrix
-function Base.show(io::IO, U::SymbolicUnitary)
-    print(io, "SymbolicUnitary($(U.name))")
-end
-function Base.show(io::IO, ::MIME"text/plain", U::SymbolicUnitary)
-    print(io, "SymbolicUnitary($(U.name), dim=$(U.dim))")
-end
-
-"""
-    symbolic_dimension_unitary(dim; name=:U)
-
-Creates a lazy symbolic unitary matrix `U` with symbolic dimension `dim`.
-`U` allows accessing indices of any size (e.g. `U[i,j]`).
-To get the measure, use `dU(U)`.
-"""
-function symbolic_dimension_unitary(dim; name = :U)
-    # Create variables on demand with consistent naming
-    # Ensure variables are Complex so conj(x) != x
-    gen = (i, j) -> Symbolics.variable(Symbol(name, :_, i, :_, j), T = Complex{Num})
-    return SymbolicUnitary(name, gen, dim)
-end
-
-"""
-    @symbolic_dimension U[1:d, 1:d]
-
-Macro to define a `SymbolicUnitary` matrix `U` with symbolic dimension `d`.
-Internal components are generated as `U_i_j`.
-
-Example:
-```julia
-@variables d
-@symbolic_dimension U[1:d, 1:d]
-measure = dU(U)
-```
-"""
-macro symbolic_dimension(expr)
-    if !Meta.isexpr(expr, :ref) || length(expr.args) != 3
-        error("Usage: @symbolic_dimension U[1:d, 1:d]")
-    end
-
-    name = expr.args[1]
-
-    # Parse dimensions from ranges
-    # Expecting 1:d
-    range1 = expr.args[2]
-    range2 = expr.args[3]
-
-    # Simple check for 1:d format
-    if !Meta.isexpr(range1, :call) || range1.args[1] != :(:) || range1.args[2] != 1
-        error("Dimensions must be in format 1:d")
-    end
-
-    dim_sym = range1.args[3]
-
-    # Use the function
-    # We escape name to define it in user scope
-    # We escape dim_sym to use user's variable
-
-    q = quote
-        $(esc(name)) =
-            symbolic_dimension_unitary($(esc(dim_sym)), name = $(QuoteNode(name)))
-    end
-    return q
-end
-
-# Matcher for SymbolicMatrix / SymbolicUnitary
+# Matcher for SymbolicMatrix
 struct SymbolicMatcher <: AbstractIndexMatcher
     tag::Symbol
     regex::Regex
@@ -115,27 +32,23 @@ end
 
 
 # Dummy type to represent the measure
-struct HaarMeasure{M,D}
-    U::M
+struct HaarMeasure{D}
     dim::D
 end
-"""
-    dU(U, dim)
-    dU(U::SymbolicUnitary)
+@doc raw"""
+    dU(dim)
+    dU(U::SymbolicMatrix)
 
-Defines the Haar measure for the Unitary group U(d).
+Defines the Haar measure for the Unitary group $U(d)$.
 
-The integration of a monomial of entries is given by:
-```math
-\\int_{U(d)} U_{i_1 j_1} \\dots U_{i_n j_n} \\bar{U}_{k_1 l_1} \\dots \\bar{U}_{k_n l_n} dU = \\sum_{\\sigma, \\tau \\in S_n} \\delta_{i, k_\\sigma} \\delta_{j, l_\\tau} \\text{Wg}(\\sigma \\tau^{-1}, d)
-```
+Can be called with just the dimension $d$, in which case the integration engine will look for 
+symbolic entries tagged with `:U` via `SymbolicMatrix(:U, :U)` or metadata mapping.
 
 Reference:
 - Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups.
 """
-dU(U, dim) = HaarMeasure(U, dim)
-dU(dim) = HaarMeasure(nothing, dim)
-dU(S::SymbolicUnitary) = HaarMeasure(S, S.dim)
+dU(dim) = HaarMeasure(dim)
+dU(U::SymbolicMatrix) = HaarMeasure(U.dim)
 
 
 """
@@ -145,51 +58,9 @@ Returns a tuple `(matcher, dim, type)` for the given measure.
 Internal function used for dispatching integration logic.
 """
 function IntU.measure_info(measure::HaarMeasure)
-    U_input = measure.U
-    dim = measure.dim
-
-    # Check if U is our new SymbolicUnitary, SymbolicMatrix or legacy AbstractArray
-    if U_input isa SymbolicUnitary || U_input isa SymbolicMatrix
-        subs_dict = Dict{Any,Any}()
-        matcher = SymbolicMatcher(:U, Regex("^$(U_input.name)_(\\d+)_(\\d+)\$"))
-
-        return (subs_dict, matcher, dim, :U)
-    elseif U_input === nothing
-        subs_dict = Dict{Any,Any}()
-        # Default to matching :U if no matrix is specified
-        matcher = SymbolicMatcher(:U, Regex("^U_(\\d+)_(\\d+)\$"))
-        return (subs_dict, matcher, dim, :U)
-    else
-        U_sym = U_input
-        subs_dict = Dict{Any,Any}()
-        U_atomic_lookup = Dict{Any,Tuple}()
-        U_bar_lookup = Dict{Any,Tuple}()
-
-        if U_sym isa AbstractArray
-            for i = 1:size(U_sym, 1)
-                for j = 1:size(U_sym, 2)
-                    u_ij_num = _safe_Num(U_sym[i, j])
-                    u_ij_un = Symbolics.unwrap(u_ij_num)
-                    u_atomic = Symbolics.variable(:U_atomic, i, j)
-                    u_bar_atomic = Symbolics.variable(:U_bar_atomic, i, j)
-
-                    U_atomic_lookup[Symbolics.unwrap(u_atomic)] = (i, j)
-                    U_bar_lookup[Symbolics.unwrap(u_bar_atomic)] = (i, j)
-
-                    subs_dict[u_ij_un] = u_atomic
-
-                    c_ij_un = Symbolics.unwrap(conj(u_ij_num))
-                    subs_dict[c_ij_un] = u_bar_atomic
-
-                    bc_ij_un = Symbolics.unwrap(Base.conj(u_ij_num))
-                    subs_dict[bc_ij_un] = u_bar_atomic
-                end
-            end
-        end
-
-        matcher = LookupMatcher(U_atomic_lookup, U_bar_lookup)
-        return (subs_dict, matcher, dim, :U)
-    end
+    subs_dict = Dict{Any,Any}()
+    matcher = MetadataMatcher(:U)
+    return (subs_dict, matcher, measure.dim, :U)
 end
 
 function _manual_fallback(expr, measure::HaarMeasure)
@@ -210,7 +81,7 @@ function asymptotic(expr, measure::HaarMeasure, order = 1)
     end
 
     d_asymp = Symbolics.variable(:d_asymp)
-    m_sym = dU(measure.U, d_asymp)
+    m_sym = dU(d_asymp)
     exact_res = integrate(expr, m_sym)
     return _expand_asymptotic(exact_res, d_asymp, order)
 end
@@ -243,13 +114,12 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
         push!(cycle_ranges, start_idx:total_factors)
     end
 
-    U_name = measure.U isa SymbolicMatrix ? measure.U.name : (measure.U isa SymbolicUnitary ? measure.U.name : :U)
     for (i, f) in enumerate(all_factors)
-        if f.name == U_name
-            if f.special_type == :U
-                push!(U_indices, i)
-            elseif f.special_type == :U_dag
+        if f.special_type == :U
+            if f.is_adj
                 push!(U_bar_indices, i)
+            else
+                push!(U_indices, i)
             end
         end
     end

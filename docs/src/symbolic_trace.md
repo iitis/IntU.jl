@@ -23,12 +23,12 @@ using IntU, Symbolics
 
 # 1. Define Matrices
 # Random Unitary U
-U = SymbolicMatrix(:U, false, :U)
+U = SymbolicMatrix(:U, :U)
 # Constant Matrix A
 A = SymbolicMatrix(:A) 
 
 # 2. Define Measure
-measure = dU(U, d)
+measure = dU(d)
 
 # 3. Construct Expression
 # tr(U * A * U' * A)

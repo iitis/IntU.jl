@@ -254,6 +254,45 @@ function match_index(m::LookupMatcher, t)
 end
 
 """
+    MetadataMatcher(type_tag::Symbol)
+
+A matcher that identifies random matrix entries based on metadata attached to the symbols.
+The `type_tag` should match the `special_type` of a `SymbolicMatrix` (e.g., `:U`, `:O`, `:Sp`).
+"""
+struct MetadataMatcher <: AbstractIndexMatcher
+    type_tag::Symbol # :U, :O, :Sp, etc.
+end
+
+function match_index(m::MetadataMatcher, t)
+    s = Symbolics.unwrap(t)
+    
+    # Handle conj(U_i_j)
+    is_conj = false
+    if Symbolics.iscall(s) && (Symbolics.operation(s) == conj || Symbolics.operation(s) == Base.conj)
+        is_conj = true
+        s = Symbolics.arguments(s)[1]
+    end
+    
+    # Check metadata
+    if SymbolicUtils.hasmetadata(s, MatrixMetadata)
+        meta = SymbolicUtils.getmetadata(s, MatrixMetadata)
+        if get(meta, :type, nothing) === m.type_tag
+            indices = get(meta, :indices, nothing)
+            if indices !== nothing
+                i, j = indices
+                # Final tag depends on is_conj and is_adj
+                is_adj = get(meta, :is_adj, false)
+                final_is_conj = is_conj ⊻ is_adj
+                
+                final_tag = final_is_conj ? :U_bar : :U
+                return (final_tag, i, j)
+            end
+        end
+    end
+    return nothing
+end
+
+"""
     INTEGRATION_RULES
 
 A dictionary mapping measure types (symbols) to their respective integration rule functions.
@@ -741,6 +780,18 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
                     traverse(arg)
                 end
                 return
+            elseif op == getindex
+                # Potential match via metadata even if not explicitly wrapped
+                match_res_direct = match_index(matcher, t_unwrapped)
+                if match_res_direct !== nothing
+                    type, i, j = match_res_direct
+                    if type == :U
+                        push!(u_indices, (i, j))
+                    else
+                        push!(u_bar_indices, (i, j))
+                    end
+                    return
+                end
             end
 
         end

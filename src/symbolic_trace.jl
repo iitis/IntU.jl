@@ -3,28 +3,43 @@
 """
     SymbolicMatrix(name::Symbol)
     SymbolicMatrix(name::Symbol, special_type::Symbol)
-    SymbolicMatrix(name::Symbol, is_adj::Bool, special_type::Symbol)
+    SymbolicMatrix(name::Symbol, special_type::Symbol, dim)
+    SymbolicMatrix(name::Symbol, is_adj::Bool, special_type::Symbol, dim)
 
 A wrapper associated with a symbolic name to represent a matrix in a coordinate-free way.
-Used in the symbolic trace logic (via `tr_lazy`).
+Used in the symbolic trace logic (via `tr_lazy`) and for metadata-driven element-wise integration.
 
 # Special Types
-The `special_type` field determines how the matrix is handled during trace-based integration:
+The `special_type` field determines how the matrix entries are tagged via metadata for the integration engine:
 - `:Constant` (default): Treated as a fixed constant matrix.
-- `:U`: Marks the matrix as a Haar-random unitary for integration under `dU`.
-- `:U_dag`: Marks the matrix as the adjoint of a Haar-random unitary.
-
-For Gaussian measures (GUE, GinUE, etc.), matrices are primarily identified by their name, 
-but using `:Constant` for fixed matrices is recommended.
+- `:U`: Marks the matrix as a Haar-random unitary (used by `dU`, `dSU`, `dStiefel`, `dCUE`).
+- `:O`: Marks the matrix as a Haar-random real orthogonal matrix (used by `dO`, `dGOE`, `dCOE`).
+- `:Sp`: Marks the matrix as a Haar-random symplectic matrix (used by `dSp`, `dGSE`, `dCSE`).
+- `:Perm`: Marks the matrix as a random permutation matrix (used by `dPerm`, `dCPerm`).
+- `:DiagUnitary`: Marks the matrix as a random diagonal unitary matrix (used by `dDiagUnitary`).
+- `:GUE` / `:GOE` / `:GSE`: Marks the matrix as a member of the respective Gaussian ensemble.
 """
 struct SymbolicMatrix <: AbstractMatrix{Num}
     name::Symbol
     is_adj::Bool
-    special_type::Symbol  # :U, :U_dag, :Constant
+    special_type::Symbol 
+    dim::Any
+
+    function SymbolicMatrix(name::Symbol, is_adj::Bool, special_type::Symbol, dim::Any)
+        new(name, is_adj, special_type, dim)
+    end
 end
 
-SymbolicMatrix(name::Symbol) = SymbolicMatrix(name, false, :Constant)
-SymbolicMatrix(name::Symbol, special_type::Symbol) = SymbolicMatrix(name, false, special_type)
+"""
+    MatrixMetadata
+
+Internal type used as a key for Symbolics/SymbolicUtils metadata.
+"""
+struct MatrixMetadata end
+
+SymbolicMatrix(name::Symbol) = SymbolicMatrix(name, false, :Constant, nothing)
+SymbolicMatrix(name::Symbol, special_type::Symbol) = SymbolicMatrix(name, false, special_type, nothing)
+SymbolicMatrix(name::Symbol, special_type::Symbol, dim) = SymbolicMatrix(name, false, special_type, dim)
 
 import Base: *, adjoint, show, ^, size, getindex
 import LinearAlgebra: tr
@@ -32,20 +47,31 @@ import LinearAlgebra: tr
 # AbstractMatrix implementation
 Base.size(::SymbolicMatrix) = (typemax(Int), typemax(Int))
 function Base.getindex(A::SymbolicMatrix, i::Integer, j::Integer)
+    # Generate symbol name
+    s_name = Symbol(A.name, :_, i, :_, j)
     if A.is_adj
-        return conj(Symbolics.variable(Symbol(A.name, :_, j, :_, i), T = Complex{Num}))
+        s_name = Symbol(A.name, :_, j, :_, i)
     end
-    return Symbolics.variable(Symbol(A.name, :_, i, :_, j), T = Complex{Num})
+    
+    # Create variable and attach metadata
+    # We use T=Number to prevent it from being treated as Real and simplifying conj(v) -> v
+    # This keeps v as an opaque complex-like symbol.
+    v = Symbolics.variable(s_name, T = Number)
+    
+    meta = (
+        name = A.name,
+        type = A.special_type,
+        indices = (A.is_adj ? (j, i) : (i, j)),
+        is_adj = A.is_adj
+    )
+    
+    v = Symbolics.setmetadata(v, MatrixMetadata, meta)
+    
+    return A.is_adj ? conj(v) : v
 end
 
 function adjoint(A::SymbolicMatrix)
-    new_type = A.special_type
-    if A.special_type == :U
-        new_type = :U_dag
-    elseif A.special_type == :U_dag
-        new_type = :U
-    end
-    return SymbolicMatrix(A.name, !A.is_adj, new_type)
+    return SymbolicMatrix(A.name, !A.is_adj, A.special_type, A.dim)
 end
 
 function Base.show(io::IO, A::SymbolicMatrix)

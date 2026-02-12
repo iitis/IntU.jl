@@ -36,7 +36,7 @@ Use the `dDiagUnitary` measure to perform these integrations.
 using IntU, Symbolics
 
 @variables d
-V = SymbolicMatrix(:V)
+V = SymbolicMatrix(:V, :DiagUnitary)
 
 # E[|V_11|^2] = 1
 @integrate abs(V[1,1])^2 dDiagUnitary(d)
