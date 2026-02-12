@@ -711,17 +711,18 @@ a constant tensor $A$, then compute the average $\mathbb{E}[U A]$.
 
 \begin{lstlisting}[language=Julia]
 using IntU, ITensors
-i, j = Index(2), Index(2)
+i, j, k, l = Index(2), Index(2), Index(2), Index(2)
 
-# Mark a Haar-random unitary by its indices
+# Define U and its adjoint U_dag
 U = ITensorUnitary(out_indices=[i], in_indices=[j])
+U_dag = ITensorUnitary(out_indices=[k], in_indices=[l], is_adj=true)
 
-# A constant tensor connecting the indices
-A = randomITensor(j, i)
+# Constant tensors A and B to form a trace-like network
+A = randomITensor(j, k); B = randomITensor(l, i)
 
-# Integrate the network over U(2)
-result = integrate([U, A], dU(2))
-# result is a scalar ITensor with value 1/2 * tr(A)
+# Integrate the balanced network [U, A, U_dag, B] over U(2)
+result = integrate([U, A, U_dag, B], dU(2))
+# result is a scalar ITensor: tr(A) * tr(B) / 2
 \end{lstlisting}
 
 This high-level approach allows for the symbolic integration of networks with
