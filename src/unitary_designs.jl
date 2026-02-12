@@ -32,6 +32,12 @@ function IntU.measure_info(measure::UnitaryDesign)
     dim = measure.dim
     t_val = measure.t
 
+    if U_sym isa SymbolicMatrix
+        subs_dict = Dict{Any,Any}()
+        matcher = SymbolicMatcher(:U, Regex("^$(U_sym.name)_(\\d+)_(\\d+)\$"))
+        return (subs_dict, matcher, dim, (:Design, t_val))
+    end
+
     # Substitute Re(U) and Im(U) - reusing logic similar to HaarMeasure
     subs_dict = Dict{Any,Any}()
     U_atomic_lookup = Dict{Any,Tuple}()

@@ -29,6 +29,7 @@ include("hciz.jl")
 include("su_measure.jl")
 include("diagonal_unitary.jl")
 include("stiefel_measure.jl")
+include("macros.jl")
 
 
 # Quantum Information helpers
@@ -67,7 +68,8 @@ export integrate,
     partial_trace,
     dDesign,
     symbolic_dimension_unitary,
-    @symbolic_dimension
+    @symbolic_dimension,
+    @integrate
 export dPerm, dCPerm
 export dCOE, dCSE, dCUE
 export weingarten, weingarten_orthogonal_val, weingarten_symplectic_val

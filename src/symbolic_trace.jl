@@ -17,7 +17,7 @@ The `special_type` field determines how the matrix is handled during trace-based
 For Gaussian measures (GUE, GinUE, etc.), matrices are primarily identified by their name, 
 but using `:Constant` for fixed matrices is recommended.
 """
-struct SymbolicMatrix
+struct SymbolicMatrix <: AbstractMatrix{Num}
     name::Symbol
     is_adj::Bool
     special_type::Symbol  # :U, :U_dag, :Constant
@@ -26,7 +26,17 @@ end
 SymbolicMatrix(name::Symbol) = SymbolicMatrix(name, false, :Constant)
 SymbolicMatrix(name::Symbol, special_type::Symbol) = SymbolicMatrix(name, false, special_type)
 
-import Base: *, adjoint, show, ^
+import Base: *, adjoint, show, ^, size, getindex
+import LinearAlgebra: tr
+
+# AbstractMatrix implementation
+Base.size(::SymbolicMatrix) = (typemax(Int), typemax(Int))
+function Base.getindex(A::SymbolicMatrix, i::Integer, j::Integer)
+    if A.is_adj
+        return conj(Symbolics.variable(Symbol(A.name, :_, j, :_, i), T = Complex{Num}))
+    end
+    return Symbolics.variable(Symbol(A.name, :_, i, :_, j), T = Complex{Num})
+end
 
 function adjoint(A::SymbolicMatrix)
     new_type = A.special_type
@@ -35,15 +45,19 @@ function adjoint(A::SymbolicMatrix)
     elseif A.special_type == :U_dag
         new_type = :U
     end
-    # For constants, new_type remains :Constant (or we could have :Constant_dag, but :Constant handles both usually)
     return SymbolicMatrix(A.name, !A.is_adj, new_type)
 end
 
-function show(io::IO, A::SymbolicMatrix)
+function Base.show(io::IO, A::SymbolicMatrix)
     print(io, A.name)
     if A.is_adj
         print(io, "'")
     end
+end
+
+function Base.show(io::IO, ::MIME"text/plain", A::SymbolicMatrix)
+    adj_str = A.is_adj ? "'" : ""
+    print(io, "SymbolicMatrix (type=$(A.special_type)): $(A.name)$adj_str")
 end
 
 """
@@ -66,32 +80,45 @@ struct LazySum
     terms::Vector{LazyTrace}
 end
 
+"""
+    SymbolicMatrixProduct
+
+Represents a product of SymbolicMatrices.
+"""
+struct SymbolicMatrixProduct
+    factors::Vector{SymbolicMatrix}
+end
+
 function *(A::SymbolicMatrix, B::SymbolicMatrix)
-    return [A, B]
+    return SymbolicMatrixProduct([A, B])
 end
 
-function *(A::Vector{SymbolicMatrix}, B::SymbolicMatrix)
-    return push!(copy(A), B)
+function *(A::SymbolicMatrixProduct, B::SymbolicMatrix)
+    return SymbolicMatrixProduct(vcat(A.factors, [B]))
 end
 
-function *(A::SymbolicMatrix, B::Vector{SymbolicMatrix})
-    return vcat([A], B)
+function *(A::SymbolicMatrix, B::SymbolicMatrixProduct)
+    return SymbolicMatrixProduct(vcat([A], B.factors))
 end
 
-function *(A::Vector{SymbolicMatrix}, B::Vector{SymbolicMatrix})
-    return vcat(A, B)
+function *(A::SymbolicMatrixProduct, B::SymbolicMatrixProduct)
+    return SymbolicMatrixProduct(vcat(A.factors, B.factors))
 end
 
 function ^(A::SymbolicMatrix, n::Integer)
-    return fill(A, n)
+    return SymbolicMatrixProduct(fill(A, n))
 end
 
 function tr(A::SymbolicMatrix)
     return tr_lazy(A)
 end
 
-function tr(A::Vector{SymbolicMatrix})
-    return tr_lazy(A)
+function tr(A::SymbolicMatrixProduct)
+    return tr_lazy(A.factors)
+end
+
+function tr(A::Symbolics.Arr{T,2}) where {T}
+    return sum(A[i, i] for i = 1:size(A, 1))
 end
 
 """
@@ -105,6 +132,10 @@ end
 
 function tr_lazy(product::SymbolicMatrix)
     return LazyTrace([[product]], 1)
+end
+
+function tr_lazy(product::SymbolicMatrixProduct)
+    return LazyTrace([product.factors], 1)
 end
 
 # Arithmetic Operations
@@ -128,6 +159,23 @@ function Base.:*(a::LazyTrace, b::Num)
 end
 function Base.:*(b::Num, a::LazyTrace)
     return LazyTrace(a.cycles, a.prefactor * b)
+end
+
+# Complex Conjugation: conj(LazyTrace)
+# conj(Tr(A B ...)) = Tr( (A B ...)' ) = Tr( ...' B' A' )
+function Base.conj(t::LazyTrace)
+    new_cycles = Vector{Vector{SymbolicMatrix}}()
+    for cycle in t.cycles
+        # Reverse order and adjoint each factor
+        new_cycle = reverse([adjoint(f) for f in cycle])
+        push!(new_cycles, new_cycle)
+    end
+    return LazyTrace(new_cycles, Symbolics.conj(t.prefactor))
+end
+
+# Absolute value squared: |Tr(U)|^2 = Tr(U) * conj(Tr(U))
+function Base.abs2(t::LazyTrace)
+    return t * conj(t)
 end
 
 # Addition: LazyTrace + LazyTrace -> LazySum

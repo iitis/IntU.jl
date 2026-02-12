@@ -32,6 +32,16 @@ function IntU.measure_info(measure::DiagonalUnitaryMeasure)
     V_sym = measure.V
     dim = measure.dim
 
+    if V_sym isa SymbolicMatrix
+        subs_dict = Dict{Any,Any}()
+        matcher = SymbolicMatcher(:DiagUnitary, Regex("^$(V_sym.name)_(\\d+)_(\\d+)\$"))
+        return (subs_dict, matcher, dim, :DiagUnitary)
+    elseif V_sym === nothing
+        subs_dict = Dict{Any,Any}()
+        matcher = SymbolicMatcher(:DiagUnitary, Regex("^V_(\\d+)_(\\d+)\$"))
+        return (subs_dict, matcher, dim, :DiagUnitary)
+    end
+
     subs_dict = Dict{Any,Any}()
     V_atomic_lookup = Dict{Any,Tuple}()
     V_bar_lookup = Dict{Any,Tuple}()

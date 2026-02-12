@@ -193,12 +193,22 @@ function integrate(expr::AbstractArray, measure::GinSEMeasure)
 end
 
 function IntU.measure_info(measure::GUEMeasure)
+    if measure.H isa SymbolicMatrix
+        subs_dict = Dict{Any,Any}()
+        matcher = SymbolicMatcher(:U, Regex("^$(measure.H.name)_(\\d+)_(\\d+)\$"))
+        return (subs_dict, matcher, measure.dim, :GUE)
+    end
     subs_dict, H_atomic_lookup = _setup_gaussian_subs(measure.H, :GUE)
     matcher = LookupMatcher(H_atomic_lookup, Dict{Any,Tuple}())
     return (subs_dict, matcher, measure.dim, :GUE)
 end
 
 function IntU.measure_info(measure::GinUEMeasure)
+    if measure.G isa SymbolicMatrix
+        subs_dict = Dict{Any,Any}()
+        matcher = SymbolicMatcher(:U, Regex("^$(measure.G.name)_(\\d+)_(\\d+)\$"))
+        return (subs_dict, matcher, measure.dim, :GinUE)
+    end
     subs_dict, H_atomic_lookup = _setup_gaussian_subs(measure.G, :GinUE)
     matcher = LookupMatcher(H_atomic_lookup, Dict{Any,Tuple}())
     return (subs_dict, matcher, measure.dim, :GinUE)
@@ -308,6 +318,11 @@ function fallback_integrate(t::LazyTrace, measure::GUEMeasure)
 end
 
 function IntU.measure_info(measure::GOEMeasure)
+    if measure.H isa SymbolicMatrix
+        subs_dict = Dict{Any,Any}()
+        matcher = SymbolicMatcher(:U, Regex("^$(measure.H.name)_(\\d+)_(\\d+)\$"))
+        return (subs_dict, matcher, measure.dim, :GOE)
+    end
     subs_dict, H_atomic_lookup = _setup_gaussian_subs(measure.H, :GOE)
     matcher = LookupMatcher(H_atomic_lookup, Dict{Any,Tuple}())
     return (subs_dict, matcher, measure.dim, :GOE)

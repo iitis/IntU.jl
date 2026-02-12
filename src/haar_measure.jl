@@ -83,23 +83,30 @@ macro symbolic_dimension(expr)
     return q
 end
 
-# Matcher for SymbolicUnitary
+# Matcher for SymbolicMatrix / SymbolicUnitary
 struct SymbolicMatcher <: AbstractIndexMatcher
+    tag::Symbol
     regex::Regex
 end
 
 function match_index(m::SymbolicMatcher, t)
     # Unwrap to Sym
     s = Symbolics.unwrap(t)
-    # We check string representation of the symbol
+    # We check string representation of the symbol. Handle conj(U_i_j)
+    is_conj = false
+    if Symbolics.iscall(s) && (Symbolics.operation(s) == conj || Symbolics.operation(s) == Base.conj)
+        is_conj = true
+        s = Symbolics.arguments(s)[1]
+    end
+    
     s_str = string(s)
-
     mat = match(m.regex, s_str)
     if mat !== nothing
         try
             i = parse(Int, mat[1])
             j = parse(Int, mat[2])
-            return (:U, i, j)
+            final_tag = is_conj ? :U_bar : :U
+            return (final_tag, i, j)
         catch
         end
     end
@@ -141,11 +148,16 @@ function IntU.measure_info(measure::HaarMeasure)
     U_input = measure.U
     dim = measure.dim
 
-    # Check if U is our new SymbolicUnitary or legacy AbstractArray
-    if U_input isa SymbolicUnitary
+    # Check if U is our new SymbolicUnitary, SymbolicMatrix or legacy AbstractArray
+    if U_input isa SymbolicUnitary || U_input isa SymbolicMatrix
         subs_dict = Dict{Any,Any}()
-        matcher = SymbolicMatcher(Regex("^$(U_input.name)_(\\d+)_(\\d+)\$"))
+        matcher = SymbolicMatcher(:U, Regex("^$(U_input.name)_(\\d+)_(\\d+)\$"))
 
+        return (subs_dict, matcher, dim, :U)
+    elseif U_input === nothing
+        subs_dict = Dict{Any,Any}()
+        # Default to matching :U if no matrix is specified
+        matcher = SymbolicMatcher(:U, Regex("^U_(\\d+)_(\\d+)\$"))
         return (subs_dict, matcher, dim, :U)
     else
         U_sym = U_input
@@ -280,15 +292,14 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
                 continue
             end
 
-            visited_sigma_U = falses(n_U)
-            visited_sigma_Ub = falses(n_U)
-            visited_tau_U = falses(n_U)
-            visited_tau_Ub = falses(n_U)
+            visited_U = falses(n_U)
+            visited_Ub = falses(n_U)
             current_term_traces = Num[]
 
-            # Check U cycles (sigma-based)
+            # Check cycles (start from U nodes)
+            # Since graph is bipartite (U <-> Ub), any cycle contains at least one U.
             for start_m = 1:n_U
-                if !visited_sigma_U[start_m]
+                if !visited_U[start_m]
                     val = _traverse_trace_cycle(
                         start_m,
                         1,
@@ -297,29 +308,8 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
                         wires,
                         u_map,
                         ub_map,
-                        visited_sigma_U,
-                        visited_sigma_Ub,
-                        U_indices,
-                        U_bar_indices,
-                        dim,
-                    )
-                    push!(current_term_traces, val)
-                end
-            end
-
-            # Check Ub cycles (tau-based)
-            for start_m = 1:n_U_bar
-                if !visited_tau_Ub[start_m]
-                    val = _traverse_trace_cycle(
-                        start_m,
-                        2,
-                        sigma,
-                        inv_tau,
-                        wires,
-                        u_map,
-                        ub_map,
-                        visited_tau_U,
-                        visited_tau_Ub,
+                        visited_U,
+                        visited_Ub,
                         U_indices,
                         U_bar_indices,
                         dim,
@@ -435,7 +425,7 @@ function _traverse_trace_cycle(
             end
             visited_U[curr_idx] = true
             next_ub_m = sigma[curr_idx]
-            visited_Ub[next_ub_m] = true # Match U_i to Ub_k
+            # visited_Ub[next_ub_m] = true # Don't mark next node yet
             start_factor_idx = U_bar_indices[next_ub_m]
             dest_factor_idx, mat_segment = wires[start_factor_idx]
             if mat_segment !== nothing
@@ -454,7 +444,7 @@ function _traverse_trace_cycle(
             end
             visited_Ub[curr_idx] = true
             next_u_m = inv_tau[curr_idx]
-            visited_U[next_u_m] = true # Match Ub_l to U_j
+            # visited_U[next_u_m] = true # Don't mark next node yet
             start_factor_idx = U_indices[next_u_m]
             dest_factor_idx, mat_segment = wires[start_factor_idx]
             if mat_segment !== nothing

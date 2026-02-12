@@ -9,69 +9,47 @@ println("=== Circular Ensembles Integration ===\n")
 # --- 1. Circular Orthogonal Ensemble (COE) ---
 println("--- 1. COE (Circular Orthogonal Ensemble) ---")
 println("Matrix S is symmetric unitary: S = S^T.")
-# Define a 2x2 symbolic matrix for S
-N = 2
-@variables S[1:N, 1:N]::Complex
-# COE Measure
-m_coe = dCOE(S, d)
+# Define a SymbolicMatrix for S
+S = SymbolicMatrix(:S)
 
-# Moment: E[S_11 * S*_11]
+# Moment: E[|S_11|^2]
 # For COE, E[|S_ij|^2] = (1 + delta_ij) / (d + 1)
 # So E[|S_11|^2] = 2/(d+1)
-expr_coe = S[1, 1] * conj(S[1, 1])
-res_coe = simplify(integrate(expr_coe, m_coe); expand = true)
-println("E[|S_11|^2] = $(res_coe) (Expected: 2/(d+1))")
+println("Integrating |S[1,1]|^2 over COE(d)...")
+res_coe = @integrate abs(S[1, 1])^2 dCOE(d)
+println("E[|S_11|^2] = $(Symbolics.simplify(res_coe)) (Expected: 2/(d+1))")
 
 # Moment: E[|S_12|^2] = 1/(d+1)
-expr_coe_12 = S[1, 2] * conj(S[1, 2])
-res_coe_12 = simplify(integrate(expr_coe_12, m_coe); expand = true)
-println("E[|S_12|^2] = $(res_coe_12) (Expected: 1/(d+1))")
+println("Integrating |S[1,2]|^2 over COE(d)...")
+res_coe_12 = @integrate abs(S[1, 2])^2 dCOE(d)
+println("E[|S_12|^2] = $(Symbolics.simplify(res_coe_12)) (Expected: 1/(d+1))")
 
-println("\n--- Matrix Integration (COE) ---")
+println("\n--- Matrix Integration (COE) over COE(2) ---")
 println("Integrating S * S' (should be Identity)")
-# We collect to be safe.
-S_mat = collect(S)
-res_S = integrate(S_mat * S_mat', m_coe)
-# Simplify
-res_S_simp = map(x -> simplify(x), res_S)
-display(res_S_simp)
+res_S = @integrate S * S' dCOE(2)
+display(res_S)
 
 
 # --- 2. Circular Symplectic Ensemble (CSE) ---
 println("\n--- 2. CSE (Circular Symplectic Ensemble) ---")
 println("Matrix S is self-dual unitary: S = J S^T J^T.")
-println("Note: CSE dimension must be even. Here we use 2x2 (N=1).")
-# Define a 2x2 symbolic matrix for S_cse
-@variables S_cse[1:N, 1:N]::Complex
-m_cse = dCSE(S_cse, d) # d corresponds to the full dimension 2N
+println("Note: CSE dimension must be even.")
 
 # Moment: E[|S_11|^2]
 # For CSE, E[|S_ii|^2] = 1/(d-1)
-expr_cse = S_cse[1, 1] * conj(S_cse[1, 1])
-res_cse = simplify(integrate(expr_cse, m_cse); expand = true)
-println("E[|S_11|^2] = $(res_cse) (Expected: 1/(d-1))")
+println("Integrating |S[1,1]|^2 over CSE(4)...")
+res_cse = @integrate abs(S[1, 1])^2 dCSE(4)
+println("E[|S_11|^2] = $(res_cse) (Expected: 1/(4-1) = 1/3)")
 
-# Moment: E[|S_12|^2]
-# For N=1 (d=2), |S_12|^2 is technically correlated with |S_11|^2 by unitarity.
-# E[|S_{12}|^2] = (d-2)/(d-1)^2? For d=2, this is 0.
-expr_cse_12 = S_cse[1, 2] * conj(S_cse[1, 2])
-res_cse_12 = simplify(integrate(expr_cse_12, m_cse); expand = true)
-println("E[|S_12|^2] = $(res_cse_12) (Expected: (d-2)/(d-1)^2 -> 0 for d=2)")
 
 # --- 3. Circular Unitary Ensemble (CUE) ---
 println("\n--- 3. CUE (Circular Unitary Ensemble) ---")
-println("CUE is equivalent to Haar LoE.")
-@variables U[1:N, 1:N]::Complex
-m_cue = dCUE(U, d)
+println("CUE is equivalent to Haar Unitary group.")
+U = SymbolicMatrix(:U)
 
 # Moment: E[|U_11|^2] = 1/d
-expr_cue = U[1, 1] * conj(U[1, 1])
-res_cue = simplify(integrate(expr_cue, m_cue); expand = true)
-println("E[|U_11|^2] = $(res_cue) (Expected: 1/d)")
-
-# Moment: E[|U_11 U_22|^2] = 1/(d^2 - 1)
-expr_cue_4 = abs(U[1, 1] * U[2, 2])^2
-res_cue_4 = simplify(integrate(expr_cue_4, m_cue); expand = true)
-println("E[|U_11 U_22|^2] = $(res_cue_4) (Expected: 1/(d^2 - 1))")
+println("Integrating |U[1,1]|^2 over CUE(d)...")
+res_cue = @integrate abs(U[1, 1])^2 dCUE(d)
+println("E[|U_11|^2] = $(Symbolics.simplify(res_cue)) (Expected: 1/d)")
 
 println("\nDone.")

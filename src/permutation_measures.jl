@@ -45,9 +45,13 @@ function IntU.measure_info(measure::PermutationMeasure)
     P_sym = measure.P
     dim = measure.dim
 
-    if P_sym isa SymbolicUnitary
+    if P_sym isa SymbolicUnitary || P_sym isa SymbolicMatrix
         subs_dict = Dict{Any,Any}()
-        matcher = SymbolicMatcher(Regex("^$(P_sym.name)_(\\d+)_(\\d+)\$"))
+        matcher = SymbolicMatcher(:Perm, Regex("^$(P_sym.name)_(\\d+)_(\\d+)\$"))
+        return (subs_dict, matcher, dim, :Perm)
+    elseif P_sym === nothing
+        subs_dict = Dict{Any,Any}()
+        matcher = SymbolicMatcher(:Perm, Regex("^P_(\\d+)_(\\d+)\$"))
         return (subs_dict, matcher, dim, :Perm)
     end
 

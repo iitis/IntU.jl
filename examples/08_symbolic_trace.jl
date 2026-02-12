@@ -9,16 +9,10 @@ using LinearAlgebra
 
 # 1. Define symbolic variables
 @variables d
-# Create a Haar measure for unitary matrix U of dimension d
-# We create a symbolic matrix variable :U.
-U_var = SymbolicMatrix(:U, :U)
-# HaarMeasure expects an array for U, but for symbolic trace logic we only need the dimension d.
-# We pass a dummy 1x1 symbolic array to satisfy the constructor.
-@variables u_dummy[1:1, 1:1]
-measure = dU(u_dummy, d)
+# Create a Haar-random SymbolicMatrix U of dimension d
+U = SymbolicMatrix(:U, :U)
 
-# 2. Define constant matrices
-# By default, SymbolicMatrix creates a constant matrix
+# 2. Define constant matrices using SymbolicMatrix
 A = SymbolicMatrix(:A)
 B = SymbolicMatrix(:B)
 C = SymbolicMatrix(:C)
@@ -28,39 +22,42 @@ println("Integrating symbolic traces over Haar measure U(d)...")
 # Case 1: Tr(U A U' B)
 # --------------------
 # We want to compute ∫ dU Tr(U A U' B).
-# Construct the trace lazily:
-trace_expr = tr_lazy(U_var * A * U_var' * B)
-println("\nExpression 1: ", trace_expr)
+# The new interface handles traces of SymbolicMatrix products directly.
+# tr(U*A*U'*B) creates a LazyTrace object.
+println("\nExpression 1: tr(U * A * U' * B)")
 
-result = integrate(trace_expr, measure)
+result = @integrate tr(U * A * U' * B) dU(d)
 println("Result: ", result)
 # Expected: tr(A) * tr(B) / d
 
 # Case 2: Tr(U A U' B U C U')
 # ---------------------------
 # Integration of a longer product.
-trace_expr2 = tr_lazy(U_var * A * U_var' * B * U_var * C * U_var')
-println("\nExpression 2: ", trace_expr2)
+println("\nExpression 2: tr(U * A * U' * B * U * C * U')")
 
-result2 = integrate(trace_expr2, measure)
+result2 = @integrate tr(U * A * U' * B * U * C * U') dU(d)
 println("Result: ", Symbolics.simplify(result2))
-# The result will involve Weingarten functions of 2nd order (since U appears twice).
+# The result will involve Weingarten functions of 2nd order.
 
 
-# Case 4: Higher moments and Products
-# -----------------------------------
-# We can now integrate products of traces, e.g. E[Tr(U A) Tr(U' B)].
-println("\nCase 4: Product of traces")
-println("Integrating tr(U A) * tr(U' B)...")
+# Case 3: Product of traces
+# -------------------------
+# We can integrate products of traces, e.g. E[Tr(U A) Tr(U' B)].
+println("\nExpression 3: tr(U * A) * tr(U' * B)")
 
-# Define traces
-t1 = tr_lazy(U_var * A)
-t2 = tr_lazy(U_var' * B)
-expr_prod = t1 * t2
+# Multiplication of Symbolic Traces also produces a LazyTrace
+expr_prod = tr(U * A) * tr(U' * B)
 
-println("Expression: ", expr_prod)
-result_prod = integrate(expr_prod, measure)
+result_prod = @integrate expr_prod dU(d)
 println("Result: ", Symbolics.simplify(result_prod))
 # Expected: tr(A B) / d
+
+# Case 4: Powers of traces
+println("\nExpression 4: tr(U)^k * tr(U')^k")
+for k in 1:2
+    expr_k = tr(U)^k * tr(U')^k
+    res_k = @integrate expr_k dU(d)
+    println("k=$k result: ", res_k)
+end
 
 println("\nDone.")

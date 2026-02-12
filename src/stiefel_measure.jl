@@ -39,6 +39,12 @@ function IntU.measure_info(measure::StiefelMeasure)
     dim = measure.dim
     k_dim = measure.k
 
+    if V_input isa SymbolicMatrix
+        subs_dict = Dict{Any,Any}()
+        matcher = SymbolicMatcher(:U, Regex("^$(V_input.name)_(\\d+)_(\\d+)\$"))
+        return (subs_dict, matcher, dim, :U)
+    end
+
     subs_dict = Dict{Any,Any}()
     V_atomic_lookup = Dict{Any,Tuple}()
     V_bar_lookup = Dict{Any,Tuple}()

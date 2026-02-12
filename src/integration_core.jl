@@ -513,6 +513,73 @@ function integrate(expr::LazySum, measure)
     return sum(t -> integrate(t, measure), expr.terms)
 end
 
+function _get_measure_dim(measure)
+    if hasproperty(measure, :dim)
+        return measure.dim
+    end
+    return nothing
+end
+
+"""
+    integrate(expr::SymbolicMatrix, measure)
+
+Integrate a SymbolicMatrix as a whole. Returns a matrix of results if the 
+dimension in `measure` is a concrete integer.
+"""
+function integrate(A::SymbolicMatrix, measure)
+    dim = _get_measure_dim(measure)
+    if dim isa Integer
+        res = zeros(Num, dim, dim)
+        for i = 1:dim
+            for j = 1:dim
+                res[i, j] = integrate(A[i, j], measure)
+            end
+        end
+        return res
+    end
+    error("Direct integration of SymbolicMatrix requires a numeric dimension in the measure.")
+end
+
+"""
+    integrate(expr::SymbolicMatrixProduct, measure)
+
+Integrate a product of SymbolicMatrices. Returns a matrix of results if the 
+dimension in `measure` is a concrete integer.
+"""
+function integrate(P::SymbolicMatrixProduct, measure)
+    dim = _get_measure_dim(measure)
+    if dim isa Integer
+        # Entries of (A*B*...)_{ij} = sum_{k1...} A_{ik1} B_{k1k2} ...
+        # Since factors are SymbolicMatrix, we can just get their symbolic entries.
+        
+        # Helper to get the symbolic product of entry (i,j)
+        function get_entry(i, j)
+            prod_expr = 1
+            if isempty(P.factors)
+                return i == j ? 1 : 0
+            end
+            
+            # For multiple factors, we need intermediate summations
+            # But wait, it's easier to just form the concrete matrices and multiply them.
+            mats = []
+            for f in P.factors
+                push!(mats, [f[r, c] for r=1:dim, c=1:dim])
+            end
+            res_mat = reduce(*, mats)
+            return res_mat[i, j]
+        end
+        
+        res = zeros(Num, dim, dim)
+        for i = 1:dim
+            for j = 1:dim
+                res[i, j] = integrate(get_entry(i, j), measure)
+            end
+        end
+        return res
+    end
+    error("Direct integration of SymbolicMatrixProduct requires a numeric dimension in the measure.")
+end
+
 """
     integrate(expr::AbstractArray, measure)
 
@@ -807,8 +874,8 @@ INTEGRATION_RULES[:GinSE] =
 Low-level integration function using Weingarten calculus (Unitary).
 """
 function integrate_indices(
-    U_idxs::Vector{Tuple{Int,Int}},
-    U_bar_idxs::Vector{Tuple{Int,Int}},
+    U_idxs::Vector{<:Tuple},
+    U_bar_idxs::Vector{<:Tuple},
     dim,
 )
     n = length(U_idxs)
@@ -865,19 +932,19 @@ function integrate_indices(
     end
 end
 
-function get_matching_permutations(target::Vector{Int}, source::Vector{Int})
+function get_matching_permutations(target::AbstractVector, source::AbstractVector)
     n = length(target)
     if n != length(source)
         return Vector{Vector{Int}}()
     end
 
 
-    source_groups = Dict{Int,Vector{Int}}()
+    source_groups = Dict{Any,Vector{Int}}()
     for (idx, val) in enumerate(source)
         push!(get!(source_groups, val, Int[]), idx)
     end
 
-    target_groups = Dict{Int,Vector{Int}}()
+    target_groups = Dict{Any,Vector{Int}}()
     for (idx, val) in enumerate(target)
         push!(get!(target_groups, val, Int[]), idx)
     end
@@ -1454,22 +1521,6 @@ function integrate_indices_ginse(indices::Vector{Tuple{Int,Int}}, dim)
 
     final_sign = ((-1)^(n ÷ 2 + 1))
     return final_sign * res_oe
-end
-
-
-# Overloads for symbolic arrays
-"""
-    tr(A)
-
-Compute the trace of a matrix. Works for both standard matrices (via `LinearAlgebra.tr`) 
-and symbolic arrays (by summing diagonal elements).
-"""
-function tr(A::Symbolics.Arr{T,2}) where {T}
-    return sum(A[i, i] for i = 1:size(A, 1))
-end
-
-function tr(A)
-    return LinearAlgebra.tr(A)
 end
 
 

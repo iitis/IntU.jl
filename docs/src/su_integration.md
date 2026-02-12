@@ -14,16 +14,13 @@ Use the `dSU` measure constructor.
 ```julia
 using IntU, Symbolics
 @variables d
-@symbolic_dimension U[1:d, 1:d]
-
-measure = dSU(U, d)
-
-# Balanced moment (same as U(d))
-integrate(abs(U[1,1])^2, measure)
+U = SymbolicMatrix(:U)
+# E[|U_{1,1}|^2]
+@integrate abs(U[1,1])^2 dSU(d)
 # Output: 1/d
 
 # Unbalanced moment
-integrate(U[1,1], measure)
+@integrate U[1,1] dSU(d)
 # Output: 0
 ```
 

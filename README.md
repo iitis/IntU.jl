@@ -25,42 +25,30 @@ instantly, even for symbolic dimensions.
 ```julia
 using IntU, Symbolics, LinearAlgebra
 
-d = 3
-@variables U[1:d, 1:d]::Complex
-measure = dU(U, d)
-
+@variables d
+U = SymbolicMatrix(:U)
 # Integrate the matrix expression U * U'
 # This performs element-wise integration automatically
-res = integrate(collect(U * U'), measure)
+res = @integrate U * U' dU(d)
 # Output: Identity Matrix (I)
 ```
 
 ```julia
 using IntU, Symbolics
 
-# Define symbolic dimension 'd' and a unitary matrix 'U'
+# Define symbolic dimension 'd' and a lazy symbolic matrix 'U'
 @variables d
-@variables U[1:d, 1:d]::Complex
+U = SymbolicMatrix(:U)
 
-# Define the Haar measure
-measure = dU(U, d)
-
-# Compute the integral of |U_{i,j}|^2
-# Note: IntU handles symbolic indices automatically if defined, 
-# but here we use concrete 1,1 for simplicity which yields the same result by symmetry.
-integrate(abs(U[1,1])^2, measure)
-# Output: 1 / d
-
-# New: Convenient measure constructors
-measure = dU(d) # No matrix variable required
-integrate(abs(U[1,1])^2, measure)
+# Compute the integral of |U_{1,1}|^2
+@integrate abs(U[1,1])^2 dU(d)
 # Output: 1 / d
 ```
 
 For more complex moments, such as $\int dU |U_{1,1}|^2 |U_{1,2}|^2$, IntU handles the combinatorics (Weingarten functions) automatically:
 
 ```julia
-integrate(abs(U[1,1])^2 * abs(U[1,2])^2, measure)
+@integrate abs(U[1,1])^2 * abs(U[1,2])^2 dU(d)
 # Output: 1 / (d * (1 + d))
 ```
 
@@ -75,7 +63,7 @@ can calculate averages over the unitary Haar measure using `dU` and `integrate`.
 
 ```julia
 # 4-th moment of a diagonal entry
-integrate(abs(U[1,1])^4, dU(U, d))
+@integrate abs(U[1,1])^4 dU(d)
 # Output: 2 / (d * (1 + d))
 ```
 
@@ -83,7 +71,7 @@ integrate(abs(U[1,1])^4, dU(U, d))
 The Special Unitary group $SU(d)$ consists of unitary matrices with determinant 1. Use `dSU`.
 
 ```julia
-integrate(abs(U[1,1])^2, dSU(U, d))
+@integrate abs(U[1,1])^2 dSU(d)
 # Output: 1/d
 ```
 
@@ -92,8 +80,8 @@ Orthogonal matrices $O$ are real matrices satisfying $O O^T = I_d$. Averages are
 computed using the `dO` measure.
 
 ```julia
-@variables O_mat[1:d, 1:d]::Real
-integrate(O_mat[1,1]^4, dO(O_mat, d))
+O = SymbolicMatrix(:O)
+@integrate O[1,1]^4 dO(d)
 # Output: 3 / (d * (2 + d))
 ```
 
@@ -102,8 +90,8 @@ Symplectic matrices $S$ are unitary matrices of even dimension $2n$ that
 preserve the symplectic form, $S \Omega S^T = \Omega$. Use `dSp`.
 
 ```julia
-@variables S_mat[1:d, 1:d]::Complex
-integrate(abs(S_mat[1,1])^2, dSp(S_mat, d))
+S = SymbolicMatrix(:S)
+@integrate abs(S[1,1])^2 dSp(d)
 # Output: 1 / d
 ```
 
@@ -115,11 +103,9 @@ Ginibre ensembles consist of non-Hermitian matrices with i.i.d. Gaussian entries
 
 ```julia
 @variables d
-# Use T=Complex{Num} for GinUE to ensure conj(G) != G
-G = [Symbolics.variable(:G, i, j, T=Complex{Num}) for i = 1:2, j = 1:2]
-# E[Tr(G G')] = d^2 = 4 (for 2x2 matrix)
-integrate(tr(G * G'), dGinUE(G, d))
-# Output: 4
+G = SymbolicMatrix(:G)
+# E[Tr(G G')] = d^2
+@integrate tr_lazy(G * G') dGinUE(d)
 ```
 
 ### Circular Ensembles
@@ -129,9 +115,10 @@ IntU also supports Circular Ensembles (CUE, COE, CSE) which are commonly used in
 - **CSE (Circular Symplectic Ensemble)**: Ensemble of self-dual unitary matrices of even dimension $2n$. Use `dCSE`.
 
 ```julia
-@variables S_coe[1:d, 1:d]::Complex
+@variables d
+S = SymbolicMatrix(:S)
 # COE moment E[|S_{1,1}|^2]
-integrate(abs(S_coe[1,1])^2, dCOE(S_coe, d))
+@integrate abs(S[1,1])^2 dCOE(d)
 # Output: 2 / (d + 1)
 ```
 
@@ -140,29 +127,34 @@ IntU can integrate polynomial functions of the components of a Haar-random pure
 state vector $|\psi\rangle$ of dimension $d$.
 
 ```julia
-@variables dim
-@variables psi[1:dim]::Complex
-measure_psi = dPsi(psi, dim)
-
+@variables d
+psi = SymbolicMatrix(:psi) # Treat vector as SymbolicMatrix for lazy indexing
 # Average of |ψ_1|^2
-integrate(abs(psi[1])^2, measure_psi)
-# Output: 1 / dim
+@integrate abs(psi[1,1])^2 dPsi(d)
+# Output: 1 / d
 ```
 
-### Permutation Groups
-IntU supports integration over the Symmetric Group $S_d$ (permutation matrices) and centered permutation matrices $Y = P - J/d$.
+### Permutation Group
+IntU supports integration over the Symmetric group $S_d$ (permutation matrices).
+- **dPerm**: Integration over the set of $d \times d$ permutation matrices.
 
 ```julia
-@variables P[1:d, 1:d]
-measure = dPerm(P, d)
-# E[P_11 * P_22]
-integrate(P[1,1] * P[2,2], measure)
-# Output: 1 / (d * (d - 1))
+@variables d
+P = SymbolicMatrix(:P)
+# E[P_11]
+@integrate P[1,1] dPerm(d)
+# Output: 1 / d
+```
 
-@variables Y[1:d, 1:d]
-m_centered = dCPerm(Y, d)
+IntU also supports centered permutation matrices $Y = P - J/d$.
+- **dCPerm**: Integration over centered permutation matrices.
+
+```julia
+@variables d
+dim_val = 2
+Y = [Symbolics.variable(:Y, i, j) for i=1:dim_val, j=1:dim_val]
 # E[Y_11^2]
-integrate(Y[1,1]^2, m_centered)
+integrate(Y[1,1]^2, dCPerm(Y, d))
 # Output: (d - 1) / d^2
 ```
 
@@ -171,7 +163,9 @@ IntU supports integration over the group of diagonal unitary matrices, which
 corresponds to independent phase averaging for each diagonal entry.
 
 ```julia
-@variables V[1:d, 1:d]::Complex
+@variables d
+d_val = 2
+V = [Symbolics.variable(:V, i, j, T=Complex{Num}) for i=1:d_val, j=1:d_val]
 measure = dDiagUnitary(V, d)
 
 # E[|V_11|^2]

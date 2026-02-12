@@ -20,36 +20,24 @@ Integration is then performed using the standard unitary Weingarten calculus.
 Use `dPsi(psi, d)` where `psi` is a vector of symbolic variables.
 
 ## Usage
-
 ```julia
 using IntU, Symbolics
 
 @variables d
-# Define a symbolic vector for the state
-@variables psi[1:d]::Complex
-measure = dPsi(psi, d)
+# Use SymbolicMatrix for the state vector
+psi = SymbolicMatrix(:psi)
 
-# 1. Normalization check
-# Sum over all components |psi_i|^2 should average to 1?
-# Note: IntU.jl handles explicit indices.
-# Integral of |psi_1|^2
-expr = abs(psi[1])^2
-res = integrate(expr, measure)
+# 1. Average of |psi_1|^2
+res = @integrate abs(psi[1,1])^2 dPsi(d)
 println(res)
 # Output: 1/d
 
-# 2. Purity of a mixed state
-# If we have a state rho = |psi><psi|, then Tr(rho^2) = 1.
-# This integration checks components.
-
-# 3. Overlap with fixed state
-@variables phi[1:d]::Complex
-# Suppose phi is a fixed unit vector.
-# Calculate < |<psi|phi>|^2 >
-# = sum_{i,j} < \bar{psi}_i phi_i psi_j \bar{phi}_j >
-# = sum_{i,j} phi_i \bar{phi}_j < \bar{psi}_i psi_j >
-# = sum_{i,j} phi_i \bar{phi}_j (1/d * delta_{ij})
-# = 1/d * sum |phi_i|^2 = 1/d
+# 2. Overlap with another state
+phi = SymbolicMatrix(:phi)
+# E[|<phi|psi>|^2] = 1/d
+# In lazy mode, we can use matrix multiplication and tr_lazy
+@integrate abs(tr_lazy(phi' * psi))^2 dPsi(d)
+# Output: 1/d
 ```
 
 ## Pitfalls

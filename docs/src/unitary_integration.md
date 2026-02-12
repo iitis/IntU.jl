@@ -82,39 +82,38 @@ The macro `@symbolic_dimension` facilitates the creation of such matrices.
 
 ```julia
 using IntU, Symbolics
-
-# Define a unitary matrix U of symbolic dimension d
 @variables d
-@symbolic_dimension U[1:d, 1:d]
-measure = dU(U)
+U = SymbolicMatrix(:U)
 
 # 1. Norm of a matrix element
 # Integral of |U_{11}|^2
-expr = abs(U[1,1])^2 
-res = integrate(expr, measure)
-println(res)
+@integrate abs(U[1,1])^2 dU(d)
 # Output: 1/d
 ```
 
 ### 2. Higher Unitary Moments
 
 ```julia
+using IntU, Symbolics
+@variables d
+U = SymbolicMatrix(:U)
+
 # 2. Fourth moment
 # Integral of |U_{11}|^4
-expr2 = abs(U[1,1])^4
-res2 = integrate(expr2, measure)
-println(res2)
+@integrate abs(U[1,1])^4 dU(d)
 # Output: 2 / (d*(d + 1))
 ```
 
 ### 3. Trace Moments
 
 ```julia
+using IntU, Symbolics
+@variables d
+U = SymbolicMatrix(:U)
+
 # 3. Trace moments
-tr_U = IntU.tr(U)
 # Integral of |Tr(U)|^2
-res3 = integrate(abs(tr_U)^2, measure)
-println(res3)
+@integrate abs(tr(U))^2 dU(d)
 # Output: 1
 ```
 
@@ -123,13 +122,13 @@ println(res3)
 New in v0.2: You can integrate matrix-valued expressions directly. The function `integrate` will element-wise integrate any `AbstractArray` passed to it.
 
 ```julia
-using LinearAlgebra
-
-# Integrate U * U' (should be identity)
-# We collect the symbolic expression to a Matrix{Num} to ensure it's treated as an array of expressions
-expr_mat = collect(U * U')
-res_mat = integrate(expr_mat, measure)
-# Result is the Identity matrix
+using IntU, Symbolics
+@variables d
+U = SymbolicMatrix(:U)
+# E[tr(U A U' B)] = tr(A) * tr(B) / d
+A = SymbolicMatrix(:A)
+B = SymbolicMatrix(:B)
+@integrate tr_lazy(U * A * U' * B) dU(d)
 ```
 
 ### 5. HCIZ Integrals

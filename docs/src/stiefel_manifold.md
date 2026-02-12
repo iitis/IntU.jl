@@ -28,20 +28,13 @@ quantum states $|\psi\rangle$.
 
 To perform integration over the Stiefel manifold, use the `dStiefel(V, d, k)` measure.
 
-```@example stiefel
+```julia
 using IntU, Symbolics
 
 @variables d
-k = 2
-
-# Define a symbolic matrix V
-# Note: For full symbolic integration, we can define just the elements needed
-V = [Symbolics.variable(Symbol("V_\$(i)_\$(j)"), T=Complex{Num}) for i=1:k, j=1:k] 
-
-measure = dStiefel(V, d, k)
-
-# Compute moments
-integrate(abs(V[1,1])^2, measure)
+V = SymbolicMatrix(:V)
+# Integration over V_2(C^d)
+@integrate abs(V[1,1])^2 dStiefel(d, 2)
 ```
 
 The system automatically handles the mapping to the unitary group and applies

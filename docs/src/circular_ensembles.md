@@ -25,11 +25,9 @@ For the COE, the matrix $S$ is symmetric unitary. The diagonal entries have diff
 using IntU, Symbolics
 
 @variables d
-@variables S[1:d, 1:d]::Complex
-measure = dCOE(S, d)
-
-# Variance of diagonal element
-integrate(abs(S[1,1])^2, measure) 
+S = SymbolicMatrix(:S)
+# COE moment E[|S_{1,1}|^2]
+@integrate abs(S[1,1])^2 dCOE(d)
 # Output: 2 / (d + 1)
 ```
 
@@ -38,11 +36,11 @@ integrate(abs(S[1,1])^2, measure)
 For the CSE, the matrix $S$ is defined on a space of dimension $2N$ and satisfies $S = J S^T J^T$.
 
 ```julia
-@variables S_cse[1:d, 1:d]::Complex
-measure_cse = dCSE(S_cse, d)
-
-# Variance of diagonal element
-integrate(abs(S_cse[1,1])^2, measure_cse)
+using IntU, Symbolics
+@variables d
+S = SymbolicMatrix(:S)
+# CSE moment E[|S_{1,1}|^2]
+@integrate abs(S[1,1])^2 dCSE(d)
 # Output: 1 / (d - 1)
 ```
 
@@ -51,9 +49,10 @@ integrate(abs(S_cse[1,1])^2, measure_cse)
 The CUE is statistical identical to the standard Unitary Haar measure.
 
 ```julia
-@variables U[1:d, 1:d]::Complex
-measure_cue = dCUE(U, d)
-
-integrate(abs(U[1,1])^2, measure_cue)
+using IntU, Symbolics
+@variables d
+U = SymbolicMatrix(:U)
+# CUE moment E[|U_{1,1}|^2]
+@integrate abs(U[1,1])^2 dCUE(d)
 # Output: 1 / d
 ```

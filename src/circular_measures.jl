@@ -5,6 +5,7 @@ Defines the Circular Unitary Ensemble measure for U(d).
 This is mathematically equivalent to the Haar measure on U(d).
 """
 dCUE(U, dim) = dU(U, dim)
+dCUE(dim) = dU(dim)
 
 struct COEMeasure{M,D}
     S::M
@@ -28,6 +29,7 @@ S = U U^T
 where \$U \sim \text{Haar}(U(N))\$.
 """
 dCOE(S, dim) = COEMeasure(S, dim)
+dCOE(dim) = COEMeasure(nothing, dim)
 
 @doc raw"""
     dCSE(S, dim)
@@ -45,6 +47,7 @@ where \$U \sim \text{Haar}(U(2N))\$.
 Note: The dimension `dim` corresponds to the size of the matrix, so it must be 2N.
 """
 dCSE(S, dim) = CSEMeasure(S, dim)
+dCSE(dim) = CSEMeasure(nothing, dim)
 
 
 """
@@ -62,10 +65,16 @@ function IntU.measure_info(measure::COEMeasure)
     S_sym = measure.S
     dim = measure.dim
 
-    subs_dict = Dict{Any,Any}()
     S_atomic_lookup = Dict{Any,Tuple}()
+    subs_dict = Dict{Any,Any}()
 
-    if S_sym isa AbstractArray
+    if S_sym isa SymbolicMatrix
+        matcher = SymbolicMatcher(:COE, Regex("^$(S_sym.name)_(\\d+)_(\\d+)\$"))
+        return (subs_dict, matcher, dim, :COE)
+    elseif S_sym === nothing
+        matcher = SymbolicMatcher(:COE, Regex("^S_(\\d+)_(\\d+)\$"))
+        return (subs_dict, matcher, dim, :COE)
+    elseif S_sym isa AbstractArray
         for i = 1:size(S_sym, 1)
             for j = 1:size(S_sym, 2)
                 s_ij_num = _safe_Num(S_sym[i, j])
@@ -95,10 +104,16 @@ function IntU.measure_info(measure::CSEMeasure)
     S_sym = measure.S
     dim = measure.dim
 
-    subs_dict = Dict{Any,Any}()
     S_atomic_lookup = Dict{Any,Tuple}()
+    subs_dict = Dict{Any,Any}()
 
-    if S_sym isa AbstractArray
+    if S_sym isa SymbolicMatrix
+        matcher = SymbolicMatcher(:CSE, Regex("^$(S_sym.name)_(\\d+)_(\\d+)\$"))
+        return (subs_dict, matcher, dim, :CSE)
+    elseif S_sym === nothing
+        matcher = SymbolicMatcher(:CSE, Regex("^S_(\\d+)_(\\d+)\$"))
+        return (subs_dict, matcher, dim, :CSE)
+    elseif S_sym isa AbstractArray
         for i = 1:size(S_sym, 1)
             for j = 1:size(S_sym, 2)
                 s_ij_num = _safe_Num(S_sym[i, j])
@@ -122,7 +137,7 @@ function IntU.measure_info(measure::CSEMeasure)
         Dict(k => v for (k, v) in S_atomic_lookup if occursin("S_bar_atomic", string(k))),
     )
 
-    phys_dim = S_sym isa AbstractArray ? size(S_sym, 1) : 0
+    phys_dim = (S_sym isa AbstractArray && !(S_sym isa SymbolicMatrix)) ? size(S_sym, 1) : dim
     return (subs_dict, matcher, dim, (:CSE, phys_dim))
 end
 
@@ -329,13 +344,23 @@ function integrate_indices_cse(
 
     m = n_s
     n = 2 * m
-    half_dim = div(phys_dim, 2)
+    half_dim = (phys_dim isa Integer) ? div(phys_dim, 2) : phys_dim / 2
 
     U_rows = Vector{Int}(undef, n)
     fixed_sign_coeff = 1
 
-    get_sign(idx) = (idx <= half_dim ? 1 : -1)
-    get_pair(idx) = (idx <= half_dim ? idx + half_dim : idx - half_dim)
+    get_sign(idx) = begin
+        if half_dim isa Num && idx isa Integer
+            return 1
+        end
+        return idx <= half_dim ? 1 : -1
+    end
+    get_pair(idx) = begin
+        if half_dim isa Num && idx isa Integer
+            return idx + half_dim
+        end
+        return (idx <= half_dim ? idx + half_dim : idx - half_dim)
+    end
 
     for k = 1:m
         i, j = indices[k]
