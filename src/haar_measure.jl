@@ -231,11 +231,14 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
         push!(cycle_ranges, start_idx:total_factors)
     end
 
+    U_name = measure.U isa SymbolicMatrix ? measure.U.name : (measure.U isa SymbolicUnitary ? measure.U.name : :U)
     for (i, f) in enumerate(all_factors)
-        if f.special_type == :U
-            push!(U_indices, i)
-        elseif f.special_type == :U_dag
-            push!(U_bar_indices, i)
+        if f.name == U_name
+            if f.special_type == :U
+                push!(U_indices, i)
+            elseif f.special_type == :U_dag
+                push!(U_bar_indices, i)
+            end
         end
     end
 

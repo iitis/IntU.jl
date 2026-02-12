@@ -439,12 +439,29 @@ The Weingarten matrix is the inverse of \$G\$.
 
     # Invert G
     Wg_mat = try
-        inv(G)
+        _safe_inv(G)
     catch e
         error("Failed to invert O(d) Gram matrix for k=\$k. Error: \$e")
     end
 
     return Wg_mat, lookup
+end
+
+function _safe_inv(G::AbstractMatrix)
+    n = size(G, 1)
+    if n == 1
+        return map(x -> 1/x, G)
+    end
+    # For small symbolic matrices, manual inverse might be safer/faster than generic inv
+    if eltype(G) <: Symbolics.Num
+         if n == 2
+            a, b = G[1,1], G[1,2]
+            c, d = G[2,1], G[2,2]
+            det = a*d - b*c
+            return (1/det) * [d -b; -c a]
+         end
+    end
+    return inv(G)
 end
 
 """
