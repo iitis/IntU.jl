@@ -1,53 +1,34 @@
 """
-    dCUE(U, dim)
+    dCUE(dim)
 
 Defines the Circular Unitary Ensemble measure for U(d).
 This is mathematically equivalent to the Haar measure on U(d).
 """
-dCUE(U, dim) = dU(U, dim)
 dCUE(dim) = dU(dim)
 
-struct COEMeasure{M,D}
-    S::M
+struct COEMeasure{D}
     dim::D
 end
 
-struct CSEMeasure{M,D}
-    S::M
+struct CSEMeasure{D}
     dim::D
 end
 
 @doc raw"""
-    dCOE(S, dim)
+    dCOE(dim)
 
 Defines the Circular Orthogonal Ensemble (COE) measure on U(N).
-Matrices in COE are symmetric unitary matrices.
-They can be modeled as
-```math
-S = U U^T
-```
-where \$U \sim \text{Haar}(U(N))\$.
+Integration engine identifies variables via metadata tag `:COE`.
 """
-dCOE(S, dim) = COEMeasure(S, dim)
-dCOE(dim) = COEMeasure(nothing, dim)
+dCOE(dim) = COEMeasure(dim)
 
 @doc raw"""
-    dCSE(S, dim)
+    dCSE(dim)
 
 Defines the Circular Symplectic Ensemble (CSE) measure on U(2N).
-Matrices in CSE are self-dual unitary matrices:
-```math
-S = S^R = J S^T J^T
-```
-They can be modeled as
-```math
-S = U U^R
-```
-where \$U \sim \text{Haar}(U(2N))\$.
-Note: The dimension `dim` corresponds to the size of the matrix, so it must be 2N.
+Integration engine identifies variables via metadata tag `:CSE`.
 """
-dCSE(S, dim) = CSEMeasure(S, dim)
-dCSE(dim) = CSEMeasure(nothing, dim)
+dCSE(dim) = CSEMeasure(dim)
 
 
 """
@@ -61,84 +42,30 @@ function integrate(expr::AbstractArray, measure::CSEMeasure)
     return map(e -> integrate(e, measure), expr)
 end
 
+# Resolve ambiguities with SymbolicMatrix/SymbolicMatrixProduct
+function integrate(expr::SymbolicMatrix, measure::COEMeasure)
+    return invoke(integrate, Tuple{SymbolicMatrix, Any}, expr, measure)
+end
+function integrate(expr::SymbolicMatrixProduct, measure::COEMeasure)
+    return invoke(integrate, Tuple{SymbolicMatrixProduct, Any}, expr, measure)
+end
+function integrate(expr::SymbolicMatrix, measure::CSEMeasure)
+    return invoke(integrate, Tuple{SymbolicMatrix, Any}, expr, measure)
+end
+function integrate(expr::SymbolicMatrixProduct, measure::CSEMeasure)
+    return invoke(integrate, Tuple{SymbolicMatrixProduct, Any}, expr, measure)
+end
+
 function IntU.measure_info(measure::COEMeasure)
-    S_sym = measure.S
-    dim = measure.dim
-
-    S_atomic_lookup = Dict{Any,Tuple}()
     subs_dict = Dict{Any,Any}()
-
-    if S_sym isa SymbolicMatrix
-        matcher = SymbolicMatcher(:COE, Regex("^$(S_sym.name)_(\\d+)_(\\d+)\$"))
-        return (subs_dict, matcher, dim, :COE)
-    elseif S_sym === nothing
-        matcher = SymbolicMatcher(:COE, Regex("^S_(\\d+)_(\\d+)\$"))
-        return (subs_dict, matcher, dim, :COE)
-    elseif S_sym isa AbstractArray
-        for i = 1:size(S_sym, 1)
-            for j = 1:size(S_sym, 2)
-                s_ij_num = _safe_Num(S_sym[i, j])
-                s_ij_un = Symbolics.unwrap(s_ij_num)
-                s_atomic = Symbolics.variable(:S_atomic, i, j)
-                s_bar_atomic = Symbolics.variable(:S_bar_atomic, i, j)
-
-                S_atomic_lookup[Symbolics.unwrap(s_atomic)] = (i, j)
-                S_atomic_lookup[Symbolics.unwrap(s_bar_atomic)] = (i, j)
-
-                subs_dict[s_ij_un] = s_atomic
-                subs_dict[Symbolics.unwrap(conj(s_ij_num))] = s_bar_atomic
-                subs_dict[Symbolics.unwrap(Base.conj(s_ij_num))] = s_bar_atomic
-            end
-        end
-    end
-
-    matcher = LookupMatcher(
-        Dict(k => v for (k, v) in S_atomic_lookup if occursin("S_atomic", string(k))),
-        Dict(k => v for (k, v) in S_atomic_lookup if occursin("S_bar_atomic", string(k))),
-    )
-
-    return (subs_dict, matcher, dim, :COE)
+    matcher = MetadataMatcher(:COE)
+    return (subs_dict, matcher, measure.dim, :COE)
 end
 
 function IntU.measure_info(measure::CSEMeasure)
-    S_sym = measure.S
-    dim = measure.dim
-
-    S_atomic_lookup = Dict{Any,Tuple}()
     subs_dict = Dict{Any,Any}()
-
-    if S_sym isa SymbolicMatrix
-        matcher = SymbolicMatcher(:CSE, Regex("^$(S_sym.name)_(\\d+)_(\\d+)\$"))
-        return (subs_dict, matcher, dim, :CSE)
-    elseif S_sym === nothing
-        matcher = SymbolicMatcher(:CSE, Regex("^S_(\\d+)_(\\d+)\$"))
-        return (subs_dict, matcher, dim, :CSE)
-    elseif S_sym isa AbstractArray
-        for i = 1:size(S_sym, 1)
-            for j = 1:size(S_sym, 2)
-                s_ij_num = _safe_Num(S_sym[i, j])
-                s_ij_un = Symbolics.unwrap(s_ij_num)
-
-                s_atomic = Symbolics.variable(:S_atomic, i, j)
-                s_bar_atomic = Symbolics.variable(:S_bar_atomic, i, j)
-
-                S_atomic_lookup[Symbolics.unwrap(s_atomic)] = (i, j)
-                S_atomic_lookup[Symbolics.unwrap(s_bar_atomic)] = (i, j)
-
-                subs_dict[s_ij_un] = s_atomic
-                subs_dict[Symbolics.unwrap(conj(s_ij_num))] = s_bar_atomic
-                subs_dict[Symbolics.unwrap(Base.conj(s_ij_num))] = s_bar_atomic
-            end
-        end
-    end
-
-    matcher = LookupMatcher(
-        Dict(k => v for (k, v) in S_atomic_lookup if occursin("S_atomic", string(k))),
-        Dict(k => v for (k, v) in S_atomic_lookup if occursin("S_bar_atomic", string(k))),
-    )
-
-    phys_dim = (S_sym isa AbstractArray && !(S_sym isa SymbolicMatrix)) ? size(S_sym, 1) : dim
-    return (subs_dict, matcher, dim, (:CSE, phys_dim))
+    matcher = MetadataMatcher(:CSE)
+    return (subs_dict, matcher, measure.dim, :CSE)
 end
 
 

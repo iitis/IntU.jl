@@ -62,7 +62,7 @@ function partial_trace(M, dims, subsystem)
     target_dims = dims[target_subs]
     new_dim = prod(target_dims)
 
-    res = Matrix{Complex{Num}}(undef, new_dim, new_dim)
+    res = similar(M, Any, new_dim, new_dim)
 
     # Helper to calculate strides correctly
     function get_strides(d)

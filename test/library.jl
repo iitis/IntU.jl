@@ -11,7 +11,7 @@ using Symbolics
         B = SymbolicMatrix(:B)
 
         expr = IntU.tr(U * A * U' * B)
-        res = integrate(expr, dU(U, d))
+        res = integrate(expr, dU(d))
 
         # Expected: (tr(A) * tr(B)) / d
         # tr_val returns a symbolic variable
@@ -22,28 +22,28 @@ using Symbolics
     @testset "GUE Moments" begin
         H = SymbolicMatrix(:H)
 
-        @test isequal(integrate(IntU.tr(H^2), dGUE(H, d)), d^2)
-        @test isequal(integrate(IntU.tr(H^4), dGUE(H, d)), 2d^3 + d)
-        @test isequal(integrate(IntU.tr(H^6), dGUE(H, d)), 5d^4 + 10d^2)
+        @test isequal(integrate(IntU.tr(H^2), dGUE(d)), d^2)
+        @test isequal(integrate(IntU.tr(H^4), dGUE(d)), 2d^3 + d)
+        @test isequal(integrate(IntU.tr(H^6), dGUE(d)), 5d^4 + 10d^2)
     end
 
     @testset "GOE Moments" begin
         H = SymbolicMatrix(:H)
-        @test isequal(integrate(IntU.tr(H^2), dGOE(H, d)), d^2 + d)
-        @test isequal(integrate(IntU.tr(H^4), dGOE(H, d)), 2d^3 + 5d^2 + 5d)
+        @test isequal(integrate(IntU.tr(H^2), dGOE(d)), d^2 + d)
+        @test isequal(integrate(IntU.tr(H^4), dGOE(d)), 2d^3 + 5d^2 + 5d)
     end
 
     @testset "GSE Moments" begin
         H = SymbolicMatrix(:H)
-        @test isequal(integrate(IntU.tr(H^2), dGSE(H, d)), d^2 - d)
-        @test isequal(integrate(IntU.tr(H^4), dGSE(H, d)), 2d^3 - 5d^2 + 5d)
+        @test isequal(integrate(IntU.tr(H^2), dGSE(d)), d^2 - d)
+        @test isequal(integrate(IntU.tr(H^4), dGSE(d)), 2d^3 - 5d^2 + 5d)
     end
 
     @testset "Fallback Check" begin
         # Something not in library
         @variables U[1:2, 1:2]::Complex
         expr = U[1, 1] * conj(U[1, 1])
-        res = integrate(expr, dU(U, d))
+        res = integrate(expr, dU(d))
         @test isequal(res, 1/d)
     end
 end

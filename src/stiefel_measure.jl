@@ -14,14 +14,13 @@ Reference:
 - Edelman, A., Arias, T. A., & Smith, S. T. (1998). The geometry of algorithms with orthogonality constraints.
 """
 dStiefel(dim, k) = StiefelMeasure(dim, k)
-dStiefel(V::SymbolicMatrix, k) = StiefelMeasure(V.dim, k)
 
 
 """
     StiefelMeasure(dim, k)
 
 Internal type representing the measure on the Stiefel manifold. 
-Users should use `dStiefel` constructor.
+Users should use `dStiefel` constructors.
 """
 struct StiefelMeasure{D,K}
     dim::D
@@ -35,13 +34,19 @@ function integrate(expr::AbstractArray, measure::StiefelMeasure)
     return map(e -> integrate(e, measure), expr)
 end
 
+# Resolve ambiguities with SymbolicMatrix/SymbolicMatrixProduct
+function integrate(expr::SymbolicMatrix, measure::StiefelMeasure)
+    return invoke(integrate, Tuple{SymbolicMatrix, Any}, expr, measure)
+end
+function integrate(expr::SymbolicMatrixProduct, measure::StiefelMeasure)
+    return invoke(integrate, Tuple{SymbolicMatrixProduct, Any}, expr, measure)
+end
+
 function IntU.measure_info(measure::StiefelMeasure)
     subs_dict = Dict{Any,Any}()
-    # Use metadata-based matching for U. 
-    # Stiefel is just first k columns of U, handled during entry matching if needed, 
-    # but for symbolic matching we just tag as U.
-    matcher = MetadataMatcher(:U)
-    return (subs_dict, matcher, measure.dim, :U)
+    # Use metadata-based matching for V. 
+    matcher = MetadataMatcher(:V)
+    return (subs_dict, matcher, measure.dim, :V)
 end
 
 """

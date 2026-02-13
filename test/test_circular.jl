@@ -44,8 +44,8 @@ using Test
 
     # 1. COE
     @testset "COE Properties" begin
-        @variables S[1:2, 1:2]::Complex
-        m = dCOE(S, d)
+        S = SymbolicMatrix(:S, :COE, d)
+        m = dCOE(d)
 
         @test sym_iszero(integrate(S[1, 1], m))
         @test sym_iszero(integrate(S[1, 2], m))
@@ -65,8 +65,8 @@ using Test
 
     # 2. CSE
     @testset "CSE Properties" begin
-        @variables S_cse[1:2, 1:2]::Complex
-        mc = dCSE(S_cse, d)
+        S_cse = SymbolicMatrix(:S, :CSE, d)
+        mc = dCSE(d)
 
         @test sym_iszero(integrate(S_cse[1, 1], mc))
 
@@ -83,8 +83,8 @@ using Test
 
     # 3. CUE
     @testset "CUE Properties" begin
-        @variables U[1:2, 1:2]::Complex
-        m = dCUE(U, d)
+        U = SymbolicMatrix(:U, :U, d)
+        m = dCUE(d)
 
         @test sym_iszero(integrate(U[1, 1], m))
         val_11 = integrate(U[1, 1] * conj(U[1, 1]), m)

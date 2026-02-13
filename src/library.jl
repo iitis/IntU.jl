@@ -89,10 +89,10 @@ function check_gaussian_library(expr, measure, type)
     factors = expr.cycles[1]
     prefactor = expr.prefactor
 
-    H_name = measure.H isa SymbolicMatrix ? measure.H.name : :H
-
-    # Check if all factors are H
-    if !all(f -> f.name == H_name, factors)
+    # For the library, we check if all factors are of the expected special_type
+    expected_tag = (type == :GUE || type == :GOE || type == :GSE) ? :H : :G
+    
+    if !all(f -> f.special_type == expected_tag, factors)
         return nothing
     end
 

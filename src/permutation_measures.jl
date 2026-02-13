@@ -11,31 +11,19 @@ end
 
 @doc raw"""
     dPerm(dim)
-    dPerm(P::SymbolicMatrix)
 
 Defines the Haar measure for the Symmetric group $S_d$ (permutation matrices) of dimension `dim`.
 
-If called with `dim`, it integrates entries tagged with `:Perm` via `SymbolicMatrix(:P, :Perm)`.
-
-The integration of a monomial of entries is given by:
-```math
-\int_{S_d} P_{i_1 j_1} \dots P_{i_n j_n} dP = \begin{cases} \frac{(d-k)!}{d!} & \text{if indices are consistent} \\ 0 & \text{otherwise} \end{cases}
-```
-where $k$ is the number of distinct pairs $(i, j)$ in the product.
+Integration engine identifies variables via metadata tag `:Perm`.
 """
 dPerm(dim) = PermutationMeasure(dim)
-dPerm(P::SymbolicMatrix) = PermutationMeasure(P.dim)
 
 @doc raw"""
     dCPerm(dim)
-    dCPerm(Y::SymbolicMatrix)
 
 Defines the measure for Centered Permutation matrices $Y = P - J/d$ where $P \in S_d$.
-
-If called with `dim`, it integrates entries tagged with `:CPerm` (or `:Perm`) via `SymbolicMatrix(:Y, :CPerm)`.
 """
 dCPerm(dim) = CenteredPermutationMeasure(dim)
-dCPerm(Y::SymbolicMatrix) = CenteredPermutationMeasure(Y.dim)
 
 function integrate(expr::AbstractArray, measure::PermutationMeasure)
     return map(e -> integrate(e, measure), expr)
@@ -43,6 +31,20 @@ end
 
 function integrate(expr::AbstractArray, measure::CenteredPermutationMeasure)
     return map(e -> integrate(e, measure), expr)
+end
+
+# Resolve ambiguities with SymbolicMatrix/SymbolicMatrixProduct
+function integrate(expr::SymbolicMatrix, measure::PermutationMeasure)
+    return invoke(integrate, Tuple{SymbolicMatrix, Any}, expr, measure)
+end
+function integrate(expr::SymbolicMatrixProduct, measure::PermutationMeasure)
+    return invoke(integrate, Tuple{SymbolicMatrixProduct, Any}, expr, measure)
+end
+function integrate(expr::SymbolicMatrix, measure::CenteredPermutationMeasure)
+    return invoke(integrate, Tuple{SymbolicMatrix, Any}, expr, measure)
+end
+function integrate(expr::SymbolicMatrixProduct, measure::CenteredPermutationMeasure)
+    return invoke(integrate, Tuple{SymbolicMatrixProduct, Any}, expr, measure)
 end
 
 function IntU.measure_info(measure::PermutationMeasure)

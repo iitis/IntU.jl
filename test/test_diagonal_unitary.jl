@@ -4,9 +4,10 @@ using Symbolics
 
 @testset "Diagonal Unitary Integration" begin
     @variables d
-    @variables V[1:10, 1:10]::Complex
+    # Use SymbolicMatrix tagged as :DiagUnitary
+    V = SymbolicMatrix(:V, :DiagUnitary, d)
 
-    measure = dDiagUnitary(V, d)
+    measure = dDiagUnitary(d)
 
     @testset "Basic Moments" begin
         # E[|V_11|^2] = 1

@@ -4,6 +4,7 @@ version = "0.8.0"
 authors = ["Łukasz Pawela", "Zbigniew Puchała"]
 
 [deps]
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -21,11 +22,11 @@ IntUITensorsExt = "ITensors"
 Aqua = "0.8.14"
 Combinatorics = "1"
 DataStructures = "0.19.3"
+ITensors = "0.3, 0.6"
 LinearAlgebra = "1.11, 1.12"
 Memoization = "0.2.2"
 SymbolicUtils = "4"
 Symbolics = "7"
-ITensors = "0.3, 0.6"
 Test = "1.11, 1.12"
 julia = "1.11, 1.12"
 

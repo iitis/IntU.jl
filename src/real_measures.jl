@@ -11,32 +11,20 @@ end
 
 @doc raw"""
     dO(dim)
-    dO(O::SymbolicMatrix)
 
 Defines the Haar measure for the real Orthogonal group $O(d)$ with dimension `dim`.
-
-If called with `dim`, it integrates entries tagged with `:O` via `SymbolicMatrix(:O, :O)`.
-
-Reference:
-- Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups.
+Integration engine identifies variables via metadata tag `:O`.
 """
 dO(dim) = OrthogonalMeasure(dim)
-dO(O::SymbolicMatrix) = OrthogonalMeasure(O.dim)
 
 @doc raw"""
     dSp(dim)
-    dSp(S::SymbolicMatrix)
 
 Defines the Haar measure for the Symplectic group $Sp(d)$. 
 The dimension `dim` must be even.
-
-If called with `dim`, it integrates entries tagged with `:Sp` via `SymbolicMatrix(:S, :Sp)`.
-
-Reference:
-- Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups.
+Integration engine identifies variables via metadata tag `:Sp`.
 """
 dSp(dim) = SymplecticMeasure(dim)
-dSp(S::SymbolicMatrix) = SymplecticMeasure(S.dim)
 
 
 """
@@ -50,14 +38,18 @@ function integrate(expr::AbstractArray, measure::SymplecticMeasure)
     return map(e -> integrate(e, measure), expr)
 end
 
-# Resolve ambiguity with SymbolicMatrixProduct
-function integrate(P::SymbolicMatrixProduct, measure::OrthogonalMeasure)
-    # create a method instance for the generic SymbolicMatrixProduct integration
-    return invoke(integrate, Tuple{SymbolicMatrixProduct, Any}, P, measure)
+# Resolve ambiguity with SymbolicMatrix/SymbolicMatrixProduct
+function integrate(expr::SymbolicMatrix, measure::OrthogonalMeasure)
+    return invoke(integrate, Tuple{SymbolicMatrix, Any}, expr, measure)
 end
-
-function integrate(P::SymbolicMatrixProduct, measure::SymplecticMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrixProduct, Any}, P, measure)
+function integrate(expr::SymbolicMatrixProduct, measure::OrthogonalMeasure)
+    return invoke(integrate, Tuple{SymbolicMatrixProduct, Any}, expr, measure)
+end
+function integrate(expr::SymbolicMatrix, measure::SymplecticMeasure)
+    return invoke(integrate, Tuple{SymbolicMatrix, Any}, expr, measure)
+end
+function integrate(expr::SymbolicMatrixProduct, measure::SymplecticMeasure)
+    return invoke(integrate, Tuple{SymbolicMatrixProduct, Any}, expr, measure)
 end
 
 function IntU.measure_info(measure::OrthogonalMeasure)

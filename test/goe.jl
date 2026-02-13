@@ -1,8 +1,8 @@
 @testset "GOE Integration" begin
     # Test for N=3
     N = 3
-    H = [Symbolics.variable(:H, i, j) for i = 1:N, j = 1:N]
-    meas = dGOE(H, N)
+    H = SymbolicMatrix(:H, :H, N)
+    meas = dGOE(N)
 
     @testset "Tr(H)" begin
         expr = IntU.tr(H)
@@ -13,14 +13,12 @@
     @testset "Tr(H^2)" begin
         expr = IntU.tr(H^2)
         res = integrate(expr, meas)
-        # Expected: N^2 + N for unscaled GOE
         @test to_numeric(res) == N^2 + N
     end
 
     @testset "Tr(H^4)" begin
         expr = IntU.tr(H^4)
         res = integrate(expr, meas)
-        # Expected: 2N^3 + 5N^2 + 5N
         expected = 2*N^3 + 5*N^2 + 5*N
         @test to_numeric(res) == expected
     end

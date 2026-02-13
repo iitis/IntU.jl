@@ -4,38 +4,30 @@ using Symbolics
 
 # Helper to convert symbolic results to numbers
 function to_numeric(x)
-    x_un = Symbolics.unwrap(x)
-    if x_un isa Number
-        return x_un
-    end
-    # If it's a symbolic constant (like Num(0)), try to simplify/substitute
-    sim = Symbolics.simplify(x)
-    sim_un = Symbolics.unwrap(sim)
-    if sim_un isa Number
-        return sim_un
-    end
-
-    # Try brute force substitution
-    sim2 = Symbolics.substitute(sim, Dict())
-    sim2_un = Symbolics.unwrap(sim2)
-    if sim2_un isa Number
-        return sim2_un
-    end
-
-    if IntU._symbolic_isequal(sim, 0) || IntU._symbolic_isequal(sim2, 0)
-        return 0.0
-    end
-
-    # Last resort: try evaluating
-    try
-        val = eval(Meta.parse(string(sim)))
-        if val isa Number
-            return val
+    # Flatten any complex(...) calls
+    ux = Symbolics.unwrap(x)
+    xf = SymbolicUtils.Postwalk(t -> begin
+        ut = Symbolics.unwrap(t)
+        if Symbolics.iscall(ut) && (Symbolics.operation(ut) == complex || Symbolics.operation(ut) == Base.complex)
+            aa = Symbolics.arguments(ut)
+            return aa[1] + im*aa[2]
         end
+        return t
+    end)(ux)
+    sim = Symbolics.simplify(Symbolics.wrap(xf))
+    v = Symbolics.value(sim)
+    if v isa Number
+        return v
+    end
+    try
+        return Float64(v)
     catch
     end
-
-    return x_un
+    try
+        return ComplexF64(v)
+    catch
+    end
+    return v
 end
 
 @testset verbose=true "IntU.jl Suite" begin

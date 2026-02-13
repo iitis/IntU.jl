@@ -13,20 +13,25 @@ end
 
 @doc raw"""
     dDiagUnitary(dim)
-    dDiagUnitary(V::SymbolicMatrix)
 
 Defines the measure for the group of diagonal unitary matrices (the torus $T^d$) of dimension `dim`.
-
-If called with `dim`, it integrates entries tagged with `:DiagUnitary` via `SymbolicMatrix(:V, :DiagUnitary)`.
+Integration engine identifies variables via metadata tag `:DiagUnitary`.
 """
 dDiagUnitary(dim) = DiagonalUnitaryMeasure(dim)
-dDiagUnitary(V::SymbolicMatrix) = DiagonalUnitaryMeasure(V.dim)
 
 """
     integrate(expr, measure::DiagonalUnitaryMeasure)
 """
 function integrate(expr::AbstractArray, measure::DiagonalUnitaryMeasure)
     return map(e -> integrate(e, measure), expr)
+end
+
+# Resolve ambiguities with SymbolicMatrix/SymbolicMatrixProduct
+function integrate(expr::SymbolicMatrix, measure::DiagonalUnitaryMeasure)
+    return invoke(integrate, Tuple{SymbolicMatrix, Any}, expr, measure)
+end
+function integrate(expr::SymbolicMatrixProduct, measure::DiagonalUnitaryMeasure)
+    return invoke(integrate, Tuple{SymbolicMatrixProduct, Any}, expr, measure)
 end
 
 function IntU.measure_info(measure::DiagonalUnitaryMeasure)

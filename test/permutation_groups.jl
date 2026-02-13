@@ -4,17 +4,15 @@ using Symbolics
 
 @testset "Permutation Groups" begin
     @variables d
-    P = [Symbolics.variable(:P, i, j) for i = 1:10, j = 1:10]
-    measure = dPerm(P, d)
+    P = SymbolicMatrix(:P, :Perm, d)
+    measure = dPerm(d)
 
     function is_zero(x)
-        # First try symbolic simplification
         simplified = Symbolics.simplify(Symbolics.expand(x))
         v = Symbolics.value(simplified)
         if v isa Number
             return iszero(v)
         end
-        # For symbolic d, substitute with a large numeric value and check
         subs_val = Symbolics.substitute(simplified, d => 1000)
         num_val = Symbolics.value(subs_val)
         if num_val isa Number
@@ -46,10 +44,9 @@ using Symbolics
     end
 
     @testset "Centered Permutations" begin
-        Y = [Symbolics.variable(:Y, i, j) for i = 1:10, j = 1:10]
-        m_centered = dCPerm(Y, d)
+        Y = SymbolicMatrix(:Y, :Perm, d)
+        m_centered = dCPerm(d)
 
-        # E[Y_11] = 0
         @test is_zero(integrate(Y[1, 1], m_centered))
 
         # E[Y_11 * Y_11] = (d-1)/d^2
@@ -62,8 +59,8 @@ using Symbolics
     end
 
     @testset "Numeric dimension" begin
-        P_num = [Symbolics.variable(:P, i, j) for i = 1:3, j = 1:3]
-        m_num = dPerm(P_num, 3)
+        P_num = SymbolicMatrix(:P, :Perm, 3)
+        m_num = dPerm(3)
 
         @test integrate(P_num[1, 1], m_num) == 1//3
         @test integrate(P_num[1, 1] * P_num[2, 2], m_num) == 1//6
