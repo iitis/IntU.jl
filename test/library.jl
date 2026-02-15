@@ -6,7 +6,7 @@ using Symbolics
     @variables d
 
     @testset "Haar Unitary Trace" begin
-        U = SymbolicMatrix(:U, false, :U)
+        U = SymbolicMatrix(:U, :U)
         A = SymbolicMatrix(:A)
         B = SymbolicMatrix(:B)
 
@@ -14,13 +14,12 @@ using Symbolics
         res = integrate(expr, dU(d))
 
         # Expected: (tr(A) * tr(B)) / d
-        # tr_val returns a symbolic variable
         expected = (IntU.tr_val([A]) * IntU.tr_val([B])) / d
         @test isequal(res, expected)
     end
 
     @testset "GUE Moments" begin
-        H = SymbolicMatrix(:H)
+        H = SymbolicMatrix(:H, :H)
 
         @test isequal(integrate(IntU.tr(H^2), dGUE(d)), d^2)
         @test isequal(integrate(IntU.tr(H^4), dGUE(d)), 2d^3 + d)
@@ -28,21 +27,21 @@ using Symbolics
     end
 
     @testset "GOE Moments" begin
-        H = SymbolicMatrix(:H)
+        H = SymbolicMatrix(:H, :H)
         @test isequal(integrate(IntU.tr(H^2), dGOE(d)), d^2 + d)
         @test isequal(integrate(IntU.tr(H^4), dGOE(d)), 2d^3 + 5d^2 + 5d)
     end
 
     @testset "GSE Moments" begin
-        H = SymbolicMatrix(:H)
+        H = SymbolicMatrix(:H, :H)
         @test isequal(integrate(IntU.tr(H^2), dGSE(d)), d^2 - d)
         @test isequal(integrate(IntU.tr(H^4), dGSE(d)), 2d^3 - 5d^2 + 5d)
     end
 
     @testset "Fallback Check" begin
         # Something not in library
-        @variables U[1:2, 1:2]::Complex
-        expr = U[1, 1] * conj(U[1, 1])
+        U_sym = SymbolicMatrix(:U, :U)
+        expr = U_sym[1, 1] * conj(U_sym[1, 1])
         res = integrate(expr, dU(d))
         @test isequal(res, 1/d)
     end

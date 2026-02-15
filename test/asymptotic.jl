@@ -3,26 +3,6 @@ using Test
 using Symbolics
 using LinearAlgebra
 
-function is_really_zero(x)
-    res = Symbolics.simplify(x)
-    if iszero(res)
-        return true
-    end
-    res = Symbolics.expand(res)
-    if iszero(res)
-        return true
-    end
-    # Robust check for rational zeros
-    try
-        num = Symbolics.numerator(res)
-        if iszero(Symbolics.expand(num))
-            return true
-        end
-    catch
-    end
-    return string(Symbolics.unwrap(res)) == "0"
-end
-
 @testset "Asymptotic Expansions" begin
     # 1. Test basic Weingarten asymptotic expansion Wg(1, d)
     # Wg(1, d) = 1/d

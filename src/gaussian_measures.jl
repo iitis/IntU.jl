@@ -509,19 +509,6 @@ function fallback_integrate(t::LazyTrace, measure::GinUEMeasure)
                     visited[curr_pos] = true
                     curr_factor_idx = all_slots[curr_pos]
 
-                    # If G in G_indices (Input), use forward wire to find destination
-                    # If G in G_bar_indices (Output), use reverse wire?
-                    # Actually _build_wires:
-                    # wires: map slot -> next slot (forward)
-                    # reverse_wires: map slot -> prev slot (backward)
-                    
-                    # For Ginibre, trace logic is simple pairings.
-                    # But we need to traverse the cycles between pairings.
-                    # If we are at G_indices (Type G), we leave via column index?
-                    # Wait, G_ij G_bar_kl.
-                    # G is input. G_bar is output?
-                    # Let's assume standard wire traversal.
-                    
                     dest_factor_idx = 0
                     mat_segment = nothing
                     
@@ -606,51 +593,76 @@ function fallback_integrate(t::LazyTrace, measure::GinOEMeasure)
     pos_map = Dict(idx => i for (i, idx) in enumerate(G_indices))
 
     for pi in partitions
-        visited = falses(n_G)
+        # Track which ports of which G matrices we have visited
+        # visited_ports[m_index, port_index] where port_index 1=Input, 2=Output
+        visited_ports = falses(n_G, 2)
         current_partition_traces = []
 
         for start_m = 1:n_G
-            if !visited[start_m]
-                curr_trace_factors = Any[]
-                curr_m = start_m
-                while !visited[curr_m]
-                    visited[curr_m] = true
-                    
-                    curr_idx = G_indices[curr_m]
-                    dest_factor_idx = 0
-                    mat_segment = nothing
-                    
-                    if haskey(wires, curr_idx)
-                        dest_factor_idx, mat_segment = wires[curr_idx]
-                    elseif haskey(reverse_wires, curr_idx)
-                        dest_factor_idx, mat_segment = reverse_wires[curr_idx]
-                    else
-                         error("Connectivity error in GinOE integration")
-                    end
+            for start_port in [1, 2]
+                if !visited_ports[start_m, start_port]
+                    curr_trace_factors = Any[]
+                    curr_m = start_m
+                    curr_port = start_port
 
-                    if mat_segment !== nothing
-                        append!(curr_trace_factors, mat_segment)
-                    end
-                    landed_m = pos_map[dest_factor_idx]
-
-
-                    partner_m = 0
-                    for (u, v) in pi
-                        if u == landed_m
-                            partner_m = v
-                            break
-                        elseif v == landed_m
-                            partner_m = u
-                            break
+                    while !visited_ports[curr_m, curr_port]
+                        visited_ports[curr_m, curr_port] = true
+                        
+                        curr_factor_idx = G_indices[curr_m]
+                        
+                        # Exit current node via curr_port
+                        dest_factor_idx = 0
+                        mat_segment = nothing
+                        if curr_port == 2
+                            # From Port 2 (Output), follow forward wire to next Port 1
+                            dest_factor_idx, mat_segment = wires[curr_factor_idx]
+                            landed_port = 1
+                        else
+                            # From Port 1 (Input), follow backward wire to previous Port 2
+                            dest_factor_idx, mat_segment = reverse_wires[curr_factor_idx]
+                            landed_port = 2
                         end
-                    end
-                    curr_m = partner_m
-                end
 
-                if isempty(curr_trace_factors)
-                    push!(current_partition_traces, dim)
-                else
-                    push!(current_partition_traces, tr_val(curr_trace_factors))
+                        if mat_segment !== nothing
+                            append!(curr_trace_factors, mat_segment)
+                        end
+                        
+                        landed_m = pos_map[dest_factor_idx]
+                        f_landed = all_factors[dest_factor_idx]
+                        
+                        visited_ports[landed_m, landed_port] = true
+
+                        # Jump to partner via Wick contraction.
+                        # Contraction matches indices: row matches row, col matches col.
+                        partner_m = 0
+                        for (u, v) in pi
+                            if u == landed_m
+                                partner_m = v
+                                break
+                            elseif v == landed_m
+                                partner_m = u
+                                break
+                            end
+                        end
+                        
+                        # Determine partner port via index matching
+                        f_partner = all_factors[G_indices[partner_m]]
+                        # If same is_adj, row is at same port index. If different, they swap.
+                        if f_landed.is_adj == f_partner.is_adj
+                            partner_port = landed_port
+                        else
+                            partner_port = (landed_port == 1 ? 2 : 1)
+                        end
+                        
+                        curr_m = partner_m
+                        curr_port = partner_port
+                    end
+
+                    if isempty(curr_trace_factors)
+                        push!(current_partition_traces, dim)
+                    else
+                        push!(current_partition_traces, tr_val(curr_trace_factors))
+                    end
                 end
             end
         end

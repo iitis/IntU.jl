@@ -30,6 +30,37 @@ function to_numeric(x)
     return v
 end
 
+function is_really_zero(x)
+    x = Symbolics.simplify(x)
+    IntU._symbolic_isequal(x, 0) && return true
+    x = Symbolics.expand(x)
+    x = Symbolics.simplify(x)
+    IntU._symbolic_isequal(x, 0) && return true
+    
+    vars = Symbolics.get_variables(x)
+    if isempty(vars)
+        v = Symbolics.value(x)
+        return v isa Number && abs(v) < 1e-10
+    end
+    
+    for i in 1:3
+        subs = Dict(v => rand() + 0.1 for v in vars)
+        try
+            val_sub = Symbolics.substitute(x, subs)
+            v = to_numeric(val_sub)
+            if v isa Number
+                if abs(v) < 1e-9 continue end
+                return false
+            end
+            return false
+        catch e
+            return false
+        end
+    end
+    return true
+end
+
+
 @testset verbose=true "IntU.jl Suite" begin
     @testset verbose=true "Aqua Tests" begin
         include("aqua.jl")

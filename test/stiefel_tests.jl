@@ -11,26 +11,29 @@ using LinearAlgebra
         k_fixed = 2
         d_fixed = 4
         
-        V = SymbolicMatrix(:V, :V, d_fixed)
+        V = SymbolicMatrix(:V, :V, (d_fixed, k_fixed))
         
         measure = dStiefel(d_fixed, k_fixed)
 
         # Check E[V' * V] = I_k
-        # V' * V is k x k
-        expr = collect(V' * V)[1:k_fixed, 1:k_fixed]
-        res = integrate(expr, measure)
-        @test res ≈ I(k_fixed)
+        # Check individual entries to avoid collect symtype issues in some Symbolics versions
+        for i=1:k_fixed, j=1:k_fixed
+            val = integrate((V' * V)[i, j], measure)
+            @test val ≈ (i == j ? 1 : 0)
+        end
 
         # Check E[V V'] = (k/d) * I_d
         res_outer = integrate(V * V', measure)
-        @test res_outer ≈ (k_fixed // d_fixed) * I(d_fixed)
+        # res_outer is a Matrix{Num}, comparison with Diagonal works if we iterate or use ≈
+        for i=1:d_fixed, j=1:d_fixed
+            @test res_outer[i, j] ≈ (i == j ? k_fixed // d_fixed : 0)
+        end
     end
 
     @testset "Symbolic d Normalization" begin
         d_sym = d # Using the variable d defined above
         k_fixed = 2
-
-        V = SymbolicMatrix(:V, :V, d_sym)
+        V = SymbolicMatrix(:V, :V, (d_sym, k_fixed))
         measure = dStiefel(d_sym, k_fixed)
 
         # Skip this test as it causes a hang in symbolic integration (likely huge expression tree)
@@ -41,7 +44,7 @@ using LinearAlgebra
         d_sym = d
         
         # Stiefel version
-        V = SymbolicMatrix(:V, :V, d_sym)
+        V = SymbolicMatrix(:V, :V, (d_sym, 1))
         m_stiefel = dStiefel(d_sym, 1)
 
         # Pure state version (tag :psi)

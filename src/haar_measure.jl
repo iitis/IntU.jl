@@ -134,7 +134,7 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
             inv_sigma = invperm(sigma)
             inv_tau = invperm(tau)
             visited = falses(total_factors, 2)
-            current_term_traces = Num[]
+            current_term_traces = Any[]
             
             for slot in all_slots
                 for port = 1:2

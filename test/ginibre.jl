@@ -59,8 +59,7 @@ import LinearAlgebra: tr
     @testset "Real Ginibre (GinOE)" begin
         meas = dGinOE(N)
         # < Tr(G * G^T) > = N^2
-        # Broken: Currently returns N (0 loop count issue?)
-        @test_broken to_numeric(integrate(IntU.tr(G * transpose(G)), meas)) == N^2
+        @test to_numeric(integrate(IntU.tr(G * transpose(G)), meas)) == N^2
 
         # < G_11^2 > = 1
         @test to_numeric(integrate(G[1, 1]^2, meas)) == 1

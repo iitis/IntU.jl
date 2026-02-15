@@ -286,7 +286,8 @@ function match_index(m::MetadataMatcher, t)
             indices = get(meta, :indices, nothing)
             if indices !== nothing
                 i, j = indices
-                final_is_conj = is_conj
+                # Combine is_conj (from call) and :is_adj (from metadata)
+                final_is_conj = is_conj || get(meta, :is_adj, false)
                 
                 final_tag = final_is_conj ? Symbol(m.type_tag, :_bar) : m.type_tag
                 return (final_tag, i, j)
@@ -302,7 +303,7 @@ end
 A dictionary mapping measure types (symbols) to their respective integration rule functions.
 Each rule function should have the signature `(u_indices, u_bar_indices, dim, measure_type)`.
 """
-const INTEGRATION_RULES = Dict{Any,Function}()
+const INTEGRATION_RULES = Dict{Symbol,Function}()
 
 function _extract_coeff_core(term)
     if term isa Number
@@ -614,6 +615,10 @@ function _integrate_core(
             end
         elseif op == complex || op == Base.complex
             return monomializer(args[1]) + im * monomializer(args[2])
+        elseif op == real || op == Base.real
+            return monomializer((args[1] + conj(args[1])) / 2)
+        elseif op == imag || op == Base.imag
+            return monomializer((args[1] - conj(args[1])) / (2im))
         end
         # Also handle standard recursive distribution for non-conj calls
         return Symbolics.wrap(Symbolics.iscall(ux) ? 
@@ -769,7 +774,8 @@ dimension in `measure` is a concrete integer.
 function integrate(A::SymbolicMatrix, measure)
     dim = _get_measure_dim(measure)
     if dim isa Integer
-        res = zeros(Num, dim, dim)
+        res = Matrix{Any}(undef, dim, dim)
+        fill!(res, 0)
         for i = 1:dim
             for j = 1:dim
                 res[i, j] = integrate(A[i, j], measure)
@@ -787,33 +793,46 @@ Integrate a product of SymbolicMatrices. Returns a matrix of results if the
 dimension in `measure` is a concrete integer.
 """
 function integrate(P::SymbolicMatrixProduct, measure)
-    dim_raw = _get_measure_dim(measure)
-    dim_un = Symbolics.unwrap(dim_raw)
-    if dim_un isa Integer
-        dim = Int(dim_un)
-        function get_entry(i, j)
-            prod_expr = 1
-            if isempty(P.factors)
-                return i == j ? 1 : 0
+    if isempty(P.factors)
+        return Num(1)
+    end
+    
+    rows_sym = size(P.factors[1], 1)
+    cols_sym = size(P.factors[end], 2)
+    
+    r_un = Symbolics.unwrap(rows_sym)
+    c_un = Symbolics.unwrap(cols_sym)
+    
+    if r_un isa Integer && c_un isa Integer
+        nr = Int(r_un)
+        nc = Int(c_un)
+        
+        # Pre-calculate factor matrices to avoid repeated getindex overhead
+        mats = []
+        for f in P.factors
+            fr, fc = size(f)
+            fr_un = Symbolics.unwrap(fr)
+            fc_un = Symbolics.unwrap(fc)
+            
+            if !(fr_un isa Integer && fc_un isa Integer)
+                error("Factor $f has non-numeric size ($fr, $fc). Cannot expand product.")
             end
             
-            mats = []
-            for f in P.factors
-                push!(mats, [f[r, c] for r=1:dim, c=1:dim])
-            end
-            res_mat = reduce(*, mats)
-            return res_mat[i, j]
+            push!(mats, [f[r, c] for r=1:Int(fr_un), c=1:Int(fc_un)])
         end
+        # Calculate the full symbolic product once
+        res_mat = reduce(*, mats)
         
-        res = zeros(Num, dim, dim)
-        for i = 1:dim
-            for j = 1:dim
-                res[i, j] = integrate(get_entry(i, j), measure)
+        res = Matrix{Any}(undef, nr, nc)
+        fill!(res, 0)
+        for i = 1:nr
+            for j = 1:nc
+                res[i, j] = integrate(res_mat[i, j], measure)
             end
         end
         return res
     end
-    error("Direct integration of SymbolicMatrixProduct requires a numeric dimension in the measure.")
+    error("Direct integration of SymbolicMatrixProduct requires numeric result dimensions.")
 end
 
 """
@@ -983,6 +1002,22 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
                     traverse(arg, conjugated)
                 end
                 return
+            elseif op == real || op == Base.real
+                # real(x) = (x + conj(x)) / 2
+                coeff *= 1 // 2
+                traverse(args[1], conjugated)
+                traverse(args[1], !conjugated)
+                return
+            elseif op == imag || op == Base.imag
+                # imag(x) = (x - conj(x)) / 2im
+                # conj(imag(x)) = (conj(x) - x) / -2im = (x - conj(x)) / 2im
+                # So it's the same regardless of conjugated (except for the factor maybe?)
+                # Actually, (U-Ubar)/2im -> integral of U/2im and -Ubar/2im.
+                coeff *= 1 // (2im)
+                traverse(args[1], conjugated)
+                coeff *= -1
+                traverse(args[1], !conjugated)
+                return
             elseif op == getindex
                 # Potential match via metadata even if not explicitly wrapped
                 match_res_direct = match_index(matcher, t_unwrapped)
@@ -1125,6 +1160,25 @@ INTEGRATION_RULES[:Perm] =
     (u, ub, d, mt) -> begin
         all_indices = [u; ub]
         length(all_indices) == 0 ? 1 : integrate_indices_permutation(all_indices, d)
+    end
+
+INTEGRATION_RULES[:CPerm] =
+    (u, ub, d, mt) -> begin
+        all_indices = [u; ub]
+        if isempty(all_indices)
+            return 1
+        end
+        
+        n = length(all_indices)
+        total = 0
+        for k = 0:n
+            for combo in Combinatorics.combinations(1:n, k)
+                subset = all_indices[combo]
+                term = integrate_indices_permutation(subset, d)
+                total += (-1/d)^(n-k) * term
+            end
+        end
+        return total
     end
 
 INTEGRATION_RULES[:DiagUnitary] =

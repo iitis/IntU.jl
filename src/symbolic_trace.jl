@@ -13,7 +13,7 @@ struct SymbolicMatrix <: AbstractMatrix{Num}
     name::Symbol
     is_adj::Bool
     special_type::Symbol 
-    dim::Any
+    dim::Union{Nothing, Integer, Num, Tuple{Union{Integer, Num}, Union{Integer, Num}}}
 
     function SymbolicMatrix(name::Symbol, is_adj::Bool, special_type::Symbol, dim::Any)
         new(name, is_adj, special_type, dim)
@@ -24,14 +24,20 @@ struct MatrixMetadata end
 
 SymbolicMatrix(name::Symbol) = SymbolicMatrix(name, false, :Constant, nothing)
 SymbolicMatrix(name::Symbol, special_type::Symbol) = SymbolicMatrix(name, false, special_type, nothing)
+SymbolicMatrix(name::Symbol, is_adj::Bool, special_type::Symbol) = SymbolicMatrix(name, is_adj, special_type, nothing)
 SymbolicMatrix(name::Symbol, special_type::Symbol, dim) = SymbolicMatrix(name, false, special_type, dim)
 
-import Base: *, adjoint, show, ^, size, getindex
+import Base: *, adjoint, transpose, show, ^, size, getindex
 import LinearAlgebra: tr
 
 function Base.size(A::SymbolicMatrix)
-    d = A.dim === nothing ? typemax(Int) : A.dim
-    return (d, d)
+    d = A.dim === nothing ? (typemax(Int), typemax(Int)) : A.dim
+    if d isa Tuple
+        rows, cols = d
+        return A.is_adj ? (cols, rows) : (rows, cols)
+    else
+        return (d, d)
+    end
 end
 
 function Base.getindex(A::SymbolicMatrix, i::Integer, j::Integer)
@@ -47,17 +53,20 @@ function Base.getindex(A::SymbolicMatrix, i::Integer, j::Integer)
         :is_adj => A.is_adj
     )
 
-    # Use T=Number to avoid Symbolics decomposing it into real/imag parts.
-    # This keeps conj(v) as a symbolic call that the integration engine can handle.
+    # Use T=Number to preserve conj as a call. We use Matrix{Any} in integration to avoid symtype errors.
     v = Symbolics.variable(s_name, T = Number)
-    
-    # Apply metadata to the Num wrapper directly
-    v_meta = Symbolics.setmetadata(v, MatrixMetadata, meta)
+    v_un = Symbolics.unwrap(v)
+    v_meta_un = SymbolicUtils.setmetadata(v_un, MatrixMetadata, meta)
+    v_meta = Symbolics.wrap(v_meta_un)
     
     return A.is_adj ? conj(v_meta) : v_meta
 end
 
-function adjoint(A::SymbolicMatrix)
+function Base.adjoint(A::SymbolicMatrix)
+    return SymbolicMatrix(A.name, !A.is_adj, A.special_type, A.dim)
+end
+
+function Base.transpose(A::SymbolicMatrix)
     return SymbolicMatrix(A.name, !A.is_adj, A.special_type, A.dim)
 end
 
@@ -69,8 +78,8 @@ function Base.show(io::IO, A::SymbolicMatrix)
 end
 
 struct LazyTrace
-    cycles::Vector{Vector{Any}}
-    prefactor::Any
+    cycles::Vector{Vector{AbstractMatrix}}
+    prefactor::Union{Num, Number}
 end
 
 function Base.getproperty(t::LazyTrace, s::Symbol)
@@ -85,7 +94,7 @@ struct LazySum
 end
 
 struct SymbolicMatrixProduct <: AbstractMatrix{Num}
-    factors::Vector{Any}
+    factors::Vector{AbstractMatrix}
 end
 
 const SymbolicAny = Union{SymbolicMatrix, SymbolicMatrixProduct}
@@ -93,6 +102,16 @@ const SymbolicAny = Union{SymbolicMatrix, SymbolicMatrixProduct}
 function Base.size(P::SymbolicMatrixProduct)
     if isempty(P.factors) return (0, 0) end
     return (size(P.factors[1], 1), size(P.factors[end], 2))
+end
+
+function Base.size(P::SymbolicMatrixProduct, i::Integer)
+    if i == 1
+        return size(P.factors[1], 1)
+    elseif i == 2
+        return size(P.factors[end], 2)
+    else
+        return 1
+    end
 end
 
 function Base.getindex(P::SymbolicMatrixProduct, i::Integer, j::Integer)
@@ -123,6 +142,14 @@ function *(A::AbstractMatrix, B::SymbolicAny)
     return SymbolicMatrixProduct(vcat(Any[A], _factors(B)))
 end
 
+function *(A::SymbolicAny, B::SymbolicAny, Cs::SymbolicAny...)
+    res_factors = vcat(_factors(A), _factors(B))
+    for C in Cs
+        append!(res_factors, _factors(C))
+    end
+    return SymbolicMatrixProduct(res_factors)
+end
+
 # Resolve ambiguities with LinearAlgebra and Symbolics
 using LinearAlgebra
 for T in [Adjoint, Transpose]
@@ -134,13 +161,11 @@ for T in [Adjoint, Transpose]
     end
 end
 
-if isdefined(Symbolics, :Arr)
-    function *(A::Symbolics.Arr, B::SymbolicAny)
-        return SymbolicMatrixProduct(vcat(Any[A], _factors(B)))
-    end
-    function *(A::SymbolicAny, B::Symbolics.Arr)
-        return SymbolicMatrixProduct(vcat(_factors(A), Any[B]))
-    end
+function *(A::Symbolics.Arr, B::SymbolicAny)
+    return SymbolicMatrixProduct(vcat(Any[A], _factors(B)))
+end
+function *(A::SymbolicAny, B::Symbolics.Arr)
+    return SymbolicMatrixProduct(vcat(_factors(A), Any[B]))
 end
 
 # Resolve specific ambiguities discovered during tests
@@ -163,7 +188,32 @@ for T in [Adjoint, Transpose]
     @eval function *(A::$T{<:Any, <:AbstractVector}, B::AbstractMatrix, C::SymbolicAny, D::AbstractMatrix)
         return (A * B) * (C * D)
     end
-    # ... more might be needed, but let's start with these
+
+    # Disambiguate with internal overlaps
+    @eval function *(A::$T{<:Any, <:AbstractVector}, B::AbstractMatrix, C::SymbolicAny, D::SymbolicAny)
+        return (A * B) * (C * D)
+    end
+
+    # Disambiguate with Symbolics.Arr (3-arg)
+    @eval function *(A::$T{W, <:AbstractVector}, B::Symbolics.Arr, C::SymbolicAny) where W
+        return (A * B) * C
+    end
+    @eval function *(A::$T{W, <:AbstractVector}, B::Symbolics.Arr, C::SymbolicAny) where W<:Number
+        return (A * B) * C
+    end
+
+    # Disambiguate with Symbolics.Arr (4-arg)
+    for W_type in [Any, Number]
+        @eval function *(A::$T{W, <:AbstractVector}, B::Symbolics.Arr, C::AbstractMatrix, D::SymbolicAny) where W<:$W_type
+            return (A * B) * (C * D)
+        end
+        @eval function *(A::$T{W, <:AbstractVector}, B::Symbolics.Arr, C::SymbolicAny, D::AbstractMatrix) where W<:$W_type
+            return (A * B) * (C * D)
+        end
+        @eval function *(A::$T{W, <:AbstractVector}, B::Symbolics.Arr, C::SymbolicAny, D::SymbolicAny) where W<:$W_type
+            return (A * B) * (C * D)
+        end
+    end
 end
 
 function ^(A::SymbolicMatrix, n::Integer)
@@ -267,9 +317,7 @@ function tr_val(factors::AbstractVector)
             if prod_val isa AbstractMatrix && eltype(prod_val) <: Number && !(eltype(prod_val) <: Num)
                   return LinearAlgebra.tr(prod_val)
             end
-            # Also handle Matrix{Num} where all elements are numbers?
             if prod_val isa AbstractMatrix && eltype(prod_val) <: Num
-                  # check if all values are numeric
                   all_num = true
                   for x in prod_val
                       if !is_number(x)
@@ -284,9 +332,29 @@ function tr_val(factors::AbstractVector)
         end
     end
 
-    s_parts = [string(f) for f in factors]
-    name = "tr(" * join(s_parts, "*") * ")"
-    return Num(Symbolics.variable(Symbol(name); T = Real))
+    # Normalize trace by circular shifting and taking the smallest lexicographically.
+    # We also consider the adjoint representation.
+    function get_norm_string(fs)
+        n = length(fs)
+        s_list = [string(f) for f in fs]
+        min_s = join(s_list, "*")
+        for i = 1:n-1
+            p = vcat(s_list[i+1:n], s_list[1:i])
+            curr_s = join(p, "*")
+            if curr_s < min_s
+                min_s = curr_s
+            end
+        end
+        return min_s
+    end
+
+    s1 = get_norm_string(factors)
+    adj_factors = reverse([adjoint(f) for f in factors])
+    s2 = get_norm_string(adj_factors)
+    
+    name = "tr(" * (s1 < s2 ? s1 : s2) * ")"
+    # Use T=Number to preserve symbolic structure.
+    return Num(Symbolics.variable(Symbol(name); T = Number))
 end
 
 function is_number(x)

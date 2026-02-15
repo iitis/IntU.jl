@@ -55,8 +55,6 @@ using LinearAlgebra
         # Expected result is Identity
         I_mat = Matrix(I, d_val, d_val)
         
-        println("DEBUG Matrix Integration Checks:")
-        println("res_matrix types: ", typeof.(res_matrix))
         # Convert to numeric float for ≈ check
         res_num = zeros(Float64, d_val, d_val)
         for i=1:d_val, j=1:d_val

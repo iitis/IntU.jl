@@ -238,8 +238,8 @@ Using the symplectic form ``J = [0\; I; -I\; 0]`` with ``\dim = 2N``:
 ```math
 (U^R)_{aj} = \text{sign}(a)\,\text{sign}(j)\, U_{\text{pair}(j),\,\text{pair}(a)}
 ```
-where ``\text{pair}(k)`` maps ``k \leftrightarrow k \pm N`` and
-``\text{sign}(k) = J_{k,\text{pair}(k)}``.
+where `pair(k)` maps `k ↔ k+1` (for odd `k`) or `k ↔ k-1` (for even `k`),
+and `sign(k) = J_{k,pair(k)}`.
 
 Each ``S_{ij}`` produces two U-type indices with coefficients ``\text{sign}(j)\,\text{sign}(a_k)``,
 and each ``\bar{S}_{pq}`` produces two ``\bar{U}``-type indices similarly.
@@ -273,21 +273,11 @@ function integrate_indices_cse(
     n = 2 * m
     half_dim = (phys_dim isa Integer) ? div(phys_dim, 2) : phys_dim / 2
 
-    U_rows = Vector{Int}(undef, n)
+    U_rows = Vector{Any}(undef, n)
     fixed_sign_coeff = 1
 
-    get_sign(idx) = begin
-        if half_dim isa Num && idx isa Integer
-            return 1
-        end
-        return idx <= half_dim ? 1 : -1
-    end
-    get_pair(idx) = begin
-        if half_dim isa Num && idx isa Integer
-            return idx + half_dim
-        end
-        return (idx <= half_dim ? idx + half_dim : idx - half_dim)
-    end
+    get_sign(idx) = isodd(idx) ? 1 : -1
+    get_pair(idx) = isodd(idx) ? idx + 1 : idx - 1
 
     for k = 1:m
         i, j = indices[k]
@@ -297,7 +287,7 @@ function integrate_indices_cse(
         fixed_sign_coeff *= get_sign(j)
     end
 
-    U_bar_rows = Vector{Int}(undef, n)
+    U_bar_rows = Vector{Any}(undef, n)
     for k = 1:m
         p, q = U_bar_indices[k]
         U_bar_rows[2k-1] = p

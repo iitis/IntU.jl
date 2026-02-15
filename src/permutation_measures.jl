@@ -54,19 +54,9 @@ function IntU.measure_info(measure::PermutationMeasure)
 end
 
 function IntU.measure_info(measure::CenteredPermutationMeasure)
-    # Centered permutations are handled by substituting Y_ij = P_ij - 1/dim
-    # We need a matcher for P, which is the Permutation group.
-    # MetadataMatcher(:Perm) will match P_ij.
-    # But wait, centered permutation entries Y_ij might not be tagged by the user.
-    # Actually, if the user creates Y = SymbolicMatrix(:Y, :Perm), getindex will tag it.
-    
     subs_dict = Dict{Any,Any}()
-    # If expr contains Y_ij, we need to substitute it with P_ij - 1/dim.
-    # This might require some more elaborate logic in process_term if we want it fully automatic.
-    # For now, let's assume Y_ij is tagged as :Perm.
-    
     matcher = MetadataMatcher(:Perm)
-    return (subs_dict, matcher, measure.dim, :Perm)
+    return (subs_dict, matcher, measure.dim, :CPerm)
 end
 
 """
