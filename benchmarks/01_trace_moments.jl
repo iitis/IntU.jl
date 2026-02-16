@@ -6,9 +6,9 @@ using BenchmarkTools
 function benchmark_trace_moments(d_vals, k_vals)
     for d in d_vals
         println("Benchmarking U($d)")
-        @variables U[1:d, 1:d]::Complex
-        measure = dU(U, d)
-        tr_U = IntU.tr(U)
+        U_sym = SymbolicMatrix(:U, :U, d)
+        measure = dU(d)
+        tr_U = tr(U_sym)
 
         for k in k_vals
             if k > d

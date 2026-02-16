@@ -6,13 +6,17 @@ This is mathematically equivalent to the Haar measure on U(d).
 """
 dCUE(dim) = dU(dim)
 
-struct COEMeasure{D}
+struct COEMeasure{D,M}
     dim::D
+    matcher::M
 end
+COEMeasure(dim) = COEMeasure(dim, nothing)
 
-struct CSEMeasure{D}
+struct CSEMeasure{D,M}
     dim::D
+    matcher::M
 end
+CSEMeasure(dim) = CSEMeasure(dim, nothing)
 
 @doc raw"""
     dCOE(dim)
@@ -58,14 +62,22 @@ end
 
 function IntU.measure_info(measure::COEMeasure)
     subs_dict = Dict{Any,Any}()
-    matcher = MetadataMatcher(:COE)
-    return (subs_dict, matcher, measure.dim, :COE)
+    matcher = measure.matcher === nothing ? MetadataMatcher(:COE) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
+    end
+    return (subs_dict, matcher, dim, :COE)
 end
 
 function IntU.measure_info(measure::CSEMeasure)
     subs_dict = Dict{Any,Any}()
-    matcher = MetadataMatcher(:CSE)
-    return (subs_dict, matcher, measure.dim, :CSE)
+    matcher = measure.matcher === nothing ? MetadataMatcher(:CSE) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
+    end
+    return (subs_dict, matcher, dim, :CSE)
 end
 
 

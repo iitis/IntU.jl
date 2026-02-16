@@ -1,7 +1,7 @@
 @testset "GOE Integration" begin
     # Test for N=3
     N = 3
-    H = SymbolicMatrix(:H, :H, N)
+    H = SymbolicMatrix(:H, :GOE, N)
     meas = dGOE(N)
 
     @testset "Tr(H)" begin

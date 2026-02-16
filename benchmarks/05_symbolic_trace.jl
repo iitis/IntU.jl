@@ -5,7 +5,7 @@ using Symbolics
 function run_benchmarks()
     @variables d
     U = SymbolicMatrix(:U, false, :U)
-    measure = dU(U, d)
+    measure = dU(d)
     Ud = U'
 
     # Create constants

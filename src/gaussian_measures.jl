@@ -1,51 +1,45 @@
 # Gaussian Random Matrix measures (GUE, GOE, GSE)
 
-struct GUEMeasure{D}
+struct GUEMeasure{D,M}
     dim::D
+    matcher::M
 end
+GUEMeasure(dim) = GUEMeasure(dim, nothing)
 
-struct GOEMeasure{D}
+struct GOEMeasure{D,M}
     dim::D
+    matcher::M
 end
+GOEMeasure(dim) = GOEMeasure(dim, nothing)
 
-struct GSEMeasure{D}
+struct GSEMeasure{D,M}
     dim::D
+    matcher::M
 end
+GSEMeasure(dim) = GSEMeasure(dim, nothing)
 
-struct GinUEMeasure{D}
+struct GinUEMeasure{D,M}
     dim::D
+    matcher::M
 end
+GinUEMeasure(dim) = GinUEMeasure(dim, nothing)
 
-struct GinOEMeasure{D}
+struct GinOEMeasure{D,M}
     dim::D
+    matcher::M
 end
+GinOEMeasure(dim) = GinOEMeasure(dim, nothing)
 
-struct GinSEMeasure{D}
+struct GinSEMeasure{D,M}
     dim::D
+    matcher::M
 end
+GinSEMeasure(dim) = GinSEMeasure(dim, nothing)
 
-"""
-    dGUE(dim)
-
-Defines the measure for the **Gaussian Unitary Ensemble (GUE)**.
-Integration engine identifies variables via metadata tag `:H`.
-"""
 dGUE(dim) = GUEMeasure(dim)
 
-"""
-    dGOE(dim)
-
-Defines the measure for the **Gaussian Orthogonal Ensemble (GOE)**.
-Integration engine identifies variables via metadata tag `:H`.
-"""
 dGOE(dim) = GOEMeasure(dim)
 
-"""
-    dGSE(dim)
-
-Defines the measure for the **Gaussian Symplectic Ensemble (GSE)**.
-Dimension d must be even.
-"""
 function dGSE(dim)
     if dim isa Integer && isodd(dim)
         throw(ArgumentError("GSE dimension must be even, got $dim"))
@@ -53,28 +47,10 @@ function dGSE(dim)
     return GSEMeasure(dim)
 end
 
-"""
-    dGinUE(dim)
-
-Defines the measure for the **Complex Ginibre Ensemble (GinUE)**.
-Integration engine identifies variables via metadata tag `:G`.
-"""
 dGinUE(dim) = GinUEMeasure(dim)
 
-"""
-    dGinOE(dim)
-
-Defines the measure for the **Real Ginibre Ensemble (GinOE)**.
-Integration engine identifies variables via metadata tag `:G`.
-"""
 dGinOE(dim) = GinOEMeasure(dim)
 
-"""
-    dGinSE(dim)
-
-Defines the measure for the **Symplectic Ginibre Ensemble (GinSE)**.
-Dimension d must be even.
-"""
 function dGinSE(dim)
     if dim isa Integer && isodd(dim)
         throw(ArgumentError("GinSE dimension must be even, got $dim"))
@@ -110,55 +86,80 @@ function integrate(expr::AbstractArray, measure::GinSEMeasure)
 end
 
 # Resolve ambiguities with SymbolicMatrix/SymbolicMatrixProduct
-for M in [GUEMeasure, GOEMeasure, GSEMeasure, GinUEMeasure, GinOEMeasure, GinSEMeasure]
-    @eval function integrate(expr::SymbolicMatrix, measure::$M)
+for T_measure in [GUEMeasure, GOEMeasure, GSEMeasure, GinUEMeasure, GinOEMeasure, GinSEMeasure]
+    @eval function integrate(expr::SymbolicMatrix, measure::$T_measure)
         return invoke(integrate, Tuple{SymbolicMatrix, Any}, expr, measure)
     end
-    @eval function integrate(expr::SymbolicMatrixProduct, measure::$M)
+    @eval function integrate(expr::SymbolicMatrixProduct, measure::$T_measure)
         return invoke(integrate, Tuple{SymbolicMatrixProduct, Any}, expr, measure)
     end
 end
 
 function IntU.measure_info(measure::GUEMeasure)
     subs_dict = Dict{Any,Any}()
-    matcher = MetadataMatcher(:H)
-    return (subs_dict, matcher, measure.dim, :GUE)
+    matcher = measure.matcher === nothing ? MetadataMatcher(:GUE) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
+    end
+    return (subs_dict, matcher, dim, :GUE)
 end
 
 function IntU.measure_info(measure::GOEMeasure)
     subs_dict = Dict{Any,Any}()
-    matcher = MetadataMatcher(:H)
-    return (subs_dict, matcher, measure.dim, :GOE)
+    matcher = measure.matcher === nothing ? MetadataMatcher(:GOE) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
+    end
+    return (subs_dict, matcher, dim, :GOE)
 end
 
 function IntU.measure_info(measure::GSEMeasure)
     subs_dict = Dict{Any,Any}()
-    matcher = MetadataMatcher(:H)
-    return (subs_dict, matcher, measure.dim, :GSE)
+    matcher = measure.matcher === nothing ? MetadataMatcher(:GSE) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
+    end
+    return (subs_dict, matcher, dim, :GSE)
 end
 
 function IntU.measure_info(measure::GinUEMeasure)
     subs_dict = Dict{Any,Any}()
-    matcher = MetadataMatcher(:G)
-    return (subs_dict, matcher, measure.dim, :GinUE)
+    matcher = measure.matcher === nothing ? MetadataMatcher(:GinUE) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
+    end
+    return (subs_dict, matcher, dim, :GinUE)
 end
 
 function IntU.measure_info(measure::GinOEMeasure)
     subs_dict = Dict{Any,Any}()
-    matcher = MetadataMatcher(:G)
-    return (subs_dict, matcher, measure.dim, :GinOE)
+    matcher = measure.matcher === nothing ? MetadataMatcher(:GinOE) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
+    end
+    return (subs_dict, matcher, dim, :GinOE)
 end
 
 function IntU.measure_info(measure::GinSEMeasure)
     subs_dict = Dict{Any,Any}()
-    matcher = MetadataMatcher(:G)
-    return (subs_dict, matcher, measure.dim, :GinSE)
+    matcher = measure.matcher === nothing ? MetadataMatcher(:GinSE) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
+    end
+    return (subs_dict, matcher, dim, :GinSE)
 end
 
 function fallback_integrate(t::LazyTrace, measure::GUEMeasure)
     factors = t.factors
-    # We look for matrices tagged as :H
-    H_type = :H
+    # We look for matrices tagged correctly
+    matcher = measure.matcher === nothing ? MetadataMatcher(:GUE) : measure.matcher
+    H_type = (matcher isa MetadataMatcher) ? matcher.type_tag : :GUE
 
 
     H_indices = Int[]
@@ -251,7 +252,8 @@ end
 
 function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
     factors = t.factors
-    H_type = :H
+    matcher = measure.matcher === nothing ? MetadataMatcher(:GOE) : measure.matcher
+    H_type = (matcher isa MetadataMatcher) ? matcher.type_tag : :GOE
 
     H_indices = Int[]
     for (i, f) in enumerate(factors)
@@ -306,7 +308,7 @@ function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
     total_val = 0
 
     for pi in partitions
-        # GOE: <H_ij H_kl> = δ_ik δ_jl + δ_il δ_jk
+        # GOE: <H_ij H_kl> = delta_ik delta_jl + delta_il delta_jk
         # Sum over all 2^(n_H/2) contraction-type choices
 
         choice_combinations = collect(Iterators.product(fill([1, 2], n_H ÷ 2)...))
@@ -427,16 +429,17 @@ end
 function fallback_integrate(t::LazyTrace, measure::GSEMeasure)
     # GSE-GOE duality: <Tr(H^k)>_GSE(d) = (-1)^(k/2+1) <Tr(H^k)>_GOE(-d)
     factors = t.factors
-    H_type = :H
+    H_type = :GSE
     n_H = count(f -> f isa SymbolicMatrix && f.special_type == H_type, factors)
 
     if isodd(n_H)
         return 0
     end
 
-    goe_res = integrate(t, dGOE(measure.dim))
+    goe_m = GOEMeasure(measure.dim, MetadataMatcher(H_type))
+    goe_res = integrate(t, goe_m)
 
-    # Substitute d → -d
+    # Substitute d -> -d
     dim = measure.dim
     res_subbed = Symbolics.substitute(goe_res, Dict(dim => -dim))
 
@@ -451,7 +454,8 @@ function fallback_integrate(t::LazyTrace, measure::GinUEMeasure)
         return t.prefactor
     end
 
-    G_type = :G
+    matcher = measure.matcher === nothing ? MetadataMatcher(:GinUE) : measure.matcher
+    G_type = (matcher isa MetadataMatcher) ? matcher.type_tag : :GinUE
 
 
     all_factors = Any[]
@@ -556,7 +560,8 @@ function fallback_integrate(t::LazyTrace, measure::GinOEMeasure)
         return t.prefactor
     end
 
-    G_type = :G
+    matcher = measure.matcher === nothing ? MetadataMatcher(:GinOE) : measure.matcher
+    G_type = (matcher isa MetadataMatcher) ? matcher.type_tag : :GinOE
 
     all_factors = Any[]
     cycle_ranges = UnitRange{Int}[]
@@ -672,7 +677,7 @@ function fallback_integrate(t::LazyTrace, measure::GinOEMeasure)
 end
 
 function fallback_integrate(t::LazyTrace, measure::GinSEMeasure)
-    G_type = :G
+    G_type = :GinSE
     all_factors = vcat(t.cycles...)
     n_G = count(f -> f isa SymbolicMatrix && f.special_type == G_type, all_factors)
 
@@ -680,7 +685,8 @@ function fallback_integrate(t::LazyTrace, measure::GinSEMeasure)
         return 0
     end
 
-    ginoe_res = integrate(t, dGinOE(measure.dim))
+    ginoe_m = GinOEMeasure(measure.dim, MetadataMatcher(G_type))
+    ginoe_res = integrate(t, ginoe_m)
     dim = measure.dim
     res_subbed = Symbolics.substitute(ginoe_res, Dict(dim => -dim))
     final_sign = ((-1)^(n_G ÷ 2 + 1))

@@ -2,10 +2,14 @@
 
 # Type to represent integration over pure states |psi>
 # Type to represent integration over pure states |psi>
-struct PureStateMeasure{D}
+struct PureStateMeasure{D,M}
     dim::D
+    matcher::M
 end
-"""
+
+# Constructor for backward compatibility
+PureStateMeasure(dim) = PureStateMeasure(dim, nothing)
+@doc raw"""
     dPsi(dim)
 
 Defines the Fubini-Study measure for a **random pure state** |psi> 
@@ -32,8 +36,12 @@ end
 
 function IntU.measure_info(measure::PureStateMeasure)
     subs_dict = Dict{Any,Any}()
-    matcher = MetadataMatcher(:psi)
-    return (subs_dict, matcher, measure.dim, :psi)
+    matcher = measure.matcher === nothing ? MetadataMatcher(:psi) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
+    end
+    return (subs_dict, matcher, dim, :psi)
 end
 
 """
@@ -43,6 +51,10 @@ Returns the series expansion of the integral in powers of `1/d`.
 """
 function asymptotic(expr, measure::PureStateMeasure, order = 1)
     d = measure.dim
+    if d isa SymbolicMatrix
+        d = d.dim
+    end
+
     if d isa Symbolics.Num || !(d isa Integer)
         exact_res = integrate(expr, measure)
         return _expand_asymptotic(exact_res, d, order)

@@ -13,7 +13,7 @@ struct SymbolicMatrix <: AbstractMatrix{Num}
     name::Symbol
     is_adj::Bool
     special_type::Symbol 
-    dim::Union{Nothing, Integer, Num, Tuple{Union{Integer, Num}, Union{Integer, Num}}}
+    dim::Union{Nothing, Integer, Num, Tuple{Union{Integer, Num}, Union{Integer, Num}}, Any}
 
     function SymbolicMatrix(name::Symbol, is_adj::Bool, special_type::Symbol, dim::Any)
         new(name, is_adj, special_type, dim)
@@ -60,6 +60,31 @@ function Base.getindex(A::SymbolicMatrix, i::Integer, j::Integer)
     v_meta = Symbolics.wrap(v_meta_un)
     
     return A.is_adj ? conj(v_meta) : v_meta
+end
+
+function Base.getindex(A::SymbolicMatrix, i::Union{Integer, AbstractVector, Colon}, j::Union{Integer, AbstractVector, Colon})
+    rows = (i isa Colon) ? (1:size(A, 1)) : i
+    cols = (j isa Colon) ? (1:size(A, 2)) : j
+    
+    # Handle single element access by dispatching back to (Integer, Integer)
+    if rows isa Integer && cols isa Integer
+        return invoke(getindex, Tuple{SymbolicMatrix, Integer, Integer}, A, rows, cols)
+    end
+    
+    # We use Matrix{Any} in integration to avoid symtype errors.
+    res = Matrix{Any}(undef, length(rows), length(cols))
+    for (r_idx, r) in enumerate(rows)
+        for (c_idx, c) in enumerate(cols)
+            res[r_idx, c_idx] = A[r, c]
+        end
+    end
+    # Return vector if single column/row was requested (standard Julia behavior)
+    if length(cols) == 1 && (j isa Integer)
+        return res[:, 1]
+    elseif length(rows) == 1 && (i isa Integer)
+        return res[1, :]
+    end
+    return res
 end
 
 function Base.adjoint(A::SymbolicMatrix)

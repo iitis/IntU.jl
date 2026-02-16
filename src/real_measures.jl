@@ -55,7 +55,11 @@ end
 function IntU.measure_info(measure::OrthogonalMeasure)
     subs_dict = Dict{Any,Any}()
     matcher = MetadataMatcher(:O)
-    return (subs_dict, matcher, measure.dim, :O)
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
+    end
+    return (subs_dict, matcher, dim, :O)
 end
 
 function _j_pair_sign(idx, n)
@@ -69,7 +73,11 @@ end
 function IntU.measure_info(measure::SymplecticMeasure)
     subs_dict = Dict{Any,Any}()
     matcher = MetadataMatcher(:Sp)
-    return (subs_dict, matcher, measure.dim, :Sp)
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
+    end
+    return (subs_dict, matcher, dim, :Sp)
 end
 
 """

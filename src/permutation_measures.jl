@@ -1,13 +1,17 @@
 # Permutation Group measures
 
 # Dummy types to represent the measures
-struct PermutationMeasure{D}
+struct PermutationMeasure{D,M}
     dim::D
+    matcher::M
 end
+PermutationMeasure(dim) = PermutationMeasure(dim, nothing)
 
-struct CenteredPermutationMeasure{D}
+struct CenteredPermutationMeasure{D,M}
     dim::D
+    matcher::M
 end
+CenteredPermutationMeasure(dim) = CenteredPermutationMeasure(dim, nothing)
 
 @doc raw"""
     dPerm(dim)
@@ -49,14 +53,56 @@ end
 
 function IntU.measure_info(measure::PermutationMeasure)
     subs_dict = Dict{Any,Any}()
-    matcher = MetadataMatcher(:Perm)
-    return (subs_dict, matcher, measure.dim, :Perm)
+    matcher = measure.matcher === nothing ? MetadataMatcher(:Perm) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
+    end
+    return (subs_dict, matcher, dim, :Perm)
 end
 
 function IntU.measure_info(measure::CenteredPermutationMeasure)
     subs_dict = Dict{Any,Any}()
-    matcher = MetadataMatcher(:Perm)
-    return (subs_dict, matcher, measure.dim, :CPerm)
+    matcher = measure.matcher === nothing ? MetadataMatcher(:Perm) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
+    end
+    return (subs_dict, matcher, dim, :CPerm)
+end
+
+function fallback_integrate(t::LazyTrace, measure::PermutationMeasure)
+    # E[tr(PA)] = sum(A) / d for one P.
+    # For now, let's implement a very basic expansion for tr(PA)
+    if length(t.cycles) == 1 && length(t.cycles[1]) == 2
+        factors = t.cycles[1]
+        matcher = measure.matcher === nothing ? MetadataMatcher(:Perm) : measure.matcher
+        
+        # Check if one of factors is P
+        P_idx = nothing
+        for (i, f) in enumerate(factors)
+            if match_index(matcher, f) !== nothing
+                P_idx = i; break
+            end
+        end
+        
+        if P_idx !== nothing
+            A = factors[P_idx == 1 ? 2 : 1]
+            # Result is t.prefactor * sum(A) / measure.dim
+            # We can represent sum(A) as a new symbolic variable or expand if small.
+            # For symbolic A, let's return a trace-like name or sum(A)
+            return t.prefactor * (Symbolics.variable(Symbol("sum(" * string(A) * ")")) / measure.dim)
+        end
+    end
+    error("Graphical integration for Permutations only supported for tr(PA) currently.")
+end
+
+function fallback_integrate(t::LazyTrace, measure::CenteredPermutationMeasure)
+    # E[tr(YA)] = 0 because E[P - J/d] = 0.
+    if length(t.cycles) == 1 && length(t.cycles[1]) == 2
+         return 0
+    end
+    error("Graphical integration for Centered Permutations only supported for tr(YA) currently.")
 end
 
 """

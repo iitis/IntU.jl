@@ -7,9 +7,11 @@ Represents integration over the group of diagonal unitary matrices (the torus $T
 For a diagonal unitary matrix $V$, the only non-zero entries are $V_{ii} = e^{i\theta_i}$.
 Integration over $T^d$ is equivalent to independent phase integrations for each diagonal entry.
 """
-struct DiagonalUnitaryMeasure{D}
+struct DiagonalUnitaryMeasure{D,M}
     dim::D
+    matcher::M
 end
+DiagonalUnitaryMeasure(dim) = DiagonalUnitaryMeasure(dim, nothing)
 
 @doc raw"""
     dDiagUnitary(dim)
@@ -36,6 +38,10 @@ end
 
 function IntU.measure_info(measure::DiagonalUnitaryMeasure)
     subs_dict = Dict{Any,Any}()
-    matcher = MetadataMatcher(:DiagUnitary)
-    return (subs_dict, matcher, measure.dim, :DiagUnitary)
+    matcher = measure.matcher === nothing ? MetadataMatcher(:DiagUnitary) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
+    end
+    return (subs_dict, matcher, dim, :DiagUnitary)
 end

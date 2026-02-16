@@ -32,9 +32,13 @@ end
 
 
 # Dummy type to represent the measure
-struct HaarMeasure{D}
+struct HaarMeasure{D,M}
     dim::D
+    matcher::M
 end
+
+# Constructor for backward compatibility
+HaarMeasure(dim) = HaarMeasure(dim, nothing)
 @doc raw"""
     dU(dim)
 
@@ -53,8 +57,12 @@ Internal function used for dispatching integration logic.
 """
 function IntU.measure_info(measure::HaarMeasure)
     subs_dict = Dict{Any,Any}()
-    matcher = MetadataMatcher(:U)
-    return (subs_dict, matcher, measure.dim, :U)
+    matcher = measure.matcher === nothing ? MetadataMatcher(:U) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
+    end
+    return (subs_dict, matcher, dim, :U)
 end
 
 function _manual_fallback(expr, measure::HaarMeasure)
@@ -69,6 +77,10 @@ Returns the series expansion of the integral in powers of `1/d`.
 """
 function asymptotic(expr, measure::HaarMeasure, order = 1)
     d = measure.dim
+    if d isa SymbolicMatrix
+        d = d.dim
+    end
+
     if d isa Symbolics.Num || !(d isa Integer)
         exact_res = integrate(expr, measure)
         return _expand_asymptotic(exact_res, d, order)
@@ -97,10 +109,13 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
         push!(cycle_ranges, start_idx:total_factors)
     end
 
+    matcher = measure.matcher === nothing ? MetadataMatcher(:U) : measure.matcher
+    U_type = (matcher isa MetadataMatcher) ? matcher.type_tag : :U
+
     U_indices = Int[]
     U_bar_indices = Int[]
     for (i, f) in enumerate(all_factors)
-        if f isa SymbolicMatrix && f.special_type == :U
+        if f isa SymbolicMatrix && f.special_type == U_type
             if f.is_adj
                 push!(U_bar_indices, i)
             else

@@ -22,10 +22,12 @@ dStiefel(dim, k) = StiefelMeasure(dim, k)
 Internal type representing the measure on the Stiefel manifold. 
 Users should use `dStiefel` constructors.
 """
-struct StiefelMeasure{D,K}
+struct StiefelMeasure{D,K,M}
     dim::D
     k::K
+    matcher::M
 end
+StiefelMeasure(dim, k) = StiefelMeasure(dim, k, nothing)
 
 """
     integrate(expr, measure::StiefelMeasure)
@@ -44,9 +46,12 @@ end
 
 function IntU.measure_info(measure::StiefelMeasure)
     subs_dict = Dict{Any,Any}()
-    # Use metadata-based matching for V. 
-    matcher = MetadataMatcher(:V)
-    return (subs_dict, matcher, measure.dim, :V)
+    matcher = measure.matcher === nothing ? MetadataMatcher(:V) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
+    end
+    return (subs_dict, matcher, dim, :V)
 end
 
 """

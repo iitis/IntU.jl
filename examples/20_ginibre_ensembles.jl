@@ -44,7 +44,7 @@ println("\n4. Matrix Integrals over GinUE(2)")
 A_const = [1 0; 0 2]
 B_const = [1 1; 1 1]
 # < G A G' B > = Tr(A) B
-res_mat = @integrate G_mat * A_const * G_mat' * B_const dGinUE(G_mat, 2)
+res_mat = @integrate (G_mat * A_const) * (G_mat' * B_const) dGinUE(G_mat, 2)
 println("< G A G' B > = ")
 display(map(simplify, res_mat))
 

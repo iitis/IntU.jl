@@ -6,7 +6,7 @@ using LinearAlgebra
 @testset "GUE Integration" begin
     # Test for N=3
     N = 3
-    H = SymbolicMatrix(:H, :H, N)
+    H = SymbolicMatrix(:H, :GUE, N)
     meas = dGUE(N)
 
     @testset "Tr(H)" begin

@@ -12,7 +12,7 @@ println("--- Unitary t-Design Example ---")
 # Create a 2-design measure for U
 # dDesign(U, k) creates a k-design measure for matrix U
 k = 2
-design2 = dDesign(U, k)
+design2 = dDesign(N, k)
 println("Created Unitary 2-Design for N=$N")
 
 # Example 1: Integrating |u11|^2 (Degree 1)

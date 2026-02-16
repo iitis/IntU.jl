@@ -6,7 +6,7 @@ import LinearAlgebra: tr
 
 @testset "Ginibre Ensembles" begin
     N = 2
-    G = SymbolicMatrix(:G, :G, N)
+    G = SymbolicMatrix(:G, :GinUE, N)
 
     @testset "Complex Ginibre (GinUE)" begin
         meas = dGinUE(N)
@@ -40,7 +40,7 @@ import LinearAlgebra: tr
 
         @testset "Graphical Calculus (LazyTrace)" begin
             # Using SymbolicMatrix to trigger LazyTrace logic
-            Gs = SymbolicMatrix(:G, :G, N) # Corrected: Ginibre Ensemble G
+            Gs = SymbolicMatrix(:G, :GinUE, N) # Corrected: Ginibre Ensemble G
             meas_s = dGinUE(N)
 
             # < Tr(Gs * Gs') >
@@ -57,30 +57,30 @@ import LinearAlgebra: tr
     end
 
     @testset "Real Ginibre (GinOE)" begin
+        G_oe = SymbolicMatrix(:G, :GinOE, N)
         meas = dGinOE(N)
         # < Tr(G * G^T) > = N^2
-        @test to_numeric(integrate(IntU.tr(G * transpose(G)), meas)) == N^2
+        @test to_numeric(integrate(IntU.tr(G_oe * transpose(G_oe)), meas)) == N^2
 
         # < G_11^2 > = 1
-        @test to_numeric(integrate(G[1, 1]^2, meas)) == 1
+        @test to_numeric(integrate(G_oe[1, 1]^2, meas)) == 1
     end
 
     @testset "Symplectic Ginibre (GinSE)" begin
+        G_se = SymbolicMatrix(:G, :GinSE, N)
         meas = dGinSE(N)
         # Verify it doesn't crash and follows duality
-        @test to_numeric(integrate(IntU.tr(G * G'), meas)) !== nothing
+        @test to_numeric(integrate(IntU.tr(G_se * G_se'), meas)) !== nothing
     end
 
     @testset "Asymptotic Expansion" begin
-        d = Symbolics.variable(:d)
-        Gd = SymbolicMatrix(:G, :G, d)
-        meas = dGinUE(d)
+        d_val = Symbolics.variable(:d)
+        Gd = SymbolicMatrix(:G, :GinUE, d_val)
+        meas = dGinUE(d_val)
         expr = tr(Gd * Gd')
-        Gd_fixed = SymbolicMatrix(:G, :G, N)
-        meas_d = dGinUE(d)
-        expr_d = tr(Gd_fixed * Gd_fixed')
-        asymp = asymptotic(expr_d, meas_d, 1)
-        val = Symbolics.substitute(asymp, Dict(d => 10))
+        
+        asymp = asymptotic(expr, meas, 1)
+        val = Symbolics.substitute(asymp, Dict(d_val => 10))
         @test IntU._symbolic_isequal(val, 100)
     end
 end

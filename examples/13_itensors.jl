@@ -10,8 +10,12 @@ using Symbolics
 function print_itensor(label, T)
     println("\n--- $label ---")
     println(T)
-    if order(T) == 0
-        println("Value: ", scalar(T))
+    if T isa ITensor
+        if order(T) == 0
+            println("Value: ", scalar(T))
+        end
+    elseif T isa Number
+        println("Value: ", T)
     end
 end
 

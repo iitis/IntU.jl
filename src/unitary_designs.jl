@@ -1,9 +1,11 @@
 # Unitary t-designs
 
-struct UnitaryDesign{D,T}
+struct UnitaryDesign{D,T,M}
     dim::D
     t::T
+    matcher::M
 end
+UnitaryDesign(dim, t) = UnitaryDesign(dim, t, nothing)
 
 @doc raw"""
     dDesign(dim, t)
@@ -31,6 +33,10 @@ end
 
 function IntU.measure_info(measure::UnitaryDesign)
     subs_dict = Dict{Any,Any}()
-    matcher = MetadataMatcher(:U)
-    return (subs_dict, matcher, measure.dim, (:Design, measure.t))
+    matcher = measure.matcher === nothing ? MetadataMatcher(:U) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
+    end
+    return (subs_dict, matcher, dim, (:Design, measure.t))
 end

@@ -5,14 +5,14 @@ using LinearAlgebra
 
 function benchmark_pure_vs_unitary()
     d = 4
-    @variables psi[1:d]
-    @variables U[1:d, 1:d]
+    psi_sym = SymbolicMatrix(:psi, :psi, d)
+    U_sym = SymbolicMatrix(:U, :U, d)
 
-    expr = abs(psi[1])^2 * abs(psi[2])^2
-    unitary_expr = abs(U[1, 1])^2 * abs(U[2, 1])^2
+    expr = abs(psi_sym[1])^2 * abs(psi_sym[2])^2
+    unitary_expr = abs(U_sym[1, 1])^2 * abs(U_sym[2, 1])^2
 
-    measure_psi = dPsi(psi, d)
-    measure_u = dU(U, d)
+    measure_psi = dPsi(d)
+    measure_u = dU(d)
 
     println("Benchmarking dPsi integration...")
     t1 = @benchmark integrate($expr, $measure_psi)

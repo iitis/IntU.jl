@@ -219,45 +219,7 @@ Base type for index matching strategies. Subtypes must implement `match_index`.
 """
 abstract type AbstractIndexMatcher end
 
-"""
-    LookupMatcher(U_lookup, U_bar_lookup)
 
-A matcher that uses dictionaries to map symbolic variables to (row, column) indices.
-Used primarily for GUE/GOE/GSE and list-based unitary integration.
-"""
-struct LookupMatcher <: AbstractIndexMatcher
-    U_lookup::Dict{Any,Tuple}
-    U_bar_lookup::Dict{Any,Tuple}
-end
-
-function match_index(m::LookupMatcher, t)
-    t_un = Symbolics.unwrap(t)
-    
-    # Handle conj(x) similar to MetadataMatcher
-    is_conj = false
-    if Symbolics.iscall(t_un) && (Symbolics.operation(t_un) == conj || Symbolics.operation(t_un) == Base.conj)
-        is_conj = true
-        t_un = Symbolics.arguments(t_un)[1]
-    end
-
-
-    if haskey(m.U_lookup, t_un)
-        v = m.U_lookup[t_un]
-        orig_is_conj = (length(v) == 3 && v[3] == :conj)
-        final_is_conj = is_conj ⊻ orig_is_conj
-        
-        return (final_is_conj ? :U_bar : :U, v[1], v[2])
-    end
-
-
-    if haskey(m.U_bar_lookup, t_un)
-        v = m.U_bar_lookup[t_un]
-        final_is_conj = !is_conj
-        return (final_is_conj ? :U_bar : :U, v[1], v[2])
-    end
-
-    return nothing
-end
 
 """
     MetadataMatcher(type_tag::Symbol)
@@ -271,6 +233,14 @@ end
 
 function match_index(m::MetadataMatcher, t)
     s = Symbolics.unwrap(t)
+
+    if s isa SymbolicMatrix
+        if s.special_type === m.type_tag
+            final_tag = s.is_adj ? Symbol(m.type_tag, :_bar) : m.type_tag
+            return (final_tag, nothing, nothing)
+        end
+        return nothing
+    end
     
     # Handle conj(U_i_j)
     is_conj = false
@@ -280,7 +250,13 @@ function match_index(m::MetadataMatcher, t)
     end
     
     # Check metadata
-    if SymbolicUtils.hasmetadata(s, MatrixMetadata)
+    can_have_meta = false
+    try
+        can_have_meta = SymbolicUtils.hasmetadata(s, MatrixMetadata)
+    catch
+    end
+
+    if can_have_meta
         meta = SymbolicUtils.getmetadata(s, MatrixMetadata)
         if get(meta, :type, nothing) === m.type_tag
             indices = get(meta, :indices, nothing)
@@ -760,7 +736,11 @@ end
 
 function _get_measure_dim(measure)
     if hasproperty(measure, :dim)
-        return measure.dim
+        d = measure.dim
+        if d isa SymbolicMatrix
+            return d.dim
+        end
+        return d
     end
     return nothing
 end
@@ -797,15 +777,20 @@ function integrate(P::SymbolicMatrixProduct, measure)
         return Num(1)
     end
     
+    dim_measure = _get_measure_dim(measure)
+    
     rows_sym = size(P.factors[1], 1)
     cols_sym = size(P.factors[end], 2)
     
     r_un = Symbolics.unwrap(rows_sym)
     c_un = Symbolics.unwrap(cols_sym)
     
-    if r_un isa Integer && c_un isa Integer
-        nr = Int(r_un)
-        nc = Int(c_un)
+    nr = (r_un == typemax(Int)) ? dim_measure : r_un
+    nc = (c_un == typemax(Int)) ? dim_measure : c_un
+    
+    if nr isa Integer && nc isa Integer
+        nr = Int(nr)
+        nc = Int(nc)
         
         # Pre-calculate factor matrices to avoid repeated getindex overhead
         mats = []
@@ -814,11 +799,15 @@ function integrate(P::SymbolicMatrixProduct, measure)
             fr_un = Symbolics.unwrap(fr)
             fc_un = Symbolics.unwrap(fc)
             
-            if !(fr_un isa Integer && fc_un isa Integer)
-                error("Factor $f has non-numeric size ($fr, $fc). Cannot expand product.")
+            # Use measure dim if factor size is unknown
+            cur_r = (fr_un == typemax(Int)) ? dim_measure : fr_un
+            cur_c = (fc_un == typemax(Int)) ? dim_measure : fc_un
+            
+            if !(cur_r isa Integer && cur_c isa Integer)
+                error("Factor $f has non-numeric size ($cur_r, $cur_c). Cannot expand product.")
             end
             
-            push!(mats, [f[r, c] for r=1:Int(fr_un), c=1:Int(fc_un)])
+            push!(mats, [f[r, c] for r=1:Int(cur_r), c=1:Int(cur_c)])
         end
         # Calculate the full symbolic product once
         res_mat = reduce(*, mats)
@@ -898,8 +887,19 @@ function _safe_Num(x)
     if x isa Num || x isa Complex{Num}
         return x
     end
-    if !(x isa Number) && !(x isa AbstractArray)
-        return Num(x)
+    if x isa LazyTrace || x isa LazySum
+        return x
+    end
+    if x isa AbstractArray
+        return map(_safe_Num, x)
+    end
+    if !(x isa Number)
+        # Avoid crashing on custom types that are not Symbolics-compatible
+        try
+            return Num(x)
+        catch
+            return x
+        end
     end
     x_un = Symbolics.unwrap(x)
     return _to_Num(x_un)
@@ -925,6 +925,11 @@ Integrates a single monomial term.
 """
 function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :U)
     term = Symbolics.unwrap(term)
+    if term isa LazyTrace
+        # If it leaked here, it means it's not specialized for this measure.
+        # Try a very basic expansion? No, let's error gracefully if not handled.
+        error("Graphical integration (LazyTrace) not implemented for measure type $measure_type. Try expanding traces element-wise.")
+    end
 
     if Symbolics.iscall(term)
         op = Symbolics.operation(term)
