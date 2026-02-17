@@ -193,6 +193,14 @@ function *(A::SymbolicAny, B::Symbolics.Arr)
     return SymbolicMatrixProduct(vcat(_factors(A), Any[B]))
 end
 
+# Fix for interaction between explicit Matrix{Any} (from indexed SymbolicMatrix) and Symbolics.Arr
+function *(A::AbstractMatrix{Any}, B::Symbolics.Arr)
+    return A * collect(B)
+end
+function *(A::Symbolics.Arr, B::AbstractMatrix{Any})
+    return collect(A) * B
+end
+
 # Resolve specific ambiguities discovered during tests
 for T in [Adjoint, Transpose]
     # 3-arg

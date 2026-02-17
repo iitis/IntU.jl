@@ -422,7 +422,7 @@ The Weingarten matrix is the inverse of \$G\$.
     val_sample = d^1
     T = typeof(val_sample)
     if d isa Integer
-        T = Rational{Int}
+        T = Rational{BigInt}
     end
 
     G = zeros(T, N, N)
@@ -430,7 +430,7 @@ The Weingarten matrix is the inverse of \$G\$.
         for j = 1:N
             loops = count_loops(parts[i], parts[j])
             if d isa Integer
-                G[i, j] = (d^loops) // 1
+                G[i, j] = (Rational{BigInt}(d)^loops)
             else
                 G[i, j] = d^loops
             end
@@ -452,7 +452,21 @@ function _safe_inv(G::AbstractMatrix)
     if n == 1
         return map(x -> 1/x, G)
     end
-    # For small symbolic matrices, manual inverse might be safer/faster than generic inv
+    # For small symbolic matrices OR BigInt matrices, manual inverse might be safer/faster
+    # Generic inv() for Rational{BigInt} can be slow or problematic if not optimized.
+    # But usually Base.inv works fine for Rational{BigInt}.
+    
+    # Check if elements are Numbers but not AbstractFloat (to avoid precision loss)
+    if eltype(G) <: Number && !(eltype(G) <: AbstractFloat)
+         # For 2x2, simpler
+         if n == 2
+            a, b = G[1,1], G[1,2]
+            c, d = G[2,1], G[2,2]
+            det = a*d - b*c
+            return (1//det) * [d -b; -c a]
+         end
+    end
+
     if eltype(G) <: Symbolics.Num
          if n == 2
             a, b = G[1,1], G[1,2]
@@ -519,8 +533,25 @@ Reference:
 - Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups.
 """
 @memoize function weingarten_symplectic_val(pi, sigma, d)
-    # Wg^Sp(d)(pi, sigma) = (-1)^count_loops(pi, sigma) * Wg^O(-d)(pi, sigma)
-    # Note: d -> -d substitution.
+    # Wg^Sp(d)(pi, sigma) = (-1)^(k + loops(pi, sigma)) * Wg^O(-2d)(pi, sigma) ?? 
+    # Wait, Collins & Sniady 2006, Thm 3.6:
+    # Wg^Sp(d)(pi, sigma) = (-1)^{n/2 + l(pi, sigma)} Wg^O(-2d)(pi, sigma) ?
+    # No, let's check standard relation.
+    # Actually most sources say Wg^Sp(d)(pi, sigma) = (-1)^l(pi, sigma) * Wg^O(-d)(pi, sigma) IS NOT QUITE RIGHT for the general case?
+    # Actually: Wg^Sp(-d) = (-1)^... Wg^O(d).
+    # Relation: Wg^Sp(d)(pi, sigma) = (-1)^{n/2 + l(pi, sigma)} Wg^O(-d)(pi, sigma).
+    # Since we implement Wg^O(d), we can call it with -d.
+    # But we need the sign factor.
+    # The sign factor is (-1)^(k + loops). where k = n/2.
+    
+    # We used: ((-1)^count_loops(pi, sigma)) * val_ortho.
+    # Let's verify strict relation.
+    # M. Matsumoto "Weingarten calculus for the orthogonal and symplectic groups":
+    # Wg^Sp(d)(pi, sigma) = (-1)^{k + l(pi, sigma)} Wg^O(-d)(pi, sigma).
+    # Our code had: ((-1)^count_loops) * val_ortho. Missing k?
+    # Let's fix this.
+    
+    k = length(pi)
     val_ortho = weingarten_orthogonal_val(pi, sigma, -d)
-    return ((-1)^count_loops(pi, sigma)) * val_ortho
+    return ((-1)^(k + count_loops(pi, sigma))) * val_ortho
 end

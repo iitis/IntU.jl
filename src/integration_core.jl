@@ -1394,7 +1394,9 @@ function integrate_indices_orthogonal(indices::Vector{Tuple{Int,Int}}, dim)
 
     val_mat, lookup = get_weingarten_orthogonal_data(n ÷ 2, dim)
 
-    total = 0 // 1
+    # total = 0 // 1 # This defaults to Rational{Int}
+    total = zero(Rational{BigInt})
+
     for (c_pi, count_pi) in pi_counts
         idx_pi = get(lookup, c_pi, nothing)
         idx_pi === nothing && continue
@@ -1404,7 +1406,8 @@ function integrate_indices_orthogonal(indices::Vector{Tuple{Int,Int}}, dim)
             idx_sigma === nothing && continue
 
             val = val_mat[idx_pi, idx_sigma]
-            total += (count_pi * count_sigma) * val
+            # Ensure we don't overflow with counts
+            total += (BigInt(count_pi) * BigInt(count_sigma)) * val
         end
     end
     if !(dim isa Integer)
@@ -1506,7 +1509,8 @@ function integrate_indices_symplectic(indices::Vector{Tuple{Int,Int}}, dim)
     end
 
 
-    total = 0 // 1
+    # total = 0 // 1
+    total = zero(Rational{BigInt})
 
     for (pi, val_pi) in pi_contractions
         for (sigma, val_sigma) in sigma_contractions
@@ -1777,12 +1781,11 @@ function symplectic_form(i, j, dim)
     end
 
 
-    u_dim = Symbolics.unwrap(dim)
     if !(u_dim isa Number)
         return 0
     end
 
-    dim_val = Int(u_dim)
+    dim_val = u_dim # Keep as is, potentially BigInt
     m = div(dim_val, 2)
 
 
