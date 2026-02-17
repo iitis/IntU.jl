@@ -14,7 +14,7 @@ function benchmark_trace_moments(d_vals, k_vals)
             if k > d
                 continue
             end
-            expr = abs(tr_U)^(2*k)
+            expr = abs2(tr_U)^k
             println("  k=$k (Moment $(2*k))")
 
             # Warmuo

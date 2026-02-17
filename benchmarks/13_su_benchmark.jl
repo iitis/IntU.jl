@@ -5,10 +5,10 @@ using Symbolics
 println("=== SU(d) Integration Benchmark ===\n")
 
 @variables d
-@symbolic_dimension U[1:d, 1:d]
+    U = SymbolicMatrix(:U, :U, d)
 
-measure = dSU(U, d)
-measure_u = dU(U, d)
+    measure = dSU(d)
+    measure_u = dU(d)
 
 # Benchmark 1: Small balanced moment (order 2)
 println("--- 1. Order 2 Moment E[|U_11|^2] ---")

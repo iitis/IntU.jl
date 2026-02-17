@@ -92,8 +92,8 @@ function test_unitary()
     println("------------------------------------------------------------")
 
     @variables d::Int
-    @symbolic_dimension U[1:d, 1:d]
-    μU = dU(U)
+    U = SymbolicMatrix(:U, :U, d)
+    μU = dU(d)
     # Using specific values for substitution checks
     subsU = [Dict(d => 3), Dict(d => 4), Dict(d => 7)]
 
@@ -148,8 +148,9 @@ function test_orthogonal(N::Int)
     println("Testing Orthogonal O(d) moments (degree <= 4) using $N x $N matrix")
     println("------------------------------------------------------------")
 
-    @variables O[1:N, 1:N]::Real
-    μO = dO(O, d)
+    O_sym = SymbolicMatrix(:O, :O, d)
+    O = O_sym[1:N, 1:N]
+    μO = dO(d)
     subsO = [Dict(d => 3), Dict(d => 4), Dict(d => 8)]
 
     run_example("O1: ∫ O₁₁ dO = 0", O[1, 1], μO, 0; subs = subsO)
@@ -196,8 +197,9 @@ function test_symplectic(N::Int)
     println("Testing Symplectic Sp(d) using $N x $N matrix (d=$N)")
     println("------------------------------------------------------------")
 
-    @variables S[1:N, 1:N]::Complex
-    μSp = dSp(S, N)
+    S_sym = SymbolicMatrix(:S, :Sp, N)
+    S = S_sym[1:N, 1:N]
+    μSp = dSp(N)
     subsSp = [Dict(d => N)]
 
     run_example("Sp1: ∫ |S₁₁|² dSp = 1/d", S[1, 1]*conj(S[1, 1]), μSp, 1/d; subs = subsSp)
@@ -222,8 +224,8 @@ function test_high_moments()
 
     # Unitary U(d) 6-th moment
     @variables d::Int
-    @symbolic_dimension U[1:d, 1:d]
-    μU = dU(U)
+    U = SymbolicMatrix(:U, :U, d)
+    μU = dU(d)
     run_example(
         "U10: ∫ |U₁₁|⁶ dU = 6/(d(d+1)(d+2)) [Symbolic d]",
         (U[1, 1]*conj(U[1, 1]))^3,
@@ -234,9 +236,9 @@ function test_high_moments()
     )
 
     # Orthogonal O(d) 6-th moment - slow with symbolic inversion, using concrete dimension for demonstration
-    @variables O[1:1, 1:1]::Real
-    println("Note: Orthogonal 6th moment is computed with concrete d=10 for speed.")
-    μO_concrete = dO(O, 10)
+    O_sym = SymbolicMatrix(:O, :O, 10)
+    O = O_sym[1:1, 1:1]
+    μO_concrete = dO(10)
     run_example(
         "O7: ∫ O₁₁⁶ dO = 15/(d(d+2)(d+4)) [Concrete d=10]",
         O[1, 1]^6,
@@ -255,8 +257,9 @@ function test_application()
     println("------------------------------------------------------------")
     nA, nB = 2, 3
     D = nA*nB
-    @variables Uψ[1:D, 1:D]::Complex
-    μConcrete = dU(Uψ, D)
+    Uψ_sym = SymbolicMatrix(:Uψ, :U, D)
+    Uψ = Uψ_sym[1:D, 1:D]
+    μConcrete = dU(D)
     psi(a, b) = Uψ[(a-1)*nB+b, 1]
     purity = zero(Num)
     for a = 1:nA, ap = 1:nA, b = 1:nB, bp = 1:nB

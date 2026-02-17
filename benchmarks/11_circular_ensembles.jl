@@ -8,16 +8,18 @@ println("=== Circular Ensembles Integration Benchmark ===")
 
 # --- Warmup ---
 println("Warming up...")
-@variables S_warm[1:2, 1:2]::Complex
-integrate(S_warm[1, 1] * conj(S_warm[1, 1]), dCOE(S_warm, d))
-integrate(S_warm[1, 1] * conj(S_warm[1, 1]), dCUE(S_warm, d))
-integrate(S_warm[1, 1] * conj(S_warm[1, 1]), dCSE(S_warm, d))
+S_warm = SymbolicMatrix(:S, :COE, d)
+U_warm = SymbolicMatrix(:U, :U, d)
+integrate(abs2(S_warm[1, 1]), dCOE(d))
+integrate(abs2(U_warm[1, 1]), dCUE(d))
+integrate(abs2(S_warm[1, 1]), dCSE(d))
 
 # --- COE Benchmark ---
 function benchmark_coe(k, N_matrix)
     println("\n--- COE: E[|S_{1,1}|^{2k}] (Matrix Size=$N_matrix) ---")
-    @variables S[1:N_matrix, 1:N_matrix]::Complex
-    measure = dCOE(S, d)
+    S_sym = SymbolicMatrix(:S, :COE, d)
+    S = S_sym[1:N_matrix, 1:N_matrix]
+    measure = dCOE(d)
     expr = (S[1, 1] * conj(S[1, 1]))^k
 
     # We display time
@@ -27,8 +29,9 @@ end
 # --- CSE Benchmark ---
 function benchmark_cse(k, N_matrix)
     println("\n--- CSE: E[|S_{1,1}|^{2k}] (Matrix Size=$N_matrix) ---")
-    @variables S[1:N_matrix, 1:N_matrix]::Complex
-    measure = dCSE(S, d)
+    S_sym = SymbolicMatrix(:S, :CSE, d)
+    S = S_sym[1:N_matrix, 1:N_matrix]
+    measure = dCSE(d)
     expr = (S[1, 1] * conj(S[1, 1]))^k
 
     @btime integrate($expr, $measure)
@@ -37,8 +40,9 @@ end
 # --- CUE Benchmark ---
 function benchmark_cue(k, N_matrix)
     println("\n--- CUE: E[|U_{1,1}|^{2k}] (Matrix Size=$N_matrix) ---")
-    @variables U[1:N_matrix, 1:N_matrix]::Complex
-    measure = dCUE(U, d)
+    U_sym = SymbolicMatrix(:U, :U, d)
+    U = U_sym[1:N_matrix, 1:N_matrix]
+    measure = dCUE(d)
     expr = (U[1, 1] * conj(U[1, 1]))^k
 
     @btime integrate($expr, $measure)

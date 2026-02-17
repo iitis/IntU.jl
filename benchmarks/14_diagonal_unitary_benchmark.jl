@@ -5,9 +5,9 @@ using Symbolics
 println("=== Diagonal Unitary Integration Benchmark ===\n")
 
 @variables d
-@variables V[1:20, 1:20]::Complex
+    V = SymbolicMatrix(:V, :V, d)
 
-measure = dDiagUnitary(V, d)
+    measure = dDiagUnitary(d)
 
 # Benchmark 1: Small moment
 println("--- 1. Order 2 Moment E[|V_11|^2] ---")
@@ -26,10 +26,10 @@ expr3 = V[1, 1]^10 * conj(V[1, 1])^9
 
 # Comparison with Full Haar U(d) for same indices (computationally much harder for Haar)
 println("\n--- 4. Comparison: Order 4 Moment in Haar dU vs dDiag ---")
-@variables U[1:20, 1:20]::Complex
-measure_u = dU(U, d)
-expr_comp = abs2(V[1, 1]) * abs2(V[2, 2])
-expr_u = abs2(U[1, 1]) * abs2(U[2, 2])
+    U = SymbolicMatrix(:U, :U, d)
+    measure_u = dU(d)
+    expr_comp = abs2(V[1, 1]) * abs2(V[2, 2])
+    expr_u = abs2(U[1, 1]) * abs2(U[2, 2])
 
 println("Diagonal:")
 @btime integrate($expr_comp, $measure)
