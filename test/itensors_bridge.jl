@@ -1,4 +1,3 @@
-# test/itensors_bridge.jl
 
 using Test
 using IntU

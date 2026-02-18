@@ -1,4 +1,3 @@
-# src/library.jl
 
 """
     check_library(expr, measure)

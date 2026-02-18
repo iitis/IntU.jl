@@ -1,4 +1,3 @@
-# src/itensors_integration.jl
 
 """
     GraphicalUnitary

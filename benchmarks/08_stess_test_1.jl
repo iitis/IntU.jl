@@ -2,7 +2,7 @@
 # IntU.jl Haar-integration test script (Unitary/Orthogonal/Symplectic)
 #
 # Run:
-#   julia --project=benchmarks benchmarks/08_stess_test_1.jl
+#   julia benchmarks/08_stess_test_1.jl
 #
 # Notes:
 # - Keep integrands polynomial: use conj(z) explicitly instead of abs(z),

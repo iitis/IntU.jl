@@ -23,16 +23,16 @@ result2 = @integrate abs2(U[1, 1] * U[2, 2]) dU(d)
 println("Result: ", result2)
 println("Expected: 1/(d^2 - 1)")
 
-# 5. Example: Matrix Integration
+# 4. Example: Matrix Integration
 # You can integrate matrix-valued expressions directly.
-println("\n5. Example: Matrix Integration (Fixed Dimension for demonstration)")
+println("\n4. Example: Matrix Integration (Fixed Dimension for demonstration)")
 println("Integrating U * U' over U(2) (should be Identity)")
 # Note: U' is adjoint, which correctly flips metadata to U_dag
 result_mat = @integrate U * U' dU(2)
 println("Result:\n", result_mat)
 println("Result is Identity? ", result_mat == I)
 
-# 6. Example: Mixed Symbolic/Numeric
-println("\n6. Example: Fixed dimension d=3")
+# 5. Example: Mixed Symbolic/Numeric
+println("\n5. Example: Fixed dimension d=3")
 res3 = @integrate abs2(U[1,1]) dU(3)
 println("<|U_11|^2> over U(3) = ", res3)

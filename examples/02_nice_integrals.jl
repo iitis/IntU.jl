@@ -1,4 +1,3 @@
-# examples/02_nice_integrals.jl
 using IntU
 using Symbolics
 using LinearAlgebra

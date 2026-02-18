@@ -1,9 +1,6 @@
 #!/usr/bin/env julia
-# stress_benchmark_intu.jl
-#
 # Usage:
-#   julia stress_benchmark_intu.jl
-#   julia stress_benchmark_intu.jl --out results.json --samples 50
+#   julia benchmarks/09_stress_test_2.jl --out results.json --samples 50
 #
 # What it does:
 #   - Runs a battery of higher-degree Haar integrals (8th/10th moments, mixed moments)

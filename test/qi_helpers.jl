@@ -1,4 +1,3 @@
-# test/qi_helpers.jl
 using IntU
 using Symbolics
 using LinearAlgebra

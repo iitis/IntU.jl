@@ -1,4 +1,3 @@
-# src/QI.jl
 
 """
     purity(rho)

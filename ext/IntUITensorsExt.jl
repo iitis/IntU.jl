@@ -1,4 +1,3 @@
-# ext/IntUITensorsExt.jl
 
 module IntUITensorsExt
 

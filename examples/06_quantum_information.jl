@@ -1,4 +1,3 @@
-# examples/06_quantum_information.jl
 using IntU
 using Symbolics
 using LinearAlgebra

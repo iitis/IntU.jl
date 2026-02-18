@@ -1,4 +1,3 @@
-# src/macros.jl
 
 """
     @integrate expr measure

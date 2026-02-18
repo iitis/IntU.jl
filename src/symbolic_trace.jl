@@ -1,4 +1,3 @@
-# src/symbolic_trace.jl
 
 """
     SymbolicMatrix(name::Symbol)
@@ -53,7 +52,7 @@ function Base.getindex(A::SymbolicMatrix, i::Integer, j::Integer)
         :is_adj => A.is_adj
     )
 
-    # Use T=Number to preserve conj as a call. We use Matrix{Any} in integration to avoid symtype errors.
+    # Use Matrix{Any} in integration to avoid symtype errors
     v = Symbolics.variable(s_name, T = Number)
     v_un = Symbolics.unwrap(v)
     v_meta_un = SymbolicUtils.setmetadata(v_un, MatrixMetadata, meta)
@@ -71,7 +70,6 @@ function Base.getindex(A::SymbolicMatrix, i::Union{Integer, AbstractVector, Colo
         return invoke(getindex, Tuple{SymbolicMatrix, Integer, Integer}, A, rows, cols)
     end
     
-    # We use Matrix{Any} in integration to avoid symtype errors.
     res = Matrix{Any}(undef, length(rows), length(cols))
     for (r_idx, r) in enumerate(rows)
         for (c_idx, c) in enumerate(cols)
@@ -256,6 +254,12 @@ function tr(A::SymbolicMatrixProduct)
     return tr_lazy(A.factors)
 end
 
+"""
+    tr_lazy(product)
+
+Creates a `LazyTrace` representing the symbolic trace of a matrix product.
+The product can be a `SymbolicMatrix`, `SymbolicMatrixProduct`, or a vector of matrices.
+"""
 function tr_lazy(product::AbstractVector)
     return LazyTrace([collect(Any, product)], 1)
 end
@@ -329,6 +333,13 @@ function show(io::IO, t::LazyTrace)
     end
 end
 
+"""
+    tr_val(factors::AbstractVector)
+
+Evaluates the trace of a product of matrices. If all factors are concrete, returns 
+the numeric trace. If any factor is symbolic, returns a symbolic representation 
+normalized by circular shifts and adjoints to ensure unique naming.
+"""
 function tr_val(factors::AbstractVector)
     if isempty(factors) return 1 end
     

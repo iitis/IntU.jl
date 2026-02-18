@@ -1,4 +1,3 @@
-# examples/03_symbolic_dimension.jl
 using IntU
 using Symbolics
 using LinearAlgebra

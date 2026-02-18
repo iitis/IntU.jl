@@ -1,4 +1,3 @@
-# benchmarks/00_manuscript_benchmarks.jl
 using IntU
 using Symbolics
 using LinearAlgebra
@@ -102,9 +101,7 @@ println("-----------------------------------------------------------------------
 mSp10 = dSp(BigInt(10))
 S10 = SymbolicMatrix(:S, :Sp, BigInt(10)) # Even dimension
 
-# |S_11|^8, d=10. S_11 for symplectic? Symplectic matrices are real/complex? 
-# Usually Sp(d) is unitary symplectic (quaternionic). IntU treats elements as complex?
-# Manuscript says |S_11|^8.
+# |S_11|^8, d=10. Integration of unitary symplectic matrix elements.
 t = measure_median_func(() -> integrate(abs(S10[1,1])^8, mSp10))
 @printf("%-18s %-25s %-15s %10.2f\n", "Symplectic", "|S_11|^8", "d=10", t)
 

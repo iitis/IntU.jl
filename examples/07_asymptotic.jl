@@ -1,4 +1,3 @@
-# examples/07_asymptotic.jl
 using IntU
 using Symbolics
 

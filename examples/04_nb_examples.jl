@@ -1,4 +1,3 @@
-# examples/nb_examples.jl
 using IntU
 using Symbolics
 using LinearAlgebra
