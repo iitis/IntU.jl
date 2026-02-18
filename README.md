@@ -19,7 +19,7 @@ $|U_{i,j}|^2$ over the unitary group, i.e., computing $\int dU |U_{i,j}|^2 =
 
 While numerical approaches (like sampling random matrices) can estimate this,
 they are slow and approximate. IntU provides the **exact** analytic result
-instantly, even for symbolic dimensions.
+instantly, even for symbolic dimensions, using a simple unified interface: `integrate(expr, measure)`.
 
 **New Feature**: You can now integrate matrix-valued expressions directly!
 ```julia
@@ -105,7 +105,7 @@ Ginibre ensembles consist of non-Hermitian matrices with i.i.d. Gaussian entries
 @variables d
 G = SymbolicMatrix(:G, :GUE)
 # E[Tr(G G')] = d^2
-@integrate tr_lazy(G * G') dGUE(d)
+@integrate tr_lazy(G * G') dGinUE(d)
 ```
 
 ### Circular Ensembles

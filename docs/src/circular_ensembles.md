@@ -27,7 +27,7 @@ using IntU, Symbolics
 @variables d
 S = SymbolicMatrix(:S)
 # COE moment E[|S_{1,1}|^2]
-@integrate abs(S[1,1])^2 dCOE(d)
+res = integrate(abs(S[1, 1])^2, dCOE(d))
 # Output: 2 / (d + 1)
 ```
 
@@ -40,7 +40,7 @@ using IntU, Symbolics
 @variables d
 S = SymbolicMatrix(:S)
 # CSE moment E[|S_{1,1}|^2]
-@integrate abs(S[1,1])^2 dCSE(d)
+res = integrate(abs(S[1, 1])^2, dCSE(d))
 # Output: 1 / (d - 1)
 ```
 
@@ -53,6 +53,6 @@ using IntU, Symbolics
 @variables d
 U = SymbolicMatrix(:U)
 # CUE moment E[|U_{1,1}|^2]
-@integrate abs(U[1,1])^2 dCUE(d)
+res = integrate(abs(U[1, 1])^2, dCUE(d))
 # Output: 1 / d
 ```

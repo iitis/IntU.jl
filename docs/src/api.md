@@ -9,6 +9,9 @@ hciz
 vandermonde_det
 ```
 
+> [!NOTE]
+> `integrate(expr, measure)` is the universal entry point for all calculations in IntU.jl. It automatically handles symbolic dimensions, matrix-valued expressions, and library lookups.
+
 ## Measures
 
 ### Unitary Group
@@ -74,7 +77,7 @@ These functions are part of the internal machinery but documented for developmen
 
 ```@docs
 integrate_indices
-tr_lazy
+IntU.tr_lazy
 LazyTrace
 LazySum
 IntU.integrate_indices_gue

@@ -36,13 +36,11 @@ using IntU, Symbolics
 # Define Orthogonal matrix
 O = SymbolicMatrix(:O, :O)
 # Integrate squared element
-@integrate O[1,1]^2 dO(d)
-println(res)
+res = integrate(O[1, 1]^2, dO(d))
 # Output: 1/d
 
-# 2. Fourth power
-@integrate O[1,1]^4 dO(d)
-println(res4)
+# 2. Fourth power (macro version)
+@integrate O[1, 1]^4 dO(d)
 # Output: 3 / (d*(d + 2))
 ```
 
@@ -84,14 +82,12 @@ using IntU, Symbolics
 S = SymbolicMatrix(:S, :Sp)
 
 # |S_{1,1}|^2 integration
-@integrate abs(S[1,1])^2 dSp(d)
-println(res)
+res = integrate(abs(S[1, 1])^2, dSp(d))
 # Output: 1/d
 
-# |S_{1,1}|^4 integration
-@integrate abs(S[1,1])^4 dSp(d)
-println(res4)
-# Output: 2 / ((d + 1)*(d - 2))
+# |S_{1,1}|^4 integration (macro version)
+@integrate abs(S[1, 1])^4 dSp(d)
+# Output: 2 / ((d + 1)*(d - 1))
 ```
 
 ## Implementation Details & Pitfalls
