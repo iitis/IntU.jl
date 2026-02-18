@@ -84,7 +84,7 @@ function Base.getindex(A::SymbolicMatrix, i::Union{Integer, AbstractVector, Colo
     elseif length(rows) == 1 && (i isa Integer)
         return res[1, :]
     end
-    return res
+    return SymbolicMatrixProduct([res])
 end
 
 function Base.adjoint(A::SymbolicMatrix)
@@ -146,7 +146,7 @@ function Base.getindex(P::SymbolicMatrixProduct, i::Integer, j::Integer)
     B = length(factors) == 2 ? factors[2] : SymbolicMatrixProduct(factors[2:end])
     dim = size(A, 2)
     if dim isa Integer
-        return sum(A[i, k] * B[k, j] for k = 1:dim)
+        return Symbolics.wrap(sum(A[i, k] * B[k, j] for k = 1:dim))
     else
         return Num(Symbolics.variable(Symbol("sum_$(A)_$(B)_$(i)_$(j)"); T = Number))
     end
@@ -191,14 +191,6 @@ function *(A::Symbolics.Arr, B::SymbolicAny)
 end
 function *(A::SymbolicAny, B::Symbolics.Arr)
     return SymbolicMatrixProduct(vcat(_factors(A), Any[B]))
-end
-
-# Fix for interaction between explicit Matrix{Any} (from indexed SymbolicMatrix) and Symbolics.Arr
-function *(A::AbstractMatrix{Any}, B::Symbolics.Arr)
-    return A * collect(B)
-end
-function *(A::Symbolics.Arr, B::AbstractMatrix{Any})
-    return collect(A) * B
 end
 
 # Resolve specific ambiguities discovered during tests
@@ -319,7 +311,7 @@ end
 function Base.:^(a::LazyTrace, n::Integer)
     if n == 0 return LazyTrace([], 1) end
     if n == 1 return a end
-    new_cycles = Vector{Vector{SymbolicMatrix}}()
+    new_cycles = Vector{Vector{AbstractMatrix}}()
     for _ = 1:n append!(new_cycles, a.cycles) end
     return LazyTrace(new_cycles, a.prefactor^n)
 end

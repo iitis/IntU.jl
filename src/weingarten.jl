@@ -337,25 +337,20 @@ These partitions are also known as **perfect matchings** of the complete graph `
 end
 
 """
-    count_loops(pi, sigma)
+    get_full_cycle_type(pi, sigma)
 
-Count the number of loops `ℓ(π, σ)` in the multigraph formed by 
-the union of two pair partitions `π` and `σ`.
-
-The graph has `2k` vertices. Since both `π` and `σ` are perfect matchings, 
-their union consists of disjoint cycles of even length.
+Returns the cycle type of the union of two pair partitions as a sorted partition of k.
+The union forms cycles of lengths 2l_1, 2l_2, ... where sum l_i = k.
+Returns [l_1, l_2, ...] sorted descending.
 """
-function count_loops(pi::Vector{Tuple{Int,Int}}, sigma::Vector{Tuple{Int,Int}})
+function get_full_cycle_type(pi::Vector{Tuple{Int,Int}}, sigma::Vector{Tuple{Int,Int}})
     n = 2 * length(pi)
-    # Every vertex has exactly two neighbors: one from pi, one from sigma.
-    # Use a fixed-size vector for speed.
     neighs = Vector{Tuple{Int,Int}}(undef, n)
     for (u, v) in pi
         neighs[u] = (v, 0)
         neighs[v] = (u, 0)
     end
     for (u, v) in sigma
-        # Store the sigma neighbor in the second slot
         u_p = neighs[u][1]
         neighs[u] = (u_p, v)
         v_p = neighs[v][1]
@@ -363,19 +358,16 @@ function count_loops(pi::Vector{Tuple{Int,Int}}, sigma::Vector{Tuple{Int,Int}})
     end
 
     visited = falses(n)
-    loops = 0
+    cycle_lengths = Int[]
     for i = 1:n
         if !visited[i]
-            loops += 1
+            len = 0
             curr = i
             visited[curr] = true
-            # Trace the cycle using the fact it's a collection of cycles.
-            # Alternate between pi and sigma neighbors.
             while true
-                # Neighbor in pi
+                len += 1
                 nxt = neighs[curr][1]
                 if visited[nxt]
-                    # Check neighbor in sigma
                     nxt = neighs[curr][2]
                     if visited[nxt]
                         break
@@ -384,9 +376,15 @@ function count_loops(pi::Vector{Tuple{Int,Int}}, sigma::Vector{Tuple{Int,Int}})
                 curr = nxt
                 visited[curr] = true
             end
+            push!(cycle_lengths, len ÷ 2)
         end
     end
-    return loops
+    sort!(cycle_lengths, rev = true)
+    return cycle_lengths
+end
+
+function count_loops(pi::Vector{Tuple{Int,Int}}, sigma::Vector{Tuple{Int,Int}})
+    return length(get_full_cycle_type(pi, sigma))
 end
 
 
@@ -409,39 +407,75 @@ The matrix \$G\$ is a Gram matrix of size \$(2k-1)!! \\times (2k-1)!!\$ where
 \$G_{\\pi, \\sigma} = d^{\\ell(\\pi, \\sigma)}\$.
 The Weingarten matrix is the inverse of \$G\$.
 """
-@memoize function get_weingarten_orthogonal_data(k::Int, d)
+@memoize function get_weingarten_reduced_data(k::Int, d)
     parts = get_pair_partitions(2*k)
     N = length(parts)
+    pi_id = parts[1]
 
-    # Pre-canonicalize all partitions for lookup
-    canonical_parts = Any[canonicalize_pair_partition(p) for p in parts]
-    lookup = Dict{Any,Int}(c => i for (i, c) in enumerate(canonical_parts))
+    # Group partitions by cycle type with respect to pi_id
+    type_to_parts = Dict{Vector{Int}, Vector{Int}}()
+    for i = 1:N
+        ct = get_full_cycle_type(parts[i], pi_id)
+        push!(get!(type_to_parts, ct, Int[]), i)
+    end
 
-    # Build Gram matrix
-    # Determine type
+    cts = collect(keys(type_to_parts))
+    sort!(cts, rev=true)
+    n_types = length(cts)
+    type_to_idx = Dict(ct => i for (i, ct) in enumerate(cts))
+
     val_sample = d^1
     T = typeof(val_sample)
     if d isa Integer
         T = Rational{BigInt}
     end
 
-    G = zeros(T, N, N)
-    for i = 1:N
-        for j = 1:N
-            loops = count_loops(parts[i], parts[j])
-            if d isa Integer
-                G[i, j] = (Rational{BigInt}(d)^loops)
-            else
-                G[i, j] = d^loops
+    M = zeros(T, n_types, n_types)
+    for i = 1:n_types
+        pi_lambda = parts[type_to_parts[cts[i]][1]]
+        for j = 1:n_types
+            sum_g = zero(T)
+            for sigma_idx in type_to_parts[cts[j]]
+                loops = count_loops(pi_lambda, parts[sigma_idx])
+                if d isa Integer
+                    sum_g += (Rational{BigInt}(d)^loops)
+                else
+                    sum_g += d^loops
+                end
             end
+            M[i, j] = sum_g
         end
     end
 
-    # Invert G
-    Wg_mat = try
-        _safe_inv(G)
+    id_type = fill(1, k)
+    id_idx = type_to_idx[id_type]
+    rhs = zeros(T, n_types)
+    rhs[id_idx] = one(T)
+    
+    w = try
+        M \ rhs
     catch e
-        error("Failed to invert O(d) Gram matrix for k=\$k. Error: \$e")
+        error("Failed to solve reduced Orthogonal Weingarten system for k=$k. Error: $e")
+    end
+
+    return w, type_to_idx, type_to_parts
+end
+
+@memoize function get_weingarten_orthogonal_data(k::Int, d)
+    parts = get_pair_partitions(2*k)
+    N = length(parts)
+    canonical_parts = Any[canonicalize_pair_partition(p) for p in parts]
+    lookup = Dict{Any,Int}(c => i for (i, c) in enumerate(canonical_parts))
+
+    w, type_to_idx, _ = get_weingarten_reduced_data(k, d)
+    T = eltype(w)
+
+    Wg_mat = zeros(T, N, N)
+    for i = 1:N
+        for j = 1:N
+            ct = get_full_cycle_type(parts[i], parts[j])
+            Wg_mat[i, j] = w[type_to_idx[ct]]
+        end
     end
 
     return Wg_mat, lookup
@@ -505,16 +539,10 @@ Internal version of `weingarten_orthogonal_val` that assumes arguments are alrea
 """
 function weingarten_orthogonal_val_canonical(c_pi, c_sigma, d)
     k = length(c_pi)
-    Wg_mat, lookup = get_weingarten_orthogonal_data(k, d)
+    w, type_to_idx, _ = get_weingarten_reduced_data(k, d)
 
-    idx_pi = get(lookup, c_pi, nothing)
-    idx_sigma = get(lookup, c_sigma, nothing)
-
-    if idx_pi === nothing || idx_sigma === nothing
-        error("Partition not found in generated set for k=\$k")
-    end
-
-    return Wg_mat[idx_pi, idx_sigma]
+    ct = get_full_cycle_type(c_pi, c_sigma)
+    return w[type_to_idx[ct]]
 end
 
 
@@ -533,25 +561,14 @@ Reference:
 - Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups.
 """
 @memoize function weingarten_symplectic_val(pi, sigma, d)
-    # Wg^Sp(d)(pi, sigma) = (-1)^(k + loops(pi, sigma)) * Wg^O(-2d)(pi, sigma) ?? 
-    # Wait, Collins & Sniady 2006, Thm 3.6:
-    # Wg^Sp(d)(pi, sigma) = (-1)^{n/2 + l(pi, sigma)} Wg^O(-2d)(pi, sigma) ?
-    # No, let's check standard relation.
-    # Actually most sources say Wg^Sp(d)(pi, sigma) = (-1)^l(pi, sigma) * Wg^O(-d)(pi, sigma) IS NOT QUITE RIGHT for the general case?
-    # Actually: Wg^Sp(-d) = (-1)^... Wg^O(d).
-    # Relation: Wg^Sp(d)(pi, sigma) = (-1)^{n/2 + l(pi, sigma)} Wg^O(-d)(pi, sigma).
-    # Since we implement Wg^O(d), we can call it with -d.
-    # But we need the sign factor.
-    # The sign factor is (-1)^(k + loops). where k = n/2.
-    
-    # We used: ((-1)^count_loops(pi, sigma)) * val_ortho.
-    # Let's verify strict relation.
-    # M. Matsumoto "Weingarten calculus for the orthogonal and symplectic groups":
-    # Wg^Sp(d)(pi, sigma) = (-1)^{k + l(pi, sigma)} Wg^O(-d)(pi, sigma).
-    # Our code had: ((-1)^count_loops) * val_ortho. Missing k?
-    # Let's fix this.
-    
     k = length(pi)
-    val_ortho = weingarten_orthogonal_val(pi, sigma, -d)
-    return ((-1)^(k + count_loops(pi, sigma))) * val_ortho
+    # Wg^Sp(d) = (-1)^(k + loops) * Wg^O(-d)
+    # We can get Wg^O(-d) from the reduced system directly
+    w, type_to_idx, _ = get_weingarten_reduced_data(k, -d)
+    
+    ct = get_full_cycle_type(pi, sigma)
+    loops = length(ct)
+    
+    val_ortho = w[type_to_idx[ct]]
+    return ((-1)^loops) * val_ortho
 end

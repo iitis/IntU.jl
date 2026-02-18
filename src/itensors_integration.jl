@@ -84,17 +84,19 @@ function _integrate_graphical_unitary(constants, unitaries, dim; design_t = noth
         return _contract_all(constants)
     end
 
-    # 2. Iterate over permutations sigma, tau in S_n
+    # Pre-extract indices to avoid repeated access and allocations
+    u_out = [u.out_indices for u in u_list]
+    u_in = [u.in_indices for u in u_list]
+    u_dag_out = [u.out_indices for u in u_dag_list]
+    u_dag_in = [u.in_indices for u in u_dag_list]
+    
     perms = collect(permutations(1:n_u))
-
     total_result = nothing
 
     for sigma_p in perms
         for tau_p in perms
             # sigma and tau are permutations of 1..n
             # Cycle type of sigma * tau^-1
-            # We can use IntU's existing get_cycle_type if we have the combined permutation
-            # sigma_p * inv(tau_p)
             P = [sigma_p[invperm(tau_p)[i]] for i = 1:n_u]
             cycle_type = get_cycle_type(P)
             wg_val = weingarten(cycle_type, dim)
@@ -104,23 +106,17 @@ function _integrate_graphical_unitary(constants, unitaries, dim; design_t = noth
             end
 
             # Create deltas
-            # For each k, match u_list[k].out with u_dag_list[sigma_p[k]].out
-            # and u_list[k].in with u_dag_list[tau_p[k]].in
-
             deltas = []
             for k = 1:n_u
                 # Out matchings
                 append!(
                     deltas,
-                    _create_deltas(
-                        u_list[k].out_indices,
-                        u_dag_list[sigma_p[k]].out_indices,
-                    ),
+                    _create_deltas(u_out[k], u_dag_out[sigma_p[k]]),
                 )
                 # In matchings
                 append!(
                     deltas,
-                    _create_deltas(u_list[k].in_indices, u_dag_list[tau_p[k]].in_indices),
+                    _create_deltas(u_in[k], u_dag_in[tau_p[k]]),
                 )
             end
 
@@ -153,26 +149,27 @@ function _integrate_graphical_orthogonal(constants, unitaries, dim)
     # Get all pair partitions of 1..2k
     partitions = get_pair_partitions(n_total)
 
+    # Pre-extract indices
+    all_out = [u.out_indices for u in unitaries]
+    all_in = [u.in_indices for u in unitaries]
+
+    # Pre-canonicalize partitions for faster Wg lookup
+    c_partitions = [canonicalize_pair_partition(p) for p in partitions]
     total_result = nothing
 
-    for pi in partitions
-        for sigma in partitions
-            wg_val = weingarten_orthogonal_val(pi, sigma, dim)
+    for i = 1:length(partitions)
+        pi = partitions[i]
+        c_pi = c_partitions[i]
+        for j = 1:length(partitions)
+            sigma = partitions[j]
+            c_sigma = c_partitions[j]
+            
+            wg_val = weingarten_orthogonal_val_canonical(c_pi, c_sigma, dim)
             if _iszero(wg_val)
                 continue
             end
 
-            # Create deltas for pi (out) and sigma (in)
-            # Actually for Orthogonal, we match legs within members of the partition
             deltas = []
-            # Combine all unitaries' legs into a single list
-            all_out = []
-            all_in = []
-            for u in unitaries
-                push!(all_out, u.out_indices)
-                push!(all_in, u.in_indices)
-            end
-
             # pi specifies which out legs to match
             for (a, b) in pi
                 append!(deltas, _create_deltas(all_out[a], all_out[b]))
@@ -204,6 +201,9 @@ function _integrate_graphical_symplectic(constants, unitaries, dim)
     end
 
     partitions = get_pair_partitions(n_total)
+    # Pre-extract indices
+    all_out = [u.out_indices for u in unitaries]
+    all_in = [u.in_indices for u in unitaries]
     total_result = nothing
 
     for pi in partitions
@@ -213,14 +213,7 @@ function _integrate_graphical_symplectic(constants, unitaries, dim)
                 continue
             end
 
-            # Matchings involve the symplectic form J
-            # In graphical terms, this means adding a J tensor between legs
-            # For simplicity, we can treat J as part of _create_deltas_symplectic
-
             deltas = []
-            all_out = [u.out_indices for u in unitaries]
-            all_in = [u.in_indices for u in unitaries]
-
             for (a, b) in pi
                 append!(deltas, _create_deltas_symplectic(all_out[a], all_out[b], dim))
             end

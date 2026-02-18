@@ -1368,9 +1368,45 @@ function integrate_indices_orthogonal(indices::Vector{Tuple{Int,Int}}, dim)
     if n % 2 != 0
         return 0
     end
+    k = n ÷ 2
 
     I = [x[1] for x in indices]
     J = [x[2] for x in indices]
+
+    # Shortcut: if all I are equal OR all J are equal
+    is_I_uniform = all(x -> x == I[1], I)
+    is_J_uniform = all(x -> x == J[1], J)
+
+    if is_I_uniform || is_J_uniform
+        # Row sum of Wg matrix is 1 / prod_{j=0}^{k-1} (dim + 2j)
+        # Total sum = count_valid_partitions * row_sum
+        if is_I_uniform && is_J_uniform
+            # Both uniform: result is N_total / prod
+            num = 1
+            for i=1:k
+                num *= (2*i-1)
+            end
+            denom = one(Rational{BigInt})
+            for j=0:(k-1)
+                denom *= (dim + 2*j)
+            end
+            return num / denom
+        elseif is_I_uniform
+            valid_sigma = get_matching_pair_partitions_filtered(J)
+            denom = one(Rational{BigInt})
+            for j=0:(k-1)
+                denom *= (dim + 2*j)
+            end
+            return length(valid_sigma) / denom
+        else # is_J_uniform
+            valid_pi = get_matching_pair_partitions_filtered(I)
+            denom = one(Rational{BigInt})
+            for j=0:(k-1)
+                denom *= (dim + 2*j)
+            end
+            return length(valid_pi) / denom
+        end
+    end
 
     valid_pi = get_matching_pair_partitions_filtered(I)
     valid_sigma = get_matching_pair_partitions_filtered(J)
@@ -1392,24 +1428,17 @@ function integrate_indices_orthogonal(indices::Vector{Tuple{Int,Int}}, dim)
         sigma_counts[c_sigma] = get(sigma_counts, c_sigma, 0) + 1
     end
 
-    val_mat, lookup = get_weingarten_orthogonal_data(n ÷ 2, dim)
-
-    # total = 0 // 1 # This defaults to Rational{Int}
-    total = zero(Rational{BigInt})
+    w, type_to_idx, _ = get_weingarten_reduced_data(k, dim)
+    total = zero(eltype(w))
 
     for (c_pi, count_pi) in pi_counts
-        idx_pi = get(lookup, c_pi, nothing)
-        idx_pi === nothing && continue
-
         for (c_sigma, count_sigma) in sigma_counts
-            idx_sigma = get(lookup, c_sigma, nothing)
-            idx_sigma === nothing && continue
-
-            val = val_mat[idx_pi, idx_sigma]
-            # Ensure we don't overflow with counts
+            ct = get_full_cycle_type(c_pi, c_sigma)
+            val = w[type_to_idx[ct]]
             total += (BigInt(count_pi) * BigInt(count_sigma)) * val
         end
     end
+
     if !(dim isa Integer)
         try
             return Symbolics.simplify(Symbolics.wrap(total))
@@ -1479,42 +1508,51 @@ Formula: sum_{pi, sigma} J_pi(i) * J_sigma(j) * Wg^Sp(pi, sigma)
 """
 function integrate_indices_symplectic(indices::Vector{Tuple{Int,Int}}, dim)
     n = length(indices)
-    k = div(n, 2)
+    if n % 2 != 0
+        return 0
+    end
+    k = n ÷ 2
     partitions = get_pair_partitions(n)
 
     I = [x[1] for x in indices]
-    J_idx = [x[2] for x in indices]
+    J = [x[2] for x in indices]
 
-    dim_int = dim isa Integer ? dim : nothing
-
-    total = 0 // 1
-
+    # Pre-calculate and group contractions
     pi_contractions = Dict{Any,Any}()
-    sigma_contractions = Dict{Any,Any}()
-
     for pi in partitions
         val_I = compute_symplectic_contraction(pi, I, dim)
-        if !_symbolic_isequal(val_I, 0)
-            pi_contractions[pi] = val_I
-        end
-
-        val_J = compute_symplectic_contraction(pi, J_idx, dim)
-        if !_symbolic_isequal(val_J, 0)
-            sigma_contractions[pi] = val_J
+        if !_iszero(val_I)
+            c_pi = canonicalize_pair_partition(pi)
+            pi_contractions[c_pi] = get(pi_contractions, c_pi, 0) + val_I
         end
     end
 
-    if isempty(pi_contractions) || isempty(sigma_contractions)
+    if isempty(pi_contractions)
         return 0
     end
 
+    sigma_contractions = Dict{Any,Any}()
+    for sigma in partitions
+        val_J = compute_symplectic_contraction(sigma, J, dim)
+        if !_iszero(val_J)
+            c_sigma = canonicalize_pair_partition(sigma)
+            sigma_contractions[c_sigma] = get(sigma_contractions, c_sigma, 0) + val_J
+        end
+    end
 
-    # total = 0 // 1
-    total = zero(Rational{BigInt})
+    if isempty(sigma_contractions)
+        return 0
+    end
 
-    for (pi, val_pi) in pi_contractions
-        for (sigma, val_sigma) in sigma_contractions
-            wg = weingarten_symplectic_val(pi, sigma, dim)
+    w, type_to_idx, _ = get_weingarten_reduced_data(k, -dim)
+    T = eltype(w)
+    total = zero(T)
+
+    for (c_pi, val_pi) in pi_contractions
+        for (c_sigma, val_sigma) in sigma_contractions
+            ct = get_full_cycle_type(c_pi, c_sigma)
+            loops = length(ct)
+            wg = ((-1)^loops) * w[type_to_idx[ct]]
             total += val_pi * val_sigma * wg
         end
     end
@@ -1780,7 +1818,7 @@ function symplectic_form(i, j, dim)
         return 0
     end
 
-
+    u_dim = Symbolics.unwrap(dim)
     if !(u_dim isa Number)
         return 0
     end

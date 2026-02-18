@@ -68,10 +68,9 @@ mO_sym = dO(d)
 t = measure_median_func(() -> integrate(O[1,1]^2, mO_sym))
 @printf("%-18s %-25s %-15s %10.2f\n", "Orthogonal", "O_11^2", "Symbolic", t)
 
-# O_11^4, Symbolic (SKIP or WARN: Manuscript says 8891 ms ~ 9s. Might be slow)
-# t = @measure_median integrate(O[1,1]^4, mO_sym)
-# @printf("%-18s %-25s %-15s %10.2f\n", "Orthogonal", "O_11^4", "Symbolic", t)
-@printf("%-18s %-25s %-15s %10s\n", "Orthogonal", "O_11^4", "Symbolic", "Skipped")
+# O_11^4, Symbolic
+t = measure_median_func(() -> integrate(O[1,1]^4, mO_sym))
+@printf("%-18s %-25s %-15s %10.2f\n", "Orthogonal", "O_11^4", "Symbolic", t)
 
 
 # O_11^6, d=10
@@ -147,9 +146,10 @@ t = measure_median_func(() -> integrate(abs(S_coe[1,1])^2, mCOE))
 @printf("%-18s %-25s %-15s %10.2f\n", "Circ. Orthogonal", "|S_11|^2", "Symbolic", t)
 t = measure_median_func(() -> integrate(abs(S_coe[1,1])^4, mCOE))
 @printf("%-18s %-25s %-15s %10.2f\n", "Circ. Orthogonal", "|S_11|^4", "Symbolic", t)
-# t = @measure_median integrate(abs(S_coe[1,1])^6, mCOE) # 55ms
-# @printf("%-18s %-25s %-15s %10.2f\n", "Circ. Orthogonal", "|S_11|^6", "Symbolic", t)
-@printf("%-18s %-25s %-15s %10s\n", "Circ. Orthogonal", "|S_11|^6", "Symbolic", "Skipped")
+# |S_11|^6, Symbolic
+t = measure_median_func(() -> integrate(abs(S_coe[1,1])^6, mCOE))
+@printf("%-18s %-25s %-15s %10.2f\n", "Circ. Orthogonal", "|S_11|^6", "Symbolic", t)
+# @printf("%-18s %-25s %-15s %10s\n", "Circ. Orthogonal", "|S_11|^6", "Symbolic", "Skipped")
 
 
 # Self-dual S (CSE)
@@ -158,9 +158,10 @@ t = measure_median_func(() -> integrate(abs(S_coe[1,1])^2, mCSE))
 @printf("%-18s %-25s %-15s %10.2f\n", "Circ. Symplectic", "|S_11|^2", "Symbolic", t)
 t = measure_median_func(() -> integrate(abs(S_coe[1,1])^4, mCSE))
 @printf("%-18s %-25s %-15s %10.2f\n", "Circ. Symplectic", "|S_11|^4", "Symbolic", t)
-# t = @measure_median integrate(abs(S_coe[1,1])^6, mCSE) # 127ms
-# @printf("%-18s %-25s %-15s %10.2f\n", "Circ. Symplectic", "|S_11|^6", "Symbolic", t)
-@printf("%-18s %-25s %-15s %10s\n", "Circ. Symplectic", "|S_11|^6", "Symbolic", "Skipped")
+# |S_11|^6, Symbolic
+t = measure_median_func(() -> integrate(abs(S_coe[1,1])^6, mCSE))
+@printf("%-18s %-25s %-15s %10.2f\n", "Circ. Symplectic", "|S_11|^6", "Symbolic", t)
+# @printf("%-18s %-25s %-15s %10s\n", "Circ. Symplectic", "|S_11|^6", "Symbolic", "Skipped")
 
 
 println("------------------------------------------------------------------------")
@@ -171,6 +172,13 @@ P100 = SymbolicMatrix(:P, :P, 100) # Permutation matrices are real
 t = measure_median_func(() -> integrate(P100[1,1]^10, mP100))
 @printf("%-18s %-25s %-15s %10.2f\n", "Permutation", "P_11^10", "d=100", t)
 
+# tr(PA)^2, d=4
+mP4 = dPerm(4)
+P4 = SymbolicMatrix(:P, :P, 4)
+A = SymbolicMatrix(:A, :Constant, 4)
+t_trpa = measure_median_func(() -> integrate(tr_lazy(P4*A)^2, mP4))
+@printf("%-18s %-25s %-15s %10.2f\n", "Permutation", "tr(PA)^2", "d=4", t_trpa)
+
 # CP (Centered)
 Y10 = SymbolicMatrix(:Y, :CPerm, 10)
 mCP10 = dCPerm(10)
@@ -179,51 +187,22 @@ t = measure_median_func(() -> integrate(Y10[1,1]^4, mCP10))
 
 println("------------------------------------------------------------------------")
 
-# Application: Purity
-# Purity for d=6 -> tr(rho^2)?
-# Contraction of 4th degree polynomial.
-# Maybe average purity of random state? Or random unitary channel?
-# Manuscript says "contracting a 4th degree polynomial over the unitary group".
-# Likely E[purity(U rho U')] ? No that's purity(rho).
-# E[purity(Tr_B(U |0><0| U'))]? 
-# Or just simple |U_11|^4? Wait, table says "Purity d=6 51.4ms".
-# "purity calculation for a bipartite state (d=6)... contracting a 4th degree polynomial"
-# This typically means E[purity(psi_A)] where psi_AB = U|00>.
-# subsystem dim? if d=6 is total, maybe 2x3?
-# We'll assume d=6 and subsys=2 (or 3).
-# Let's try to match the time complexity.
-
-# Setup Purity for d=6, subsystem 3 (leaving 2)
 function benchmark_purity()
     d_total = 6
-    d_A = 3
-    d_B = 2
+    dims = (3, 2)
     U = SymbolicMatrix(:U, :U, d_total)
+    rho_fixed = zeros(Num, d_total, d_total)
+    rho_fixed[1,1] = 1
+    rho_random = U * rho_fixed * U'
+    measure = dU(d_total)
     
-    # Random pure state |psi> = U |0> (first column)
-    # rho = |psi><psi| = U |0><0| U'
-    # rho_A = tr_B(rho)
-    # purity = tr(rho_A^2)
-    # This involves U_{i a, 0} ... 
-    # Actually IntU has `average_purity`.
-    # Let's check `average_purity` implementation in src/qi.jl or just use integrate.
-    
-    # Using helper if available
-    # @btime average_purity(dU(6), [3, 2], 2) # Average purity of subsystem 2 (dim 2)
-    
-    # Manually:
-    # We can't easily construct the specific tensor without helper.
-    # We'll skip exact match and just run average_purity if available.
-    if isdefined(IntU, :average_purity)
-        measure = dU(6)
-        return measure_median_func(() -> average_purity(measure, [3], [1])) # Average purity of subsys 1 (dim 3) from 1*2? Wait dims must product to 6.
-        # [3, 2] is a split.
-    end
-    return 0.0
+    return measure_median_func(() -> begin
+        rho_A = partial_trace(rho_random, dims, 2)
+        integrate(purity(rho_A), measure)
+    end)
 end
-# t = benchmark_purity()
-# @printf("%-18s %-25s %-15s %10.2f\n", "Application", "Purity", "d=6", t)
-@printf("%-18s %-25s %-15s %10s\n", "Application", "Purity", "d=6", "Skipped")
+t_pure = benchmark_purity()
+@printf("%-18s %-25s %-15s %10.2f\n", "Application", "Purity", "d=6", t_pure)
 
 
 # --- TABLE 2: ITensor Scaling ---
@@ -232,29 +211,121 @@ println("-----------------------------------------------------------------------
 @printf("%-20s %-10s %-10s %-10s\n", "Scaling Type", "Degree k", "Dim d", "Time (ms)")
 println("------------------------------------------------------------------------")
 
-# k scaling (d=2)
-# Using simple loop network: tr( (U A U' B)^k ) ?
-# Manuscript says "loop network of Haar unitaries... median time increases... for fixed d=2".
-# "Integrate ... [U, A, U_dag, B] ... result is scalar"
-# "Scaling with degree k" -> likely k copies of the pattern.
-
 function run_itensor_bench(k, d_val)
-    # Create k replicas of U ... U' ...
-    # Simple loop: U1 A1 U1' B1 ... Uk Ak Uk' Bk ?
-    # No, same U.
-    # tr( (U A U' B)^k )
-    
-    indices_i = [ITensors.Index(d_val, "i_$x") for x in 1:k]
-    indices_j = [ITensors.Index(d_val, "j_$x") for x in 1:k]
-    
-    network = ITensors.ITensor[]
-    
-    # We need to construct the network carefully.
-    return 0.0 # Placeholder as ITensors might need more setup
+    # Placeholder for consistency, actual calls moved to loop
 end
 
-# Skipping ITensor benchmarks for now as they require complex setup and dependencies might be tricky without exact code.
-println("(ITensor benchmarks skipped in reproduction script for brevity)")
+# Copy create_trace_network from 10_itensor_integration.jl
+function create_trace_network(dim, k, measure_type = :U)
+    out_indices = [ITensors.Index(dim, "Out,$i") for i = 1:k]
+    in_indices = [ITensors.Index(dim, "In,$i") for i = 1:k]
+
+    tensors = Any[]
+
+    if measure_type == :U
+        for i = 1:k
+            U = IntU.ITensorUnitary(
+                out_indices = [out_indices[i]],
+                in_indices = [in_indices[i]],
+                is_adj = false,
+            )
+
+            U_dag = IntU.ITensorUnitary(
+                out_indices = [in_indices[i]],
+                in_indices = [out_indices[i]],
+                is_adj = true,
+            )
+
+            push!(tensors, U)
+            push!(tensors, U_dag)
+        end
+        # Create a trace by connecting Out[i] to In[i+1] and In[i] to Out[i+1] etc.
+        for i = 1:k
+            next_i = (i % k) + 1
+            A = ITensors.randomITensor(in_indices[i], out_indices[next_i])
+            B = ITensors.randomITensor(in_indices[next_i], out_indices[i])
+            push!(tensors, A)
+            push!(tensors, B)
+        end
+        return tensors, dU(dim)
+    elseif measure_type == :O
+        for i = 1:k
+            O = IntU.ITensorUnitary(
+                out_indices = [out_indices[i]],
+                in_indices = [in_indices[i]],
+                is_adj = false,
+            )
+            push!(tensors, O)
+        end
+        # Create a trace by connecting Out[i] to In[i+1]
+        for i = 1:k
+            next_i = (i % k) + 1
+            A = ITensors.randomITensor(in_indices[i], out_indices[next_i])
+            push!(tensors, A)
+        end
+        return tensors, dO(dim)
+    elseif measure_type == :Sp
+        for i = 1:k
+            S = IntU.ITensorUnitary(
+                out_indices = [out_indices[i]],
+                in_indices = [in_indices[i]],
+                is_adj = false,
+            )
+            push!(tensors, S)
+        end
+        # Create a trace for Symplectic
+        for i = 1:k
+            next_i = (i % k) + 1
+            A = ITensors.randomITensor(in_indices[i], out_indices[next_i])
+            push!(tensors, A)
+        end
+        return tensors, dSp(dim)
+    end
+end
+
+# Restore ITensor scaling benchmarks
+for k_val in [1, 2, 3, 4]
+    local t_it = measure_median_func(() -> begin
+        tensors, measure = create_trace_network(2, k_val, :U)
+        integrate(tensors, measure)
+    end)
+    @printf("%-20s %-10d %-10d %10.2f\n", "Degree k (U)", k_val, 2, t_it)
+end
+
+println("------------------------------------------------------------------------")
+for k_val in [2, 4, 6]
+    local t_it_o = measure_median_func(() -> begin
+        tensors, measure = create_trace_network(3, k_val, :O)
+        integrate(tensors, measure)
+    end)
+    @printf("%-20s %-10d %-10d %10.2f\n", "Degree k (O)", k_val, 3, t_it_o)
+end
+
+println("------------------------------------------------------------------------")
+for d_val in [2, 10, 50, 100]
+    local t_it = measure_median_func(() -> begin
+        tensors, measure = create_trace_network(d_val, 2, :U)
+        integrate(tensors, measure)
+    end)
+    @printf("%-20s %-10d %-10d %10.2f\n", "Dimension d (k=2)", 2, d_val, t_it)
+end
+
+println("------------------------------------------------------------------------")
+for d_val in [2, 10, 20, 30]
+    local t_it = measure_median_func(() -> begin
+        tensors, measure = create_trace_network(d_val, 3, :U)
+        integrate(tensors, measure)
+    end)
+    @printf("%-20s %-10d %-10d %10.2f\n", "Dimension d (k=3)", 3, d_val, t_it)
+end
+
+println("------------------------------------------------------------------------")
+# Orthogonal k=6, d=3
+t_it_o6 = measure_median_func(() -> begin
+    tensors, measure = create_trace_network(3, 6, :O)
+    integrate(tensors, measure)
+end)
+@printf("%-20s %-10d %-10d %10.2f\n", "Orthogonal", 6, 3, t_it_o6)
 
 
 # --- TABLE 3: Matrix Integration ---
@@ -264,21 +335,6 @@ println("-----------------------------------------------------------------------
 println("------------------------------------------------------------------------")
 
 function bench_matrix(N)
-    # E[U U'] where U is N x N symbolic matrix? 
-    # No, U is d x d. The output is N x N? 
-    # Manuscript: "E[U U'] for N x N symbolic matrices over U(d)"
-    # Ah, maybe they mean U is N x N symbolic matrix of symbols?
-    # "U is SymbolicMatrix(:U, :U, d)". Wait.
-    # "computing E[U U'] for N x N symbolic matrices".
-    # Likely meaning creating a SymbolicMatrix M of size N x N (but representing d x d operator?)
-    # or actually computing the full N x N array of integrals.
-    # If U is d x d, then U*U' is d x d.
-    # Maybe N refers to d?
-    # "Matrix Size (N) ... 2x2 ... 4x4".
-    # If d was symbolic, the result is Identity * constant.
-    # If U is N x N explicitly?
-    # Let's assume U is N x N SymbolicMatrix and we integrate over U(N).
-    
     d_val = N
     U_sym = SymbolicMatrix(:U, :U, d_val)
     m = dU(d_val)

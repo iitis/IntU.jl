@@ -73,28 +73,69 @@ end
 
 function fallback_integrate(t::LazyTrace, measure::PermutationMeasure)
     # E[tr(PA)] = sum(A) / d for one P.
-    # For now, let's implement a very basic expansion for tr(PA)
+    # For more complex terms, we expand to element-wise integration.
+    matcher = measure.matcher === nothing ? MetadataMatcher(:Perm) : measure.matcher
+    dim = measure.dim
+    
+    # If it's a simple tr(PA), keep the symbolic result if A is not concrete
     if length(t.cycles) == 1 && length(t.cycles[1]) == 2
         factors = t.cycles[1]
-        matcher = measure.matcher === nothing ? MetadataMatcher(:Perm) : measure.matcher
-        
-        # Check if one of factors is P
         P_idx = nothing
         for (i, f) in enumerate(factors)
             if match_index(matcher, f) !== nothing
                 P_idx = i; break
             end
         end
-        
         if P_idx !== nothing
             A = factors[P_idx == 1 ? 2 : 1]
-            # Result is t.prefactor * sum(A) / measure.dim
-            # We can represent sum(A) as a new symbolic variable or expand if small.
-            # For symbolic A, let's return a trace-like name or sum(A)
-            return t.prefactor * (Symbolics.variable(Symbol("sum(" * string(A) * ")")) / measure.dim)
+            if !(A isa AbstractMatrix && !(eltype(A) <: Num))
+                return t.prefactor * (Symbolics.variable(Symbol("sum(" * string(A) * ")")) / measure.dim)
+            end
         end
     end
-    error("Graphical integration for Permutations only supported for tr(PA) currently.")
+
+    # General expansion
+    expr = t.prefactor
+    for cycle in t.cycles
+        # Each cycle is tr(ABC...)
+        # Expand tr(ABC...) as sum_{i,j,k...} A_ij B_jk C_ki
+        n = length(cycle)
+        dims = [size(f) for f in cycle]
+        
+        # We need a shared dimension for all factors in the cycle for trace to exist.
+        # But for symbolic ones it is dim.
+        d_val = dim isa Integer ? Int(dim) : 0
+        if d_val == 0
+             # Try to find a concrete dimension from any factor
+             for f in cycle
+                 s = size(f, 1)
+                 if s isa Integer && s < 1000 # heuristic
+                     d_val = s; break
+                 end
+             end
+        end
+        
+        if d_val == 0
+            error("Cannot expand LazyTrace for Permutations: dimension is not concrete and term is not linear.")
+        end
+
+        # Manual expansion of tr(C1 * C2 * ... * Cn)
+        # sum_{i1, i2, ..., in} C1[i1, i2] * C2[i2, i3] * ... * Cn[in, i1]
+        indices = Symbolics.variable.(Symbol.("i", 1:n), T=Int) # Not really needed as symbols if we just use loop
+        
+        term_sum = 0
+        for idxs in Iterators.product(fill(1:d_val, n)...)
+            prod_val = 1
+            for k = 1:n
+                next_k = (k % n) + 1
+                prod_val *= cycle[k][idxs[k], idxs[next_k]]
+            end
+            term_sum += prod_val
+        end
+        expr *= term_sum
+    end
+    
+    return integrate(expr, measure)
 end
 
 function fallback_integrate(t::LazyTrace, measure::CenteredPermutationMeasure)

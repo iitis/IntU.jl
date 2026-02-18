@@ -99,6 +99,12 @@ function partial_trace(M, dims, subsystem)
     end
 
     traced_dim = dims[subsystem]
+    # Determine result type: Use concrete types for numeric matrices.
+    # For symbolic matrices, we use Matrix{Any} to avoid buggy conversion to Num
+    # when intermediate terms are unwrapped symbols with SymReal metadata.
+    E = eltype(M)
+    T = (E <: Number && !(E <: Symbolics.Num)) ? E : Any
+    res = Matrix{T}(undef, new_dim, new_dim)
 
     for i = 1:new_dim
         for j = 1:new_dim
@@ -106,7 +112,8 @@ function partial_trace(M, dims, subsystem)
             m_j = to_multi(j, target_dims, target_strides)
 
             # Sum over the subsystem index
-            val = 0
+            # Initialize sum with a type-compatible zero
+            val = (E <: Number) ? zero(E) : 0
             for k = 1:traced_dim
                 full_m_i = Vector{Int}(undef, n)
                 full_m_j = Vector{Int}(undef, n)
@@ -132,5 +139,10 @@ function partial_trace(M, dims, subsystem)
         end
     end
 
+    # Wrap symbolic results in Num. This is safe even if M was numeric but the sum had symbols (not possible here).
+    if any(x -> x isa Symbolics.Num || SymbolicUtils.iscall(Symbolics.unwrap(x)), res)
+        # Use wrap to ensure they are Num, then return Matrix{Num}
+        return map(Symbolics.wrap, res)
+    end
     return res
 end
