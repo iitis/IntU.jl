@@ -30,7 +30,6 @@ include("hciz.jl")
 include("su_measure.jl")
 include("diagonal_unitary.jl")
 include("stiefel_measure.jl")
-include("macros.jl")
 
 
 # Quantum Information helpers
