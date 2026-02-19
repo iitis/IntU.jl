@@ -39,10 +39,10 @@ using IntU, Symbolics
 V = SymbolicMatrix(:V, :DiagUnitary)
 
 # E[|V_11|^2] = 1
-@integrate abs(V[1,1])^2 dDiagUnitary(d)
+integrate(abs(V[1, 1])^2, dDiagUnitary(d))
 
 # E[V_11 * V_22^*] = 0 (independent phases)
-@integrate V[1,1] * conj(V[2,2]) dDiagUnitary(d)
+integrate(V[1, 1] * conj(V[2, 2]), dDiagUnitary(d))
 
 # Non-diagonal entries are zero by definition
 integrate(abs(V[1,2])^2, measure) # Output: 0

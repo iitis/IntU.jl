@@ -34,7 +34,7 @@ using IntU, Symbolics
 @variables d
 V = SymbolicMatrix(:V)
 # Integration over V_2(C^d)
-@integrate abs(V[1,1])^2 dStiefel(d, 2)
+integrate(abs(V[1, 1])^2, dStiefel(d, 2))
 ```
 
 The system automatically handles the mapping to the unitary group and applies
@@ -45,7 +45,11 @@ Weingarten calculus.
 Large-$d$ expansions are fully supported:
 
 ```@example stiefel
-expr = abs(V[1,1])^2 * abs(V[1,2])^2
+using IntU, Symbolics
+@variables d
+V = SymbolicMatrix(:V)
+measure = dStiefel(d, 2)
+expr = abs(V[1, 1])^2 * abs(V[1, 2])^2
 asymptotic(expr, measure, 2)
 ```
 

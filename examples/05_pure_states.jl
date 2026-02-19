@@ -23,10 +23,8 @@ rho1(a, c) = sum(U[(a-1)*d2 + k, 1] * conj(U[(c-1)*d2 + k, 1]) for k=1:d2)
 # Subsystem Purity Tr(rho1^2)
 purity_expr = sum(rho1(a, c) * rho1(c, a) for a=1:d1, c=1:d1)
 
-# Integrate over Haar measure dU(d) which induces the measure on pure states
-# Integrate over Haar measure dU(d) which induces the measure on pure states
 println("Integrating purity_expr...")
-avg_purity = @integrate purity_expr dU(d)
+avg_purity = integrate(purity_expr, dU(d))
 println("Integration done.")
 
 println("Average Purity: ", avg_purity)
@@ -37,7 +35,7 @@ println("Expected (Analytical): (d1 + d2) / (d1 * d2 + 1)")
 fidelity_expr = abs(U[1, 1])^2
 fidelity_expr = abs(U[1, 1])^2
 println("Integrating fidelity_expr...")
-avg_fidelity = @integrate fidelity_expr dU(d)
+avg_fidelity = integrate(fidelity_expr, dU(d))
 println("Integration done.")
 println("\nAverage Fidelity with |0>: ", avg_fidelity)
 println("Expected (1/d): 1/d")
@@ -46,6 +44,6 @@ println("Expected (1/d): 1/d")
 println("\ndPsi(d) can also be used for purely vector-based integration.")
 println("\ndPsi(d) can also be used for purely vector-based integration.")
 println("Integrating with dPsi...")
-res_psi = @integrate abs(U[1,1])^2 dPsi(d)
+res_psi = integrate(abs(U[1, 1])^2, dPsi(d))
 println("Integration done.")
 println("Result using dPsi(d): ", res_psi)

@@ -85,7 +85,7 @@ U = SymbolicMatrix(:U, :U)
 
 # 1. Norm of a matrix element
 # Integral of |U_{11}|^2
-@integrate abs(U[1,1])^2 dU(d)
+integrate(abs(U[1, 1])^2, dU(d))
 # Output: 1/d
 ```
 
@@ -98,7 +98,7 @@ U = SymbolicMatrix(:U, :U)
 
 # 2. Fourth moment
 # Integral of |U_{11}|^4
-@integrate abs(U[1,1])^4 dU(d)
+integrate(abs(U[1, 1])^4, dU(d))
 # Output: 2 / (d*(d + 1))
 ```
 
@@ -111,7 +111,7 @@ U = SymbolicMatrix(:U, :U)
 
 # 3. Trace moments
 # Integral of |Tr(U)|^2
-@integrate abs(tr(U))^2 dU(d)
+integrate(abs(tr(U))^2, dU(d))
 # Output: 1
 ```
 
@@ -126,7 +126,7 @@ U = SymbolicMatrix(:U, :U)
 # E[tr(U A U' B)] = tr(A) * tr(B) / d
 A = SymbolicMatrix(:A)
 B = SymbolicMatrix(:B)
-@integrate tr_lazy(U * A * U' * B) dU(d)
+integrate(tr_lazy(U * A * U' * B), dU(d))
 ```
 
 ### 5. HCIZ Integrals

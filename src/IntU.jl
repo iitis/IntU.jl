@@ -67,9 +67,7 @@ export integrate,
     fidelity,
     average_fidelity,
     partial_trace,
-    dDesign,
-    @symbolic_dimension,
-    @integrate
+    dDesign
 export dPerm, dCPerm
 export dCOE, dCSE, dCUE
 export weingarten, weingarten_orthogonal_val, weingarten_symplectic_val

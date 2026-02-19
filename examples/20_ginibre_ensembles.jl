@@ -13,7 +13,7 @@ meas_ginue = dGinUE(N)
 
 println("--- Basic Moments ---")
 # <Tr(G G')> = N^2
-res_sq = @integrate tr(G_mat * G_mat') meas_ginue
+res_sq = integrate(tr(G_mat * G_mat'), meas_ginue)
 println("<Tr(G G')> = ", Symbolics.simplify(res_sq), " (Expected: $(N^2))")
 
 # --- 2. Real Ginibre (GinOE) ---
@@ -23,7 +23,7 @@ Gr = [G_oe[i, j] for i = 1:N, j = 1:N]
 meas_ginoe = dGinOE(N)
 
 # <Tr(G G^T)> = N^2
-res_oe_sq = @integrate tr(Gr * Gr') meas_ginoe
+res_oe_sq = integrate(tr(Gr * Gr'), meas_ginoe)
 println("<Tr(G G^T)> = ", Symbolics.simplify(res_oe_sq), " (Expected: $(N^2))")
 
 
@@ -36,7 +36,7 @@ B = SymbolicMatrix(:B)
 
 # <Tr(G A G' B)> = Tr(A) * Tr(B)
 println("Integrating tr(G * A * G' * B) over GinUE(d)...")
-res_t2 = @integrate tr(G_sym * A * G_sym' * B) dGinUE(d)
+res_t2 = integrate(tr(G_sym * A * G_sym' * B), dGinUE(d))
 println("<Tr(G A G' B)> = ", res_t2, " (Expected: tr(A)*tr(B))")
 
 
@@ -45,7 +45,7 @@ println("\n4. Matrix Integrals over GinUE(2)")
 A_const = [1 0; 0 2]
 B_const = [1 1; 1 1]
 # < G A G' B > = Tr(A) B
-res_mat = @integrate (G_mat * A_const) * (G_mat' * B_const) meas_ginue
+res_mat = integrate((G_mat * A_const) * (G_mat' * B_const), meas_ginue)
 println("< G A G' B > = ")
 display(map(simplify, res_mat))
 

@@ -17,8 +17,6 @@ vandermonde_det
 ### Unitary Group
 ```@docs
 dU
-symbolic_dimension_unitary
-@symbolic_dimension
 ```
 
 ### Orthogonal & Symplectic
@@ -91,19 +89,19 @@ IntU.integrate_indices_coe
 IntU.integrate_indices_cse
 IntU.integrate_indices_permutation
 IntU.integrate_indices_diagonal
-IntU.fallback_integrate
 IntU.check_library
 IntU.tr_val
 IntU._expand_asymptotic
 IntU._poly_degree
+IntU.get_full_cycle_type
+IntU.get_weingarten_reduced_data
 ```
 
 ### Matcher and Logic
 
 ```@docs
 AbstractIndexMatcher
-LookupMatcher
-SymbolicUnitary
+MetadataMatcher
 _integrate_core
 process_term
 weingarten
@@ -118,11 +116,9 @@ IntU.get_pair_partitions
 IntU.get_matching_pair_partitions_filtered
 IntU.canonicalize_pair_partition
 IntU.conjugate_partition
-IntU.count_loops
 IntU.murnaghan_nakayama
 IntU.character_at_id
 IntU.irrep_dimension
-IntU.get_weingarten_orthogonal_data
 IntU.compute_symplectic_contraction
 IntU.weingarten_orthogonal_val_canonical
 IntU.INTEGRATION_RULES

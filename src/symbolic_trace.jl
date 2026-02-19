@@ -100,6 +100,12 @@ function Base.show(io::IO, A::SymbolicMatrix)
     end
 end
 
+"""
+    LazyTrace(cycles::Vector{Vector{AbstractMatrix}}, prefactor::Union{Num, Number})
+
+A lazy representation of a trace (or product of traces) of matrix products.
+Used to represent expressions like `tr(A*B) * tr(C)` symbolically before integration.
+"""
 struct LazyTrace
     cycles::Vector{Vector{AbstractMatrix}}
     prefactor::Union{Num, Number}
@@ -112,6 +118,12 @@ function Base.getproperty(t::LazyTrace, s::Symbol)
     return getfield(t, s)
 end
 
+"""
+    LazySum(terms::Vector{LazyTrace})
+
+A lazy representation of a sum of `LazyTrace` objects.
+Enables symbolic integration of expressions like `tr(A*B) + tr(C*D)`.
+"""
 struct LazySum
     terms::Vector{LazyTrace}
 end
@@ -247,6 +259,13 @@ function adjoint(P::SymbolicMatrixProduct)
     return SymbolicMatrixProduct(reverse([adjoint(f) for f in P.factors]))
 end
 
+"""
+    tr(A::SymbolicMatrix)
+    tr(A::SymbolicMatrixProduct)
+
+Symbolic trace of a coordinate-free matrix expression. 
+Returns a `LazyTrace` object that can be integrated.
+"""
 function tr(A::SymbolicMatrix)
     return tr_lazy(A)
 end

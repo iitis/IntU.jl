@@ -39,8 +39,8 @@ O = SymbolicMatrix(:O, :O)
 res = integrate(O[1, 1]^2, dO(d))
 # Output: 1/d
 
-# 2. Fourth power (macro version)
-@integrate O[1, 1]^4 dO(d)
+# 2. Fourth power
+integrate(O[1, 1]^4, dO(d))
 # Output: 3 / (d*(d + 2))
 ```
 
@@ -85,8 +85,8 @@ S = SymbolicMatrix(:S, :Sp)
 res = integrate(abs(S[1, 1])^2, dSp(d))
 # Output: 1/d
 
-# |S_{1,1}|^4 integration (macro version)
-@integrate abs(S[1, 1])^4 dSp(d)
+# |S_{1,1}|^4 integration
+integrate(abs(S[1, 1])^4, dSp(d))
 # Output: 2 / ((d + 1)*(d - 1))
 ```
 

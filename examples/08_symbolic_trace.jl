@@ -26,7 +26,7 @@ println("Integrating symbolic traces over Haar measure U(d)...")
 # tr(U*A*U'*B) creates a LazyTrace object.
 println("\nExpression 1: tr(U * A * U' * B)")
 
-result = @integrate tr(U * A * U' * B) dU(d)
+result = integrate(tr(U * A * U' * B), dU(d))
 println("Result: ", result)
 # Expected: tr(A) * tr(B) / d
 
@@ -35,7 +35,7 @@ println("Result: ", result)
 # Integration of a longer product.
 println("\nExpression 2: tr(U * A * U' * B * U * C * U')")
 
-result2 = @integrate tr(U * A * U' * B * U * C * U') dU(d)
+result2 = integrate(tr(U * A * U' * B * U * C * U'), dU(d))
 println("Result: ", Symbolics.simplify(result2))
 # The result will involve Weingarten functions of 2nd order.
 
@@ -48,7 +48,7 @@ println("\nExpression 3: tr(U * A) * tr(U' * B)")
 # Multiplication of Symbolic Traces also produces a LazyTrace
 expr_prod = tr(U * A) * tr(U' * B)
 
-result_prod = @integrate expr_prod dU(d)
+result_prod = integrate(expr_prod, dU(d))
 println("Result: ", Symbolics.simplify(result_prod))
 # Expected: tr(A B) / d
 
@@ -56,7 +56,7 @@ println("Result: ", Symbolics.simplify(result_prod))
 println("\nExpression 4: tr(U)^k * tr(U')^k")
 for k in 1:2
     expr_k = tr(U)^k * tr(U')^k
-    res_k = @integrate expr_k dU(d)
+    res_k = integrate(expr_k, dU(d))
     println("k=$k result: ", res_k)
 end
 

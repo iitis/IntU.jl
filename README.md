@@ -29,7 +29,7 @@ using IntU, Symbolics, LinearAlgebra
 U = SymbolicMatrix(:U, :U)
 # Integrate the matrix expression U * U'
 # This performs element-wise integration automatically
-res = @integrate U * U' dU(d)
+res = integrate(U * U', dU(d))
 # Output: Identity Matrix (I)
 ```
 
@@ -41,14 +41,14 @@ using IntU, Symbolics
 U = SymbolicMatrix(:U, :U)
 
 # Compute the integral of |U_{1,1}|^2
-@integrate abs(U[1,1])^2 dU(d)
+integrate(abs(U[1, 1])^2, dU(d))
 # Output: 1 / d
 ```
 
 For more complex moments, such as $\int dU |U_{1,1}|^2 |U_{1,2}|^2$, IntU handles the combinatorics (Weingarten functions) automatically:
 
 ```julia
-@integrate abs(U[1,1])^2 * abs(U[1,2])^2 dU(d)
+integrate(abs(U[1, 1])^2 * abs(U[1, 2])^2, dU(d))
 # Output: 1 / (d * (1 + d))
 ```
 
@@ -63,7 +63,7 @@ can calculate averages over the unitary Haar measure using `dU` and `integrate`.
 
 ```julia
 # 4-th moment of a diagonal entry
-@integrate abs(U[1,1])^4 dU(d)
+integrate(abs(U[1, 1])^4, dU(d))
 # Output: 2 / (d * (1 + d))
 ```
 
@@ -71,7 +71,7 @@ can calculate averages over the unitary Haar measure using `dU` and `integrate`.
 The Special Unitary group $SU(d)$ consists of unitary matrices with determinant 1. Use `dSU`.
 
 ```julia
-@integrate abs(U[1,1])^2 dSU(d)
+integrate(abs(U[1, 1])^2, dSU(d))
 # Output: 1/d
 ```
 
@@ -81,7 +81,7 @@ computed using the `dO` measure.
 
 ```julia
 O = SymbolicMatrix(:O, :O)
-@integrate O[1,1]^4 dO(d)
+integrate(O[1, 1]^4, dO(d))
 # Output: 3 / (d * (2 + d))
 ```
 
@@ -91,7 +91,7 @@ preserve the symplectic form, $S \Omega S^T = \Omega$. Use `dSp`.
 
 ```julia
 S = SymbolicMatrix(:S, :Sp)
-@integrate abs(S[1,1])^2 dSp(d)
+integrate(abs(S[1, 1])^2, dSp(d))
 # Output: 1 / d
 ```
 
@@ -105,7 +105,7 @@ Ginibre ensembles consist of non-Hermitian matrices with i.i.d. Gaussian entries
 @variables d
 G = SymbolicMatrix(:G, :GUE)
 # E[Tr(G G')] = d^2
-@integrate tr_lazy(G * G') dGinUE(d)
+integrate(tr_lazy(G * G'), dGinUE(d))
 ```
 
 ### Circular Ensembles
@@ -118,7 +118,7 @@ IntU also supports Circular Ensembles (CUE, COE, CSE) which are commonly used in
 @variables d
 S = SymbolicMatrix(:S, :U) # CUE is Haar unitary
 # COE moment E[|S_{1,1}|^2]
-@integrate abs(S[1,1])^2 dCOE(d)
+integrate(abs(S[1, 1])^2, dCOE(d))
 # Output: 2 / (d + 1)
 ```
 
@@ -130,7 +130,7 @@ state vector $|\psi\rangle$ of dimension $d$.
 @variables d
 psi = SymbolicMatrix(:psi) # Treat vector as SymbolicMatrix for lazy indexing
 # Average of |ψ_1|^2
-@integrate abs(psi[1,1])^2 dPsi(d)
+integrate(abs(psi[1, 1])^2, dPsi(d))
 # Output: 1 / d
 ```
 
@@ -142,7 +142,7 @@ IntU supports integration over the Symmetric group $S_d$ (permutation matrices).
 @variables d
 P = SymbolicMatrix(:P, :Perm)
 # E[P_11]
-@integrate P[1,1] dPerm(d)
+integrate(P[1, 1], dPerm(d))
 # Output: 1 / d
 ```
 
@@ -153,7 +153,7 @@ IntU also supports centered permutation matrices $Y = P - J/d$.
 @variables d
 Y = SymbolicMatrix(:Y, :CPerm)
 # E[Y_11^2]
-@integrate Y[1,1]^2 dCPerm(d)
+integrate(Y[1, 1]^2, dCPerm(d))
 # Output: (d - 1) / d^2
 ```
 
@@ -166,7 +166,7 @@ corresponds to independent phase averaging for each diagonal entry.
 V = SymbolicMatrix(:V, :DiagUnitary)
 
 # E[|V_11|^2]
-@integrate abs(V[1,1])^2 dDiagUnitary(d)
+integrate(abs(V[1, 1])^2, dDiagUnitary(d))
 # Output: 1
 ```
 
@@ -205,7 +205,7 @@ IntU supports integration over the Stiefel manifold $V_k(\mathbb{C}^d)$, which r
 @variables d
 V = SymbolicMatrix(:V, :U) # Stiefel is first k columns of Haar unitary
 # E[|V_{1,1}|^2]
-@integrate abs(V[1,1])^2 dStiefel(d, 2)
+integrate(abs(V[1, 1])^2, dStiefel(d, 2))
 # Output: 1 / d
 ```
 

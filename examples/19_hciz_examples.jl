@@ -42,7 +42,7 @@ U = SymbolicMatrix(:U, :U, 2)
 
 println("Integrating Tr(A_test * U * B_test * U') over dU(2)...")
 integrand = tr(A_test * U * B_test * U')
-result_tr = @integrate integrand dU(2)
+result_tr = integrate(integrand, dU(2))
 
 println("Result: ", result_tr)
 println("Expected (Tr(A)Tr(B)/d): ", tr(A_test)*tr(B_test)/2)

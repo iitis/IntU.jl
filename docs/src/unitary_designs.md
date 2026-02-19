@@ -28,7 +28,7 @@ using IntU, Symbolics
 
 # Define dimension and matrix
 @variables d
-@symbolic_dimension U[1:d, 1:d]
+U = SymbolicMatrix(:U, :U, d)
 
 # Create a 2-design measure
 design = dDesign(U, d, 2)

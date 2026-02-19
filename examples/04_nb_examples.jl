@@ -8,15 +8,15 @@ println("--- Example 1: Scalar Integrals (Symbolic d) ---")
 U = SymbolicMatrix(:U, :U)
 
 println("1.1: Integrate |U[1,1]|^2")
-res1_1 = @integrate abs(U[1, 1])^2 dU(d)
+res1_1 = integrate(abs(U[1, 1])^2, dU(d))
 println("Result: ", res1_1, " (Expected: 1/d)")
 
 println("\n1.2: Integrate |U[1,1]*U[2,2]|^2")
-res1_2 = @integrate abs(U[1, 1]*U[2, 2])^2 dU(d)
+res1_2 = integrate(abs(U[1, 1] * U[2, 2])^2, dU(d))
 println("Result: ", res1_2, " (Expected: 1/(d^2-1))")
 
 println("\n1.3: Integrate U[1,1]*U[2,2]*conj(U[1,2]*U[2,1])")
-res1_3 = @integrate U[1, 1]*U[2, 2]*conj(U[1, 2]*U[2, 1]) dU(d)
+res1_3 = integrate(U[1, 1] * U[2, 2] * conj(U[1, 2] * U[2, 1]), dU(d))
 println("Result: ", res1_3, " (Expected: -1/(d(d^2-1)))")
 
 
@@ -67,7 +67,7 @@ X = SymbolicMatrix(:X)
 # This is clunky with lazy matrices, better to integrate entry-wise or use trace logic.
 # Here we integrate a sum of entries
 expr4 = sum(abs(U[i,j])^2 for i=1:2, j=1:2)
-res4 = @integrate expr4 dU(d)
+res4 = integrate(expr4, dU(d))
 println("Integrating sum of squares...")
 println("Result: ", res4)
 println("Expected: 4/d")

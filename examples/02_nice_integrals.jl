@@ -16,7 +16,7 @@ for k = 1:3
     expr = abs2(tr_lazy(U))^k
 
     print("k=$k (Moment $(2*k))... ")
-    val = @integrate expr dU(d)
+    val = integrate(expr, dU(d))
     expected = factorial(k)
     println("Result: $val")
 
@@ -33,7 +33,7 @@ minor_2x2 = U[1, 1]*U[2, 2] - U[1, 2]*U[2, 1]
 expr_minor = minor_2x2 * conj(minor_2x2)
 
 println("Integrating |U_11 U_22 - U_12 U_21|^2 over U(d) ...")
-val_minor = @integrate expr_minor dU(d)
+val_minor = integrate(expr_minor, dU(d))
 println("Result: $val_minor")
 
 # Theoretical expectation:

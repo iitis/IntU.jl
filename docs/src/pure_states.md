@@ -28,7 +28,7 @@ using IntU, Symbolics
 psi = SymbolicMatrix(:psi)
 
 # 1. Average of |psi_1|^2
-res = @integrate abs(psi[1,1])^2 dPsi(d)
+res = integrate(abs(psi[1, 1])^2, dPsi(d))
 println(res)
 # Output: 1/d
 
@@ -36,7 +36,7 @@ println(res)
 phi = SymbolicMatrix(:phi)
 # E[|<phi|psi>|^2] = 1/d
 # In lazy mode, we can use matrix multiplication and tr_lazy
-@integrate abs(tr_lazy(phi' * psi))^2 dPsi(d)
+integrate(abs(tr_lazy(phi' * psi))^2, dPsi(d))
 # Output: 1/d
 ```
 

@@ -24,11 +24,6 @@ integrate(expr, measure)
 - **`expr`**: A symbolic expression (e.g., product of `SymbolicMatrix` elements) or an array of such expressions.
 - **`measure`**: A measure object defining the group/ensemble and its dimension (e.g., `dU(d)`, `dO(d)`, `dGUE(d)`).
 
-For convenience, a macro version is also available:
-```julia
-@integrate expr measure
-```
-
 ## Manual
 
 - [Unitary Integration](unitary_integration.md): Core functionality for $U(d)$.

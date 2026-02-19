@@ -29,7 +29,7 @@ integrate(P[1,1], measure)
 # Output: 1 / d
 
 # Expected value of a product: E[P_11 * P_22] = 1 / (d(d-1))
-@integrate P[1,1] * P[2,2] dPerm(d)
+integrate(P[1, 1] * P[2, 2], dPerm(d))
 # Output: 1 / (d * (d - 1))
 ```
 
@@ -75,7 +75,7 @@ integrate(Y[1,1], m_centered)
 # Output: 0
 
 # The second moment (variance) is E[(P_11 - 1/d)^2] = 1/d - 1/d^2 = (d-1)/d^2
-@integrate Y[1,1]^2 dCPerm(d)
+integrate(Y[1, 1]^2, dCPerm(d))
 # Output: (d - 1) / d^2
 ```
 

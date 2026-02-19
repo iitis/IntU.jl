@@ -19,8 +19,8 @@ U = SymbolicMatrix(:U, :U)
 res = integrate(abs(U[1, 1])^2, dSU(d))
 # Output: 1/d
 
-# Unbalanced moment (macro version)
-@integrate U[1, 1] dSU(d)
+# Unbalanced moment
+integrate(U[1, 1], dSU(d))
 # Output: 0
 ```
 

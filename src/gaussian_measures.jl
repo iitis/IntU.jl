@@ -36,10 +36,26 @@ struct GinSEMeasure{D,M}
 end
 GinSEMeasure(dim) = GinSEMeasure(dim, nothing)
 
+"""
+    dGUE(dim)
+
+Gaussian Unitary Ensemble (GUE) measure.
+"""
 dGUE(dim) = GUEMeasure(dim)
 
+"""
+    dGOE(dim)
+
+Gaussian Orthogonal Ensemble (GOE) measure.
+"""
 dGOE(dim) = GOEMeasure(dim)
 
+"""
+    dGSE(dim)
+
+Gaussian Symplectic Ensemble (GSE) measure.
+`dim` must be even.
+"""
 function dGSE(dim)
     if dim isa Integer && isodd(dim)
         throw(ArgumentError("GSE dimension must be even, got $dim"))
@@ -47,10 +63,26 @@ function dGSE(dim)
     return GSEMeasure(dim)
 end
 
+"""
+    dGinUE(dim)
+
+Complex Ginibre Ensemble (GinUE) measure.
+"""
 dGinUE(dim) = GinUEMeasure(dim)
 
+"""
+    dGinOE(dim)
+
+Real Ginibre Ensemble (GinOE) measure.
+"""
 dGinOE(dim) = GinOEMeasure(dim)
 
+"""
+    dGinSE(dim)
+
+Quaternionic/Symplectic Ginibre Ensemble (GinSE) measure.
+`dim` must be even.
+"""
 function dGinSE(dim)
     if dim isa Integer && isodd(dim)
         throw(ArgumentError("GinSE dimension must be even, got $dim"))
