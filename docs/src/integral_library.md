@@ -21,7 +21,7 @@ A = SymbolicMatrix(:A)
 B = SymbolicMatrix(:B)
 
 # Retrieved instantly from library
-res = integrate(tr(U * A * U' * B), dU(U, d))
+res = integrate(tr(U * A * U' * B), dU(d))
 # Result: (tr(A)*tr(B))/d
 ```
 
@@ -39,10 +39,10 @@ Low-order moments of Gaussian ensembles are available for both matrix and trace-
 ```julia
 using IntU
 @variables d
-H = SymbolicMatrix(:H)
+H = SymbolicMatrix(:H, :GUE)
 
 # <tr(H^4)>_GUE
-res = integrate(tr(H^4), dGUE(H, d))
+res = integrate(tr(H^4), dGUE(d))
 # Result: 2d^3 + d
 ```
 

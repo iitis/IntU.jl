@@ -29,7 +29,7 @@ using IntU, Symbolics, LinearAlgebra
 U = SymbolicMatrix(:U, :U)
 # Integrate the matrix expression U * U'
 # This performs element-wise integration automatically
-res = integrate(U * U', dU(d))
+res = integrate(U * U', dU(2))
 # Output: Identity Matrix (I)
 ```
 
@@ -103,7 +103,7 @@ Ginibre ensembles consist of non-Hermitian matrices with i.i.d. Gaussian entries
 
 ```julia
 @variables d
-G = SymbolicMatrix(:G, :GUE)
+G = SymbolicMatrix(:G, :GinUE)
 # E[Tr(G G')] = d^2
 integrate(tr_lazy(G * G'), dGinUE(d))
 ```
@@ -116,7 +116,7 @@ IntU also supports Circular Ensembles (CUE, COE, CSE) which are commonly used in
 
 ```julia
 @variables d
-S = SymbolicMatrix(:S, :U) # CUE is Haar unitary
+S = SymbolicMatrix(:S, :COE) # COE is symmetric unitary
 # COE moment E[|S_{1,1}|^2]
 integrate(abs(S[1, 1])^2, dCOE(d))
 # Output: 2 / (d + 1)
@@ -128,7 +128,7 @@ state vector $|\psi\rangle$ of dimension $d$.
 
 ```julia
 @variables d
-psi = SymbolicMatrix(:psi) # Treat vector as SymbolicMatrix for lazy indexing
+psi = SymbolicMatrix(:psi, :psi) # Treat vector as SymbolicMatrix for lazy indexing
 # Average of |ψ_1|^2
 integrate(abs(psi[1, 1])^2, dPsi(d))
 # Output: 1 / d

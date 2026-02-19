@@ -44,7 +44,7 @@ using Symbolics
     end
 
     @testset "Centered Permutations" begin
-        Y = SymbolicMatrix(:Y, :Perm, d)
+        Y = SymbolicMatrix(:Y, :CPerm, d)
         m_centered = dCPerm(d)
 
         @test is_zero(integrate(Y[1, 1], m_centered))

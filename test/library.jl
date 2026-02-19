@@ -19,7 +19,7 @@ using Symbolics
     end
 
     @testset "GUE Moments" begin
-        H = SymbolicMatrix(:H, :H)
+        H = SymbolicMatrix(:H, :GUE)
 
         @test isequal(integrate(IntU.tr(H^2), dGUE(d)), d^2)
         @test isequal(integrate(IntU.tr(H^4), dGUE(d)), 2d^3 + d)
@@ -27,13 +27,13 @@ using Symbolics
     end
 
     @testset "GOE Moments" begin
-        H = SymbolicMatrix(:H, :H)
+        H = SymbolicMatrix(:H, :GOE)
         @test isequal(integrate(IntU.tr(H^2), dGOE(d)), d^2 + d)
         @test isequal(integrate(IntU.tr(H^4), dGOE(d)), 2d^3 + 5d^2 + 5d)
     end
 
     @testset "GSE Moments" begin
-        H = SymbolicMatrix(:H, :H)
+        H = SymbolicMatrix(:H, :GSE)
         @test isequal(integrate(IntU.tr(H^2), dGSE(d)), d^2 - d)
         @test isequal(integrate(IntU.tr(H^4), dGSE(d)), 2d^3 - 5d^2 + 5d)
     end

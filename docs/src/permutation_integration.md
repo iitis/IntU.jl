@@ -16,7 +16,7 @@ discrete set:
 
 ### Usage
 
-Use `dPerm(d)` or `dPerm(P, d)` to define the measure.
+Use `dPerm(d)` to define the measure.
 
 ```julia
 using IntU, Symbolics
@@ -25,7 +25,7 @@ using IntU, Symbolics
 P = SymbolicMatrix(:P, :Perm)
 
 # Expected value of a single entry: E[P_ij] = 1/d
-integrate(P[1,1], measure)
+integrate(P[1,1], dPerm(d))
 # Output: 1 / d
 
 # Expected value of a product: E[P_11 * P_22] = 1 / (d(d-1))
@@ -65,13 +65,13 @@ fluctuations and correlations in permutations.
 
 ### Usage
 
-Use `dCPerm(d)` or `dCPerm(Y, d)` to define the measure.
+Use `dCPerm(d)` to define the measure.
 
 ```julia
 Y = SymbolicMatrix(:Y, :CPerm)
 
 # The first moment is zero by definition
-integrate(Y[1,1], m_centered)
+integrate(Y[1,1], dCPerm(d))
 # Output: 0
 
 # The second moment (variance) is E[(P_11 - 1/d)^2] = 1/d - 1/d^2 = (d-1)/d^2
@@ -88,9 +88,9 @@ Integration for centered permutations is handled by substituting $Y_{ij} = P_{ij
 IntU.jl supports integration of traces involving permutation matrices. While these can be integrated using `Symbolics.jl` arrays and `scalarize`, the combinatorial nature of $S_d$ means that correlations are correctly handled even for large expressions.
 
 ```julia
-@variables A[1:d, 1:d]
+A = SymbolicMatrix(:A)
 # E[tr(P * A)]
-expr = Symbolics.scalarize(IntU.tr(P * A))
-integrate(expr, measure)
+expr = tr(P * A)
+integrate(expr, dPerm(d))
 # Output: Sum(A_ij) / d
 ```

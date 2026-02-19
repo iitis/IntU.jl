@@ -94,7 +94,7 @@ function check_gaussian_library(expr, measure, type)
     prefactor = expr.prefactor
 
     # For the library, we check if all factors are of the expected special_type
-    expected_tag = (type == :GUE || type == :GOE || type == :GSE) ? :H : :G
+    expected_tag = type
     
     if !all(f -> (f isa SymbolicMatrix) && f.special_type == expected_tag, factors)
         return nothing

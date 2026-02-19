@@ -17,7 +17,7 @@ This concept is crucial in Quantum Information for efficient randomization, benc
 
 Usage:
 
-Use the `dDesign(U, dim, t)` function to define a measure representing a unitary $t$-design.
+Use the `dDesign(dim, t)` function to define a measure representing a unitary $t$-design.
 
 ```@docs
 dDesign
@@ -31,7 +31,7 @@ using IntU, Symbolics
 U = SymbolicMatrix(:U, :U, d)
 
 # Create a 2-design measure
-design = dDesign(U, d, 2)
+design = dDesign(d, 2)
 ```
 
 ## Integration Behavior

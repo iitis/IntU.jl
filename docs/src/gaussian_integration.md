@@ -71,8 +71,8 @@ using IntU, Symbolics
 
 @variables d
 # GUE Measure with symbolic dimension
-H = SymbolicMatrix(:H)
-measure_GUE = dGUE(H, d)
+H = SymbolicMatrix(:H, :GUE)
+measure_GUE = dGUE(d)
 
 # Average Trace of H^2
 # < Tr(H^2) > = d^2
@@ -86,8 +86,8 @@ println(res)
 
 ```julia
 # GinUE Measure with symbolic dimension
-G = SymbolicMatrix(:G)
-measure_GinUE = dGinUE(G, d)
+G = SymbolicMatrix(:G, :GinUE)
+measure_GinUE = dGinUE(d)
 
 # Average Trace of G G'
 # < Tr(G G') > = d^2
@@ -100,11 +100,12 @@ println(res_ginue)
 
 ```julia
 # GOE Measure
-measure_GOE = dGOE(H, d)
+H_goe = SymbolicMatrix(:H, :GOE)
+measure_GOE = dGOE(d)
 
 # Average Trace of H^2
 # < Tr(H^2) > = d^2 + d
-res_goe = integrate(IntU.tr(H^2), measure_GOE)
+res_goe = integrate(IntU.tr(H_goe^2), measure_GOE)
 println(res_goe)
 # Output: d^2 + d
 ```
@@ -112,12 +113,12 @@ println(res_goe)
 ### GSE Example
 
 ```julia
-# GSE Measure
-measure_GSE = dGSE(H, d)
+H_gse = SymbolicMatrix(:H, :GSE)
+measure_GSE = dGSE(d)
 
 # Average Trace of H^2
 # < Tr(H^2) > = d^2 - d
-res_gse = integrate(IntU.tr(H^2), measure_GSE)
+res_gse = integrate(IntU.tr(H_gse^2), measure_GSE)
 println(res_gse)
 # Output: d^2 - d
 ```

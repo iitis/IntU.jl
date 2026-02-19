@@ -362,9 +362,7 @@ The package supports a wide range of integration measures, grouped as follows:
     \item \textbf{Compact groups}: Standard Haar measures on the unitary $U(d)$,
     orthogonal $O(d)$, and symplectic $Sp(d)$ groups. These are defined via
     \texttt{dU(d)}, \texttt{dO(d)}, and \texttt{dSp(d)}, where the
-    first argument is a symbolic matrix variable (constructed via
-    \texttt{Symbolics.jl} or the \texttt{@symbolic\_dimension} macro) and the
-    second is the dimension, which can itself be a symbolic variable.
+    argument is the dimension $d$, which can be a symbolic variable or a concrete integer.
     \item \textbf{Special unitary group}: The Haar measure on $SU(d)$, accessed
     via \texttt{dSU(d)}. This measure enforces the $U(d)$ integration logic
     for balanced moments while strictly annihilating unbalanced terms,
@@ -376,7 +374,7 @@ The package supports a wide range of integration measures, grouped as follows:
     \item \textbf{Quantum states}: The induced measure on pure states
     $|\psi\rangle$ drawn from the complex projective space $\mathbb{C}P^{d-1}$
     \cite{zyczkowski2001induced, bengtsson2017geometry}, accessed via
-    \texttt{dPsi(psi, d)}. This corresponds to the distribution of the first
+    \texttt{dPsi(d)}. This corresponds to the distribution of the first
     column of a Haar-random unitary matrix.
     \item \textbf{Permutation groups}: Measures for the Symmetric Group $S_d$
     (\texttt{dPerm}) and the ensemble of centered permutation matrices
@@ -477,8 +475,8 @@ symmetric spaces.
     transpose). The integration is similarly performed by mapping to $U(2d)$
     integrals.
 \end{itemize}
-These measures are accessed via \texttt{dCOE(S, d)}, \texttt{dCSE(S, d)}, and
-\texttt{dCUE(U, d)} (alias for \texttt{dU}).
+These are accessed via \texttt{dCOE(d)}, \texttt{dCSE(d)}, and
+\texttt{dCUE(d)} (alias for \texttt{dU}).
 
 \subsection{Unitary designs}
 Unitary $t$-designs \cite{dankert2009exact, gross2007evenly,
@@ -622,7 +620,8 @@ diagonal entry for the symmetric (COE) and self-dual (CSE) cases:
 
 \begin{lstlisting}[language=Julia]
 @variables d
-S = SymbolicMatrix(:S, :U) # For COE/CSE (CUE is Haar unitary)
+S = SymbolicMatrix(:S, :COE) # For COE
+# SymbolicMatrix(:S, :CSE) # For CSE
 O = SymbolicMatrix(:O, :O) # For Orthogonal group
 
 # Circular Orthogonal Ensemble (S is symmetric)
@@ -669,11 +668,10 @@ automatically performing the integration over all array entries. For Haar-random
 unitary matrices, we verify the relation $\int U U^\dagger dU = I$:
 \begin{lstlisting}[language=Julia]
 using IntU, Symbolics
-@variables d
 U = SymbolicMatrix(:U, :U)
 # Integrate the matrix product U * U'
 # IntU handles the element-wise operations internally
-integrate(U * U', dU(d))
+integrate(U * U', dU(2))
 # Output: Identity Matrix I
 \end{lstlisting}
 
@@ -764,7 +762,7 @@ For the group of diagonal unitary matrices, integration reduces to independent
 phase averaging.
 \begin{lstlisting}[language=Julia]
 @variables d
-V = SymbolicMatrix(:V)
+V = SymbolicMatrix(:V, :DiagUnitary)
 
 # Average of |V_11|^2
 integrate(abs(V[1, 1])^2, dDiagUnitary(d))
@@ -779,7 +777,7 @@ variational quantum algorithms and tensor network optimization
 
 \begin{lstlisting}[language=Julia]
 @variables d
-V = SymbolicMatrix(:V)
+V = SymbolicMatrix(:V, :U)
 # E[|V_{1,1}|^2]
 integrate(abs(V[1, 1])^2, dStiefel(d, 2))
 # Output: 1 / d
@@ -791,7 +789,7 @@ matrix properties. We compute the second moment $\langle \mathrm{tr}(G
 G^\dagger) \rangle$:
 \begin{lstlisting}[language=Julia]
 @variables d
-G = SymbolicMatrix(:G, :GUE)
+G = SymbolicMatrix(:G, :GinUE)
 # Compute <tr(G G')>
 integrate(tr_lazy(G * G'), dGinUE(d))
 # Output: d^2

@@ -17,7 +17,7 @@ $\psi_i = U_{i,1}$.
 IntU.jl leverages this connection. The function `dPsi` creates a symbolic vector that is internally linked to the first column of a symbolic unitary matrix.
 Integration is then performed using the standard unitary Weingarten calculus.
 
-Use `dPsi(psi, d)` where `psi` is a vector of symbolic variables.
+Use `dPsi(d)` where `d` is the dimension of the state space.
 
 ## Usage
 ```julia
@@ -25,19 +25,16 @@ using IntU, Symbolics
 
 @variables d
 # Use SymbolicMatrix for the state vector
-psi = SymbolicMatrix(:psi)
+psi = SymbolicMatrix(:psi, :psi)
 
 # 1. Average of |psi_1|^2
 res = integrate(abs(psi[1, 1])^2, dPsi(d))
 println(res)
 # Output: 1/d
 
-# 2. Overlap with another state
-phi = SymbolicMatrix(:phi)
-# E[|<phi|psi>|^2] = 1/d
-# In lazy mode, we can use matrix multiplication and tr_lazy
-integrate(abs(tr_lazy(phi' * psi))^2, dPsi(d))
-# Output: 1/d
+# In element-wise mode, we can use matrix entries
+integrate(abs(psi[1, 1] * conj(phi[1, 1]))^2, dPsi(d))
+# Output: 1/(d*(d+1))
 ```
 
 ## Pitfalls

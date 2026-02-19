@@ -37,8 +37,8 @@ d_B = 2
 d = d_A * d_B
 
 # Random Unitary on full system
-@variables U[1:d, 1:d]::Complex
-measure = dU(U, d)
+U = SymbolicMatrix(:U, :U, d)
+measure = dU(d)
 
 # Pure state |psi> = U |00> (first column of U)
 # We form the density matrix rho = |psi><psi|

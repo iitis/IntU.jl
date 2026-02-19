@@ -19,7 +19,7 @@ using Test
 
     @testset "GSE Asymptotic" begin
         @variables d_sym
-        H = SymbolicMatrix(:H, :H, d_sym)
+        H = SymbolicMatrix(:H, :GSE, d_sym)
         meas = dGSE(d_sym)
 
         # <Tr(H^2)>_GSE = d^2 - d
@@ -31,19 +31,21 @@ using Test
     @testset "Scalar Consistency" begin
         # Verify that GUEMeasure and GOEMeasure still work after refactoring
         N = 2
-        H = SymbolicMatrix(:H, :H, N)
+        H = SymbolicMatrix(:H, :GUE, N)
 
         # GUE
         m_gue = dGUE(N)
         @test integrate(IntU.tr(H^2), m_gue) == N^2
 
         # GOE
+        H_goe = SymbolicMatrix(:H_goe, :GOE, N)
         m_goe = dGOE(N)
-        @test integrate(IntU.tr(H^2), m_goe) == N^2 + N
+        @test integrate(IntU.tr(H_goe^2), m_goe) == N^2 + N
 
         # GSE
         # For d=2, Tr(H^2) = 2^2 - 2 = 2
+        H_gse = SymbolicMatrix(:H_gse, :GSE, N)
         m_gse = dGSE(N)
-        @test integrate(IntU.tr(H^2), m_gse) == 2
+        @test integrate(IntU.tr(H_gse^2), m_gse) == 2
     end
 end

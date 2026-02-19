@@ -25,9 +25,9 @@ For the COE, the matrix $S$ is symmetric unitary. The diagonal entries have diff
 using IntU, Symbolics
 
 @variables d
-S = SymbolicMatrix(:S)
+S = SymbolicMatrix(:S, :COE)
 # COE moment E[|S_{1,1}|^2]
-res = integrate(abs(S[1, 1])^2, dCOE(d))
+integrate(abs(S[1, 1])^2, dCOE(d))
 # Output: 2 / (d + 1)
 ```
 
@@ -38,9 +38,9 @@ For the CSE, the matrix $S$ is defined on a space of dimension $2N$ and satisfie
 ```julia
 using IntU, Symbolics
 @variables d
-S = SymbolicMatrix(:S)
+S = SymbolicMatrix(:S, :CSE)
 # CSE moment E[|S_{1,1}|^2]
-res = integrate(abs(S[1, 1])^2, dCSE(d))
+integrate(abs(S[1, 1])^2, dCSE(d))
 # Output: 1 / (d - 1)
 ```
 
@@ -51,7 +51,7 @@ The CUE is statistical identical to the standard Unitary Haar measure.
 ```julia
 using IntU, Symbolics
 @variables d
-U = SymbolicMatrix(:U)
+U = SymbolicMatrix(:U, :U)
 # CUE moment E[|U_{1,1}|^2]
 res = integrate(abs(U[1, 1])^2, dCUE(d))
 # Output: 1 / d

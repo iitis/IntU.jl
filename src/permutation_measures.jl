@@ -63,7 +63,7 @@ end
 
 function IntU.measure_info(measure::CenteredPermutationMeasure)
     subs_dict = Dict{Any,Any}()
-    matcher = measure.matcher === nothing ? MetadataMatcher(:Perm) : measure.matcher
+    matcher = measure.matcher === nothing ? MetadataMatcher(:CPerm) : measure.matcher
     dim = measure.dim
     if dim isa SymbolicMatrix
         dim = dim.dim

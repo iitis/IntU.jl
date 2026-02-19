@@ -45,7 +45,7 @@ integrate(abs(V[1, 1])^2, dDiagUnitary(d))
 integrate(V[1, 1] * conj(V[2, 2]), dDiagUnitary(d))
 
 # Non-diagonal entries are zero by definition
-integrate(abs(V[1,2])^2, measure) # Output: 0
+integrate(abs(V[1,2])^2, dDiagUnitary(d)) # Output: 0
 ```
 
 ## Performance Note

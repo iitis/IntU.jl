@@ -13,12 +13,13 @@ using IntU, ITensors
 i = Index(2, "Out")
 j = Index(2, "In")
 
-# Mark a Haar-random unitary by its indices
+# Mark a Haar-random unitary U and its adjoint U_dag
 U = ITensorUnitary(out_indices=[i], in_indices=[j])
+U_dag = ITensorUnitary(out_indices=[j], in_indices=[i], is_adj=true)
 
-# Integrate Tr(U A) over U(2)
-A = randomITensor(j, i)
-res = integrate([U, A], dU(2))
+# Integrate E[Tr(U A U_dag)] over U(2)
+A = randomITensor(j, j) 
+res = integrate([U, A, U_dag], dU(2))
 ```
 
 ## Defining Random Unitaries
@@ -55,7 +56,7 @@ The ITensors integration supports all measure types provided by IntU:
 | **Haar Unitary** | `dU(dim)` |
 | **Orthogonal Group** | `dO(dim)` |
 | **Symplectic Group** | `dSp(dim)` |
-| **Unitary $t$-designs** | `dDesign(t, dim)` |
+| **Unitary $t$-designs** | `dDesign(dim, t)` |
 
 ### Example: Orthogonal Integration
 ```julia

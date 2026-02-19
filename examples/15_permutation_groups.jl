@@ -30,7 +30,7 @@ println("Expected: 0")
 # Matrices Y = P - J/d
 println("\n2. Centered Permutation Group")
 # The library handles these as a separate measure dCPerm
-Y = SymbolicMatrix(:Y, :Perm)
+Y = SymbolicMatrix(:Y, :CPerm)
 
 # E[Y_11] = 0
 println("Integrating: Y[1, 1]")

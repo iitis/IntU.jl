@@ -45,7 +45,7 @@ For small $n$, the values are:
 *   **n=1**: $\text{Wg}([1], d) = \frac{1}{d}$
 *   **n=2**:
     *   Identity $\text{Wg}([1,1], d) = \frac{1}{d^2-1}$
-    *   Transposition $\text{Wg}([2], d) = -\frac{1}{d(d^2-1)$
+    *   Transposition $\text{Wg}([2], d) = -\frac{1}{d(d^2-1)}$
 *   **n=3**:
     *   $\text{Wg}([1,1,1], d) = \frac{d^2-2}{d(d^2-1)(d^2-4)}$
     *   $\text{Wg}([2,1], d) = -\frac{1}{(d^2-1)(d^2-4)}$

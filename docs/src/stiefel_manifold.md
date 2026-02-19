@@ -26,13 +26,13 @@ quantum states $|\psi\rangle$.
 
 ## Usage
 
-To perform integration over the Stiefel manifold, use the `dStiefel(V, d, k)` measure.
+To perform integration over the Stiefel manifold, use the `dStiefel(d, k)` measure.
 
 ```julia
 using IntU, Symbolics
 
 @variables d
-V = SymbolicMatrix(:V)
+V = SymbolicMatrix(:V, :U)
 # Integration over V_2(C^d)
 integrate(abs(V[1, 1])^2, dStiefel(d, 2))
 ```
@@ -47,7 +47,7 @@ Large-$d$ expansions are fully supported:
 ```@example stiefel
 using IntU, Symbolics
 @variables d
-V = SymbolicMatrix(:V)
+V = SymbolicMatrix(:V, :U)
 measure = dStiefel(d, 2)
 expr = abs(V[1, 1])^2 * abs(V[1, 2])^2
 asymptotic(expr, measure, 2)
