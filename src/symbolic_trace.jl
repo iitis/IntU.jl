@@ -8,7 +8,11 @@
 A wrapper associated with a symbolic name to represent a matrix in a coordinate-free way.
 Used in the symbolic trace logic (via `tr_lazy`) and for metadata-driven element-wise integration.
 """
-struct SymbolicMatrix <: AbstractMatrix{Num}
+# We use AbstractMatrix{Any} because elements can be Num (for real values), 
+# Complex{Num} (for numeric complex), or raw SymbolicUtils objects (for symbolic complex with metadata).
+# Symbolics' Num is strictly real-valued in recent versions, so we cannot use AbstractMatrix{Num} 
+# for general complex symbolic matrices.
+struct SymbolicMatrix <: AbstractMatrix{Any}
     name::Symbol
     is_adj::Bool
     special_type::Symbol 
@@ -52,7 +56,8 @@ function Base.getindex(A::SymbolicMatrix, i::Integer, j::Integer)
         :is_adj => A.is_adj
     )
 
-    # Use Matrix{Any} in integration to avoid symtype errors
+    # Use T=Number to ensure Symbolics/SymbolicUtils does not incorrectly simplify conj(v)
+    # Note: These objects do not currently wrap in Num easily because Num expects Real symtype.
     v = Symbolics.variable(s_name, T = Number)
     v_un = Symbolics.unwrap(v)
     v_meta_un = SymbolicUtils.setmetadata(v_un, MatrixMetadata, meta)
@@ -128,7 +133,7 @@ struct LazySum
     terms::Vector{LazyTrace}
 end
 
-struct SymbolicMatrixProduct <: AbstractMatrix{Num}
+struct SymbolicMatrixProduct <: AbstractMatrix{Any}
     factors::Vector{AbstractMatrix}
 end
 

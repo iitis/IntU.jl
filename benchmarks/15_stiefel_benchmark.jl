@@ -10,20 +10,21 @@ println("=== Stiefel Manifold Benchmark ===")
 # Benchmark Setup
 # We benchmark integration of polynomials of increasing degree over Stiefel manifold.
 k = 3 # Fixed k
-V_sym = SymbolicMatrix(:V, :U, d)
+V_sym = SymbolicMatrix(:V, :U, (d, k))
 measure = dStiefel(d, k)
 
 # Helper to generate random polynomial term of degree 2m
 function random_stiefel_poly(V, m)
     poly = 1
-    rows, cols = size(V)
+    # We use concrete ranges for random index selection since the integration is symbolic in d.
+    # The actual values don't matter as long as they are distinct.
     for _ = 1:m
-        i, j = rand(1:rows), rand(1:cols)
+        i, j = rand(1:4), rand(1:3)
         # Add V_ij
         poly *= V[i, j]
 
         # Add conj(V_pq) to keep it balanced (usually required for non-zero result)
-        p, q = rand(1:rows), rand(1:cols)
+        p, q = rand(1:4), rand(1:3)
         poly *= conj(V[p, q])
     end
     return poly
@@ -46,7 +47,7 @@ end
 
 # Also benchmark effect of increasing k (though Weingarten depends mostly on degree)
 println("Benchmarking Stiefel integration (degree 4, variable k)...")
-poly_fixed = V[1, 1] * conj(V[1, 1]) * V[1, 2] * conj(V[1, 2]) # Degree 4
+poly_fixed = V_sym[1, 1] * conj(V_sym[1, 1]) * V_sym[1, 2] * conj(V_sym[1, 2]) # Degree 4
 
 for k_val in [2, 4, 8]
     # Re-create V and measure for new k

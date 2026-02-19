@@ -88,7 +88,8 @@ function fallback_integrate(t::LazyTrace, measure::PermutationMeasure)
         end
         if P_idx !== nothing
             A = factors[P_idx == 1 ? 2 : 1]
-            if !(A isa AbstractMatrix && !(eltype(A) <: Num))
+            # If A is a SymbolicMatrix or a simple numeric matrix, we return a symbolic sum result
+            if A isa SymbolicMatrix || !(A isa AbstractMatrix && !(eltype(A) <: Num))
                 return t.prefactor * (Symbolics.variable(Symbol("sum(" * string(A) * ")")) / measure.dim)
             end
         end
