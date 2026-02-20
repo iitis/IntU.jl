@@ -75,13 +75,12 @@ macro integrate(expr, measure)
     # Handle integrand symbols
     for s in unique(integrand_syms)
         if s == natural_sym
-            push!(decls, :($s = SymbolicMatrix($(QuoteNode(s)), $(QuoteNode(tag)), $m_dim)))
+            push!(decls, :(if !@isdefined($s); $s = SymbolicMatrix($(QuoteNode(s)), $(QuoteNode(tag)), $m_dim); end))
         else
             # Declare as constant symbolic matrix if used as matrix/vector
             # We assume for now if it's there it might be a constant matrix.
-            # If it's already defined in scope, this might shadow it - 
-            # ideally we check if it's defined, but macros run at compile time.
-            push!(decls, :($s = SymbolicMatrix($(QuoteNode(s)), :Constant, nothing)))
+            # If it's already defined in scope, this avoids shadowing it. 
+            push!(decls, :(if !@isdefined($s); $s = SymbolicMatrix($(QuoteNode(s)), :Constant, nothing); end))
         end
     end
 

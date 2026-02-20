@@ -40,13 +40,6 @@ function _symbolic_isequal(a, b)
     end
 
 
-    try
-        if a_un == b_un
-            return true
-        end
-    catch
-    end
-
     res = isequal(a_un, b_un)
     v = Symbolics.value(res)
     return v === true
@@ -113,45 +106,43 @@ function _robust_real(x)
     end
 
 
-    try
-        nx = _safe_Num(x_un)
+    nx = _safe_Num(x_un)
 
-
-        v = Symbolics.value(nx)
-        if v isa AbstractFloat
-            return rationalize(v, tol = 1e-13)
-        end
-        if v isa Real
-            return v
-        end
-
-
-        nx = Symbolics.simplify(nx)
-        v = Symbolics.value(nx)
-        if v isa AbstractFloat
-            return rationalize(v, tol = 1e-13)
-        end
-        if v isa Real
-            return v
-        end
-
-
-        if _iszero(Symbolics.simplify(imag(nx)))
-            rx = Symbolics.simplify(real(nx))
-            vx = Symbolics.value(rx)
-            if vx isa AbstractFloat
-                return rationalize(vx, tol = 1e-13)
-            end
-            if vx isa Real
-                return vx
-            end
-            return rx
-        end
-        return nx
-    catch
+    if !(nx isa Num || nx isa Complex{Num})
+        return x_un
     end
 
-    return x_un
+    v = Symbolics.value(nx)
+    if v isa AbstractFloat
+        return rationalize(v, tol = 1e-13)
+    end
+    if v isa Real
+        return v
+    end
+
+
+    nx = Symbolics.simplify(nx)
+    v = Symbolics.value(nx)
+    if v isa AbstractFloat
+        return rationalize(v, tol = 1e-13)
+    end
+    if v isa Real
+        return v
+    end
+
+
+    if _iszero(Symbolics.simplify(imag(nx)))
+        rx = Symbolics.simplify(real(nx))
+        vx = Symbolics.value(rx)
+        if vx isa AbstractFloat
+            return rationalize(vx, tol = 1e-13)
+        end
+        if vx isa Real
+            return vx
+        end
+        return rx
+    end
+    return nx
 end
 
 function _is_manifestly_real(x)
@@ -987,11 +978,7 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
             elseif op == (^)
                 base = args[1]
                 p_val = Symbolics.unwrap(args[2])
-                p = try
-                    parse(Int, string(p_val))
-                catch
-                    nothing
-                end
+                p = tryparse(Int, string(p_val))
                 if p isa Integer
                     for _ = 1:p
                         traverse(base, conjugated)
@@ -2180,11 +2167,8 @@ function evaluate(expr, dict)
             return val
         end
         
-        try
-            if hasproperty(val, :val) && val.val isa Number
-                return val.val
-            end
-        catch
+        if hasproperty(val, :val) ? val.val isa Number : false
+            return val.val
         end
         if SymbolicUtils.iscall(val)
             op = SymbolicUtils.operation(val)

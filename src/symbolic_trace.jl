@@ -173,9 +173,9 @@ function Base.getindex(P::SymbolicMatrixProduct, i::Integer, j::Integer)
 end
 
 # Multiplication logic
-_factors(A::SymbolicMatrix) = Any[A]
+_factors(A::SymbolicMatrix) = AbstractMatrix[A]
 _factors(P::SymbolicMatrixProduct) = P.factors
-_factors(A::AbstractMatrix) = Any[A]
+_factors(A::AbstractMatrix) = AbstractMatrix[A]
 
 function *(A::SymbolicAny, B::SymbolicAny)
     return SymbolicMatrixProduct(vcat(_factors(A), _factors(B)))
@@ -421,9 +421,5 @@ function is_number(x)
     if x isa Number
         return true
     end
-    try
-        return hasproperty(x, :val) && x.val isa Number
-    catch
-        return false
-    end
+    return hasproperty(x, :val) ? x.val isa Number : false
 end

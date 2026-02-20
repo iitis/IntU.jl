@@ -150,11 +150,7 @@ function integrate_indices_coe(
         return 0
     end
 
-    n_fact = try
-        factorial(n)
-    catch
-        BigInt(1)
-    end
+    n_fact = factorial(BigInt(n))
 
     is_full_group = length(valid_sigmas) == n_fact
 

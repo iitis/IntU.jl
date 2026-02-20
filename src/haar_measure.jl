@@ -19,12 +19,11 @@ function match_index(m::SymbolicMatcher, t)
     s_str = string(s)
     mat = match(m.regex, s_str)
     if mat !== nothing
-        try
-            i = parse(Int, mat[1])
-            j = parse(Int, mat[2])
+        i = tryparse(Int, mat[1])
+        j = tryparse(Int, mat[2])
+        if i !== nothing && j !== nothing
             final_tag = is_conj ? :U_bar : :U
             return (final_tag, i, j)
-        catch
         end
     end
     return nothing
