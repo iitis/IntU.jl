@@ -145,4 +145,8 @@ end
     @testset verbose=true "Ginibre Ensembles" begin
         include("ginibre.jl")
     end
+
+    @testset verbose=true "UX Improvements" begin
+        include("ux_improvements.jl")
+    end
 end

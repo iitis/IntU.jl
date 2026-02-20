@@ -98,10 +98,20 @@ function Base.transpose(A::SymbolicMatrix)
     return SymbolicMatrix(A.name, !A.is_adj, A.special_type, A.dim)
 end
 
+# Factory functions for symbolic matrices
+symbolic_unitary(name, d) = SymbolicMatrix(name, false, :U, d)
+symbolic_orthogonal(name, d) = SymbolicMatrix(name, false, :O, d)
+symbolic_symplectic(name, d) = SymbolicMatrix(name, false, :Sp, d)
+symbolic_pure_state(name, d) = SymbolicMatrix(name, false, :psi, d)
+symbolic_permutation(name, d) = SymbolicMatrix(name, false, :Perm, d)
+
 function Base.show(io::IO, A::SymbolicMatrix)
     print(io, A.name)
     if A.is_adj
         print(io, "'")
+    end
+    if A.special_type !== :Constant
+        print(io, " (", A.special_type, ")")
     end
 end
 
@@ -419,5 +429,12 @@ end
 
 function is_number(x)
     x = Symbolics.unwrap(x)
-    return x isa Number
+    if x isa Number
+        return true
+    end
+    try
+        return hasproperty(x, :val) && x.val isa Number
+    catch
+        return false
+    end
 end

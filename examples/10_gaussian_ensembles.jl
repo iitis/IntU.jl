@@ -39,25 +39,24 @@ println("<H^2>_GUE (Should be Diagonal matrix N*I):")
 display(res_sq_simp)
 
 # --- 2. Symbolic Dimension and Traces ---
-println("\n2. Symbolic Dimension and Traces")
-@variables d
-H = SymbolicMatrix(:H, :GUE) # Use standard tag :GUE for GUE
+println("\n2. Symbolic Dimension and Traces (using @integrate)")
 
 println("--- GUE ---")
 # <Tr(H^4)> = 2d^3 + d
-res_gue4 = integrate(tr(H^4), dGUE(d))
+# Auto-declares H as GUE matrix due to dGUE(d)
+res_gue4 = @integrate tr(H^4) dGUE(d)
 println("<Tr(H^4)>_GUE = ", simplify(res_gue4))
 
 println("--- GOE ---")
 # <Tr(H^4)> = 2d^3 + 5d^2 + 5d
-H_goe = SymbolicMatrix(:H, :GOE)
-res_goe4 = integrate(tr(H_goe^4), dGOE(d))
+# Need to use different symbol or manual declaration for mixed types in same scope if overlapping
+# But here scopes are fine.
+res_goe4 = @integrate tr(H^4) dGOE(d)
 println("<Tr(H^4)>_GOE = ", simplify(res_goe4))
 
 println("--- GSE ---")
 # <Tr(H^4)> = 2d^3 - 5d^2 + 5d
-H_gse = SymbolicMatrix(:H, :GSE)
-res_gse4 = integrate(tr(H_gse^4), dGSE(d))
+res_gse4 = @integrate tr(H^4) dGSE(d)
 println("<Tr(H^4)>_GSE = ", simplify(res_gse4))
 
 println("\nDone.")

@@ -13,6 +13,7 @@ include("weingarten.jl")
 
 # Symbolic Trace Logic
 include("symbolic_trace.jl")
+include("centered_perm_impl.jl")
 
 # Shared integration engine
 include("integration_core.jl")
@@ -30,6 +31,7 @@ include("hciz.jl")
 include("su_measure.jl")
 include("diagonal_unitary.jl")
 include("stiefel_measure.jl")
+include("integrate_macro.jl")
 
 
 # Quantum Information helpers
@@ -81,6 +83,12 @@ export get_pair_partitions,
 export AbstractIndexMatcher, MetadataMatcher, _integrate_core, process_term
 
 export SymbolicMatrix, tr_lazy, LazyTrace, LazySum
+export symbolic_unitary,
+    symbolic_orthogonal,
+    symbolic_symplectic,
+    symbolic_pure_state,
+    symbolic_permutation
+export @integrate
 export integrate_graphical, GraphicalUnitary, ITensorUnitary
 
 end # module

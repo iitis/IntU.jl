@@ -1066,6 +1066,10 @@ end
 
 INTEGRATION_RULES[:U] =
     (u, ub, d, mt) -> begin
+        d_un = Symbolics.unwrap(d)
+        if d_un isa Symbol
+            d = Symbolics.variable(d_un)
+        end
         length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices(u, ub, d))
     end
 
@@ -1074,6 +1078,10 @@ INTEGRATION_RULES[:V] = INTEGRATION_RULES[:U]
 
 INTEGRATION_RULES[:O] =
     (u, ub, d, mt) -> begin
+        d_un = Symbolics.unwrap(d)
+        if d_un isa Symbol
+            d = Symbolics.variable(d_un)
+        end
         all_indices = [u; ub]
         length(all_indices) % 2 != 0 ? 0 :
         (length(all_indices) == 0 ? 1 : integrate_indices_orthogonal(all_indices, d))
@@ -1082,6 +1090,10 @@ INTEGRATION_RULES[:O] =
 INTEGRATION_RULES[:Sp] =
     (u, ub, d, mt) -> begin
         d_un = Symbolics.unwrap(d)
+        if d_un isa Symbol
+            d = Symbolics.variable(d_un)
+            d_un = d
+        end
         if !(d_un isa Integer) || isodd(d_un)
              # For now, if we have bars, we can't handle symbolic d easily.
              if length(ub) > 0
@@ -1116,6 +1128,10 @@ INTEGRATION_RULES[:Sp] =
 
 INTEGRATION_RULES[:GUE] =
     (u, ub, d, mt) -> begin
+        d_un = Symbolics.unwrap(d)
+        if d_un isa Symbol
+            d = Symbolics.variable(d_un)
+        end
         all_indices = [u; ub]
         length(all_indices) % 2 != 0 ? 0 :
         (length(all_indices) == 0 ? 1 : integrate_indices_gue(all_indices, d))
@@ -1123,6 +1139,10 @@ INTEGRATION_RULES[:GUE] =
 
 INTEGRATION_RULES[:GOE] =
     (u, ub, d, mt) -> begin
+        d_un = Symbolics.unwrap(d)
+        if d_un isa Symbol
+            d = Symbolics.variable(d_un)
+        end
         all_indices = [u; ub]
         length(all_indices) % 2 != 0 ? 0 :
         (length(all_indices) == 0 ? 1 : integrate_indices_goe(all_indices, d))
@@ -1130,6 +1150,10 @@ INTEGRATION_RULES[:GOE] =
 
 INTEGRATION_RULES[:GSE] =
     (u, ub, d, mt) -> begin
+        d_un = Symbolics.unwrap(d)
+        if d_un isa Symbol
+            d = Symbolics.variable(d_un)
+        end
         all_indices = [u; ub]
         length(all_indices) % 2 != 0 ? 0 :
         (length(all_indices) == 0 ? 1 : integrate_indices_gse(all_indices, d))
@@ -1137,11 +1161,20 @@ INTEGRATION_RULES[:GSE] =
 
 INTEGRATION_RULES[:COE] =
     (u, ub, d, mt) -> begin
+        d_un = Symbolics.unwrap(d)
+        if d_un isa Symbol
+            d = Symbolics.variable(d_un)
+        end
         length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices_coe(u, ub, d))
     end
 
 INTEGRATION_RULES[:CSE] =
     (u, ub, d, mt) -> begin
+        d_un = Symbolics.unwrap(d)
+        if d_un isa Symbol
+            d = Symbolics.variable(d_un)
+            d_un = d
+        end
         length(u) != length(ub) ? 0 :
         (
             begin
@@ -1149,6 +1182,28 @@ INTEGRATION_RULES[:CSE] =
                 length(u) == 0 ? 1 : integrate_indices_cse(u, ub, d, phys_dim)
             end
         )
+    end
+
+INTEGRATION_RULES[:Perm] =
+    (u, ub, d, mt) -> begin
+        d_un = Symbolics.unwrap(d)
+        if d_un isa Symbol
+            d = Symbolics.variable(d_un)
+        end
+        # P_bar is P for real permutation matrices, so we treat u and ub symmetrically
+        all_indices = [u; ub]
+        length(all_indices) == 0 ? 1 : integrate_indices_permutation(all_indices, d)
+    end
+
+
+INTEGRATION_RULES[:CPerm] =
+    (u, ub, d, mt) -> begin
+        d_un = Symbolics.unwrap(d)
+        if d_un isa Symbol
+            d = Symbolics.variable(d_un)
+        end
+        all_indices = [u; ub]
+        length(all_indices) == 0 ? 1 : integrate_indices_centered_permutation(all_indices, d)
     end
 
 INTEGRATION_RULES[:Design] =
@@ -1167,24 +1222,6 @@ INTEGRATION_RULES[:Perm] =
         length(all_indices) == 0 ? 1 : integrate_indices_permutation(all_indices, d)
     end
 
-INTEGRATION_RULES[:CPerm] =
-    (u, ub, d, mt) -> begin
-        all_indices = [u; ub]
-        if isempty(all_indices)
-            return 1
-        end
-        
-        n = length(all_indices)
-        total = 0
-        for k = 0:n
-            for combo in Combinatorics.combinations(1:n, k)
-                subset = all_indices[combo]
-                term = integrate_indices_permutation(subset, d)
-                total += (-1/d)^(n-k) * term
-            end
-        end
-        return total
-    end
 
 INTEGRATION_RULES[:DiagUnitary] =
     (u, ub, d, mt) -> begin
@@ -2103,3 +2140,74 @@ function integrate_indices_diagonal(
         return 0
     end
 end
+
+function _standardize_sub(k)
+    uk = Symbolics.unwrap(k)
+    if uk isa LazyTrace
+        if length(uk.cycles) == 1
+             # This is a bit hacky as it depends on tr_val being in scope 
+             # and implemented the way it is.
+             return tr_val(uk.cycles[1])
+        end
+    end
+    return k
+end
+
+"""
+    evaluate(expr, dict)
+    evaluate(expr, pair)
+
+Shorthand for `Symbolics.substitute`. Useful for substituting symbolic dimensions 
+with numeric values in integration results. Also handles substituting symbolic traces.
+"""
+function evaluate(expr, dict)
+    if dict isa AbstractDict || dict isa AbstractVector
+        new_dict = Dict(_standardize_sub(k) => v for (k, v) in dict)
+        res = Symbolics.substitute(expr, new_dict)
+    else
+        res = Symbolics.substitute(expr, dict)
+    end
+
+    # Try to return a number if the result is a Num wrapping a number
+    if res isa Num
+        val = Symbolics.unwrap(res)
+        if val isa Number
+            return val
+        end
+        
+        try
+            if hasproperty(val, :val) && val.val isa Number
+                return val.val
+            end
+        catch
+        end
+        if SymbolicUtils.iscall(val)
+            op = SymbolicUtils.operation(val)
+            args = SymbolicUtils.arguments(val)
+            if all(x -> x isa Number, args)
+                try
+                    return op(args...)
+                catch
+                end
+            end
+        end
+
+        # Also try simplifying to see if it becomes a number
+        # Note: simplify can return a Num, so we check again
+        try
+            sim_res = Symbolics.simplify(res)
+            val_sim = Symbolics.unwrap(sim_res)
+            if val_sim isa Number
+                return val_sim
+            end
+        catch
+        end
+    end
+    return res
+end
+
+function evaluate(expr, pair::Pair)
+    return evaluate(expr, Dict(pair))
+end
+
+export evaluate
