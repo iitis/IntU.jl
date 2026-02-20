@@ -2,6 +2,12 @@
 using Symbolics
 using MacroTools
 
+const EXCLUDED_MACRO_SYMS = Set{Symbol}([
+    :abs, :abs2, :real, :imag, :conj, :tr, :+, :-, :*, :/, :^, 
+    :getindex, :setindex!, :adjoint, :transpose, :I, :Number, :Complex, 
+    :Int, :Float64, :sum, :prod, :sqrt, :exp, :log, :sin, :cos, :tan, Symbol(":")
+])
+
 """
     @integrate expr measure
 
@@ -56,8 +62,7 @@ macro integrate(expr, measure)
     end
     
     # Exclude common functions and keywords
-    excluded = [:abs, :abs2, :real, :imag, :conj, :tr, :+, :-, :*, :/, :^, :getindex, :setindex!, :adjoint, :transpose, :I, :Number, :Complex, :Int, :Float64, :sum, :prod, :sqrt, :exp, :log, :sin, :cos, :tan, Symbol(":")]
-    integrand_syms = filter(s -> !(s in excluded), unique(integrand_syms))
+    integrand_syms = filter(s -> !(s in EXCLUDED_MACRO_SYMS), unique(integrand_syms))
 
     # 4. Generate declarations
     decls = []

@@ -75,12 +75,7 @@ function Base.getindex(A::SymbolicMatrix, i::Union{Integer, AbstractVector, Colo
         return invoke(getindex, Tuple{SymbolicMatrix, Integer, Integer}, A, rows, cols)
     end
     
-    res = Matrix{Any}(undef, length(rows), length(cols))
-    for (r_idx, r) in enumerate(rows)
-        for (c_idx, c) in enumerate(cols)
-            res[r_idx, c_idx] = A[r, c]
-        end
-    end
+    res = Any[A[r, c] for r in rows, c in cols]
     # Return vector if single column/row was requested (standard Julia behavior)
     if length(cols) == 1 && (j isa Integer)
         return res[:, 1]
@@ -321,11 +316,7 @@ function Base.:*(b::Num, a::LazyTrace)
 end
 
 function Base.conj(t::LazyTrace)
-    new_cycles = Vector{Vector{SymbolicMatrix}}()
-    for cycle in t.cycles
-        new_cycle = reverse([adjoint(f) for f in cycle])
-        push!(new_cycles, new_cycle)
-    end
+    new_cycles = [reverse([adjoint(f) for f in cycle]) for cycle in t.cycles]
     return LazyTrace(new_cycles, Symbolics.conj(t.prefactor))
 end
 
@@ -349,9 +340,7 @@ end
 function Base.:^(a::LazyTrace, n::Integer)
     if n == 0 return LazyTrace([], 1) end
     if n == 1 return a end
-    new_cycles = Vector{Vector{AbstractMatrix}}()
-    for _ = 1:n append!(new_cycles, a.cycles) end
-    return LazyTrace(new_cycles, a.prefactor^n)
+    return LazyTrace(repeat(a.cycles, n), a.prefactor^n)
 end
 
 function show(io::IO, t::LazyTrace)

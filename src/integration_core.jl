@@ -288,11 +288,15 @@ function _extract_coeff_core(term)
     
     if Symbolics.iscall(term) && Symbolics.operation(term) == (*)
         args = Symbolics.arguments(term)
-        # Assuming coefficient is the PRODUCT of all numbers found
-        coeffs = filter(x -> x isa Number, args)
-        others = filter(x -> !(x isa Number), args)
-        
-        c = isempty(coeffs) ? 1 : prod(coeffs)
+        c = 1
+        others = Any[]
+        for a in args
+            if a isa Number
+                c *= a
+            else
+                push!(others, a)
+            end
+        end
         
         if isempty(others)
             core = 1
@@ -495,11 +499,12 @@ function _integrate_core(
         end
         
         args = Symbolics.arguments(expr)
+        n_args = length(args)
         new_args = []
-        skip_indices = Set{Int}()
+        skip_indices = falses(n_args)
         
-        for i = 1:length(args)
-            if i in skip_indices
+        for i = 1:n_args
+            if skip_indices[i]
                 continue
             end
             
@@ -516,8 +521,8 @@ function _integrate_core(
                 target_x = is_real_sq ? x_real : x_imag
                 target_is_real = !is_real_sq
                 
-                for j = (i+1):length(args)
-                     if j in skip_indices
+                for j = (i+1):n_args
+                     if skip_indices[j]
                         continue
                     end
                     
@@ -535,7 +540,7 @@ function _integrate_core(
                         if is_real_sq_j && isequal(x_real_j, target_x)
                             # Found match!
                             push!(new_args, c_i * target_x * conj(target_x))
-                            push!(skip_indices, j)
+                            skip_indices[j] = true
                             matched = true
                             break
                         end
@@ -543,7 +548,7 @@ function _integrate_core(
                         if is_imag_sq_j && isequal(x_imag_j, target_x)
                             # Found match!
                             push!(new_args, c_i * target_x * conj(target_x))
-                            push!(skip_indices, j)
+                            skip_indices[j] = true
                             matched = true
                             break
                         end

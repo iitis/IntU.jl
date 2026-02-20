@@ -103,10 +103,9 @@ function hciz(a::AbstractVector, b::AbstractVector)
 
     # Check for degeneracies
     if _has_degeneracies(a) || _has_degeneracies(b)
-        # For numeric values, we can add a tiny perturbation
         if eltype(a) <: Number && eltype(b) <: Number
-            a = a .+ (rand(d) .- 0.5) .* 1e-12
-            b = b .+ (rand(d) .- 0.5) .* 1e-12
+            a = [a[i] + i * 1e-10 for i = 1:d]
+            b = [b[i] + i * 1e-10 for i = 1:d]
         else
             # For symbolic, this is harder. 
             # In some cases L'Hopital's rule or character expansions are needed.
