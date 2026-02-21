@@ -21,34 +21,43 @@ While numerical approaches (like sampling random matrices) can estimate this,
 they are slow and approximate. IntU provides the **exact** analytic result
 instantly, even for symbolic dimensions, using a simple unified interface: `integrate(expr, measure)`.
 
-**New Feature**: You can now integrate matrix-valued expressions directly!
+**New Feature**: You can now integrate matrix-valued expressions directly and utilize the `@integrate` macro to automatically infer random matrix variables!
+
+The `@integrate` macro implicitly treats specific symbols as random matrices depending on the measure:
+- `dU`, `dSU` $\rightarrow$ `U` (Unitary)
+- `dO` $\rightarrow$ `O` (Orthogonal)
+- `dSp` $\rightarrow$ `Sp` (Symplectic)
+- `dPerm` $\rightarrow$ `P` (Permutation)
+- `dCPerm` $\rightarrow$ `Y` (Centered Permutation)
+- `dCOE` $\rightarrow$ `O` (Circular Orthogonal)
+- `dCSE` $\rightarrow$ `Sp` (Circular Symplectic)
+- `dPsi` $\rightarrow$ `psi` (Pure State)
+- `dDiagUnitary` $\rightarrow$ `V` (Diagonal Unitary)
+- `dStiefel` $\rightarrow$ `V` (Stiefel Manifold)
+- Ginibre Ensembles $\rightarrow$ `G`
+
+Unknown symbols (like `A`, `B`, `d`) are automatically treated as constants or dimensions.
+
 ```julia
 using IntU, Symbolics, LinearAlgebra
 
-@variables d
-U = SymbolicMatrix(:U, :U)
 # Integrate the matrix expression U * U'
-# This performs element-wise integration automatically
-res = integrate(U * U', dU(2))
+# The @integrate macro knows 'U' is the random matrix for measure dU(2)
+res = @integrate U * U' dU(2)
 # Output: Identity Matrix (I)
 ```
 
 ```julia
-using IntU, Symbolics
-
-# Define symbolic dimension 'd' and a lazy symbolic matrix 'U'
-@variables d
-U = SymbolicMatrix(:U, :U)
-
+using IntU
 # Compute the integral of |U_{1,1}|^2
-integrate(abs(U[1, 1])^2, dU(d))
+@integrate abs(U[1, 1])^2 dU(d)
 # Output: 1 / d
 ```
 
 For more complex moments, such as $\int dU |U_{1,1}|^2 |U_{1,2}|^2$, IntU handles the combinatorics (Weingarten functions) automatically:
 
 ```julia
-integrate(abs(U[1, 1])^2 * abs(U[1, 2])^2, dU(d))
+@integrate abs(U[1, 1])^2 * abs(U[1, 2])^2 dU(d)
 # Output: 1 / (d * (1 + d))
 ```
 
@@ -63,7 +72,7 @@ can calculate averages over the unitary Haar measure using `dU` and `integrate`.
 
 ```julia
 # 4-th moment of a diagonal entry
-integrate(abs(U[1, 1])^4, dU(d))
+@integrate abs(U[1, 1])^4 dU(d)
 # Output: 2 / (d * (1 + d))
 ```
 
@@ -71,7 +80,7 @@ integrate(abs(U[1, 1])^4, dU(d))
 The Special Unitary group $SU(d)$ consists of unitary matrices with determinant 1. Use `dSU`.
 
 ```julia
-integrate(abs(U[1, 1])^2, dSU(d))
+@integrate abs(U[1, 1])^2 dSU(d)
 # Output: 1/d
 ```
 
@@ -80,18 +89,16 @@ Orthogonal matrices $O$ are real matrices satisfying $O O^T = I_d$. Averages are
 computed using the `dO` measure.
 
 ```julia
-O = SymbolicMatrix(:O, :O)
-integrate(O[1, 1]^4, dO(d))
+@integrate O[1, 1]^4 dO(d)
 # Output: 3 / (d * (2 + d))
 ```
 
 ### Symplectic group
-Symplectic matrices $S$ are unitary matrices of even dimension $2n$ that
-preserve the symplectic form, $S \Omega S^T = \Omega$. Use `dSp`.
+Symplectic matrices $Sp$ are unitary matrices of even dimension $2n$ that
+preserve the symplectic form, $Sp \Omega Sp^T = \Omega$. Use `dSp`.
 
 ```julia
-S = SymbolicMatrix(:S, :Sp)
-integrate(abs(S[1, 1])^2, dSp(d))
+@integrate abs(Sp[1, 1])^2 dSp(d)
 # Output: 1 / d
 ```
 
@@ -102,10 +109,8 @@ Ginibre ensembles consist of non-Hermitian matrices with i.i.d. Gaussian entries
 - **GinSE (Symplectic Ginibre Ensemble)**: i.i.d. quaternionic Gaussian entries. Use `dGinSE`.
 
 ```julia
-@variables d
-G = SymbolicMatrix(:G, :GinUE)
 # E[Tr(G G')] = d^2
-integrate(tr_lazy(G * G'), dGinUE(d))
+@integrate tr(G * G') dGinUE(d)
 ```
 
 ### Circular Ensembles
@@ -115,10 +120,8 @@ IntU also supports Circular Ensembles (CUE, COE, CSE) which are commonly used in
 - **CSE (Circular Symplectic Ensemble)**: Ensemble of self-dual unitary matrices of even dimension $2n$. Use `dCSE`.
 
 ```julia
-@variables d
-S = SymbolicMatrix(:S, :COE) # COE is symmetric unitary
-# COE moment E[|S_{1,1}|^2]
-integrate(abs(S[1, 1])^2, dCOE(d))
+# COE moment E[|O_{1,1}|^2]
+@integrate abs(O[1, 1])^2 dCOE(d)
 # Output: 2 / (d + 1)
 ```
 
@@ -127,10 +130,8 @@ IntU can integrate polynomial functions of the components of a Haar-random pure
 state vector $|\psi\rangle$ of dimension $d$.
 
 ```julia
-@variables d
-psi = SymbolicMatrix(:psi, :psi) # Treat vector as SymbolicMatrix for lazy indexing
 # Average of |ψ_1|^2
-integrate(abs(psi[1, 1])^2, dPsi(d))
+@integrate abs(psi[1, 1])^2 dPsi(d)
 # Output: 1 / d
 ```
 
@@ -139,10 +140,8 @@ IntU supports integration over the Symmetric group $S_d$ (permutation matrices).
 - **dPerm**: Integration over the set of $d \times d$ permutation matrices.
 
 ```julia
-@variables d
-P = SymbolicMatrix(:P, :Perm)
 # E[P_11]
-integrate(P[1, 1], dPerm(d))
+@integrate P[1, 1] dPerm(d)
 # Output: 1 / d
 ```
 
@@ -150,10 +149,8 @@ IntU also supports centered permutation matrices $Y = P - J/d$.
 - **dCPerm**: Integration over centered permutation matrices.
 
 ```julia
-@variables d
-Y = SymbolicMatrix(:Y, :CPerm)
 # E[Y_11^2]
-integrate(Y[1, 1]^2, dCPerm(d))
+@integrate Y[1, 1]^2 dCPerm(d)
 # Output: (d - 1) / d^2
 ```
 
@@ -162,11 +159,8 @@ IntU supports integration over the group of diagonal unitary matrices, which
 corresponds to independent phase averaging for each diagonal entry.
 
 ```julia
-@variables d
-V = SymbolicMatrix(:V, :DiagUnitary)
-
 # E[|V_11|^2]
-integrate(abs(V[1, 1])^2, dDiagUnitary(d))
+@integrate abs(V[1, 1])^2 dDiagUnitary(d)
 # Output: 1
 ```
 
@@ -175,14 +169,8 @@ IntU supports index-free notation for integrating traces of products of random
 matrices, which is often more convenient for quantum information tasks.
 
 ```julia
-using IntU: tr
-# Define symbolic matrices A, B (constant) and U (random)
-A = SymbolicMatrix(:A)
-B = SymbolicMatrix(:B)
-U = SymbolicMatrix(:U, :U)
 # Compute ∫ tr(U A U† B) dU
-expr = tr(U * A * U' * B)
-integrate(expr, dU(d))
+@integrate tr(U * A * U' * B) dU(d)
 # Output: (tr(A)*tr(B)) / d
 ```
 
@@ -202,10 +190,8 @@ hciz(A, B)
 IntU supports integration over the Stiefel manifold $V_k(\mathbb{C}^d)$, which represents the set of $d \times k$ matrices with orthonormal columns. This generalizes Haar-random pure states ($k=1$).
 
 ```julia
-@variables d
-V = SymbolicMatrix(:V, :U) # Stiefel is first k columns of Haar unitary
 # E[|V_{1,1}|^2]
-integrate(abs(V[1, 1])^2, dStiefel(d, 2))
+@integrate abs(V[1, 1])^2 dStiefel(d, 2)
 # Output: 1 / d
 ```
 
