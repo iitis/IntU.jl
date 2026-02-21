@@ -118,12 +118,13 @@ function integrate(expr::AbstractArray, measure::GinSEMeasure)
 end
 
 # Resolve ambiguities with SymbolicMatrix/SymbolicMatrixProduct
-for T_measure in [GUEMeasure, GOEMeasure, GSEMeasure, GinUEMeasure, GinOEMeasure, GinSEMeasure]
+for T_measure in
+    [GUEMeasure, GOEMeasure, GSEMeasure, GinUEMeasure, GinOEMeasure, GinSEMeasure]
     @eval function integrate(expr::SymbolicMatrix, measure::$T_measure)
-        return invoke(integrate, Tuple{SymbolicMatrix, Any}, expr, measure)
+        return invoke(integrate, Tuple{SymbolicMatrix,Any}, expr, measure)
     end
     @eval function integrate(expr::SymbolicMatrixProduct, measure::$T_measure)
-        return invoke(integrate, Tuple{SymbolicMatrixProduct, Any}, expr, measure)
+        return invoke(integrate, Tuple{SymbolicMatrixProduct,Any}, expr, measure)
     end
 end
 
@@ -547,7 +548,7 @@ function fallback_integrate(t::LazyTrace, measure::GinUEMeasure)
 
                     dest_factor_idx = 0
                     mat_segment = nothing
-                    
+
                     if haskey(wires, curr_factor_idx)
                         dest_factor_idx, mat_segment = wires[curr_factor_idx]
                     elseif haskey(reverse_wires, curr_factor_idx)
@@ -644,9 +645,9 @@ function fallback_integrate(t::LazyTrace, measure::GinOEMeasure)
 
                     while !visited_ports[curr_m, curr_port]
                         visited_ports[curr_m, curr_port] = true
-                        
+
                         curr_factor_idx = G_indices[curr_m]
-                        
+
                         # Exit current node via curr_port
                         dest_factor_idx = 0
                         mat_segment = nothing
@@ -663,10 +664,10 @@ function fallback_integrate(t::LazyTrace, measure::GinOEMeasure)
                         if mat_segment !== nothing
                             append!(curr_trace_factors, mat_segment)
                         end
-                        
+
                         landed_m = pos_map[dest_factor_idx]
                         f_landed = all_factors[dest_factor_idx]
-                        
+
                         visited_ports[landed_m, landed_port] = true
 
                         # Jump to partner via Wick contraction.
@@ -681,7 +682,7 @@ function fallback_integrate(t::LazyTrace, measure::GinOEMeasure)
                                 break
                             end
                         end
-                        
+
                         # Determine partner port via index matching
                         f_partner = all_factors[G_indices[partner_m]]
                         # If same is_adj, row is at same port index. If different, they swap.
@@ -690,7 +691,7 @@ function fallback_integrate(t::LazyTrace, measure::GinOEMeasure)
                         else
                             partner_port = (landed_port == 1 ? 2 : 1)
                         end
-                        
+
                         curr_m = partner_m
                         curr_port = partner_port
                     end

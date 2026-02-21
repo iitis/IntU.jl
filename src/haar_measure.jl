@@ -11,11 +11,12 @@ function match_index(m::SymbolicMatcher, t)
     s = Symbolics.unwrap(t)
     # We check string representation of the symbol. Handle conj(U_i_j)
     is_conj = false
-    if Symbolics.iscall(s) && (Symbolics.operation(s) == conj || Symbolics.operation(s) == Base.conj)
+    if Symbolics.iscall(s) &&
+       (Symbolics.operation(s) == conj || Symbolics.operation(s) == Base.conj)
         is_conj = true
         s = Symbolics.arguments(s)[1]
     end
-    
+
     s_str = string(s)
     mat = match(m.regex, s_str)
     if mat !== nothing
@@ -149,7 +150,7 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
             inv_tau = invperm(tau)
             visited = falses(total_factors, 2)
             current_term_traces = Any[]
-            
+
             for slot in all_slots
                 for port = 1:2
                     if !visited[slot, port]
@@ -264,10 +265,10 @@ function _traverse_trace_cycle_final(
     dim,
 )
     curr_factors = Any[]
-    
+
     while !visited[s, p]
         visited[s, p] = true
-        
+
         # 1. Weingarten Matching
         if haskey(u_map, s)
             u_m = u_map[s]
@@ -295,7 +296,7 @@ function _traverse_trace_cycle_final(
             end
         end
         visited[s, p] = true
-        
+
         # 2. Wire Traversal
         if p == 2
             s, mat_segment = wires[s]
@@ -311,7 +312,7 @@ function _traverse_trace_cycle_final(
             p = 2
         end
     end
-    
+
     if isempty(curr_factors)
         return dim
     else

@@ -41,7 +41,7 @@ using LinearAlgebra
         d_val = 3
         O3 = SymbolicMatrix(:O, :O, d_val)
         m3 = dO(d_val)
-        
+
         sum_val = 0
         for k = 1:d_val
             sum_val += integrate(O3[1, k] * O3[1, k], m3)

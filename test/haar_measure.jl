@@ -54,10 +54,10 @@ using LinearAlgebra
 
         # Expected result is Identity
         I_mat = Matrix(I, d_val, d_val)
-        
+
         # Convert to numeric float for ≈ check
         res_num = zeros(Float64, d_val, d_val)
-        for i=1:d_val, j=1:d_val
+        for i = 1:d_val, j = 1:d_val
             val = to_numeric(real(res_matrix[i, j]))
             res_num[i, j] = Float64(val)
         end

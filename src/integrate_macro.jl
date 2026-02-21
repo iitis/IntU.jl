@@ -3,9 +3,35 @@ using Symbolics
 using MacroTools
 
 const EXCLUDED_MACRO_SYMS = Set{Symbol}([
-    :abs, :abs2, :real, :imag, :conj, :tr, :+, :-, :*, :/, :^, 
-    :getindex, :setindex!, :adjoint, :transpose, :I, :Number, :Complex, 
-    :Int, :Float64, :sum, :prod, :sqrt, :exp, :log, :sin, :cos, :tan, Symbol(":")
+    :abs,
+    :abs2,
+    :real,
+    :imag,
+    :conj,
+    :tr,
+    :+,
+    :-,
+    :*,
+    :/,
+    :^,
+    :getindex,
+    :setindex!,
+    :adjoint,
+    :transpose,
+    :I,
+    :Number,
+    :Complex,
+    :Int,
+    :Float64,
+    :sum,
+    :prod,
+    :sqrt,
+    :exp,
+    :log,
+    :sin,
+    :cos,
+    :tan,
+    Symbol(":"),
 ])
 
 """
@@ -20,7 +46,7 @@ macro integrate(expr, measure)
     if !Meta.isexpr(measure, :call)
         error("Measure must be a function call, e.g., dU(d)")
     end
-    
+
     m_name = measure.args[1]
     m_dim = measure.args[2]
 
@@ -45,8 +71,12 @@ macro integrate(expr, measure)
         :V, :DiagUnitary
     elseif m_name == :dStiefel
         :V, :U
-    elseif m_name == :dGUE || m_name == :dGOE || m_name == :dGSE || 
-           m_name == :dGinUE || m_name == :dGinOE || m_name == :dGinSE
+    elseif m_name == :dGUE ||
+           m_name == :dGOE ||
+           m_name == :dGSE ||
+           m_name == :dGinUE ||
+           m_name == :dGinOE ||
+           m_name == :dGinSE
         :H, Symbol(replace(string(m_name)[2:end], "Measure" => "")) # approximate tag
     else
         :U, :U # default
@@ -60,13 +90,13 @@ macro integrate(expr, measure)
         end
         return x
     end
-    
+
     # Exclude common functions and keywords
     integrand_syms = filter(s -> !(s in EXCLUDED_MACRO_SYMS), unique(integrand_syms))
 
     # 4. Generate declarations
     decls = []
-    
+
     # Handle dimension
     if m_dim isa Symbol
         push!(decls, :(@variables $m_dim))
@@ -75,12 +105,23 @@ macro integrate(expr, measure)
     # Handle integrand symbols
     for s in unique(integrand_syms)
         if s == natural_sym
-            push!(decls, :(if !@isdefined($s); $s = SymbolicMatrix($(QuoteNode(s)), $(QuoteNode(tag)), $m_dim); end))
+            push!(
+                decls,
+                :(
+                    if !@isdefined($s)
+                        ;$s = SymbolicMatrix($(QuoteNode(s)), $(QuoteNode(tag)), $m_dim);
+                    end
+                ),
+            )
         else
             # Declare as constant symbolic matrix if used as matrix/vector
             # We assume for now if it's there it might be a constant matrix.
             # If it's already defined in scope, this avoids shadowing it. 
-            push!(decls, :(if !@isdefined($s); $s = SymbolicMatrix($(QuoteNode(s)), :Constant, nothing); end))
+            push!(decls, :(
+                if !@isdefined($s)
+                    ;$s = SymbolicMatrix($(QuoteNode(s)), :Constant, nothing);
+                end
+            ))
         end
     end
 

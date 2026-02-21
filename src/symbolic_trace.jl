@@ -12,8 +12,8 @@ Used in the symbolic trace logic (via `tr_lazy`) and for metadata-driven element
 struct SymbolicMatrix <: AbstractMatrix{Any}
     name::Symbol
     is_adj::Bool
-    special_type::Symbol 
-    dim::Union{Nothing, Integer, Num, Tuple{Union{Integer, Num}, Union{Integer, Num}}, Any}
+    special_type::Symbol
+    dim::Union{Nothing,Integer,Num,Tuple{Union{Integer,Num},Union{Integer,Num}},Any}
 
     function SymbolicMatrix(name::Symbol, is_adj::Bool, special_type::Symbol, dim::Any)
         new(name, is_adj, special_type, dim)
@@ -23,9 +23,12 @@ end
 struct MatrixMetadata end
 
 SymbolicMatrix(name::Symbol) = SymbolicMatrix(name, false, :Constant, nothing)
-SymbolicMatrix(name::Symbol, special_type::Symbol) = SymbolicMatrix(name, false, special_type, nothing)
-SymbolicMatrix(name::Symbol, is_adj::Bool, special_type::Symbol) = SymbolicMatrix(name, is_adj, special_type, nothing)
-SymbolicMatrix(name::Symbol, special_type::Symbol, dim) = SymbolicMatrix(name, false, special_type, dim)
+SymbolicMatrix(name::Symbol, special_type::Symbol) =
+    SymbolicMatrix(name, false, special_type, nothing)
+SymbolicMatrix(name::Symbol, is_adj::Bool, special_type::Symbol) =
+    SymbolicMatrix(name, is_adj, special_type, nothing)
+SymbolicMatrix(name::Symbol, special_type::Symbol, dim) =
+    SymbolicMatrix(name, false, special_type, dim)
 
 import Base: *, adjoint, transpose, show, ^, size, getindex
 import LinearAlgebra: tr
@@ -45,12 +48,12 @@ function Base.getindex(A::SymbolicMatrix, i::Integer, j::Integer)
     if A.is_adj
         s_name = Symbol(A.name, :_, j, :_, i)
     end
-    
+
     meta = Dict(
         :name => A.name,
         :type => A.special_type,
         :indices => (A.is_adj ? (j, i) : (i, j)),
-        :is_adj => A.is_adj
+        :is_adj => A.is_adj,
     )
 
     # Use T=Number to ensure Symbolics/SymbolicUtils does not incorrectly simplify conj(v)
@@ -59,19 +62,23 @@ function Base.getindex(A::SymbolicMatrix, i::Integer, j::Integer)
     v_un = Symbolics.unwrap(v)
     v_meta_un = SymbolicUtils.setmetadata(v_un, MatrixMetadata, meta)
     v_meta = Symbolics.wrap(v_meta_un)
-    
+
     return A.is_adj ? conj(v_meta) : v_meta
 end
 
-function Base.getindex(A::SymbolicMatrix, i::Union{Integer, AbstractVector, Colon}, j::Union{Integer, AbstractVector, Colon})
+function Base.getindex(
+    A::SymbolicMatrix,
+    i::Union{Integer,AbstractVector,Colon},
+    j::Union{Integer,AbstractVector,Colon},
+)
     rows = (i isa Colon) ? (1:size(A, 1)) : i
     cols = (j isa Colon) ? (1:size(A, 2)) : j
-    
+
     # Handle single element access by dispatching back to (Integer, Integer)
     if rows isa Integer && cols isa Integer
-        return invoke(getindex, Tuple{SymbolicMatrix, Integer, Integer}, A, rows, cols)
+        return invoke(getindex, Tuple{SymbolicMatrix,Integer,Integer}, A, rows, cols)
     end
-    
+
     res = Any[A[r, c] for r in rows, c in cols]
     # Return vector if single column/row was requested (standard Julia behavior)
     if length(cols) == 1 && (j isa Integer)
@@ -115,7 +122,7 @@ Used to represent expressions like `tr(A*B) * tr(C)` symbolically before integra
 """
 struct LazyTrace
     cycles::Vector{Vector{AbstractMatrix}}
-    prefactor::Union{Num, Number}
+    prefactor::Union{Num,Number}
 end
 
 function Base.getproperty(t::LazyTrace, s::Symbol)
@@ -139,10 +146,12 @@ struct SymbolicMatrixProduct <: AbstractMatrix{Any}
     factors::Vector{AbstractMatrix}
 end
 
-const SymbolicAny = Union{SymbolicMatrix, SymbolicMatrixProduct}
+const SymbolicAny = Union{SymbolicMatrix,SymbolicMatrixProduct}
 
 function Base.size(P::SymbolicMatrixProduct)
-    if isempty(P.factors) return (0, 0) end
+    if isempty(P.factors)
+        return (0, 0)
+    end
     return (size(P.factors[1], 1), size(P.factors[end], 2))
 end
 
@@ -158,7 +167,9 @@ end
 
 function Base.getindex(P::SymbolicMatrixProduct, i::Integer, j::Integer)
     factors = P.factors
-    if length(factors) == 1 return factors[1][i, j] end
+    if length(factors) == 1
+        return factors[1][i, j]
+    end
     A = factors[1]
     B = length(factors) == 2 ? factors[2] : SymbolicMatrixProduct(factors[2:end])
     dim = size(A, 2)
@@ -195,10 +206,10 @@ end
 # Resolve ambiguities with LinearAlgebra and Symbolics
 using LinearAlgebra
 for T in [Adjoint, Transpose]
-    @eval function *(A::$T{<:Any, <:AbstractVector}, B::SymbolicAny)
+    @eval function *(A::$T{<:Any,<:AbstractVector}, B::SymbolicAny)
         return SymbolicMatrixProduct(vcat(Any[A], _factors(B)))
     end
-    @eval function *(A::SymbolicAny, B::$T{<:Any, <:AbstractVector})
+    @eval function *(A::SymbolicAny, B::$T{<:Any,<:AbstractVector})
         return SymbolicMatrixProduct(vcat(_factors(A), Any[B]))
     end
 end
@@ -213,46 +224,80 @@ end
 # Resolve specific ambiguities discovered during tests
 for T in [Adjoint, Transpose]
     # 3-arg
-    @eval function *(A::$T{<:Any, <:AbstractVector}, B::SymbolicAny, C::SymbolicAny)
+    @eval function *(A::$T{<:Any,<:AbstractVector}, B::SymbolicAny, C::SymbolicAny)
         return (A * B) * C
     end
-    @eval function *(A::$T{<:Any, <:AbstractVector}, B::AbstractMatrix, C::SymbolicAny)
+    @eval function *(A::$T{<:Any,<:AbstractVector}, B::AbstractMatrix, C::SymbolicAny)
         return (A * B) * C
     end
-    @eval function *(A::$T{<:Any, <:AbstractVector}, B::SymbolicAny, C::AbstractMatrix)
+    @eval function *(A::$T{<:Any,<:AbstractVector}, B::SymbolicAny, C::AbstractMatrix)
         return (A * B) * C
     end
-    
+
     # 4-arg (to prevent LinearAlgebra from catching it)
-    @eval function *(A::$T{<:Any, <:AbstractVector}, B::AbstractMatrix, C::AbstractMatrix, D::SymbolicAny)
+    @eval function *(
+        A::$T{<:Any,<:AbstractVector},
+        B::AbstractMatrix,
+        C::AbstractMatrix,
+        D::SymbolicAny,
+    )
         return (A * B) * (C * D)
     end
-    @eval function *(A::$T{<:Any, <:AbstractVector}, B::AbstractMatrix, C::SymbolicAny, D::AbstractMatrix)
+    @eval function *(
+        A::$T{<:Any,<:AbstractVector},
+        B::AbstractMatrix,
+        C::SymbolicAny,
+        D::AbstractMatrix,
+    )
         return (A * B) * (C * D)
     end
 
     # Disambiguate with internal overlaps
-    @eval function *(A::$T{<:Any, <:AbstractVector}, B::AbstractMatrix, C::SymbolicAny, D::SymbolicAny)
+    @eval function *(
+        A::$T{<:Any,<:AbstractVector},
+        B::AbstractMatrix,
+        C::SymbolicAny,
+        D::SymbolicAny,
+    )
         return (A * B) * (C * D)
     end
 
     # Disambiguate with Symbolics.Arr (3-arg)
-    @eval function *(A::$T{W, <:AbstractVector}, B::Symbolics.Arr, C::SymbolicAny) where W
+    @eval function *(A::$T{W,<:AbstractVector}, B::Symbolics.Arr, C::SymbolicAny) where {W}
         return (A * B) * C
     end
-    @eval function *(A::$T{W, <:AbstractVector}, B::Symbolics.Arr, C::SymbolicAny) where W<:Number
+    @eval function *(
+        A::$T{W,<:AbstractVector},
+        B::Symbolics.Arr,
+        C::SymbolicAny,
+    ) where {W<:Number}
         return (A * B) * C
     end
 
     # Disambiguate with Symbolics.Arr (4-arg)
     for W_type in [Any, Number]
-        @eval function *(A::$T{W, <:AbstractVector}, B::Symbolics.Arr, C::AbstractMatrix, D::SymbolicAny) where W<:$W_type
+        @eval function *(
+            A::$T{W,<:AbstractVector},
+            B::Symbolics.Arr,
+            C::AbstractMatrix,
+            D::SymbolicAny,
+        ) where {W<:$W_type}
             return (A * B) * (C * D)
         end
-        @eval function *(A::$T{W, <:AbstractVector}, B::Symbolics.Arr, C::SymbolicAny, D::AbstractMatrix) where W<:$W_type
+        @eval function *(
+            A::$T{W,<:AbstractVector},
+            B::Symbolics.Arr,
+            C::SymbolicAny,
+            D::AbstractMatrix,
+        ) where {W<:$W_type}
             return (A * B) * (C * D)
         end
-        @eval function *(A::$T{W, <:AbstractVector}, B::Symbolics.Arr, C::SymbolicAny, D::SymbolicAny) where W<:$W_type
+        @eval function *(
+            A::$T{W,<:AbstractVector},
+            B::Symbolics.Arr,
+            C::SymbolicAny,
+            D::SymbolicAny,
+        ) where {W<:$W_type}
             return (A * B) * (C * D)
         end
     end
@@ -335,19 +380,30 @@ function Base.:+(a::LazySum, b::LazySum)
 end
 
 function Base.:^(a::LazyTrace, n::Integer)
-    if n == 0 return LazyTrace([], 1) end
-    if n == 1 return a end
+    if n == 0
+        return LazyTrace([], 1)
+    end
+    if n == 1
+        return a
+    end
     return LazyTrace(repeat(a.cycles, n), a.prefactor^n)
 end
 
 function show(io::IO, t::LazyTrace)
-    if t.prefactor != 1 print(io, t.prefactor, "*") end
-    if isempty(t.cycles) print(io, "1"); return end
+    if t.prefactor != 1
+        print(io, t.prefactor, "*")
+    end
+    if isempty(t.cycles)
+        print(io, "1");
+        return
+    end
     for (i, cycle) in enumerate(t.cycles)
         print(io, "tr(")
         for (j, f) in enumerate(cycle)
             print(io, f)
-            if j < length(cycle) print(io, " * ") end
+            if j < length(cycle)
+                print(io, " * ")
+            end
         end
         print(io, ")")
     end
@@ -361,27 +417,35 @@ the numeric trace. If any factor is symbolic, returns a symbolic representation
 normalized by circular shifts and adjoints to ensure unique naming.
 """
 function tr_val(factors::AbstractVector)
-    if isempty(factors) return 1 end
-    
+    if isempty(factors)
+        return 1
+    end
+
     # Try to evaluate if all factors are concrete matrices
     # Check if any factor is symbolic
-    is_symbolic = any(f -> f isa SymbolicMatrix || f isa SymbolicMatrixProduct || f isa LazyTrace, factors)
-    
+    is_symbolic = any(
+        f -> f isa SymbolicMatrix || f isa SymbolicMatrixProduct || f isa LazyTrace,
+        factors,
+    )
+
     if !is_symbolic
         prod_val = prod(factors)
-        if prod_val isa AbstractMatrix && eltype(prod_val) <: Number && !(eltype(prod_val) <: Num)
-              return LinearAlgebra.tr(prod_val)
+        if prod_val isa AbstractMatrix &&
+           eltype(prod_val) <: Number &&
+           !(eltype(prod_val) <: Num)
+            return LinearAlgebra.tr(prod_val)
         end
         if prod_val isa AbstractMatrix && eltype(prod_val) <: Num
-              all_num = true
-              for x in prod_val
-                  if !is_number(x)
-                      all_num = false; break
-                  end
-              end
-              if all_num
-                  return LinearAlgebra.tr(prod_val)
-              end
+            all_num = true
+            for x in prod_val
+                if !is_number(x)
+                    all_num = false;
+                    break
+                end
+            end
+            if all_num
+                return LinearAlgebra.tr(prod_val)
+            end
         end
     end
 
@@ -390,8 +454,8 @@ function tr_val(factors::AbstractVector)
         n = length(fs)
         s_list = [string(f) for f in fs]
         min_s = join(s_list, "*")
-        for i = 1:n-1
-            p = vcat(s_list[i+1:n], s_list[1:i])
+        for i = 1:(n-1)
+            p = vcat(s_list[(i+1):n], s_list[1:i])
             curr_s = join(p, "*")
             if curr_s < min_s
                 min_s = curr_s
@@ -403,7 +467,7 @@ function tr_val(factors::AbstractVector)
     s1 = get_norm_string(factors)
     adj_factors = reverse([adjoint(f) for f in factors])
     s2 = get_norm_string(adj_factors)
-    
+
     name = "tr(" * (s1 < s2 ? s1 : s2) * ")"
     # Use T=Number to preserve symbolic structure.
     return Num(Symbolics.variable(Symbol(name); T = Number))

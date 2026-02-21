@@ -10,11 +10,11 @@ d2 = 2
 d = d1 * d2
 U = SymbolicMatrix(:U, :U)
 
-rho1(a, c) = sum(U[(a-1)*d2 + k, 1] * conj(U[(c-1)*d2 + k, 1]) for k=1:d2)
+rho1(a, c) = sum(U[(a-1)*d2+k, 1] * conj(U[(c-1)*d2+k, 1]) for k = 1:d2)
 
 # 5. Measure the purity of the reduced density matrix: P = Tr(rho1^2)
 # Here we just show the setup and use the automated integration
-purity_expr = sum(rho1(a, c) * rho1(c, a) for a=1:d1, c=1:d1)
+purity_expr = sum(rho1(a, c) * rho1(c, a) for a = 1:d1, c = 1:d1)
 
 println("Integrating purity over the Haar measure dU(d)...")
 avg_purity = integrate(purity_expr, dU(d))

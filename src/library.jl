@@ -40,12 +40,12 @@ function check_haar_library(expr, measure)
                 shifted = circshift(factors, -i+1)
                 U_cand = shifted[1]
                 U_dag_cand = shifted[3]
-                
+
                 # Verify factor roles and dimensions match measure
                 if !(U_cand isa SymbolicMatrix) || U_cand.special_type != :U
                     continue
                 end
-                
+
                 if !isequal(U_cand.dim, measure.dim)
                     continue
                 end
@@ -55,17 +55,17 @@ function check_haar_library(expr, measure)
                    U_dag_cand.special_type != :U ||
                    U_dag_cand.name != U_cand.name ||
                    U_dag_cand.is_adj == U_cand.is_adj
-                   continue
+                    continue
                 end
-                
+
                 A = shifted[2]
                 B = shifted[4]
-                
-                if (A isa SymbolicMatrix && A.name == U_cand.name) || 
+
+                if (A isa SymbolicMatrix && A.name == U_cand.name) ||
                    (B isa SymbolicMatrix && B.name == U_cand.name)
                     continue
                 end
-                
+
                 return prefactor * (tr_val([A]) * tr_val([B])) / measure.dim
             end
         end
@@ -88,7 +88,7 @@ function check_gaussian_library(expr, measure, type)
     prefactor = expr.prefactor
 
     expected_tag = type
-    
+
     if !all(f -> (f isa SymbolicMatrix) && f.special_type == expected_tag, factors)
         return nothing
     end

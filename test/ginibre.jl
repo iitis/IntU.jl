@@ -78,7 +78,7 @@ import LinearAlgebra: tr
         Gd = SymbolicMatrix(:G, :GinUE, d_val)
         meas = dGinUE(d_val)
         expr = tr(Gd * Gd')
-        
+
         asymp = asymptotic(expr, meas, 1)
         val = Symbolics.substitute(asymp, Dict(d_val => 10))
         @test IntU._symbolic_isequal(val, 100)

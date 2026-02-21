@@ -410,14 +410,14 @@ The Weingarten matrix is the inverse of \$G\$.
     pi_id = parts[1]
 
     # Group partitions by cycle type with respect to pi_id
-    type_to_parts = Dict{Vector{Int}, Vector{Int}}()
+    type_to_parts = Dict{Vector{Int},Vector{Int}}()
     for i = 1:N
         ct = get_full_cycle_type(parts[i], pi_id)
         push!(get!(type_to_parts, ct, Int[]), i)
     end
 
     cts = collect(keys(type_to_parts))
-    sort!(cts, rev=true)
+    sort!(cts, rev = true)
     n_types = length(cts)
     type_to_idx = Dict(ct => i for (i, ct) in enumerate(cts))
 
@@ -448,7 +448,7 @@ The Weingarten matrix is the inverse of \$G\$.
     id_idx = type_to_idx[id_type]
     rhs = zeros(T, n_types)
     rhs[id_idx] = one(T)
-    
+
     w = M \ rhs
 
     return w, type_to_idx, type_to_parts
@@ -482,25 +482,25 @@ function _safe_inv(G::AbstractMatrix)
     # For small symbolic matrices OR BigInt matrices, manual inverse might be safer/faster
     # Generic inv() for Rational{BigInt} can be slow or problematic if not optimized.
     # But usually Base.inv works fine for Rational{BigInt}.
-    
+
     # Check if elements are Numbers but not AbstractFloat (to avoid precision loss)
     if eltype(G) <: Number && !(eltype(G) <: AbstractFloat)
-         # For 2x2, simpler
-         if n == 2
-            a, b = G[1,1], G[1,2]
-            c, d = G[2,1], G[2,2]
+        # For 2x2, simpler
+        if n == 2
+            a, b = G[1, 1], G[1, 2]
+            c, d = G[2, 1], G[2, 2]
             det = a*d - b*c
             return (1//det) * [d -b; -c a]
-         end
+        end
     end
 
     if eltype(G) <: Symbolics.Num
-         if n == 2
-            a, b = G[1,1], G[1,2]
-            c, d = G[2,1], G[2,2]
+        if n == 2
+            a, b = G[1, 1], G[1, 2]
+            c, d = G[2, 1], G[2, 2]
             det = a*d - b*c
             return (1/det) * [d -b; -c a]
-         end
+        end
     end
     return inv(G)
 end
@@ -558,10 +558,10 @@ Reference:
     # Wg^Sp(d) = (-1)^(k + loops) * Wg^O(-d)
     # We can get Wg^O(-d) from the reduced system directly
     w, type_to_idx, _ = get_weingarten_reduced_data(k, -d)
-    
+
     ct = get_full_cycle_type(pi, sigma)
     loops = length(ct)
-    
+
     val_ortho = w[type_to_idx[ct]]
     return ((-1)^loops) * val_ortho
 end

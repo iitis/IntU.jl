@@ -25,10 +25,10 @@ end
 
 # Resolve ambiguities with SymbolicMatrix/SymbolicMatrixProduct
 function integrate(expr::SymbolicMatrix, measure::UnitaryDesign)
-    return invoke(integrate, Tuple{SymbolicMatrix, Any}, expr, measure)
+    return invoke(integrate, Tuple{SymbolicMatrix,Any}, expr, measure)
 end
 function integrate(expr::SymbolicMatrixProduct, measure::UnitaryDesign)
-    return invoke(integrate, Tuple{SymbolicMatrixProduct, Any}, expr, measure)
+    return invoke(integrate, Tuple{SymbolicMatrixProduct,Any}, expr, measure)
 end
 
 function IntU.measure_info(measure::UnitaryDesign)

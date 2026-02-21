@@ -59,5 +59,7 @@ println("Integrating: tr(P * A)")
 # Use @integrate, A is auto-declared as Constant, P as Perm
 result7 = @integrate tr(P * A) dPerm(d)
 println("Result: ", result7)
-println("Expected: tr(A) / d (Wait, for Permutations E[P_ij] = 1/d, so E[Tr(PA)] = Tr(A)/d is not correct, it's sum(A)/d)")
+println(
+    "Expected: tr(A) / d (Wait, for Permutations E[P_ij] = 1/d, so E[Tr(PA)] = Tr(A)/d is not correct, it's sum(A)/d)",
+)
 # In our library for Permutations, tr(P*A) integration uses element-wise logic if not specialized.

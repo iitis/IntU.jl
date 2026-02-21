@@ -48,7 +48,9 @@ function hciz(A::SymbolicMatrix, B::SymbolicMatrix)
     if A.dim !== nothing
         return hciz(A, B, A.dim)
     else
-        error("Must provide dimension d for symbolic HCIZ if matrices have symbolic dimension.")
+        error(
+            "Must provide dimension d for symbolic HCIZ if matrices have symbolic dimension.",
+        )
     end
 end
 

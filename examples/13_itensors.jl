@@ -66,7 +66,8 @@ idx_out = Index(2, "Out")
 idx_in = Index(2, "In")
 
 U_sym_wrap = ITensorUnitary(out_indices = [idx_out], in_indices = [idx_in])
-U_dag_sym_wrap = ITensorUnitary(out_indices = [idx_out], in_indices = [idx_in], is_adj = true)
+U_dag_sym_wrap =
+    ITensorUnitary(out_indices = [idx_out], in_indices = [idx_in], is_adj = true)
 
 # Integrate over U(d_sym)
 res_sym = integrate([U_sym_wrap, U_dag_sym_wrap], dU(d_sym))

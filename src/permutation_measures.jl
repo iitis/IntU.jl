@@ -39,16 +39,16 @@ end
 
 # Resolve ambiguities with SymbolicMatrix/SymbolicMatrixProduct
 function integrate(expr::SymbolicMatrix, measure::PermutationMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrix, Any}, expr, measure)
+    return invoke(integrate, Tuple{SymbolicMatrix,Any}, expr, measure)
 end
 function integrate(expr::SymbolicMatrixProduct, measure::PermutationMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrixProduct, Any}, expr, measure)
+    return invoke(integrate, Tuple{SymbolicMatrixProduct,Any}, expr, measure)
 end
 function integrate(expr::SymbolicMatrix, measure::CenteredPermutationMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrix, Any}, expr, measure)
+    return invoke(integrate, Tuple{SymbolicMatrix,Any}, expr, measure)
 end
 function integrate(expr::SymbolicMatrixProduct, measure::CenteredPermutationMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrixProduct, Any}, expr, measure)
+    return invoke(integrate, Tuple{SymbolicMatrixProduct,Any}, expr, measure)
 end
 
 function IntU.measure_info(measure::PermutationMeasure)
@@ -76,21 +76,23 @@ function fallback_integrate(t::LazyTrace, measure::PermutationMeasure)
     # For more complex terms, we expand to element-wise integration.
     matcher = measure.matcher === nothing ? MetadataMatcher(:Perm) : measure.matcher
     dim = measure.dim
-    
+
     # If it's a simple tr(PA), keep the symbolic result if A is not concrete
     if length(t.cycles) == 1 && length(t.cycles[1]) == 2
         factors = t.cycles[1]
         P_idx = nothing
         for (i, f) in enumerate(factors)
             if match_index(matcher, f) !== nothing
-                P_idx = i; break
+                P_idx = i;
+                break
             end
         end
         if P_idx !== nothing
             A = factors[P_idx == 1 ? 2 : 1]
             # If A is a SymbolicMatrix or a simple numeric matrix, we return a symbolic sum result
             if A isa SymbolicMatrix || !(A isa AbstractMatrix && !(eltype(A) <: Num))
-                return t.prefactor * (Symbolics.variable(Symbol("sum(" * string(A) * ")")) / measure.dim)
+                return t.prefactor *
+                       (Symbolics.variable(Symbol("sum(" * string(A) * ")")) / measure.dim)
             end
         end
     end
@@ -102,28 +104,31 @@ function fallback_integrate(t::LazyTrace, measure::PermutationMeasure)
         # Expand tr(ABC...) as sum_{i,j,k...} A_ij B_jk C_ki
         n = length(cycle)
         dims = [size(f) for f in cycle]
-        
+
         # We need a shared dimension for all factors in the cycle for trace to exist.
         # But for symbolic ones it is dim.
         d_val = dim isa Integer ? Int(dim) : 0
         if d_val == 0
-             # Try to find a concrete dimension from any factor
-             for f in cycle
-                 s = size(f, 1)
-                 if s isa Integer && s < 1000 # heuristic
-                     d_val = s; break
-                 end
-             end
+            # Try to find a concrete dimension from any factor
+            for f in cycle
+                s = size(f, 1)
+                if s isa Integer && s < 1000 # heuristic
+                    d_val = s;
+                    break
+                end
+            end
         end
-        
+
         if d_val == 0
-            error("Cannot expand LazyTrace for Permutations: dimension is not concrete and term is not linear.")
+            error(
+                "Cannot expand LazyTrace for Permutations: dimension is not concrete and term is not linear.",
+            )
         end
 
         # Manual expansion of tr(C1 * C2 * ... * Cn)
         # sum_{i1, i2, ..., in} C1[i1, i2] * C2[i2, i3] * ... * Cn[in, i1]
-        indices = Symbolics.variable.(Symbol.("i", 1:n), T=Int) # Not really needed as symbols if we just use loop
-        
+        indices = Symbolics.variable.(Symbol.("i", 1:n), T = Int) # Not really needed as symbols if we just use loop
+
         term_sum = 0
         for idxs in Iterators.product(fill(1:d_val, n)...)
             prod_val = 1
@@ -135,16 +140,18 @@ function fallback_integrate(t::LazyTrace, measure::PermutationMeasure)
         end
         expr *= term_sum
     end
-    
+
     return integrate(expr, measure)
 end
 
 function fallback_integrate(t::LazyTrace, measure::CenteredPermutationMeasure)
     # E[tr(YA)] = 0 because E[P - J/d] = 0.
     if length(t.cycles) == 1 && length(t.cycles[1]) == 2
-         return 0
+        return 0
     end
-    error("Graphical integration for Centered Permutations only supported for tr(YA) currently.")
+    error(
+        "Graphical integration for Centered Permutations only supported for tr(YA) currently.",
+    )
 end
 
 """

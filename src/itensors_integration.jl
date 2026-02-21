@@ -88,7 +88,7 @@ function _integrate_graphical_unitary(constants, unitaries, dim; design_t = noth
     u_in = [u.in_indices for u in u_list]
     u_dag_out = [u.out_indices for u in u_dag_list]
     u_dag_in = [u.in_indices for u in u_dag_list]
-    
+
     perms = collect(permutations(1:n_u))
     total_result = nothing
 
@@ -108,15 +108,9 @@ function _integrate_graphical_unitary(constants, unitaries, dim; design_t = noth
             deltas = []
             for k = 1:n_u
                 # Out matchings
-                append!(
-                    deltas,
-                    _create_deltas(u_out[k], u_dag_out[sigma_p[k]]),
-                )
+                append!(deltas, _create_deltas(u_out[k], u_dag_out[sigma_p[k]]))
                 # In matchings
-                append!(
-                    deltas,
-                    _create_deltas(u_in[k], u_dag_in[tau_p[k]]),
-                )
+                append!(deltas, _create_deltas(u_in[k], u_dag_in[tau_p[k]]))
             end
 
             # The result for this permutation pair is wg_val * constants * deltas
@@ -162,7 +156,7 @@ function _integrate_graphical_orthogonal(constants, unitaries, dim)
         for j = 1:length(partitions)
             sigma = partitions[j]
             c_sigma = c_partitions[j]
-            
+
             wg_val = weingarten_orthogonal_val_canonical(c_pi, c_sigma, dim)
             if _iszero(wg_val)
                 continue

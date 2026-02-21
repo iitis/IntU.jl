@@ -216,15 +216,17 @@ function match_index(m::MetadataMatcher, t)
         end
         return nothing
     end
-    
+
     # Handle conj(U_i_j)
     is_conj = false
-    if Symbolics.iscall(s) && (Symbolics.operation(s) == conj || Symbolics.operation(s) == Base.conj)
+    if Symbolics.iscall(s) &&
+       (Symbolics.operation(s) == conj || Symbolics.operation(s) == Base.conj)
         is_conj = true
         s = Symbolics.arguments(s)[1]
     end
-    
-    can_have_meta = (s isa SymbolicUtils.BasicSymbolic) && SymbolicUtils.hasmetadata(s, MatrixMetadata)
+
+    can_have_meta =
+        (s isa SymbolicUtils.BasicSymbolic) && SymbolicUtils.hasmetadata(s, MatrixMetadata)
 
     if can_have_meta
         meta = SymbolicUtils.getmetadata(s, MatrixMetadata)
@@ -234,7 +236,7 @@ function match_index(m::MetadataMatcher, t)
                 i, j = indices
                 # Combine is_conj (from call) and :is_adj (from metadata)
                 final_is_conj = is_conj || get(meta, :is_adj, false)
-                
+
                 final_tag = final_is_conj ? Symbol(m.type_tag, :_bar) : m.type_tag
                 return (final_tag, i, j)
             end
@@ -255,7 +257,7 @@ function _extract_coeff_core(term)
     if term isa Number
         return term, 1
     end
-    
+
     if Symbolics.iscall(term) && Symbolics.operation(term) == (*)
         args = Symbolics.arguments(term)
         c = 1
@@ -267,7 +269,7 @@ function _extract_coeff_core(term)
                 push!(others, a)
             end
         end
-        
+
         if isempty(others)
             core = 1
         elseif length(others) == 1
@@ -284,18 +286,20 @@ end
 function _is_real_sq(term)
     # Strip potential 1 * ... wrapper if it exists (though _extract_coeff_core should handle it)
     if Symbolics.iscall(term) && Symbolics.operation(term) == (*)
-         args = Symbolics.arguments(term)
-         if length(args) == 2 && isequal(args[1], 1)
-             term = args[2]
-         end
+        args = Symbolics.arguments(term)
+        if length(args) == 2 && isequal(args[1], 1)
+            term = args[2]
+        end
     end
 
     if Symbolics.iscall(term) && Symbolics.operation(term) == (^)
         args = Symbolics.arguments(term)
         base = args[1]
         expon = args[2]
-        if isequal(expon, 2) && Symbolics.iscall(base) && (Symbolics.operation(base) == real || Symbolics.operation(base) == Base.real)
-             return true, Symbolics.arguments(base)[1]
+        if isequal(expon, 2) &&
+           Symbolics.iscall(base) &&
+           (Symbolics.operation(base) == real || Symbolics.operation(base) == Base.real)
+            return true, Symbolics.arguments(base)[1]
         end
     end
     return false, nothing
@@ -303,18 +307,20 @@ end
 
 function _is_imag_sq(term)
     if Symbolics.iscall(term) && Symbolics.operation(term) == (*)
-         args = Symbolics.arguments(term)
-         if length(args) == 2 && isequal(args[1], 1)
-             term = args[2]
-         end
+        args = Symbolics.arguments(term)
+        if length(args) == 2 && isequal(args[1], 1)
+            term = args[2]
+        end
     end
 
     if Symbolics.iscall(term) && Symbolics.operation(term) == (^)
         args = Symbolics.arguments(term)
         base = args[1]
         expon = args[2]
-        if isequal(expon, 2) && Symbolics.iscall(base) && (Symbolics.operation(base) == imag || Symbolics.operation(base) == Base.imag)
-             return true, Symbolics.arguments(base)[1]
+        if isequal(expon, 2) &&
+           Symbolics.iscall(base) &&
+           (Symbolics.operation(base) == imag || Symbolics.operation(base) == Base.imag)
+            return true, Symbolics.arguments(base)[1]
         end
     end
     return false, nothing
@@ -386,10 +392,11 @@ function _integrate_core(
 
     r_rev_abs2 = @rule real(~x)^2 + imag(~x)^2 => (~x) * conj(~x)
     r_rev_abs2_coeff = @rule ~c * real(~x)^2 + ~c * imag(~x)^2 => ~c * (~x) * conj(~x)
-    
+
     r_rev_abs2_base = @rule Base.real(~x)^2 + Base.imag(~x)^2 => (~x) * conj(~x)
-    r_rev_abs2_coeff_base = @rule ~c * Base.real(~x)^2 + ~c * Base.imag(~x)^2 => ~c * (~x) * conj(~x)
-    
+    r_rev_abs2_coeff_base =
+        @rule ~c * Base.real(~x)^2 + ~c * Base.imag(~x)^2 => ~c * (~x) * conj(~x)
+
     r_conj_add = @rule conj(~x + ~y) => conj(~x) + conj(~y)
     r_conj_add_base = @rule Base.conj(~x + ~y) => conj(~x) + conj(~y)
     r_conj_mul = @rule conj(~x * ~y) => conj(~x) * conj(~y)
@@ -458,50 +465,50 @@ function _integrate_core(
         r_hypot_pow,
         r_float_to_int_pow,
     ])
-    
+
     function pair_real_imag(expr)
         if !Symbolics.iscall(expr) || Symbolics.operation(expr) != (+)
             return expr
         end
-        
+
         args = Symbolics.arguments(expr)
         n_args = length(args)
         new_args = []
         skip_indices = falses(n_args)
-        
+
         for i = 1:n_args
             if skip_indices[i]
                 continue
             end
-            
+
             term_i = args[i]
-            
+
             c_i, core_i = _extract_coeff_core(term_i)
-            
+
             is_real_sq, x_real = _is_real_sq(core_i)
             is_imag_sq, x_imag = _is_imag_sq(core_i)
-            
+
             matched = false
-            
+
             if is_real_sq || is_imag_sq
                 target_x = is_real_sq ? x_real : x_imag
                 target_is_real = !is_real_sq
-                
+
                 for j = (i+1):n_args
-                     if skip_indices[j]
+                    if skip_indices[j]
                         continue
                     end
-                    
+
                     term_j = args[j]
                     c_j, core_j = _extract_coeff_core(term_j)
-                    
+
                     if !isequal(c_i, c_j)
                         continue
                     end
-                    
+
                     is_real_sq_j, x_real_j = _is_real_sq(core_j)
                     is_imag_sq_j, x_imag_j = _is_imag_sq(core_j)
-                    
+
                     if target_is_real
                         if is_real_sq_j && isequal(x_real_j, target_x)
                             # Found match!
@@ -521,12 +528,12 @@ function _integrate_core(
                     end
                 end
             end
-            
+
             if !matched
                 push!(new_args, term_i)
             end
         end
-        
+
         return sum(new_args)
     end
 
@@ -547,9 +554,11 @@ function _integrate_core(
                 elseif inner_op == (*)
                     return prod(monomializer(conj(a)) for a in inner_args)
                 elseif inner_op == (/)
-                    return monomializer(conj(inner_args[1])) / monomializer(conj(inner_args[2]))
+                    return monomializer(conj(inner_args[1])) /
+                           monomializer(conj(inner_args[2]))
                 elseif inner_op == (^)
-                    return monomializer(conj(inner_args[1])) ^ monomializer(conj(inner_args[2]))
+                    return monomializer(conj(inner_args[1])) ^
+                           monomializer(conj(inner_args[2]))
                 elseif inner_op == conj || inner_op == Base.conj
                     return monomializer(Symbolics.arguments(inner)[1])
                 end
@@ -558,7 +567,9 @@ function _integrate_core(
             # (A + B) / C -> A/C + B/C
             numerator = Symbolics.unwrap(args[1])
             if Symbolics.iscall(numerator) && Symbolics.operation(numerator) == (+)
-                return sum(monomializer(a / args[2]) for a in Symbolics.arguments(numerator))
+                return sum(
+                    monomializer(a / args[2]) for a in Symbolics.arguments(numerator)
+                )
             end
         elseif op == complex || op == Base.complex
             return monomializer(args[1]) + im * monomializer(args[2])
@@ -567,8 +578,15 @@ function _integrate_core(
         elseif op == imag || op == Base.imag
             return monomializer((args[1] - conj(args[1])) / (2im))
         end
-        return Symbolics.wrap(Symbolics.iscall(ux) ? 
-            SymbolicUtils.maketerm(typeof(ux), op, [monomializer(a) for a in args], SymbolicUtils.metadata(ux)) : ux)
+        return Symbolics.wrap(
+            Symbolics.iscall(ux) ?
+            SymbolicUtils.maketerm(
+                typeof(ux),
+                op,
+                [monomializer(a) for a in args],
+                SymbolicUtils.metadata(ux),
+            ) : ux,
+        )
     end
 
     expr_rewritten = SymbolicUtils.Postwalk(
@@ -587,9 +605,9 @@ function _integrate_core(
     )(
         expr_un,
     )
-    
+
     expr_rewritten = pair_real_imag(expr_rewritten)
-    
+
     expr_num = _safe_Num(expr_rewritten)
     expr_num = Symbolics.expand(expr_num)
 
@@ -610,7 +628,9 @@ function _integrate_core(
                 return unwrapped_dict[u]
             end
             return x
-        end)(Symbolics.unwrap(ex))
+        end)(
+            Symbolics.unwrap(ex),
+        )
 
         return Symbolics.wrap(p_res)
     end
@@ -715,7 +735,9 @@ function integrate(A::SymbolicMatrix, measure)
         end
         return res
     end
-    error("Direct integration of SymbolicMatrix requires a numeric dimension in the measure.")
+    error(
+        "Direct integration of SymbolicMatrix requires a numeric dimension in the measure.",
+    )
 end
 
 """
@@ -728,42 +750,44 @@ function integrate(P::SymbolicMatrixProduct, measure)
     if isempty(P.factors)
         return Num(1)
     end
-    
+
     dim_measure = _get_measure_dim(measure)
-    
+
     rows_sym = size(P.factors[1], 1)
     cols_sym = size(P.factors[end], 2)
-    
+
     r_un = Symbolics.unwrap(rows_sym)
     c_un = Symbolics.unwrap(cols_sym)
-    
+
     nr = (r_un isa Integer && r_un != typemax(Int)) ? r_un : dim_measure
     nc = (c_un isa Integer && c_un != typemax(Int)) ? c_un : dim_measure
-    
+
     if nr isa Integer && nc isa Integer
         nr = Int(nr)
         nc = Int(nc)
-        
+
         # Pre-calculate factor matrices to avoid repeated getindex overhead
         mats = []
         for f in P.factors
             fr, fc = size(f)
             fr_un = Symbolics.unwrap(fr)
             fc_un = Symbolics.unwrap(fc)
-            
+
             # Use measure dim if factor size is unknown
             cur_r = (fr_un isa Integer && fr_un != typemax(Int)) ? fr_un : dim_measure
             cur_c = (fc_un isa Integer && fc_un != typemax(Int)) ? fc_un : dim_measure
-            
+
             if !(cur_r isa Integer && cur_c isa Integer)
-                error("Factor $f has non-numeric size ($cur_r, $cur_c). Cannot expand product.")
+                error(
+                    "Factor $f has non-numeric size ($cur_r, $cur_c). Cannot expand product.",
+                )
             end
-            
-            push!(mats, [f[r, c] for r=1:Int(cur_r), c=1:Int(cur_c)])
+
+            push!(mats, [f[r, c] for r = 1:Int(cur_r), c = 1:Int(cur_c)])
         end
         # Calculate the full symbolic product once
         res_mat = reduce(*, mats)
-        
+
         res = Matrix{Any}(undef, nr, nc)
         fill!(res, 0)
         for i = 1:nr
@@ -801,14 +825,20 @@ function integrate(expr, measure)
     return fallback_integrate(expr, measure)
 end
 
-function _integrate_core(expr::Complex{Num}, dim, subs_dict, matcher::AbstractIndexMatcher, measure_type=:U)
+function _integrate_core(
+    expr::Complex{Num},
+    dim,
+    subs_dict,
+    matcher::AbstractIndexMatcher,
+    measure_type = :U,
+)
     # Split into real and imaginary parts to avoid recursion
     re = Symbolics.real(expr)
     im_part = Symbolics.imag(expr)
-    
+
     int_re = _integrate_core(re, dim, subs_dict, matcher, measure_type)
     int_im = _integrate_core(im_part, dim, subs_dict, matcher, measure_type)
-    
+
     return int_re + 1im * int_im # standard complex number result
 end
 
@@ -879,7 +909,9 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
     if term isa LazyTrace
         # If it leaked here, it means it's not specialized for this measure.
         # Try a very basic expansion? No, let's error gracefully if not handled.
-        error("Graphical integration (LazyTrace) not implemented for measure type $measure_type. Try expanding traces element-wise.")
+        error(
+            "Graphical integration (LazyTrace) not implemented for measure type $measure_type. Try expanding traces element-wise.",
+        )
     end
 
     if Symbolics.iscall(term)
@@ -898,7 +930,7 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
     u_indices = Vector{Tuple{Int,Int}}()
     u_bar_indices = Vector{Tuple{Int,Int}}()
 
-    function traverse(t, conjugated=false)
+    function traverse(t, conjugated = false)
         t_unwrapped = Symbolics.unwrap(t)
 
         # Try to match the variable directly
@@ -907,7 +939,7 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
             type, i, j = match_res
             is_bar = endswith(string(type), "_bar")
             final_is_bar = is_bar ⊻ conjugated
-            
+
             if final_is_bar
                 push!(u_bar_indices, (i, j))
             else
@@ -994,7 +1026,7 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
 
     n_u = length(u_indices)
     n_bar = length(u_bar_indices)
-    
+
     rule = get(INTEGRATION_RULES, measure_type, nothing)
     if rule === nothing && measure_type isa Tuple
         rule = get(INTEGRATION_RULES, first(measure_type), nothing)
@@ -1042,23 +1074,23 @@ INTEGRATION_RULES[:Sp] =
             d_un = d
         end
         if !(d_un isa Integer) || isodd(d_un)
-             # For now, if we have bars, we can't handle symbolic d easily.
-             if length(ub) > 0
-                 return 0 
-             end
-             all_indices = u
+            # For now, if we have bars, we can't handle symbolic d easily.
+            if length(ub) > 0
+                return 0
+            end
+            all_indices = u
         else
             m = div(d_un, 2)
             sign_factor = 1
             converted_ub = Vector{Tuple{Int,Int}}()
-            
+
             for (p, q) in ub
                 pk = p <= m ? p + m : p - m
                 qk = q <= m ? q + m : q - m
-                
+
                 j1 = p <= m ? 1 : -1
-                j2 = q <= m ? -1 : 1 
-                
+                j2 = q <= m ? -1 : 1
+
                 curr_sign = -1 * j1 * j2
                 sign_factor *= curr_sign
                 push!(converted_ub, (pk, qk))
@@ -1068,7 +1100,7 @@ INTEGRATION_RULES[:Sp] =
                 return sign_factor * integrate_indices_symplectic(all_indices, d)
             end
         end
-        
+
         length(all_indices) % 2 != 0 ? 0 :
         (length(all_indices) == 0 ? 1 : integrate_indices_symplectic(all_indices, d))
     end
@@ -1150,7 +1182,8 @@ INTEGRATION_RULES[:CPerm] =
             d = Symbolics.variable(d_un)
         end
         all_indices = [u; ub]
-        length(all_indices) == 0 ? 1 : integrate_indices_centered_permutation(all_indices, d)
+        length(all_indices) == 0 ? 1 :
+        integrate_indices_centered_permutation(all_indices, d)
     end
 
 INTEGRATION_RULES[:Design] =
@@ -1197,13 +1230,13 @@ INTEGRATION_RULES[:GinSE] =
         (length(all_indices) == 0 ? 1 : integrate_indices_ginse(all_indices, d))
     end
 
-INTEGRATION_RULES[:psi] = 
+INTEGRATION_RULES[:psi] =
     (u, ub, d, mt) -> begin
         # Pure states are first column of Haar unitary
         length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices(u, ub, d))
     end
 
-INTEGRATION_RULES[:V] = 
+INTEGRATION_RULES[:V] =
     (u, ub, d, mt) -> begin
         # Stiefel manifold is first k columns of Haar unitary
         # We assume indices already correct.
@@ -1216,11 +1249,7 @@ INTEGRATION_RULES[:V] =
 
 Low-level integration function using Weingarten calculus (Unitary).
 """
-function integrate_indices(
-    U_idxs::Vector{<:Tuple},
-    U_bar_idxs::Vector{<:Tuple},
-    dim,
-)
+function integrate_indices(U_idxs::Vector{<:Tuple}, U_bar_idxs::Vector{<:Tuple}, dim)
     n = length(U_idxs)
     I = [x[1] for x in U_idxs]
     J = [x[2] for x in U_idxs]
@@ -1367,25 +1396,25 @@ function integrate_indices_orthogonal(indices::Vector{Tuple{Int,Int}}, dim)
         if is_I_uniform && is_J_uniform
             # Both uniform: result is N_total / prod
             num = 1
-            for i=1:k
+            for i = 1:k
                 num *= (2*i-1)
             end
             denom = one(Rational{BigInt})
-            for j=0:(k-1)
+            for j = 0:(k-1)
                 denom *= (dim + 2*j)
             end
             return num / denom
         elseif is_I_uniform
             valid_sigma = get_matching_pair_partitions_filtered(J)
             denom = one(Rational{BigInt})
-            for j=0:(k-1)
+            for j = 0:(k-1)
                 denom *= (dim + 2*j)
             end
             return length(valid_sigma) / denom
         else # is_J_uniform
             valid_pi = get_matching_pair_partitions_filtered(I)
             denom = one(Rational{BigInt})
-            for j=0:(k-1)
+            for j = 0:(k-1)
                 denom *= (dim + 2*j)
             end
             return length(valid_pi) / denom
@@ -1968,8 +1997,14 @@ function _expand_asymptotic(ex, d, order)
     ϵ_un = Symbolics.unwrap(ϵ)
 
 
-    p_eps = Symbolics.simplify(Symbolics.substitute(num, Dict(d_num => 1/ϵ)) * ϵ^n; expand = true)
-    q_eps = Symbolics.simplify(Symbolics.substitute(den, Dict(d_num => 1/ϵ)) * ϵ^m; expand = true)
+    p_eps = Symbolics.simplify(
+        Symbolics.substitute(num, Dict(d_num => 1/ϵ)) * ϵ^n;
+        expand = true,
+    )
+    q_eps = Symbolics.simplify(
+        Symbolics.substitute(den, Dict(d_num => 1/ϵ)) * ϵ^m;
+        expand = true,
+    )
 
     f_analytic = Symbolics.simplify(p_eps / q_eps; expand = true)
 
@@ -1982,7 +2017,7 @@ function _expand_asymptotic(ex, d, order)
     for k = 0:max_k
         v = Symbolics.substitute(curr_deriv, Dict(ϵ => 0))
         vu = Symbolics.unwrap(v)
-        
+
         needs_sim = false
         if vu isa Number && (isnan(vu) || isinf(vu))
             needs_sim = true
@@ -1997,7 +2032,7 @@ function _expand_asymptotic(ex, d, order)
         if needs_sim
             curr_sim = Symbolics.simplify(curr_deriv; expand = true)
             val = Symbolics.substitute(curr_sim, Dict(ϵ => 0))
-            
+
             # Fallback if simplify didn't resolve epsilon cleanly
             vars_val = Symbolics.get_variables(val)
             if any(var -> isequal(var, ϵ_un), vars_val)
@@ -2064,9 +2099,9 @@ function _standardize_sub(k)
     uk = Symbolics.unwrap(k)
     if uk isa LazyTrace
         if length(uk.cycles) == 1
-             # This is a bit hacky as it depends on tr_val being in scope 
-             # and implemented the way it is.
-             return tr_val(uk.cycles[1])
+            # This is a bit hacky as it depends on tr_val being in scope 
+            # and implemented the way it is.
+            return tr_val(uk.cycles[1])
         end
     end
     return k
@@ -2093,7 +2128,7 @@ function evaluate(expr, dict)
         if val isa Number
             return val
         end
-        
+
         if hasproperty(val, :val) ? val.val isa Number : false
             return val.val
         end
@@ -2101,7 +2136,8 @@ function evaluate(expr, dict)
             op = SymbolicUtils.operation(val)
             args = SymbolicUtils.arguments(val)
             # Safe evaluation for basic arithmetic if all args are numeric
-            if (op === (+) || op === (*) || op === (-) || op === (/)) && all(x -> x isa Number, args)
+            if (op === (+) || op === (*) || op === (-) || op === (/)) &&
+               all(x -> x isa Number, args)
                 return op(args...)
             end
         end

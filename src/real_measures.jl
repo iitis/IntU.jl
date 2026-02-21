@@ -40,16 +40,16 @@ end
 
 # Resolve ambiguity with SymbolicMatrix/SymbolicMatrixProduct
 function integrate(expr::SymbolicMatrix, measure::OrthogonalMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrix, Any}, expr, measure)
+    return invoke(integrate, Tuple{SymbolicMatrix,Any}, expr, measure)
 end
 function integrate(expr::SymbolicMatrixProduct, measure::OrthogonalMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrixProduct, Any}, expr, measure)
+    return invoke(integrate, Tuple{SymbolicMatrixProduct,Any}, expr, measure)
 end
 function integrate(expr::SymbolicMatrix, measure::SymplecticMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrix, Any}, expr, measure)
+    return invoke(integrate, Tuple{SymbolicMatrix,Any}, expr, measure)
 end
 function integrate(expr::SymbolicMatrixProduct, measure::SymplecticMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrixProduct, Any}, expr, measure)
+    return invoke(integrate, Tuple{SymbolicMatrixProduct,Any}, expr, measure)
 end
 
 function IntU.measure_info(measure::OrthogonalMeasure)

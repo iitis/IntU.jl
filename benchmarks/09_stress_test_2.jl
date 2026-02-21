@@ -122,8 +122,8 @@ println()
 
 # ---------------- U(d): symbolic-d stress tests -------------------------------
 @variables d::Int
-    U = SymbolicMatrix(:U, :U, d)
-    μU = dU(d)  # IntU.jl measure constructor
+U = SymbolicMatrix(:U, :U, d)
+μU = dU(d)  # IntU.jl measure constructor
 
 U_cases = [
     ("U_abs2_pow4__|U11|^8", abs2(U[1, 1])^4, unitary_abs2_moment(d, 4)),

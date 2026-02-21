@@ -6,14 +6,21 @@ using Symbolics
 function to_numeric(x)
     # Flatten any complex(...) calls
     ux = Symbolics.unwrap(x)
-    xf = SymbolicUtils.Postwalk(t -> begin
-        ut = Symbolics.unwrap(t)
-        if Symbolics.iscall(ut) && (Symbolics.operation(ut) == complex || Symbolics.operation(ut) == Base.complex)
-            aa = Symbolics.arguments(ut)
-            return aa[1] + im*aa[2]
-        end
-        return t
-    end)(ux)
+    xf = SymbolicUtils.Postwalk(
+        t -> begin
+            ut = Symbolics.unwrap(t)
+            if Symbolics.iscall(ut) && (
+                Symbolics.operation(ut) == complex ||
+                Symbolics.operation(ut) == Base.complex
+            )
+                aa = Symbolics.arguments(ut)
+                return aa[1] + im*aa[2]
+            end
+            return t
+        end,
+    )(
+        ux,
+    )
     sim = Symbolics.simplify(Symbolics.wrap(xf))
     v = Symbolics.value(sim)
     if v isa Number
@@ -33,19 +40,21 @@ function is_really_zero(x)
     x = Symbolics.expand(x)
     x = Symbolics.simplify(x)
     IntU._symbolic_isequal(x, 0) && return true
-    
+
     vars = Symbolics.get_variables(x)
     if isempty(vars)
         v = Symbolics.value(x)
         return v isa Number && abs(v) < 1e-10
     end
-    
-    for i in 1:3
+
+    for i = 1:3
         subs = Dict(v => rand() + 0.1 for v in vars)
         val_sub = Symbolics.substitute(x, subs)
         v = to_numeric(val_sub)
         if v isa Number
-            if abs(v) < 1e-9 continue end
+            if abs(v) < 1e-9
+                continue
+            end
             return false
         end
         return false

@@ -21,11 +21,11 @@ using LinearAlgebra
         # Use real components to avoid complex variable simplification issues
         @variables r[1:2] i[1:2]
         phi = [r[1] + im*i[1], r[2] + im*i[2]]
-        
+
         inner_prod = conj(psi[1, 1])*phi[1] + conj(psi[2, 1])*phi[2]
         expr = inner_prod * conj(inner_prod)
         res = integrate(expr, dPsi(d))
-        
+
         # Expected: sum_j |phi_j|^2 / d
         expected = (phi[1]*conj(phi[1]) + phi[2]*conj(phi[2])) / d
         @test is_really_zero(res - expected)

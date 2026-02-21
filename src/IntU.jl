@@ -84,10 +84,7 @@ export AbstractIndexMatcher, MetadataMatcher, _integrate_core, process_term
 
 export SymbolicMatrix, tr_lazy, LazyTrace, LazySum
 export symbolic_unitary,
-    symbolic_orthogonal,
-    symbolic_symplectic,
-    symbolic_pure_state,
-    symbolic_permutation
+    symbolic_orthogonal, symbolic_symplectic, symbolic_pure_state, symbolic_permutation
 export @integrate
 export integrate_graphical, GraphicalUnitary, ITensorUnitary
 

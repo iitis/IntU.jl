@@ -10,7 +10,7 @@ println("1. Explicit Matrix (N=$N)")
 # Use SymbolicMatrix to ensure correct metadata for integration engine
 # GUE
 H_gue = SymbolicMatrix(:H_gue, :GUE, N)
-H_mat_gue = [H_gue[i,j] for i=1:N, j=1:N]
+H_mat_gue = [H_gue[i, j] for i = 1:N, j = 1:N]
 
 println("--- GUE ---")
 res_gue = integrate(tr(H_mat_gue^2), dGUE(N))
@@ -19,14 +19,14 @@ println("<Tr(H^2)>_GUE = ", Symbolics.simplify(res_gue), " (Expected: $(N^2))")
 println("--- GOE ---")
 # GOE
 H_goe_e = SymbolicMatrix(:H_goe, :GOE, N)
-H_mat_goe = [H_goe_e[i,j] for i=1:N, j=1:N]
+H_mat_goe = [H_goe_e[i, j] for i = 1:N, j = 1:N]
 res_goe = integrate(tr(H_mat_goe^2), dGOE(N))
 println("<Tr(H^2)>_GOE = ", Symbolics.simplify(res_goe), " (Expected: $(N^2 + N))")
 
 println("--- GSE ---")
 # GSE
 H_gse_e = SymbolicMatrix(:H_gse, :GSE, N)
-H_mat_gse = [H_gse_e[i,j] for i=1:N, j=1:N]
+H_mat_gse = [H_gse_e[i, j] for i = 1:N, j = 1:N]
 res_gse = integrate(tr(H_mat_gse^2), dGSE(N))
 println("<Tr(H^2)>_GSE = ", Symbolics.simplify(res_gse), " (Expected: $(N^2 - N))")
 

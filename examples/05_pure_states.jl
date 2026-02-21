@@ -18,10 +18,10 @@ println("Calculating average purity for a bipartite state of dimension d1*d2..."
 
 # Pure state |psi> = U[:, 1]. We map the single index i to (a, b)
 # psi_{a,b} = U[(a-1)*d2 + b, 1]
-rho1(a, c) = sum(U[(a-1)*d2 + k, 1] * conj(U[(c-1)*d2 + k, 1]) for k=1:d2)
+rho1(a, c) = sum(U[(a-1)*d2+k, 1] * conj(U[(c-1)*d2+k, 1]) for k = 1:d2)
 
 # Subsystem Purity Tr(rho1^2)
-purity_expr = sum(rho1(a, c) * rho1(c, a) for a=1:d1, c=1:d1)
+purity_expr = sum(rho1(a, c) * rho1(c, a) for a = 1:d1, c = 1:d1)
 
 println("Integrating purity_expr...")
 avg_purity = integrate(purity_expr, dU(d))
