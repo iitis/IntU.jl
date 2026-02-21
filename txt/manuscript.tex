@@ -600,12 +600,9 @@ Note that we define a symbolic dimension $d$ and a symbolic unitary matrix $U$
 of size $d \times d$:
 
 \begin{lstlisting}[language=Julia]
-using IntU, Symbolics
-@variables d
-U = SymbolicMatrix(:U, :U, d)
-measure = dU(d)
-expr = abs(U[1,1])^2
-result = integrate(expr, measure)
+using IntU
+# The @integrate macro automatically handles symbolic dimensions and measures
+result = @integrate abs(U[1,1])^2 dU(d)
 # Output: 1/d
 \end{lstlisting}
 
@@ -619,26 +616,21 @@ compared to the standard Haar measure. Here, we compute the second moment of a
 diagonal entry for the symmetric (COE) and self-dual (CSE) cases:
 
 \begin{lstlisting}[language=Julia]
-@variables d
-S = SymbolicMatrix(:S, :COE) # For COE
-# SymbolicMatrix(:S, :CSE) # For CSE
-O = SymbolicMatrix(:O, :O) # For Orthogonal group
-
 # Circular Orthogonal Ensemble (S is symmetric)
-integrate(abs(S[1, 1])^2, dCOE(d))
+@integrate abs(S[1, 1])^2 dCOE(d)
 # Output: 2/(d+1)
 
 # Circular Symplectic Ensemble (S is self-dual)
-integrate(abs(S[1, 1])^2, dCSE(d))
+@integrate abs(S[1, 1])^2 dCSE(d)
 # Output: 1/(d-1)
 
 # Example for the real orthogonal group O(d)
 # E[O_11^2]
-integrate(O[1, 1]^2, dO(d))
+@integrate O[1, 1]^2 dO(d)
 # Output: 1/d
 
 # E[O_11^4]
-integrate(O[1, 1]^4, dO(d))
+@integrate O[1, 1]^4 dO(d)
 # Output: 3 / (d*(d+2))
 \end{lstlisting}
 
@@ -649,15 +641,12 @@ constraints imposed by the respective symmetries ($S=S^T$ and $S=S^R$).
 For the special unitary group $SU(d)$, the integration behaves similarly to
 $U(d)$ for balanced moments but differs for unbalanced ones.
 \begin{lstlisting}[language=Julia]
-@variables d
-U = SymbolicMatrix(:U, :U)
-measure = dSU(d)
 # Balanced moment: E[|U_11|^2] matches U(d)
-integrate(abs(U[1, 1])^2, dSU(d))
+@integrate abs(U[1, 1])^2 dSU(d)
 # Output: 1/d
 
 # Unbalanced moment: E[U_11]
-integrate(U[1, 1], dSU(d))
+@integrate U[1, 1] dSU(d)
 # Output: 0
 \end{lstlisting}
 
@@ -667,11 +656,10 @@ This eliminates the need for manual element-wise iteration or broadcasting,
 automatically performing the integration over all array entries. For Haar-random
 unitary matrices, we verify the relation $\int U U^\dagger dU = I$:
 \begin{lstlisting}[language=Julia]
-using IntU, Symbolics
-U = SymbolicMatrix(:U, :U)
+using IntU
 # Integrate the matrix product U * U'
 # IntU handles the element-wise operations internally
-integrate(U * U', dU(2))
+@integrate U * U' dU(2)
 # Output: Identity Matrix I
 \end{lstlisting}
 
@@ -684,14 +672,9 @@ appearing in the study of quantum channels (specifically, the definition of the
 depolarizing channel):
 
 \begin{lstlisting}[language=Julia]
-# Define symbolic matrices
-@variables d
-U = SymbolicMatrix(:U, :U)
-A = SymbolicMatrix(:A); B = SymbolicMatrix(:B)
-
 # Compute integral of tr(U A U' B)
-# tr_lazy constructs a lazy trace object
-integrate(tr_lazy(U * A * U' * B), dU(d))
+# The @integrate macro automatically treats unknown symbols as constant matrices
+@integrate tr(U * A * U' * B) dU(d)
 # Output: tr(A)tr(B)/d
 \end{lstlisting}
 
@@ -705,11 +688,12 @@ facilitates this analysis by expanding exact rational results into power series.
 Consider the fourth moment of a matrix entry, $|U_{11}|^4$:
 
 \begin{lstlisting}[language=Julia]
-@variables d
-U = SymbolicMatrix(:U, :U)
+using IntU
+# The shorthand factory functions can be used for explicit variable creation
+U = symbolic_unitary(:U, :d)
 expr = abs(U[1,1])^4
 # Exact result computed internally: 2/(d*(d+1))
-asymp_res = asymptotic(expr, dU(d), 4)
+asymp_res = asymptotic(expr, dU(:d), 4)
 # Output: 2/d^2 - 2/d^3 + 2/d^4
 \end{lstlisting}
 
@@ -744,16 +728,12 @@ topology.
 Symbolic integration over the Symmetric Group $S_d$ is particularly useful for
 combinatorial problems and studying centered permutation ensembles.
 \begin{lstlisting}[language=Julia]
-@variables d
-P = SymbolicMatrix(:P, :Perm)
-Y = SymbolicMatrix(:Y, :CPerm)
-
 # Average of a product of entries
-integrate(P[1, 1] * P[2, 2], dPerm(d))
+@integrate P[1, 1] * P[2, 2] dPerm(d)
 # Output: 1 / (d * (d - 1))
 
 # Centered permutations Y = P - J/d
-integrate(Y[1, 1]^2, dCPerm(d))
+@integrate Y[1, 1]^2 dCPerm(d)
 # Output: (d - 1) / d^2
 \end{lstlisting}
 
@@ -761,11 +741,8 @@ integrate(Y[1, 1]^2, dCPerm(d))
 For the group of diagonal unitary matrices, integration reduces to independent
 phase averaging.
 \begin{lstlisting}[language=Julia]
-@variables d
-V = SymbolicMatrix(:V, :DiagUnitary)
-
 # Average of |V_11|^2
-integrate(abs(V[1, 1])^2, dDiagUnitary(d))
+@integrate abs(V[1, 1])^2 dDiagUnitary(d)
 # Output: 1
 \end{lstlisting}
  
@@ -776,10 +753,8 @@ variational quantum algorithms and tensor network optimization
 \cite{edelman1998geometry}.
 
 \begin{lstlisting}[language=Julia]
-@variables d
-V = SymbolicMatrix(:V, :U)
 # E[|V_{1,1}|^2]
-integrate(abs(V[1, 1])^2, dStiefel(d, 2))
+@integrate abs(V[1, 1])^2 dStiefel(d, 2)
 # Output: 1 / d
 \end{lstlisting}
 
@@ -788,10 +763,8 @@ Integration over Ginibre ensembles is useful for studying non-Hermitian random
 matrix properties. We compute the second moment $\langle \mathrm{tr}(G
 G^\dagger) \rangle$:
 \begin{lstlisting}[language=Julia]
-@variables d
-G = SymbolicMatrix(:G, :GinUE)
 # Compute <tr(G G')>
-integrate(tr_lazy(G * G'), dGinUE(d))
+@integrate tr(G * G') dGinUE(d)
 # Output: d^2
 \end{lstlisting}
 
