@@ -10,12 +10,6 @@ using LinearAlgebra
         if x_un isa Number
             return iszero(x_un)
         end
-        # Try convert
-        try
-            return iszero(convert(Number, x_un))
-        catch
-        end
-        # If it prints as 0, assume 0
         if string(x) == "0"
             return true
         end

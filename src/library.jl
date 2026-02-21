@@ -41,20 +41,16 @@ function check_haar_library(expr, measure)
                 U_cand = shifted[1]
                 U_dag_cand = shifted[3]
                 
-                # Check 1: U_cand is a Unitary (:U)
+                # Verify factor roles and dimensions match measure
                 if !(U_cand isa SymbolicMatrix) || U_cand.special_type != :U
                     continue
                 end
                 
-                # Check 2: Dimensions match measure
                 if !isequal(U_cand.dim, measure.dim)
                     continue
                 end
 
-                # Check 3: U_dag_cand matches U_cand name and is adjoint pair
-                # We require them to be the same matrix, but one adjoint and one not (or opposite adjointness)
-                # Check 3: U_dag_cand matches U_cand name and is adjoint pair
-                # We require them to be the same matrix, but one adjoint and one not (or opposite adjointness)
+                # Ensure U_dag_cand is the adjoint of U_cand
                 if !(U_dag_cand isa SymbolicMatrix) ||
                    U_dag_cand.special_type != :U ||
                    U_dag_cand.name != U_cand.name ||
@@ -62,10 +58,8 @@ function check_haar_library(expr, measure)
                    continue
                 end
                 
-                # Check 4: A and B do not depend on U
                 A = shifted[2]
                 B = shifted[4]
-                
                 
                 if (A isa SymbolicMatrix && A.name == U_cand.name) || 
                    (B isa SymbolicMatrix && B.name == U_cand.name)
@@ -93,7 +87,6 @@ function check_gaussian_library(expr, measure, type)
     factors = expr.cycles[1]
     prefactor = expr.prefactor
 
-    # For the library, we check if all factors are of the expected special_type
     expected_tag = type
     
     if !all(f -> (f isa SymbolicMatrix) && f.special_type == expected_tag, factors)

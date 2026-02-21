@@ -198,10 +198,7 @@ Reference:
     wnum, wden = weingarten_raw(partition_type, d)
     res = wnum / wden
     if !(d isa Integer)
-        try
-            return Symbolics.simplify(res)
-        catch
-        end
+        return Symbolics.simplify(res)
     end
     return res
 end
@@ -452,11 +449,7 @@ The Weingarten matrix is the inverse of \$G\$.
     rhs = zeros(T, n_types)
     rhs[id_idx] = one(T)
     
-    w = try
-        M \ rhs
-    catch e
-        error("Failed to solve reduced Orthogonal Weingarten system for k=$k. Error: $e")
-    end
+    w = M \ rhs
 
     return w, type_to_idx, type_to_parts
 end

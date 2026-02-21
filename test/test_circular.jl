@@ -24,22 +24,18 @@ using Test
         end
 
         # 3. Numerical fallback
-        try
-            for d_val in [3.14, 1.23, 7.89]
-                val = Symbolics.substitute(s, Dict(d => d_val))
-                num_val = to_numeric(val)
-                if num_val isa Number
-                    if abs(num_val) > 1e-12
-                        return false
-                    end
-                else
+        for d_val in [3.14, 1.23, 7.89]
+            val = Symbolics.substitute(s, Dict(d => d_val))
+            num_val = to_numeric(val)
+            if num_val isa Number
+                if abs(num_val) > 1e-12
                     return false
                 end
+            else
+                return false
             end
-            return true
-        catch
-            return false
         end
+        return true
     end
 
     # 1. COE

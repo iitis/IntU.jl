@@ -42,35 +42,19 @@ function sym_is_zero(x)
 end
 
 function safe_string(x)
-    try
-        return string(x)
-    catch
-        return "<unprintable>"
-    end
+    return string(x)
 end
 
 # Evaluate symbolic expression at d = val (if d is a Symbolics variable)
 function eval_at(expr, dvar, val::Int)
     subbed = Symbolics.substitute(expr, Dict(dvar => val))
-    try
-        return Symbolics.simplify(subbed)
-    catch
-        return subbed
-    end
+    return Symbolics.simplify(subbed)
 end
 
 function full_simplify(x)
     # Mathematica's FullSimplify equivalent in Symbolics is often simplify(expand(x))
-    try
-        # Canonicalize by expanding then simplifying
-        return Symbolics.simplify(Symbolics.expand(x))
-    catch
-        try
-            return Symbolics.simplify(x)
-        catch
-            return x
-        end
-    end
+    # Canonicalize by expanding then simplifying
+    return Symbolics.simplify(Symbolics.expand(x))
 end
 
 # --- Expected-value constructors ----------------------------------------------
@@ -153,12 +137,8 @@ U_cases = [
 ]
 
 function safe_eq(x, y)
-    try
-        val = (x == y)
-        return val isa Bool ? val : false
-    catch
-        return false
-    end
+    val = (x == y)
+    return val isa Bool ? val : false
 end
 
 for (name, expr, expected) in U_cases

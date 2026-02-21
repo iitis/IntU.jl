@@ -73,12 +73,10 @@ function integrate(P::SymbolicMatrixProduct, measure::StiefelMeasure)
     # Helper to resolve dimension symbols to measure dimensions
     function resolve_dim(d_sym)
         d_un = Symbolics.unwrap(d_sym)
-        if d_un == typemax(Int)
-             # This usually means "unknown/symbolic", but for Stiefel V it depends...
-             # We rely on the fact that V is d x k.
-             return dim_d # Fallback?
+        if d_un isa Integer && d_un != typemax(Int)
+            return d_un
         end
-        return d_un
+        return dim_d # preferring measure dim d for expansion if matrix dim is unknown/symbolic
     end
     
     # We need to be more precise.

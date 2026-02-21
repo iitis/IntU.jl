@@ -19,13 +19,10 @@ function to_numeric(x)
     if v isa Number
         return v
     end
-    try
+    if v isa Real
         return Float64(v)
-    catch
-    end
-    try
+    elseif v isa Number
         return ComplexF64(v)
-    catch
     end
     return v
 end
@@ -45,17 +42,13 @@ function is_really_zero(x)
     
     for i in 1:3
         subs = Dict(v => rand() + 0.1 for v in vars)
-        try
-            val_sub = Symbolics.substitute(x, subs)
-            v = to_numeric(val_sub)
-            if v isa Number
-                if abs(v) < 1e-9 continue end
-                return false
-            end
-            return false
-        catch e
+        val_sub = Symbolics.substitute(x, subs)
+        v = to_numeric(val_sub)
+        if v isa Number
+            if abs(v) < 1e-9 continue end
             return false
         end
+        return false
     end
     return true
 end

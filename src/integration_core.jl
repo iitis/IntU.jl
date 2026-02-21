@@ -12,7 +12,6 @@ function _symbolic_isequal(a, b)
     a_un = Symbolics.unwrap(a_v)
     b_un = Symbolics.unwrap(b_v)
 
-
     if a_un isa Complex && b_un isa Complex
         return _symbolic_isequal(real(a_un), real(b_un)) &&
                _symbolic_isequal(imag(a_un), imag(b_un))
@@ -26,7 +25,6 @@ function _symbolic_isequal(a, b)
         return _symbolic_isequal(a_un, real(b_un)) && _iszero(imag(b_un))
     end
 
-
     if Symbolics.iscall(a_un) &&
        (Symbolics.operation(a_un) == complex || Symbolics.operation(a_un) == Base.complex)
         args = Symbolics.arguments(a_un)
@@ -39,7 +37,6 @@ function _symbolic_isequal(a, b)
         return _symbolic_isequal(a_un, args[1]) && _iszero(args[2])
     end
 
-
     res = isequal(a_un, b_un)
     v = Symbolics.value(res)
     return v === true
@@ -50,13 +47,10 @@ function _iszero(x)
     if v isa Number
         return iszero(v)
     end
-    try
-        s = Symbolics.simplify(x)
-        sv = Symbolics.value(s)
-        if sv isa Number
-            return iszero(sv)
-        end
-    catch
+    s = Symbolics.simplify(x)
+    sv = Symbolics.value(s)
+    if sv isa Number
+        return iszero(sv)
     end
     return _symbolic_isequal(v, 0)
 end
@@ -85,7 +79,6 @@ function _robust_real(x)
         return Complex(rv, iv)
     end
 
-
     if Symbolics.iscall(x_un) &&
        (Symbolics.operation(x_un) == complex || Symbolics.operation(x_un) == Base.complex)
         args = Symbolics.arguments(x_un)
@@ -99,7 +92,6 @@ function _robust_real(x)
     if x_un isa Real
         return x_un
     end
-
 
     if _is_manifestly_real(x_un)
         return x_un
@@ -120,7 +112,6 @@ function _robust_real(x)
         return v
     end
 
-
     nx = Symbolics.simplify(nx)
     v = Symbolics.value(nx)
     if v isa AbstractFloat
@@ -129,7 +120,6 @@ function _robust_real(x)
     if v isa Real
         return v
     end
-
 
     if _iszero(Symbolics.simplify(imag(nx)))
         rx = Symbolics.simplify(real(nx))
@@ -180,7 +170,6 @@ function _is_manifestly_real(x)
             return false
         end
 
-
         args = SymbolicUtils.arguments(x)
         for arg in args
             if !_is_manifestly_real(arg)
@@ -190,15 +179,10 @@ function _is_manifestly_real(x)
         return true
     end
 
-
-    try
-        v = Symbolics.value(x)
-        if v !== x
-            return _is_manifestly_real(v)
-        end
-    catch
+    v = Symbolics.value(x)
+    if v !== x
+        return _is_manifestly_real(v)
     end
-
 
     return false
 end
@@ -240,12 +224,7 @@ function match_index(m::MetadataMatcher, t)
         s = Symbolics.arguments(s)[1]
     end
     
-    # Check metadata
-    can_have_meta = false
-    try
-        can_have_meta = SymbolicUtils.hasmetadata(s, MatrixMetadata)
-    catch
-    end
+    can_have_meta = (s isa SymbolicUtils.BasicSymbolic) && SymbolicUtils.hasmetadata(s, MatrixMetadata)
 
     if can_have_meta
         meta = SymbolicUtils.getmetadata(s, MatrixMetadata)
@@ -311,7 +290,6 @@ function _is_real_sq(term)
          end
     end
 
-    # real(x)^2
     if Symbolics.iscall(term) && Symbolics.operation(term) == (^)
         args = Symbolics.arguments(term)
         base = args[1]
@@ -324,7 +302,6 @@ function _is_real_sq(term)
 end
 
 function _is_imag_sq(term)
-    # Strip potential 1 * ... wrapper
     if Symbolics.iscall(term) && Symbolics.operation(term) == (*)
          args = Symbolics.arguments(term)
          if length(args) == 2 && isequal(args[1], 1)
@@ -332,7 +309,6 @@ function _is_imag_sq(term)
          end
     end
 
-    # imag(x)^2
     if Symbolics.iscall(term) && Symbolics.operation(term) == (^)
         args = Symbolics.arguments(term)
         base = args[1]
@@ -381,7 +357,6 @@ function _integrate_core(
         Symbolics.iscall(t) && Symbolics.operation(t) == (+)
     end
 
-    # Rewrite rules: expand abs², real, imag into polynomial form
     r_abs2 = @rule abs2(~x) => (~x) * conj(~x)
     r_abs_pow = @rule abs(~x)^~n => begin
         n_un = Symbolics.unwrap(~n)
@@ -592,7 +567,6 @@ function _integrate_core(
         elseif op == imag || op == Base.imag
             return monomializer((args[1] - conj(args[1])) / (2im))
         end
-        # Also handle standard recursive distribution for non-conj calls
         return Symbolics.wrap(Symbolics.iscall(ux) ? 
             SymbolicUtils.maketerm(typeof(ux), op, [monomializer(a) for a in args], SymbolicUtils.metadata(ux)) : ux)
     end
@@ -617,38 +591,28 @@ function _integrate_core(
     expr_rewritten = pair_real_imag(expr_rewritten)
     
     expr_num = _safe_Num(expr_rewritten)
-    try
-        # Expand once after rewriting conj
-        expr_num = Symbolics.expand(expr_num)
-    catch
-    end
+    expr_num = Symbolics.expand(expr_num)
 
 
     function robust_substitute(ex, dict)
-        try
-            res = Symbolics.substitute(Symbolics.wrap(ex), dict)
+        res = Symbolics.substitute(Symbolics.wrap(ex), dict)
 
-            if _symbolic_isequal(res, Symbolics.wrap(ex))
-                throw(error("No change"))
-            end
+        if !_symbolic_isequal(res, Symbolics.wrap(ex))
             return res
-        catch
-            # Fallback: manual Postwalk traversal with unwrapped keys
-            unwrapped_dict =
-                Dict(Symbolics.unwrap(k) => Symbolics.unwrap(v) for (k, v) in dict)
-
-            p_res = SymbolicUtils.Postwalk(x -> begin
-                u = Symbolics.unwrap(x)
-                if haskey(unwrapped_dict, u)
-                    return unwrapped_dict[u]
-                end
-                return x
-            end)(
-                Symbolics.unwrap(ex),
-            )
-
-            return Symbolics.wrap(p_res)
         end
+
+        # Fallback: manual Postwalk traversal with unwrapped keys
+        unwrapped_dict = Dict(Symbolics.unwrap(k) => Symbolics.unwrap(v) for (k, v) in dict)
+
+        p_res = SymbolicUtils.Postwalk(x -> begin
+            u = Symbolics.unwrap(x)
+            if haskey(unwrapped_dict, u)
+                return unwrapped_dict[u]
+            end
+            return x
+        end)(Symbolics.unwrap(ex))
+
+        return Symbolics.wrap(p_res)
     end
 
     expr_subbed = if expr_num isa Complex
@@ -660,11 +624,7 @@ function _integrate_core(
 
 
 
-    expanded_expr = try
-        Symbolics.expand(_safe_Num(Symbolics.unwrap(expr_subbed)))
-    catch
-        _safe_Num(expr_subbed)
-    end
+    expanded_expr = Symbolics.expand(_safe_Num(Symbolics.unwrap(expr_subbed)))
 
     # Flatten complex(...) calls introduced by substitution
     expanded_expr = _safe_Num(
@@ -686,11 +646,7 @@ function _integrate_core(
     )
 
 
-    expanded_expr = try
-        Symbolics.expand(expanded_expr)
-    catch
-        expanded_expr
-    end
+    expanded_expr = Symbolics.expand(expanded_expr)
 
 
     function process_term_wrapped(term)
@@ -781,8 +737,8 @@ function integrate(P::SymbolicMatrixProduct, measure)
     r_un = Symbolics.unwrap(rows_sym)
     c_un = Symbolics.unwrap(cols_sym)
     
-    nr = (r_un == typemax(Int)) ? dim_measure : r_un
-    nc = (c_un == typemax(Int)) ? dim_measure : c_un
+    nr = (r_un isa Integer && r_un != typemax(Int)) ? r_un : dim_measure
+    nc = (c_un isa Integer && c_un != typemax(Int)) ? c_un : dim_measure
     
     if nr isa Integer && nc isa Integer
         nr = Int(nr)
@@ -796,8 +752,8 @@ function integrate(P::SymbolicMatrixProduct, measure)
             fc_un = Symbolics.unwrap(fc)
             
             # Use measure dim if factor size is unknown
-            cur_r = (fr_un == typemax(Int)) ? dim_measure : fr_un
-            cur_c = (fc_un == typemax(Int)) ? dim_measure : fc_un
+            cur_r = (fr_un isa Integer && fr_un != typemax(Int)) ? fr_un : dim_measure
+            cur_c = (fc_un isa Integer && fc_un != typemax(Int)) ? fc_un : dim_measure
             
             if !(cur_r isa Integer && cur_c isa Integer)
                 error("Factor $f has non-numeric size ($cur_r, $cur_c). Cannot expand product.")
@@ -890,12 +846,11 @@ function _safe_Num(x)
         return map(_safe_Num, x)
     end
     if !(x isa Number)
-        # Avoid crashing on custom types that are not Symbolics-compatible
-        try
+        # Only wrap if it's a known symbolic object to avoid overhead/errors on obscure types
+        if x isa SymbolicUtils.BasicSymbolic || x isa Symbolics.ComplexTerm
             return Num(x)
-        catch
-            return x
         end
+        return x
     end
     x_un = Symbolics.unwrap(x)
     return _to_Num(x_un)
@@ -1469,10 +1424,7 @@ function integrate_indices_orthogonal(indices::Vector{Tuple{Int,Int}}, dim)
     end
 
     if !(dim isa Integer)
-        try
-            return Symbolics.simplify(Symbolics.wrap(total))
-        catch
-        end
+        return Symbolics.simplify(Symbolics.wrap(total))
     end
     return total
 end
@@ -1587,10 +1539,7 @@ function integrate_indices_symplectic(indices::Vector{Tuple{Int,Int}}, dim)
     end
 
     if !(dim isa Integer)
-        try
-            return Symbolics.simplify(Symbolics.wrap(total))
-        catch
-        end
+        return Symbolics.simplify(Symbolics.wrap(total))
     end
     return total
 end
@@ -1959,18 +1908,8 @@ end
 Helper to get the degree of a polynomial `p` in variable `d`.
 """
 function _poly_degree(p, d)
-    try
-        deg = Symbolics.degree(Symbolics.wrap(p), Symbolics.wrap(d))
-        return Int(Symbolics.unwrap(deg))
-    catch
-        # Fallback: basic manual check
-        p_un = Symbolics.unwrap(p)
-        d_un = Symbolics.unwrap(d)
-        if _symbolic_isequal(p_un, d_un)
-            return 1
-        end
-        return 0
-    end
+    deg = Symbolics.degree(Symbolics.wrap(p), Symbolics.wrap(d))
+    return Int(Symbolics.unwrap(deg))
 end
 
 
@@ -2009,11 +1948,7 @@ function _expand_asymptotic(ex, d, order)
     d_num = Symbolics.wrap(d_un)
 
     # Substitute d -> 1/ε and clear denominators
-    ex_sim = try
-        Symbolics.simplify(Symbolics.wrap(ex_un))
-    catch
-        Symbolics.wrap(ex_un)
-    end
+    ex_sim = Symbolics.simplify(Symbolics.wrap(ex_un))
 
 
     if ex_sim isa Complex
@@ -2033,23 +1968,10 @@ function _expand_asymptotic(ex, d, order)
     ϵ_un = Symbolics.unwrap(ϵ)
 
 
-    p_eps = try
-        Symbolics.simplify(Symbolics.substitute(num, Dict(d_num => 1/ϵ)) * ϵ^n; expand = true)
-    catch
-        Symbolics.substitute(num, Dict(d_num => 1/ϵ)) * ϵ^n
-    end
-    q_eps = try
-        Symbolics.simplify(Symbolics.substitute(den, Dict(d_num => 1/ϵ)) * ϵ^m; expand = true)
-    catch
-        Symbolics.substitute(den, Dict(d_num => 1/ϵ)) * ϵ^m
-    end
+    p_eps = Symbolics.simplify(Symbolics.substitute(num, Dict(d_num => 1/ϵ)) * ϵ^n; expand = true)
+    q_eps = Symbolics.simplify(Symbolics.substitute(den, Dict(d_num => 1/ϵ)) * ϵ^m; expand = true)
 
-
-    f_analytic = try
-        Symbolics.simplify(p_eps / q_eps; expand = true)
-    catch
-        p_eps / q_eps
-    end
+    f_analytic = Symbolics.simplify(p_eps / q_eps; expand = true)
 
     total = Num(0)
     curr_deriv = f_analytic
@@ -2058,27 +1980,35 @@ function _expand_asymptotic(ex, d, order)
     max_k = order - diff
 
     for k = 0:max_k
-        val = try
-            v = Symbolics.substitute(curr_deriv, Dict(ϵ => 0))
-            vu = Symbolics.unwrap(v)
-            if isnan(vu) || isinf(vu)
-                curr_sim = Symbolics.simplify(curr_deriv; expand = true)
-                Symbolics.substitute(curr_sim, Dict(ϵ => 0))
-            else
-                v
+        v = Symbolics.substitute(curr_deriv, Dict(ϵ => 0))
+        vu = Symbolics.unwrap(v)
+        
+        needs_sim = false
+        if vu isa Number && (isnan(vu) || isinf(vu))
+            needs_sim = true
+        elseif !(vu isa Number)
+            # Check if substitute resulted in something with NaN or Inf structurally
+            s_val = string(vu)
+            if occursin("NaN", s_val) || occursin("Inf", s_val) || occursin("1//0", s_val)
+                needs_sim = true
             end
-        catch
-            try
-                curr_sim = Symbolics.simplify(curr_deriv; expand = true)
-                Symbolics.substitute(curr_sim, Dict(ϵ => 0))
-            catch
-                # Last resort: postwalk replacement
-                Symbolics.wrap(
+        end
+
+        if needs_sim
+            curr_sim = Symbolics.simplify(curr_deriv; expand = true)
+            val = Symbolics.substitute(curr_sim, Dict(ϵ => 0))
+            
+            # Fallback if simplify didn't resolve epsilon cleanly
+            vars_val = Symbolics.get_variables(val)
+            if any(var -> isequal(var, ϵ_un), vars_val)
+                val = Symbolics.wrap(
                     SymbolicUtils.Postwalk(x -> _symbolic_isequal(x, ϵ_un) ? 0 : x)(
                         Symbolics.unwrap(curr_deriv),
                     ),
                 )
             end
+        else
+            val = v
         end
 
         if !_iszero(val)
@@ -2091,10 +2021,7 @@ function _expand_asymptotic(ex, d, order)
             curr_deriv = Symbolics.derivative(curr_deriv, ϵ)
             # Periodic simplification to manage expression size
             if k % 2 == 0
-                try
-                    curr_deriv = Symbolics.simplify(curr_deriv; expand = true)
-                catch
-                end
+                curr_deriv = Symbolics.simplify(curr_deriv; expand = true)
             end
         end
     end
@@ -2173,23 +2100,18 @@ function evaluate(expr, dict)
         if SymbolicUtils.iscall(val)
             op = SymbolicUtils.operation(val)
             args = SymbolicUtils.arguments(val)
-            if all(x -> x isa Number, args)
-                try
-                    return op(args...)
-                catch
-                end
+            # Safe evaluation for basic arithmetic if all args are numeric
+            if (op === (+) || op === (*) || op === (-) || op === (/)) && all(x -> x isa Number, args)
+                return op(args...)
             end
         end
 
         # Also try simplifying to see if it becomes a number
         # Note: simplify can return a Num, so we check again
-        try
-            sim_res = Symbolics.simplify(res)
-            val_sim = Symbolics.unwrap(sim_res)
-            if val_sim isa Number
-                return val_sim
-            end
-        catch
+        sim_res = Symbolics.simplify(res)
+        val_sim = Symbolics.unwrap(sim_res)
+        if val_sim isa Number
+            return val_sim
         end
     end
     return res

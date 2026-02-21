@@ -59,12 +59,7 @@ using LinearAlgebra
         res_num = zeros(Float64, d_val, d_val)
         for i=1:d_val, j=1:d_val
             val = to_numeric(real(res_matrix[i, j]))
-            try
-                res_num[i, j] = Float64(val)
-            catch e
-                println("ERROR converting at ($i, $j): val = $val, type = $(typeof(val))")
-                rethrow(e)
-            end
+            res_num[i, j] = Float64(val)
         end
         @test res_num ≈ I_mat
 

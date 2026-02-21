@@ -25,25 +25,17 @@ end
 
 function equal_symbolic(got, expected; subs = Vector{Dict}())
     # Try direct symbolic simplification first
-    try
-        diff = got - expected
-        if is_symbolic_zero(diff)
-            return true
-        end
-    catch
-        # fall through to substitution checks
+    diff = got - expected
+    if is_symbolic_zero(diff)
+        return true
     end
     # Fallback: validate by substituting several integer values
     for s in subs
-        try
-            dg = Symbolics.substitute(got, s)
-            de = Symbolics.substitute(expected, s)
-            if is_symbolic_zero(dg - de)
-                continue
-            else
-                return false
-            end
-        catch
+        dg = Symbolics.substitute(got, s)
+        de = Symbolics.substitute(expected, s)
+        if is_symbolic_zero(dg - de)
+            continue
+        else
             return false
         end
     end
@@ -56,11 +48,8 @@ function run_example(name, expr, μ, expected; subs = Vector{Dict}(), benchmark 
 
     # Simplify the result for display
     # We try simplify(expand(.)) as it is often stronger
-    simplified_got = try
-        Symbolics.simplify(Symbolics.expand(got))
-    catch
-        Symbolics.simplify(got)
-    end
+    simplified_got = Symbolics.simplify(got)
+    # optionally: Symbolics.simplify(Symbolics.expand(got)) if we want stronger simplification
 
     println("== $name ==")
     # println("Integrand: $expr") 

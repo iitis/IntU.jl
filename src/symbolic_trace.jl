@@ -8,10 +8,7 @@
 A wrapper associated with a symbolic name to represent a matrix in a coordinate-free way.
 Used in the symbolic trace logic (via `tr_lazy`) and for metadata-driven element-wise integration.
 """
-# We use AbstractMatrix{Any} because elements can be Num (for real values), 
-# Complex{Num} (for numeric complex), or raw SymbolicUtils objects (for symbolic complex with metadata).
-# Symbolics' Num is strictly real-valued in recent versions, so we cannot use AbstractMatrix{Num} 
-# for general complex symbolic matrices.
+# Symbolics' Num is real-valued; we use AbstractMatrix{Any} to support complex symbols.
 struct SymbolicMatrix <: AbstractMatrix{Any}
     name::Symbol
     is_adj::Bool
@@ -371,28 +368,24 @@ function tr_val(factors::AbstractVector)
     is_symbolic = any(f -> f isa SymbolicMatrix || f isa SymbolicMatrixProduct || f isa LazyTrace, factors)
     
     if !is_symbolic
-        try
-            prod_val = prod(factors)
-            if prod_val isa AbstractMatrix && eltype(prod_val) <: Number && !(eltype(prod_val) <: Num)
+        prod_val = prod(factors)
+        if prod_val isa AbstractMatrix && eltype(prod_val) <: Number && !(eltype(prod_val) <: Num)
+              return LinearAlgebra.tr(prod_val)
+        end
+        if prod_val isa AbstractMatrix && eltype(prod_val) <: Num
+              all_num = true
+              for x in prod_val
+                  if !is_number(x)
+                      all_num = false; break
+                  end
+              end
+              if all_num
                   return LinearAlgebra.tr(prod_val)
-            end
-            if prod_val isa AbstractMatrix && eltype(prod_val) <: Num
-                  all_num = true
-                  for x in prod_val
-                      if !is_number(x)
-                          all_num = false; break
-                      end
-                  end
-                  if all_num
-                      return LinearAlgebra.tr(prod_val)
-                  end
-            end
-        catch
+              end
         end
     end
 
-    # Normalize trace by circular shifting and taking the smallest lexicographically.
-    # We also consider the adjoint representation.
+    # Normalize trace string for unique symbolic representation
     function get_norm_string(fs)
         n = length(fs)
         s_list = [string(f) for f in fs]

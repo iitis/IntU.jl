@@ -55,4 +55,26 @@ using Symbolics
         show(buf, A)
         @test String(take!(buf)) == "A"
     end
+    @testset "Mixed Dimensions & Matrix Products (Regression)" begin
+        @variables d
+        # Use :COE tag which matches dCOE measure
+        O = SymbolicMatrix(:O, :COE, d)
+        # Dimensions are symbolic (d), but measure is concrete (2)
+        # This tests both the TypeError fix (isequal) and dimension unification
+        res = @integrate O * O' dCOE(2)
+        @test res isa AbstractMatrix
+        @test size(res) == (2, 2)
+        @test isequal(res[1,1], 1//1)
+        @test isequal(res[1,2], 0//1)
+
+        # Stiefel regression check
+        k = 1
+        V = SymbolicMatrix(:V, :U, (d, k))
+        # Integrate V' * V over dStiefel(2, 1)
+        # This is V' (1 x d) * V (d x 1) -> 1x1 result
+        res_v = @integrate V' * V dStiefel(2, 1)
+        @test res_v isa AbstractMatrix
+        @test size(res_v) == (1, 1)
+        @test isequal(res_v[1,1], 1//1)
+    end
 end
