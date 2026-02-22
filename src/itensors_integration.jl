@@ -32,34 +32,31 @@ function ITensorUnitary(; out_indices, in_indices, is_adj = false)
 end
 
 """
-    integrate_graphical(constants, unitaries, dim, measure_type=:U)
+    integrate_graphical(constants, unitaries, measure::AbstractMeasure)
 
 Integrates a tensor network.
 `constants` is a list of tensors (e.g. ITensors).
 `unitaries` is a list of `GraphicalUnitary`.
-`dim` is the dimension of the space.
-`measure_type` can be `:U`, `:O`, or `:Sp`.
+`measure` is an `AbstractMeasure` (e.g. `HaarMeasure`, `OrthogonalMeasure`).
 
 Returns a sum of terms, where each term is a product of `constants` and deltas.
 """
-function integrate_graphical(constants, unitaries, dim, measure_type = :U)
-    if measure_type == :U
-        return _integrate_graphical_unitary(constants, unitaries, dim)
-    elseif measure_type == :O
-        return _integrate_graphical_orthogonal(constants, unitaries, dim)
-    elseif measure_type == :Sp
-        return _integrate_graphical_symplectic(constants, unitaries, dim)
-    elseif measure_type isa Tuple && measure_type[1] == :Design
-        return _integrate_graphical_unitary(
-            constants,
-            unitaries,
-            dim;
-            design_t = measure_type[2],
-        )
-    else
-        error("Unsupported measure type: $measure_type")
-    end
+function integrate_graphical(constants, unitaries, measure::AbstractMeasure)
+    # Default fallback or error
+    error("Graphical integration not implemented for measure $(typeof(measure))")
 end
+
+integrate_graphical(constants, unitaries, measure::HaarMeasure) =
+    _integrate_graphical_unitary(constants, unitaries, measure.dim)
+
+integrate_graphical(constants, unitaries, measure::UnitaryDesign) =
+    _integrate_graphical_unitary(constants, unitaries, measure.dim; design_t = measure.t)
+
+integrate_graphical(constants, unitaries, measure::OrthogonalMeasure) =
+    _integrate_graphical_real(constants, unitaries, measure)
+
+integrate_graphical(constants, unitaries, measure::SymplecticMeasure) =
+    _integrate_graphical_real(constants, unitaries, measure)
 
 function _integrate_graphical_unitary(constants, unitaries, dim; design_t = nothing)
     # 1. Separate U and U_dag
@@ -127,8 +124,8 @@ function _integrate_graphical_unitary(constants, unitaries, dim; design_t = noth
     return total_result === nothing ? 0 : total_result
 end
 
-function _integrate_graphical_orthogonal(constants, unitaries, dim)
-    # Orthogonal: all unitaries are treated same (O = O_bar)
+function _integrate_graphical_real(constants, unitaries, measure::AbstractMeasure)
+    # Orthogonal/Symplectic: all unitaries are treated same (O = O_bar)
     # n_total must be even
     n_total = length(unitaries)
     if n_total == 0
@@ -138,6 +135,7 @@ function _integrate_graphical_orthogonal(constants, unitaries, dim)
         return 0
     end
 
+    dim = measure.dim
     k = div(n_total, 2)
     # Get all pair partitions of 1..2k
     partitions = get_pair_partitions(n_total)
@@ -157,7 +155,8 @@ function _integrate_graphical_orthogonal(constants, unitaries, dim)
             sigma = partitions[j]
             c_sigma = c_partitions[j]
 
-            wg_val = weingarten_orthogonal_val_canonical(c_pi, c_sigma, dim)
+            wg_val = _weingarten_real(measure, c_pi, c_sigma, dim)
+
             if _iszero(wg_val)
                 continue
             end
@@ -165,11 +164,11 @@ function _integrate_graphical_orthogonal(constants, unitaries, dim)
             deltas = []
             # pi specifies which out legs to match
             for (a, b) in pi
-                append!(deltas, _create_deltas(all_out[a], all_out[b]))
+                append!(deltas, _create_deltas_general(measure, all_out[a], all_out[b]))
             end
             # sigma specifies which in legs to match
             for (a, b) in sigma
-                append!(deltas, _create_deltas(all_in[a], all_in[b]))
+                append!(deltas, _create_deltas_general(measure, all_in[a], all_in[b]))
             end
 
             term = _contract_with_deltas(constants, deltas, wg_val)
@@ -183,47 +182,15 @@ function _integrate_graphical_orthogonal(constants, unitaries, dim)
     return total_result === nothing ? 0 : total_result
 end
 
-function _integrate_graphical_symplectic(constants, unitaries, dim)
-    # Symplectic: similar to orthogonal but with symplectic form J
-    n_total = length(unitaries)
-    if n_total == 0
-        return _contract_all(constants)
-    end
-    if n_total % 2 != 0
-        return 0
-    end
+# Helpers for real integration dispatch
+_weingarten_real(::OrthogonalMeasure, c_pi, c_sigma, dim) =
+    weingarten_orthogonal_val_canonical(c_pi, c_sigma, dim)
+_weingarten_real(::SymplecticMeasure, c_pi, c_sigma, dim) =
+    weingarten_symplectic_val(c_pi, c_sigma, dim)
 
-    partitions = get_pair_partitions(n_total)
-    # Pre-extract indices
-    all_out = [u.out_indices for u in unitaries]
-    all_in = [u.in_indices for u in unitaries]
-    total_result = nothing
-
-    for pi in partitions
-        for sigma in partitions
-            wg_val = weingarten_symplectic_val(pi, sigma, dim)
-            if _iszero(wg_val)
-                continue
-            end
-
-            deltas = []
-            for (a, b) in pi
-                append!(deltas, _create_deltas_symplectic(all_out[a], all_out[b], dim))
-            end
-            for (a, b) in sigma
-                append!(deltas, _create_deltas_symplectic(all_in[a], all_in[b], dim))
-            end
-
-            term = _contract_with_deltas(constants, deltas, wg_val)
-            if total_result === nothing
-                total_result = term
-            else
-                total_result = total_result + term
-            end
-        end
-    end
-    return total_result === nothing ? 0 : total_result
-end
+_create_deltas_general(::AbstractMeasure, idxs1, idxs2) = _create_deltas(idxs1, idxs2)
+_create_deltas_general(m::SymplecticMeasure, idxs1, idxs2) =
+    _create_deltas_symplectic(idxs1, idxs2, m.dim)
 
 # Additional symplectic helper
 function _create_deltas_symplectic end

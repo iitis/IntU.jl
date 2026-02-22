@@ -88,7 +88,7 @@ println(res)
 # GinUE Measure with symbolic dimension
 # Average Trace of G G'
 # < Tr(G G') > = d^2
-res_ginue = @integrate tr(G * G') dGUE(d)
+res_ginue = @integrate tr(G * G') dGinUE(d)
 println(res_ginue)
 # Output: d^2
 ```

@@ -17,23 +17,11 @@ function integrate(u::ITensorUnitary, measure::IntU.HaarMeasure)
 end
 
 # Main entry points for a network of tensors
-function integrate(tensors::AbstractVector, measure::IntU.HaarMeasure)
-    _integrate_tensor_network(tensors, measure, :U)
+function integrate(tensors::AbstractVector, measure::IntU.AbstractMeasure)
+    _integrate_tensor_network(tensors, measure)
 end
 
-function integrate(tensors::AbstractVector, measure::IntU.OrthogonalMeasure)
-    _integrate_tensor_network(tensors, measure, :O)
-end
-
-function integrate(tensors::AbstractVector, measure::IntU.SymplecticMeasure)
-    _integrate_tensor_network(tensors, measure, :Sp)
-end
-
-function integrate(tensors::AbstractVector, measure::IntU.UnitaryDesign)
-    _integrate_tensor_network(tensors, measure, (:Design, measure.t))
-end
-
-function _integrate_tensor_network(tensors::AbstractVector, measure, m_type)
+function _integrate_tensor_network(tensors::AbstractVector, measure)
     # Identify random unitaries and constants
     unitaries = GraphicalUnitary[]
     constants = ITensor[]
@@ -56,24 +44,11 @@ function _integrate_tensor_network(tensors::AbstractVector, measure, m_type)
         end
     end
 
-    dim = measure.dim
-    return IntU.integrate_graphical(constants, unitaries, dim, m_type)
+    return IntU.integrate_graphical(constants, unitaries, measure)
 end
 
 # Specific overloads for ITensor vectors to ensure they hit the extension
-function integrate(tensors::AbstractVector{<:ITensor}, measure::IntU.HaarMeasure)
-    return integrate(collect(Any, tensors), measure)
-end
-
-function integrate(tensors::AbstractVector{<:ITensor}, measure::IntU.OrthogonalMeasure)
-    return integrate(collect(Any, tensors), measure)
-end
-
-function integrate(tensors::AbstractVector{<:ITensor}, measure::IntU.SymplecticMeasure)
-    return integrate(collect(Any, tensors), measure)
-end
-
-function integrate(tensors::AbstractVector{<:ITensor}, measure::IntU.UnitaryDesign)
+function integrate(tensors::AbstractVector{<:ITensor}, measure::IntU.AbstractMeasure)
     return integrate(collect(Any, tensors), measure)
 end
 

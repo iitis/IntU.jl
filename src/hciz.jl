@@ -62,34 +62,27 @@ function hciz(A::SymbolicMatrix, B::SymbolicMatrix, d::Int)
 end
 
 function _get_eigenvalues(M::AbstractMatrix)
-    # Check if numeric
+    # Check if numeric (Float64, ComplexF64 etc.)
     if all(x -> x isa Number && !(x isa Num), M)
         return eigen(M).values
     end
 
-    # Handle Matrix{Num}
+    # Handle Matrix{Num} or mixed types
     # 1. Check if diagonal
-    is_diag = true
-    d = size(M, 1)
-    for i = 1:d, j = 1:d
-        if i != j && !isequal(Symbolics.unwrap(M[i, j]), 0)
-            is_diag = false
-            break
-        end
-    end
-    if is_diag
-        return [M[i, i] for i = 1:d]
+    if isdiag(M)
+        return [M[i, i] for i = 1:size(M, 1)]
     end
 
-    # 2. Handle 2x2 symbolic
+    # 2. Handle 2x2 symbolic explicitly
+    d = size(M, 1)
     if d == 2
         # λ^2 - tr(M)λ + det(M) = 0
-        t = M[1, 1] + M[2, 2]
-        det_M = M[1, 1]*M[2, 2] - M[1, 2]*M[2, 1]
-        disc = Symbolics.simplify(t^2 - 4*det_M)
+        t = tr(M)
+        det_M = det(M)
+        disc = Symbolics.simplify(t^2 - 4 * det_M)
         return [
-            Symbolics.simplify((t + sqrt(disc))/2),
-            Symbolics.simplify((t - sqrt(disc))/2),
+            Symbolics.simplify((t + sqrt(disc)) / 2),
+            Symbolics.simplify((t - sqrt(disc)) / 2),
         ]
     end
 

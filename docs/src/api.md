@@ -83,17 +83,6 @@ integrate_indices
 IntU.tr_lazy
 LazyTrace
 LazySum
-IntU.integrate_indices_gue
-IntU.integrate_indices_goe
-IntU.integrate_indices_ginue
-IntU.integrate_indices_ginoe
-IntU.integrate_indices_ginse
-IntU.integrate_indices_orthogonal
-IntU.integrate_indices_symplectic
-IntU.integrate_indices_coe
-IntU.integrate_indices_cse
-IntU.integrate_indices_permutation
-IntU.integrate_indices_diagonal
 IntU.check_library
 IntU.tr_val
 IntU._expand_asymptotic
