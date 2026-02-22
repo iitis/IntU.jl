@@ -1,6 +1,15 @@
 _to_Num(z::Complex) = Complex(Num(real(z)), Num(imag(z)))
 _to_Num(z) = Num(z)
 
+"""
+    AbstractMeasure
+
+Abstract base type for all integration measures (Haar, Gaussian, Circular, etc.).
+Provides generic dispatch for element-wise integration of arrays and 
+ambiguity resolution for `SymbolicMatrix` and `SymbolicMatrixProduct`.
+"""
+abstract type AbstractMeasure end
+
 function _symbolic_isequal(a, b)
     a_v = Symbolics.value(a)
     b_v = Symbolics.value(b)
@@ -703,7 +712,7 @@ function _integrate_core(
     return res
 end
 
-function integrate(expr::LazySum, measure)
+function integrate(expr::LazySum, measure::AbstractMeasure)
     return sum(t -> integrate(t, measure), expr.terms)
 end
 
@@ -724,7 +733,7 @@ end
 Integrate a SymbolicMatrix as a whole. Returns a matrix of results if the 
 dimension in `measure` is a concrete integer.
 """
-function integrate(A::SymbolicMatrix, measure)
+function integrate(A::SymbolicMatrix, measure::AbstractMeasure)
     dim = _get_measure_dim(measure)
     if dim isa Integer
         res = Matrix{Any}(undef, dim, dim)
@@ -747,7 +756,7 @@ end
 Integrate a product of SymbolicMatrices. Returns a matrix of results if the 
 dimension in `measure` is a concrete integer.
 """
-function integrate(P::SymbolicMatrixProduct, measure)
+function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
     if isempty(P.factors)
         return Num(1)
     end
@@ -807,7 +816,7 @@ end
 Performs element-wise integration of a matrix or array of expressions.
 Returns an array of the same shape containing integrated values.
 """
-function integrate(expr::AbstractArray, measure)
+function integrate(expr::AbstractArray, measure::AbstractMeasure)
     return map(t -> integrate(t, measure), expr)
 end
 
@@ -817,7 +826,7 @@ end
 Top-level integration function. It first checks the [Pre-computed Integral Library](@ref) 
 for instant results. If not found, it calls `fallback_integrate` for the specific measure.
 """
-function integrate(expr, measure)
+function integrate(expr, measure::AbstractMeasure)
     lib_res = check_library(expr, measure)
     if lib_res !== nothing
         return lib_res

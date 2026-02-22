@@ -22,24 +22,13 @@ dStiefel(dim, k) = StiefelMeasure(dim, k)
 Internal type representing the measure on the Stiefel manifold. 
 Users should use `dStiefel` constructors.
 """
-struct StiefelMeasure{D,K,M}
+struct StiefelMeasure{D,K,M} <: AbstractMeasure
     dim::D
     k::K
     matcher::M
 end
 StiefelMeasure(dim, k) = StiefelMeasure(dim, k, nothing)
 
-"""
-    integrate(expr, measure::StiefelMeasure)
-"""
-function integrate(expr::AbstractArray, measure::StiefelMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
-
-# Resolve ambiguities with SymbolicMatrix/SymbolicMatrixProduct
-function integrate(expr::SymbolicMatrix, measure::StiefelMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrix,Any}, expr, measure)
-end
 function IntU.measure_info(measure::StiefelMeasure)
     subs_dict = Dict{Any,Any}()
     # Default to matching :U, as per docs and examples
@@ -57,13 +46,6 @@ function integrate(P::SymbolicMatrixProduct, measure::StiefelMeasure)
         return Num(1)
     end
 
-    # We need to determine the dimensions of the result matrix.
-    # V is d x k. V' is k x d.
-    # We need to trace the dimensions through the product.
-
-    # We assume factors are either the Stiefel matrix, its adjoint, or other compatible matrices.
-    # We'll use a simplified dimension propagation.
-
     dim_d = measure.dim
     dim_k = measure.k
 
@@ -79,21 +61,8 @@ function integrate(P::SymbolicMatrixProduct, measure::StiefelMeasure)
         return dim_d # preferring measure dim d for expansion if matrix dim is unknown/symbolic
     end
 
-    # We need to be more precise.
-    # Let's inspect the factors to find the Stiefel matrix and deduce dimensions.
-    # But usually P.factors[1] size is reliable if it comes from V or V'.
-
-    # Hack: We know V is d x k.
-    # If P starts with V (d x k), rows is d.
-    # If P starts with V' (k x d), rows is k.
-
-    # If we can't resolve dimensions to integers, we fall back to the generic integration
-    # which returns a symbolic scalar (tr_lazy based) or errors.
-    # But the user wants a concrete Matrix{Any} if d and k are integers.
 
     if dim_d isa Integer && dim_k isa Integer
-        # Calculate result size
-        # We need to correctly attribute dimensions to V and V'
 
         # We assume standard SymbolicMatrix/Adjoint wrappers
         function get_size(F)
@@ -105,9 +74,6 @@ function integrate(P::SymbolicMatrixProduct, measure::StiefelMeasure)
             end
 
             if F isa SymbolicMatrix
-                # Check if it's our Stiefel matrix
-                # It might be tagged :V or :U depending on how it was created
-                # The measure matches :U, so let's check that.
 
                 # Combine wrapper adjacency with internal adjacency
                 effective_adj = F.is_adj

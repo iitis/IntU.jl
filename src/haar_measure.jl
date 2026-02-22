@@ -32,7 +32,7 @@ end
 
 
 # Dummy type to represent the measure
-struct HaarMeasure{D,M}
+struct HaarMeasure{D,M} <: AbstractMeasure
     dim::D
     matcher::M
 end

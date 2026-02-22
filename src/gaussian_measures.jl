@@ -1,36 +1,36 @@
 # Gaussian Random Matrix measures (GUE, GOE, GSE)
 
-struct GUEMeasure{D,M}
+struct GUEMeasure{D,M} <: AbstractMeasure
     dim::D
     matcher::M
 end
 GUEMeasure(dim) = GUEMeasure(dim, nothing)
 
-struct GOEMeasure{D,M}
+struct GOEMeasure{D,M} <: AbstractMeasure
     dim::D
     matcher::M
 end
 GOEMeasure(dim) = GOEMeasure(dim, nothing)
 
-struct GSEMeasure{D,M}
+struct GSEMeasure{D,M} <: AbstractMeasure
     dim::D
     matcher::M
 end
 GSEMeasure(dim) = GSEMeasure(dim, nothing)
 
-struct GinUEMeasure{D,M}
+struct GinUEMeasure{D,M} <: AbstractMeasure
     dim::D
     matcher::M
 end
 GinUEMeasure(dim) = GinUEMeasure(dim, nothing)
 
-struct GinOEMeasure{D,M}
+struct GinOEMeasure{D,M} <: AbstractMeasure
     dim::D
     matcher::M
 end
 GinOEMeasure(dim) = GinOEMeasure(dim, nothing)
 
-struct GinSEMeasure{D,M}
+struct GinSEMeasure{D,M} <: AbstractMeasure
     dim::D
     matcher::M
 end
@@ -90,22 +90,7 @@ function dGinSE(dim)
     return GinSEMeasure(dim)
 end
 
-"""
-    integrate(expr, measure::GUEMeasure)
-"""
-# Generate element-wise integration for all Gaussian measure types
-for T_measure in
-    [GUEMeasure, GOEMeasure, GSEMeasure, GinUEMeasure, GinOEMeasure, GinSEMeasure]
-    @eval function integrate(expr::AbstractArray, measure::$T_measure)
-        return map(e -> integrate(e, measure), expr)
-    end
-    @eval function integrate(expr::SymbolicMatrix, measure::$T_measure)
-        return invoke(integrate, Tuple{SymbolicMatrix,Any}, expr, measure)
-    end
-    @eval function integrate(expr::SymbolicMatrixProduct, measure::$T_measure)
-        return invoke(integrate, Tuple{SymbolicMatrixProduct,Any}, expr, measure)
-    end
-end
+# Integration rules for each ensemble
 
 # Generate measure_info methods for all Gaussian measure types
 for (T_measure, tag) in [

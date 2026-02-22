@@ -2,7 +2,7 @@
 
 # Type to represent integration over pure states |psi>
 # Type to represent integration over pure states |psi>
-struct PureStateMeasure{D,M}
+struct PureStateMeasure{D,M} <: AbstractMeasure
     dim::D
     matcher::M
 end
@@ -18,21 +18,6 @@ distributed according to the Haar measure.
 Integration engine identifies variables via metadata tag `:psi`.
 """
 dPsi(dim) = PureStateMeasure(dim)
-
-"""
-    integrate(expr, measure::PureStateMeasure)
-"""
-function integrate(expr::AbstractArray, measure::PureStateMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
-
-# Resolve ambiguities with SymbolicMatrix/SymbolicMatrixProduct
-function integrate(expr::SymbolicMatrix, measure::PureStateMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrix,Any}, expr, measure)
-end
-function integrate(expr::SymbolicMatrixProduct, measure::PureStateMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrixProduct,Any}, expr, measure)
-end
 
 function IntU.measure_info(measure::PureStateMeasure)
     subs_dict = Dict{Any,Any}()

@@ -1,11 +1,11 @@
 # Real and Symplectic measures
 
 # Dummy types to represent the measures
-struct OrthogonalMeasure{D}
+struct OrthogonalMeasure{D} <: AbstractMeasure
     dim::D
 end
 
-struct SymplecticMeasure{D}
+struct SymplecticMeasure{D} <: AbstractMeasure
     dim::D
 end
 
@@ -26,22 +26,6 @@ Integration engine identifies variables via metadata tag `:Sp`.
 """
 dSp(dim) = SymplecticMeasure(dim)
 
-
-"""
-    integrate(expr, measure::OrthogonalMeasure)
-"""
-# Generate element-wise integration and ambiguity-resolution for both measure types
-for T_measure in [OrthogonalMeasure, SymplecticMeasure]
-    @eval function integrate(expr::AbstractArray, measure::$T_measure)
-        return map(e -> integrate(e, measure), expr)
-    end
-    @eval function integrate(expr::SymbolicMatrix, measure::$T_measure)
-        return invoke(integrate, Tuple{SymbolicMatrix,Any}, expr, measure)
-    end
-    @eval function integrate(expr::SymbolicMatrixProduct, measure::$T_measure)
-        return invoke(integrate, Tuple{SymbolicMatrixProduct,Any}, expr, measure)
-    end
-end
 
 function IntU.measure_info(measure::OrthogonalMeasure)
     subs_dict = Dict{Any,Any}()

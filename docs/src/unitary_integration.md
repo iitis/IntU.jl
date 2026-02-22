@@ -117,7 +117,7 @@ integrate(abs(tr(U))^2, dU(d))
 
 ### 4. Matrix Integration
 
-New in v0.2: You can integrate matrix-valued expressions directly. The function `integrate` will element-wise integrate any `AbstractArray` passed to it.
+You can integrate matrix-valued expressions directly. The function `integrate` will element-wise integrate any `AbstractArray` (including `SymbolicMatrix` and `SymbolicMatrixProduct`) passed to it.
 
 ```julia
 using IntU, Symbolics
@@ -126,12 +126,12 @@ U = SymbolicMatrix(:U, :U)
 # E[tr(U A U' B)] = tr(A) * tr(B) / d
 A = SymbolicMatrix(:A)
 B = SymbolicMatrix(:B)
-integrate(tr_lazy(U * A * U' * B), dU(d))
+integrate(tr(U * A * U' * B), dU(d))
 ```
 
 ### 5. HCIZ Integrals
 
-New in v0.2: Direct support for **Harish-Chandra-Itzykson-Zuber (HCIZ)** integrals.
+IntU.jl provides direct support for **Harish-Chandra-Itzykson-Zuber (HCIZ)** integrals.
 
 ```julia
 using IntU, LinearAlgebra

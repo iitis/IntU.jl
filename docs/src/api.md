@@ -14,6 +14,11 @@ vandermonde_det
 
 ## Measures
 
+```@docs
+AbstractMeasure
+IntU.measure_info
+```
+
 ### Unitary Group
 ```@docs
 dU

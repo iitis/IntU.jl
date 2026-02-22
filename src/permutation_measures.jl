@@ -1,13 +1,13 @@
 # Permutation Group measures
 
 # Dummy types to represent the measures
-struct PermutationMeasure{D,M}
+struct PermutationMeasure{D,M} <: AbstractMeasure
     dim::D
     matcher::M
 end
 PermutationMeasure(dim) = PermutationMeasure(dim, nothing)
 
-struct CenteredPermutationMeasure{D,M}
+struct CenteredPermutationMeasure{D,M} <: AbstractMeasure
     dim::D
     matcher::M
 end
@@ -28,28 +28,6 @@ dPerm(dim) = PermutationMeasure(dim)
 Defines the measure for Centered Permutation matrices $Y = P - J/d$ where $P \in S_d$.
 """
 dCPerm(dim) = CenteredPermutationMeasure(dim)
-
-function integrate(expr::AbstractArray, measure::PermutationMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
-
-function integrate(expr::AbstractArray, measure::CenteredPermutationMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
-
-# Resolve ambiguities with SymbolicMatrix/SymbolicMatrixProduct
-function integrate(expr::SymbolicMatrix, measure::PermutationMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrix,Any}, expr, measure)
-end
-function integrate(expr::SymbolicMatrixProduct, measure::PermutationMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrixProduct,Any}, expr, measure)
-end
-function integrate(expr::SymbolicMatrix, measure::CenteredPermutationMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrix,Any}, expr, measure)
-end
-function integrate(expr::SymbolicMatrixProduct, measure::CenteredPermutationMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrixProduct,Any}, expr, measure)
-end
 
 function IntU.measure_info(measure::PermutationMeasure)
     subs_dict = Dict{Any,Any}()

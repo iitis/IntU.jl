@@ -17,13 +17,9 @@ To introduce the main functionality of IntU, consider the problem of averaging
 $|U_{i,j}|^2$ over the unitary group, i.e., computing $\int dU |U_{i,j}|^2 =
 \int dU U_{i,j} U_{k,l}^* dU$.
 
-While numerical approaches (like sampling random matrices) can estimate this,
-they are slow and approximate. IntU provides the **exact** analytic result
-instantly, even for symbolic dimensions, using a simple unified interface: `integrate(expr, measure)`.
+IntU provides an exact analytic result instantly, even for symbolic dimensions, using a simple unified interface: `integrate(expr, measure)`. It supports matrix-valued expressions and provides the `@integrate` macro for intuitive symbolic integration.
 
-**New Feature**: You can now integrate matrix-valued expressions directly and utilize the `@integrate` macro to automatically infer random matrix variables!
-
-The `@integrate` macro implicitly treats specific symbols as random matrices depending on the measure:
+The `@integrate` macro implicitly identifies random matrices based on the measure:
 - `dU`, `dSU` $\rightarrow$ `U` (Unitary)
 - `dO` $\rightarrow$ `O` (Orthogonal)
 - `dSp` $\rightarrow$ `Sp` (Symplectic)
@@ -44,7 +40,7 @@ using IntU, Symbolics, LinearAlgebra
 # Integrate the matrix expression U * U'
 # The @integrate macro knows 'U' is the random matrix for measure dU(2)
 res = @integrate U * U' dU(2)
-# Output: Identity Matrix (I)
+# Output: [1.0 0.0; 0.0 1.0] (2x2 Identity Matrix)
 ```
 
 ```julia

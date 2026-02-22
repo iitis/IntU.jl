@@ -69,15 +69,15 @@ You can define the Gaussian measures using `dGUE`, `dGOE`, `dGSE`, `dGinUE`, `dG
 ```julia
 using IntU, Symbolics
 
-@variables d
-# GUE Measure with symbolic dimension
-H = SymbolicMatrix(:H, :GUE)
-measure_GUE = dGUE(d)
+### GUE Example
 
+```julia
+using IntU, Symbolics
+
+# GUE Measure with symbolic dimension
 # Average Trace of H^2
 # < Tr(H^2) > = d^2
-expr = IntU.tr(H^2)
-res = integrate(expr, measure_GUE)
+res = @integrate tr(H^2) dGUE(d)
 println(res)
 # Output: d^2
 ```
@@ -86,12 +86,9 @@ println(res)
 
 ```julia
 # GinUE Measure with symbolic dimension
-G = SymbolicMatrix(:G, :GinUE)
-measure_GinUE = dGinUE(d)
-
 # Average Trace of G G'
 # < Tr(G G') > = d^2
-res_ginue = integrate(IntU.tr(G * G'), measure_GinUE)
+res_ginue = @integrate tr(G * G') dGUE(d)
 println(res_ginue)
 # Output: d^2
 ```
@@ -100,12 +97,9 @@ println(res_ginue)
 
 ```julia
 # GOE Measure
-H_goe = SymbolicMatrix(:H, :GOE)
-measure_GOE = dGOE(d)
-
 # Average Trace of H^2
 # < Tr(H^2) > = d^2 + d
-res_goe = integrate(IntU.tr(H_goe^2), measure_GOE)
+res_goe = @integrate tr(H^2) dGOE(d)
 println(res_goe)
 # Output: d^2 + d
 ```
@@ -113,12 +107,10 @@ println(res_goe)
 ### GSE Example
 
 ```julia
-H_gse = SymbolicMatrix(:H, :GSE)
-measure_GSE = dGSE(d)
-
+# GSE Measure
 # Average Trace of H^2
 # < Tr(H^2) > = d^2 - d
-res_gse = integrate(IntU.tr(H_gse^2), measure_GSE)
+res_gse = @integrate tr(H^2) dGSE(d)
 println(res_gse)
 # Output: d^2 - d
 ```

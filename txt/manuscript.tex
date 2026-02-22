@@ -792,14 +792,19 @@ dispatch symbolic expressions efficiently:
     This relies on the efficient sparse polynomial handling of
     \texttt{Symbolics.jl}.
     \item \textbf{Dispatch}: Each monomial is analyzed to extract the indices of
-    the random matrices. The integration is then dispatched to the specific
-    algorithm appropriate for the group ($U, O, Sp$) or measure (Gaussian), relying on
-    Julia's multiple dispatch to handle different measure types without branching logic.
+    the random matrices. The integration is then dispatched to a centralized
+    engine. This engine leverages the \texttt{AbstractMeasure} base type and a
+    unified \texttt{measure\_info} interface, which provides the necessary
+    metadata (substitution dictionaries, dimension parameters, and ensemble
+    tags) for all supported measures. This architecture eliminates redundant
+    boilerplate and ensures consistent dispatch behavior across the library.
 \end{enumerate}
 
 \subsection{Weingarten engine}
-The calculation of Weingarten functions is computationally intensive. To achieve
-high performance, \texttt{IntU.jl} implements specialized algorithms for each group:
+The calculation of Weingarten functions and combinatorial contractions is
+centralized within a generic integration engine. To achieve high performance
+and extensibility, \texttt{IntU.jl} implementes specialized logic for different
+mathematical structures while sharing the top-level dispatch mechanism:
 \begin{itemize}
     \item \textbf{Unitary group}: Characters of the symmetric group are computed
     using the Murnaghan-Nakayama rule, which is significantly faster than determinantal
@@ -821,6 +826,10 @@ high performance, \texttt{IntU.jl} implements specialized algorithms for each gr
     \mathrm{Wg}^{Sp}(p, q, d) = (-1)^{k + \mathrm{loops}(p, q)} \mathrm{Wg}^O(p, q, -d),
     \end{equation}
     avoiding the need for a separate symplectic solver.
+    \item \textbf{Gaussian and Ginibre Ensembles}: Integration over Gaussian
+    ensembles is performed via Wick contractions. The engine decomposes the
+    monomial into atomic factors and generates all valid pair partitions of
+    indices, weighted by the ensemble-specific contraction rules.
     \item \textbf{Diagonal unitary matrices}: For the torus group $T^d$, the
     integration is performed by verifying that the integrand is composed of
     diagonal elements and checking the multiset correspondence of indices
@@ -830,7 +839,7 @@ high performance, \texttt{IntU.jl} implements specialized algorithms for each gr
     \item \textbf{Memoization}: All computed characters, dimensions, and
     Weingarten values are cached using the \texttt{Memoization.jl} package.
     Memoization occurs at the granular level of individual character and
-    dimension calls, ensuring maximizing reuse across different partition
+    call, ensuring maximum reuse across different partition
     structures and integration orders.
 \end{itemize}
 

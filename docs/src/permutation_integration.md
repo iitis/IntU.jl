@@ -40,7 +40,7 @@ follows simple combinatorial rules:
 1. **Consistency**: If the set of pairs $\{(i_m, j_m)\}$ overlaps in rows but
    not columns (e.g., $P_{11}P_{12}$) or vice versa, the integral is **$0$**
    because no permutation matrix can have two $1$s in the same row or column.
-   $i_m$ are distinct and all $j_m$ are distinct), the result is:
+2. **Monomial Integration**: If the indices are consistent (i.e., all $i_m$ are distinct and all $j_m$ are distinct), the result is:
 ```math
 \mathbb{E}[P_{i_1, j_1} \dots P_{i_k, j_k}] = \frac{(d-k)!}{d!}
 ```

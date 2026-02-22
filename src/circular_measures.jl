@@ -6,13 +6,13 @@ This is mathematically equivalent to the Haar measure on U(d).
 """
 dCUE(dim) = dU(dim)
 
-struct COEMeasure{D,M}
+struct COEMeasure{D,M} <: AbstractMeasure
     dim::D
     matcher::M
 end
 COEMeasure(dim) = COEMeasure(dim, nothing)
 
-struct CSEMeasure{D,M}
+struct CSEMeasure{D,M} <: AbstractMeasure
     dim::D
     matcher::M
 end
@@ -34,19 +34,6 @@ Integration engine identifies variables via metadata tag `:CSE`.
 """
 dCSE(dim) = CSEMeasure(dim)
 
-
-# Generate element-wise integration and ambiguity-resolution for both circular measure types
-for T_measure in [COEMeasure, CSEMeasure]
-    @eval function integrate(expr::AbstractArray, measure::$T_measure)
-        return map(e -> integrate(e, measure), expr)
-    end
-    @eval function integrate(expr::SymbolicMatrix, measure::$T_measure)
-        return invoke(integrate, Tuple{SymbolicMatrix,Any}, expr, measure)
-    end
-    @eval function integrate(expr::SymbolicMatrixProduct, measure::$T_measure)
-        return invoke(integrate, Tuple{SymbolicMatrixProduct,Any}, expr, measure)
-    end
-end
 
 function IntU.measure_info(measure::COEMeasure)
     subs_dict = Dict{Any,Any}()
