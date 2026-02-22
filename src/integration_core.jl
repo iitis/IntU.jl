@@ -887,6 +887,26 @@ function _safe_Num(x)
     return _to_Num(x_un)
 end
 
+"""
+    _try_extract_int(p_val)
+
+Attempt to extract an integer from a symbolic or numeric value.
+Handles Julia `Integer`, `AbstractFloat` with integer value, and
+`SymbolicUtils.BasicSymbolic` types that print as integers.
+Returns the `Int` value or `nothing`.
+"""
+function _try_extract_int(p_val)
+    if p_val isa Integer
+        return Int(p_val)
+    end
+    if p_val isa AbstractFloat && isinteger(p_val)
+        return Int(p_val)
+    end
+    # Fallback for symbolic types (e.g. BasicSymbolic{SymReal}) that
+    # represent integers but aren't Julia Integer subtypes
+    return tryparse(Int, string(p_val))
+end
+
 
 function _robust_real_num(x)
     res = _robust_real(x)
@@ -931,21 +951,24 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
     u_indices = Vector{Tuple{Int,Int}}()
     u_bar_indices = Vector{Tuple{Int,Int}}()
 
+    function _push_matched_index!(match_res, conjugated)
+        type, i, j = match_res
+        is_bar = endswith(string(type), "_bar")
+        final_is_bar = is_bar ⊻ conjugated
+        if final_is_bar
+            push!(u_bar_indices, (i, j))
+        else
+            push!(u_indices, (i, j))
+        end
+    end
+
     function traverse(t, conjugated = false)
         t_unwrapped = Symbolics.unwrap(t)
 
-        # Try to match the variable directly
+        # Try to match the variable directly (handles getindex, metadata, etc.)
         match_res = match_index(matcher, t_unwrapped)
         if match_res !== nothing
-            type, i, j = match_res
-            is_bar = endswith(string(type), "_bar")
-            final_is_bar = is_bar ⊻ conjugated
-
-            if final_is_bar
-                push!(u_bar_indices, (i, j))
-            else
-                push!(u_indices, (i, j))
-            end
+            _push_matched_index!(match_res, conjugated)
             return
         end
 
@@ -958,15 +981,17 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
             local op = Symbolics.operation(t_unwrapped)
             local args = Symbolics.arguments(t_unwrapped)
 
+            # Multiplicative: traverse each factor
             if op == (*)
                 for arg in args
                     traverse(arg, conjugated)
                 end
                 return
+            # Power: repeat base p times
             elseif op == (^)
                 base = args[1]
                 p_val = Symbolics.unwrap(args[2])
-                p = tryparse(Int, string(p_val))
+                p = _try_extract_int(p_val)
                 if p isa Integer
                     for _ = 1:p
                         traverse(base, conjugated)
@@ -975,50 +1000,35 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
                 end
                 traverse(base, conjugated)
                 return
+            # Division: traverse numerator, divide coefficient
             elseif op == (/)
                 traverse(args[1], conjugated)
                 coeff /= args[2]
                 return
+            # Conjugation: flip conjugated flag
             elseif op == conj || op == Base.conj
                 traverse(args[1], !conjugated)
                 return
-            elseif op == complex || op == Base.complex || op == (+) || op == (-)
-                for arg in args
-                    traverse(arg, conjugated)
-                end
-                return
+            # real(x) = (x + conj(x)) / 2
             elseif op == real || op == Base.real
-                # real(x) = (x + conj(x)) / 2
                 coeff *= 1 // 2
                 traverse(args[1], conjugated)
                 traverse(args[1], !conjugated)
                 return
+            # imag(x) = (x - conj(x)) / (2im)
             elseif op == imag || op == Base.imag
-                # imag(x) = (x - conj(x)) / 2im
-                # conj(imag(x)) = (conj(x) - x) / -2im = (x - conj(x)) / 2im
-                # So it's the same regardless of conjugated (except for the factor maybe?)
-                # Actually, (U-Ubar)/2im -> integral of U/2im and -Ubar/2im.
                 coeff *= 1 // (2im)
                 traverse(args[1], conjugated)
                 coeff *= -1
                 traverse(args[1], !conjugated)
                 return
-            elseif op == getindex
-                # Potential match via metadata even if not explicitly wrapped
-                match_res_direct = match_index(matcher, t_unwrapped)
-                if match_res_direct !== nothing
-                    type, i, j = match_res_direct
-                    is_bar = endswith(string(type), "_bar")
-                    final_is_bar = is_bar ⊻ conjugated
-                    if final_is_bar
-                        push!(u_bar_indices, (i, j))
-                    else
-                        push!(u_indices, (i, j))
-                    end
-                    return
+            # Distributive: complex, +, -
+            elseif op == complex || op == Base.complex || op == (+) || op == (-)
+                for arg in args
+                    traverse(arg, conjugated)
                 end
+                return
             end
-
         end
 
         coeff *= conjugated ? conj(t) : t

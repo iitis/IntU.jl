@@ -45,4 +45,19 @@ using Symbolics
         res = integrate(expr, dU(d))
         @test isequal(res, 1/d)
     end
+
+    @testset "Prefactor Handling" begin
+        # Verify that check_gaussian_library correctly applies the prefactor
+        H = SymbolicMatrix(:H, :GUE)
+        # 3 * tr(H^2) should yield 3 * d^2, not d^2
+        expr = IntU.LazyTrace(Vector{AbstractMatrix}[[H, H]], Num(3))
+        res = IntU.check_gaussian_library(expr, dGUE(d), :GUE)
+        @test res !== nothing
+        @test isequal(res, 3 * d^2)
+
+        # tr(H^2) with prefactor=1 should yield d^2
+        expr1 = IntU.LazyTrace(Vector{AbstractMatrix}[[H, H]], Num(1))
+        res1 = IntU.check_gaussian_library(expr1, dGUE(d), :GUE)
+        @test isequal(res1, d^2)
+    end
 end
