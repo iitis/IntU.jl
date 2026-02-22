@@ -35,29 +35,17 @@ Integration engine identifies variables via metadata tag `:CSE`.
 dCSE(dim) = CSEMeasure(dim)
 
 
-"""
-    integrate(expr, measure::COEMeasure)
-"""
-function integrate(expr::AbstractArray, measure::COEMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
-
-function integrate(expr::AbstractArray, measure::CSEMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
-
-# Resolve ambiguities with SymbolicMatrix/SymbolicMatrixProduct
-function integrate(expr::SymbolicMatrix, measure::COEMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrix,Any}, expr, measure)
-end
-function integrate(expr::SymbolicMatrixProduct, measure::COEMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrixProduct,Any}, expr, measure)
-end
-function integrate(expr::SymbolicMatrix, measure::CSEMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrix,Any}, expr, measure)
-end
-function integrate(expr::SymbolicMatrixProduct, measure::CSEMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrixProduct,Any}, expr, measure)
+# Generate element-wise integration and ambiguity-resolution for both circular measure types
+for T_measure in [COEMeasure, CSEMeasure]
+    @eval function integrate(expr::AbstractArray, measure::$T_measure)
+        return map(e -> integrate(e, measure), expr)
+    end
+    @eval function integrate(expr::SymbolicMatrix, measure::$T_measure)
+        return invoke(integrate, Tuple{SymbolicMatrix,Any}, expr, measure)
+    end
+    @eval function integrate(expr::SymbolicMatrixProduct, measure::$T_measure)
+        return invoke(integrate, Tuple{SymbolicMatrixProduct,Any}, expr, measure)
+    end
 end
 
 function IntU.measure_info(measure::COEMeasure)
@@ -234,36 +222,49 @@ function integrate_indices_coe(
 end
 
 
-@doc raw"""
-    integrate_indices_cse(indices, U_bar_indices, dim, phys_dim)
-
-Integration of CSE terms by reducing to Haar integration with symplectic structure.
-
-## Index Mapping
-
-``S = U U^R`` where ``U^R = J U^T J^T`` is the symplectic reverse.
-Using the symplectic form ``J = [0\; I; -I\; 0]`` with ``\dim = 2N``:
-```math
-(U^R)_{aj} = \text{sign}(a)\,\text{sign}(j)\, U_{\text{pair}(j),\,\text{pair}(a)}
-```
-where `pair(k)` maps `k ↔ k+1` (for odd `k`) or `k ↔ k-1` (for even `k`),
-and `sign(k) = J_{k,pair(k)}`.
-
-Each ``S_{ij}`` produces two U-type indices with coefficients ``\text{sign}(j)\,\text{sign}(a_k)``,
-and each ``\bar{S}_{pq}`` produces two ``\bar{U}``-type indices similarly.
-
-## Signed Loop Count
-
-Like COE, dummy column summation yields a factor per connected component.
-However, the symplectic signs introduce parity constraints:
-- Each variable ``a_k`` or ``b_k`` contributes ``\text{sign}(\cdot)`` to the product.
-- ``\text{sign}(\text{pair}(x)) = -\text{sign}(x)``, so traversing a ``\text{pair}``
-  operation flips the sign.
-- A component with even total sign-flips contributes ``2N = d``;
-  odd total sign-flips gives ``\sum \text{sign}(x) = 0``, killing the term.
-
-The parity is tracked via union-find on these ``2m`` variable nodes.
 """
+    ParityUnionFind
+
+Union-find data structure with parity tracking for CSE integration.
+Tracks whether the path from a node to its root has odd or even parity.
+"""
+mutable struct ParityUnionFind
+    parent::Vector{Int}
+    parity::Vector{Int}
+    function ParityUnionFind(n::Int)
+        new(collect(1:n), zeros(Int, n))
+    end
+end
+
+function find!(uf::ParityUnionFind, idx::Int)
+    if uf.parent[idx] == idx
+        return idx, 0
+    end
+    root, root_parity = find!(uf, uf.parent[idx])
+    uf.parent[idx] = root
+    uf.parity[idx] = (uf.parity[idx] + root_parity) % 2
+    return root, uf.parity[idx]
+end
+
+function unite!(uf::ParityUnionFind, i::Int, j::Int, p::Int)
+    root_i, par_i = find!(uf, i)
+    root_j, par_j = find!(uf, j)
+    if root_i != root_j
+        uf.parent[root_i] = root_j
+        uf.parity[root_i] = (p - par_i - par_j) % 2
+        if uf.parity[root_i] < 0
+            uf.parity[root_i] += 2
+        end
+        return true
+    else
+        current_rel = (par_i - par_j) % 2
+        if current_rel < 0
+            current_rel += 2
+        end
+        return current_rel == p
+    end
+end
+
 function integrate_indices_cse(
     indices::Vector{Tuple{Int,Int}},
     U_bar_indices::Vector{Tuple{Int,Int}},
@@ -317,37 +318,7 @@ function integrate_indices_cse(
 
     for tau in permutations_n
         possible = true
-        uf_parent = collect(1:(2*m))
-        uf_parity = zeros(Int, 2*m)
-
-        function find_local(idx)
-            if uf_parent[idx] == idx
-                return idx, 0
-            end
-            root, root_parity = find_local(uf_parent[idx])
-            uf_parent[idx] = root
-            uf_parity[idx] = (uf_parity[idx] + root_parity) % 2
-            return root, uf_parity[idx]
-        end
-
-        function unite_local(i, j, p)
-            root_i, par_i = find_local(i)
-            root_j, par_j = find_local(j)
-            if root_i != root_j
-                uf_parent[root_i] = root_j
-                uf_parity[root_i] = (p - par_i - par_j) % 2
-                if uf_parity[root_i] < 0
-                    uf_parity[root_i] += 2
-                end
-                return true
-            else
-                current_rel = (par_i - par_j) % 2
-                if current_rel < 0
-                    current_rel += 2
-                end
-                return current_rel == p
-            end
-        end
+        uf = ParityUnionFind(2 * m)
 
         for r = 1:n
             var_idx_L = div(r - 1, 2) + 1
@@ -357,7 +328,7 @@ function integrate_indices_cse(
             is_pair_R = ((tr - 1) % 2 == 1)
             parity = (is_pair_L != is_pair_R ? 1 : 0)
 
-            if !unite_local(var_idx_L, var_idx_R, Int(parity) % 2)
+            if !unite!(uf, var_idx_L, var_idx_R, Int(parity) % 2)
                 possible = false
                 break
             end
@@ -371,10 +342,10 @@ function integrate_indices_cse(
         processed = zeros(Bool, 2*m)
         for i = 1:(2*m)
             if !processed[i]
-                root, _ = find_local(i)
+                root, _ = find!(uf, i)
                 members = Int[]
                 for j = i:(2*m)
-                    rj, _ = find_local(j)
+                    rj, _ = find!(uf, j)
                     if rj == root
                         push!(members, j)
                         processed[j] = true
@@ -382,7 +353,7 @@ function integrate_indices_cse(
                 end
 
                 K = length(members)
-                dist_sum = sum(find_local(j)[2] for j in members)
+                dist_sum = sum(find!(uf, j)[2] for j in members)
                 prefactor = (-1)^dist_sum
 
                 if K % 2 == 0

@@ -30,26 +30,17 @@ dSp(dim) = SymplecticMeasure(dim)
 """
     integrate(expr, measure::OrthogonalMeasure)
 """
-function integrate(expr::AbstractArray, measure::OrthogonalMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
-
-function integrate(expr::AbstractArray, measure::SymplecticMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
-
-# Resolve ambiguity with SymbolicMatrix/SymbolicMatrixProduct
-function integrate(expr::SymbolicMatrix, measure::OrthogonalMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrix,Any}, expr, measure)
-end
-function integrate(expr::SymbolicMatrixProduct, measure::OrthogonalMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrixProduct,Any}, expr, measure)
-end
-function integrate(expr::SymbolicMatrix, measure::SymplecticMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrix,Any}, expr, measure)
-end
-function integrate(expr::SymbolicMatrixProduct, measure::SymplecticMeasure)
-    return invoke(integrate, Tuple{SymbolicMatrixProduct,Any}, expr, measure)
+# Generate element-wise integration and ambiguity-resolution for both measure types
+for T_measure in [OrthogonalMeasure, SymplecticMeasure]
+    @eval function integrate(expr::AbstractArray, measure::$T_measure)
+        return map(e -> integrate(e, measure), expr)
+    end
+    @eval function integrate(expr::SymbolicMatrix, measure::$T_measure)
+        return invoke(integrate, Tuple{SymbolicMatrix,Any}, expr, measure)
+    end
+    @eval function integrate(expr::SymbolicMatrixProduct, measure::$T_measure)
+        return invoke(integrate, Tuple{SymbolicMatrixProduct,Any}, expr, measure)
+    end
 end
 
 function IntU.measure_info(measure::OrthogonalMeasure)

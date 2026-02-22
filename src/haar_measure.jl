@@ -225,15 +225,10 @@ end
 
 function _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
     res = t.prefactor
+    slot_set = Set{Int}(all_slots)
     for (cid, rng) in enumerate(cycle_ranges)
-        # Check if any slot in rng is in all_slots
-        has_U = false
-        for idx in rng
-            if idx in all_slots
-                has_U = true
-                break
-            end
-        end
+        # Check if any slot in rng is in all_slots (O(1) set lookup)
+        has_U = any(idx -> idx in slot_set, rng)
 
         if !has_U
             cycle = t.cycles[cid]

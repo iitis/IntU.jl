@@ -66,6 +66,24 @@ function _ensure_symbolic_dim(d)
     return d_un isa Symbol ? Symbolics.variable(d_un) : d
 end
 
+"""
+    _try_numeric(v)
+
+Attempt to convert a value to a clean numeric form. Returns the converted value,
+or `nothing` if conversion is not possible.
+- `AbstractFloat` → rationalized
+- `Real` → returned as-is
+"""
+function _try_numeric(v)
+    if v isa AbstractFloat
+        return rationalize(v, tol = 1e-13)
+    end
+    if v isa Real
+        return v
+    end
+    return nothing
+end
+
 function _robust_real(x)
     if x isa AbstractArray
         return map(_robust_real, x)
@@ -73,14 +91,10 @@ function _robust_real(x)
 
     x_un = Symbolics.unwrap(x)
 
-
     v = Symbolics.value(x_un)
-    if v isa AbstractFloat
-        return rationalize(v, tol = 1e-13)
-    end
-    if v isa Real
-        return v
-    end
+    result = _try_numeric(v)
+    result !== nothing && return result
+
     if v isa Complex
         rv = _robust_real(real(v))
         iv = _robust_real(imag(v))
@@ -116,31 +130,19 @@ function _robust_real(x)
     end
 
     v = Symbolics.value(nx)
-    if v isa AbstractFloat
-        return rationalize(v, tol = 1e-13)
-    end
-    if v isa Real
-        return v
-    end
+    result = _try_numeric(v)
+    result !== nothing && return result
 
     nx = Symbolics.simplify(nx)
     v = Symbolics.value(nx)
-    if v isa AbstractFloat
-        return rationalize(v, tol = 1e-13)
-    end
-    if v isa Real
-        return v
-    end
+    result = _try_numeric(v)
+    result !== nothing && return result
 
     if _iszero(Symbolics.simplify(imag(nx)))
         rx = Symbolics.simplify(real(nx))
         vx = Symbolics.value(rx)
-        if vx isa AbstractFloat
-            return rationalize(vx, tol = 1e-13)
-        end
-        if vx isa Real
-            return vx
-        end
+        result = _try_numeric(vx)
+        result !== nothing && return result
         return rx
     end
     return nx
@@ -318,6 +320,36 @@ end
 
 _is_real_sq(term) = _is_fn_sq(term, real, Base.real)
 _is_imag_sq(term) = _is_fn_sq(term, imag, Base.imag)
+
+"""
+    robust_substitute(ex, dict)
+
+Substitute symbolic variables in `ex` using `dict`. Falls back to manual
+Postwalk traversal with unwrapped keys if `Symbolics.substitute` doesn't
+produce a different expression.
+"""
+function robust_substitute(ex, dict)
+    res = Symbolics.substitute(Symbolics.wrap(ex), dict)
+
+    if !_symbolic_isequal(res, Symbolics.wrap(ex))
+        return res
+    end
+
+    # Fallback: manual Postwalk traversal with unwrapped keys
+    unwrapped_dict = Dict(Symbolics.unwrap(k) => Symbolics.unwrap(v) for (k, v) in dict)
+
+    p_res = SymbolicUtils.Postwalk(x -> begin
+        u = Symbolics.unwrap(x)
+        if haskey(unwrapped_dict, u)
+            return unwrapped_dict[u]
+        end
+        return x
+    end)(
+        Symbolics.unwrap(ex),
+    )
+
+    return Symbolics.wrap(p_res)
+end
 
 """
     _integrate_core(expr, dim, subs_dict, matcher, measure_type=:U)
@@ -603,30 +635,6 @@ function _integrate_core(
 
     expr_num = _safe_Num(expr_rewritten)
     expr_num = Symbolics.expand(expr_num)
-
-
-    function robust_substitute(ex, dict)
-        res = Symbolics.substitute(Symbolics.wrap(ex), dict)
-
-        if !_symbolic_isequal(res, Symbolics.wrap(ex))
-            return res
-        end
-
-        # Fallback: manual Postwalk traversal with unwrapped keys
-        unwrapped_dict = Dict(Symbolics.unwrap(k) => Symbolics.unwrap(v) for (k, v) in dict)
-
-        p_res = SymbolicUtils.Postwalk(x -> begin
-            u = Symbolics.unwrap(x)
-            if haskey(unwrapped_dict, u)
-                return unwrapped_dict[u]
-            end
-            return x
-        end)(
-            Symbolics.unwrap(ex),
-        )
-
-        return Symbolics.wrap(p_res)
-    end
 
     expr_subbed = if expr_num isa Complex
         robust_substitute(Symbolics.unwrap(real(expr_num)), subs_dict) +
@@ -1038,22 +1046,17 @@ end
 
 INTEGRATION_RULES[:U] =
     (u, ub, d, mt) -> begin
-        d_un = Symbolics.unwrap(d)
-        if d_un isa Symbol
-            d = Symbolics.variable(d_un)
-        end
+        d = _ensure_symbolic_dim(d)
         length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices(u, ub, d))
     end
 
-# Stiefel V_k(C^d) integration is same as Haar U(d) for entries
+# Stiefel V_k(C^d) and pure state integration are same as Haar U(d) for entries
 INTEGRATION_RULES[:V] = INTEGRATION_RULES[:U]
+INTEGRATION_RULES[:psi] = INTEGRATION_RULES[:U]
 
 INTEGRATION_RULES[:O] =
     (u, ub, d, mt) -> begin
-        d_un = Symbolics.unwrap(d)
-        if d_un isa Symbol
-            d = Symbolics.variable(d_un)
-        end
+        d = _ensure_symbolic_dim(d)
         all_indices = [u; ub]
         length(all_indices) % 2 != 0 ? 0 :
         (length(all_indices) == 0 ? 1 : integrate_indices_orthogonal(all_indices, d))
@@ -1061,11 +1064,8 @@ INTEGRATION_RULES[:O] =
 
 INTEGRATION_RULES[:Sp] =
     (u, ub, d, mt) -> begin
+        d = _ensure_symbolic_dim(d)
         d_un = Symbolics.unwrap(d)
-        if d_un isa Symbol
-            d = Symbolics.variable(d_un)
-            d_un = d
-        end
         if !(d_un isa Integer) || isodd(d_un)
             # For now, if we have bars, we can't handle symbolic d easily.
             if length(ub) > 0
@@ -1100,10 +1100,7 @@ INTEGRATION_RULES[:Sp] =
 
 INTEGRATION_RULES[:GUE] =
     (u, ub, d, mt) -> begin
-        d_un = Symbolics.unwrap(d)
-        if d_un isa Symbol
-            d = Symbolics.variable(d_un)
-        end
+        d = _ensure_symbolic_dim(d)
         all_indices = [u; ub]
         length(all_indices) % 2 != 0 ? 0 :
         (length(all_indices) == 0 ? 1 : integrate_indices_gue(all_indices, d))
@@ -1111,10 +1108,7 @@ INTEGRATION_RULES[:GUE] =
 
 INTEGRATION_RULES[:GOE] =
     (u, ub, d, mt) -> begin
-        d_un = Symbolics.unwrap(d)
-        if d_un isa Symbol
-            d = Symbolics.variable(d_un)
-        end
+        d = _ensure_symbolic_dim(d)
         all_indices = [u; ub]
         length(all_indices) % 2 != 0 ? 0 :
         (length(all_indices) == 0 ? 1 : integrate_indices_goe(all_indices, d))
@@ -1122,10 +1116,7 @@ INTEGRATION_RULES[:GOE] =
 
 INTEGRATION_RULES[:GSE] =
     (u, ub, d, mt) -> begin
-        d_un = Symbolics.unwrap(d)
-        if d_un isa Symbol
-            d = Symbolics.variable(d_un)
-        end
+        d = _ensure_symbolic_dim(d)
         all_indices = [u; ub]
         length(all_indices) % 2 != 0 ? 0 :
         (length(all_indices) == 0 ? 1 : integrate_indices_gse(all_indices, d))
@@ -1133,20 +1124,14 @@ INTEGRATION_RULES[:GSE] =
 
 INTEGRATION_RULES[:COE] =
     (u, ub, d, mt) -> begin
-        d_un = Symbolics.unwrap(d)
-        if d_un isa Symbol
-            d = Symbolics.variable(d_un)
-        end
+        d = _ensure_symbolic_dim(d)
         length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices_coe(u, ub, d))
     end
 
 INTEGRATION_RULES[:CSE] =
     (u, ub, d, mt) -> begin
+        d = _ensure_symbolic_dim(d)
         d_un = Symbolics.unwrap(d)
-        if d_un isa Symbol
-            d = Symbolics.variable(d_un)
-            d_un = d
-        end
         length(u) != length(ub) ? 0 :
         (
             begin
@@ -1158,22 +1143,14 @@ INTEGRATION_RULES[:CSE] =
 
 INTEGRATION_RULES[:Perm] =
     (u, ub, d, mt) -> begin
-        d_un = Symbolics.unwrap(d)
-        if d_un isa Symbol
-            d = Symbolics.variable(d_un)
-        end
-        # P_bar is P for real permutation matrices, so we treat u and ub symmetrically
+        d = _ensure_symbolic_dim(d)
         all_indices = [u; ub]
         length(all_indices) == 0 ? 1 : integrate_indices_permutation(all_indices, d)
     end
 
-
 INTEGRATION_RULES[:CPerm] =
     (u, ub, d, mt) -> begin
-        d_un = Symbolics.unwrap(d)
-        if d_un isa Symbol
-            d = Symbolics.variable(d_un)
-        end
+        d = _ensure_symbolic_dim(d)
         all_indices = [u; ub]
         length(all_indices) == 0 ? 1 :
         integrate_indices_centered_permutation(all_indices, d)
@@ -1188,13 +1165,6 @@ INTEGRATION_RULES[:Design] =
         end
         length(u) == 0 ? 1 : integrate_indices(u, ub, d)
     end
-
-INTEGRATION_RULES[:Perm] =
-    (u, ub, d, mt) -> begin
-        all_indices = [u; ub]
-        length(all_indices) == 0 ? 1 : integrate_indices_permutation(all_indices, d)
-    end
-
 
 INTEGRATION_RULES[:DiagUnitary] =
     (u, ub, d, mt) -> begin
@@ -1221,19 +1191,6 @@ INTEGRATION_RULES[:GinSE] =
         all_indices = [u; ub]
         length(all_indices) % 2 != 0 ? 0 :
         (length(all_indices) == 0 ? 1 : integrate_indices_ginse(all_indices, d))
-    end
-
-INTEGRATION_RULES[:psi] =
-    (u, ub, d, mt) -> begin
-        # Pure states are first column of Haar unitary
-        length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices(u, ub, d))
-    end
-
-INTEGRATION_RULES[:V] =
-    (u, ub, d, mt) -> begin
-        # Stiefel manifold is first k columns of Haar unitary
-        # We assume indices already correct.
-        length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices(u, ub, d))
     end
 
 
