@@ -1,6 +1,5 @@
 
-using Symbolics
-using MacroTools
+
 
 const EXCLUDED_MACRO_SYMS = Set{Symbol}([
     :abs,
@@ -71,13 +70,10 @@ macro integrate(expr, measure)
         :V, :DiagUnitary
     elseif m_name == :dStiefel
         :V, :U
-    elseif m_name == :dGUE ||
-           m_name == :dGOE ||
-           m_name == :dGSE ||
-           m_name == :dGinUE ||
-           m_name == :dGinOE ||
-           m_name == :dGinSE
-        :H, Symbol(replace(string(m_name)[2:end], "Measure" => "")) # approximate tag
+    elseif m_name == :dGUE || m_name == :dGOE || m_name == :dGSE
+        :H, Symbol(string(m_name)[2:end])
+    elseif m_name == :dGinUE || m_name == :dGinOE || m_name == :dGinSE
+        :G, Symbol(string(m_name)[2:end])
     else
         :U, :U # default
     end
@@ -114,9 +110,6 @@ macro integrate(expr, measure)
                 ),
             )
         else
-            # Declare as constant symbolic matrix if used as matrix/vector
-            # We assume for now if it's there it might be a constant matrix.
-            # If it's already defined in scope, this avoids shadowing it. 
             push!(decls, :(
                 if !@isdefined($s)
                     ;$s = SymbolicMatrix($(QuoteNode(s)), :Constant, nothing);

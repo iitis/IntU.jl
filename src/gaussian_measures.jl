@@ -93,33 +93,12 @@ end
 """
     integrate(expr, measure::GUEMeasure)
 """
-function integrate(expr::AbstractArray, measure::GUEMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
-
-function integrate(expr::AbstractArray, measure::GOEMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
-
-function integrate(expr::AbstractArray, measure::GSEMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
-
-function integrate(expr::AbstractArray, measure::GinUEMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
-
-function integrate(expr::AbstractArray, measure::GinOEMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
-
-function integrate(expr::AbstractArray, measure::GinSEMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
-
-# Resolve ambiguities with SymbolicMatrix/SymbolicMatrixProduct
+# Generate element-wise integration for all Gaussian measure types
 for T_measure in
     [GUEMeasure, GOEMeasure, GSEMeasure, GinUEMeasure, GinOEMeasure, GinSEMeasure]
+    @eval function integrate(expr::AbstractArray, measure::$T_measure)
+        return map(e -> integrate(e, measure), expr)
+    end
     @eval function integrate(expr::SymbolicMatrix, measure::$T_measure)
         return invoke(integrate, Tuple{SymbolicMatrix,Any}, expr, measure)
     end
@@ -128,64 +107,17 @@ for T_measure in
     end
 end
 
-function IntU.measure_info(measure::GUEMeasure)
-    subs_dict = Dict{Any,Any}()
-    matcher = measure.matcher === nothing ? MetadataMatcher(:GUE) : measure.matcher
-    dim = measure.dim
-    if dim isa SymbolicMatrix
-        dim = dim.dim
+# Generate measure_info methods for all Gaussian measure types
+for (T_measure, tag) in [
+    (GUEMeasure, :GUE), (GOEMeasure, :GOE), (GSEMeasure, :GSE),
+    (GinUEMeasure, :GinUE), (GinOEMeasure, :GinOE), (GinSEMeasure, :GinSE),
+]
+    @eval function IntU.measure_info(measure::$T_measure)
+        subs_dict = Dict{Any,Any}()
+        matcher = measure.matcher === nothing ? MetadataMatcher($(QuoteNode(tag))) : measure.matcher
+        dim = measure.dim isa SymbolicMatrix ? measure.dim.dim : measure.dim
+        return (subs_dict, matcher, dim, $(QuoteNode(tag)))
     end
-    return (subs_dict, matcher, dim, :GUE)
-end
-
-function IntU.measure_info(measure::GOEMeasure)
-    subs_dict = Dict{Any,Any}()
-    matcher = measure.matcher === nothing ? MetadataMatcher(:GOE) : measure.matcher
-    dim = measure.dim
-    if dim isa SymbolicMatrix
-        dim = dim.dim
-    end
-    return (subs_dict, matcher, dim, :GOE)
-end
-
-function IntU.measure_info(measure::GSEMeasure)
-    subs_dict = Dict{Any,Any}()
-    matcher = measure.matcher === nothing ? MetadataMatcher(:GSE) : measure.matcher
-    dim = measure.dim
-    if dim isa SymbolicMatrix
-        dim = dim.dim
-    end
-    return (subs_dict, matcher, dim, :GSE)
-end
-
-function IntU.measure_info(measure::GinUEMeasure)
-    subs_dict = Dict{Any,Any}()
-    matcher = measure.matcher === nothing ? MetadataMatcher(:GinUE) : measure.matcher
-    dim = measure.dim
-    if dim isa SymbolicMatrix
-        dim = dim.dim
-    end
-    return (subs_dict, matcher, dim, :GinUE)
-end
-
-function IntU.measure_info(measure::GinOEMeasure)
-    subs_dict = Dict{Any,Any}()
-    matcher = measure.matcher === nothing ? MetadataMatcher(:GinOE) : measure.matcher
-    dim = measure.dim
-    if dim isa SymbolicMatrix
-        dim = dim.dim
-    end
-    return (subs_dict, matcher, dim, :GinOE)
-end
-
-function IntU.measure_info(measure::GinSEMeasure)
-    subs_dict = Dict{Any,Any}()
-    matcher = measure.matcher === nothing ? MetadataMatcher(:GinSE) : measure.matcher
-    dim = measure.dim
-    if dim isa SymbolicMatrix
-        dim = dim.dim
-    end
-    return (subs_dict, matcher, dim, :GinSE)
 end
 
 function fallback_integrate(t::LazyTrace, measure::GUEMeasure)
@@ -344,6 +276,13 @@ function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
         # GOE: <H_ij H_kl> = delta_ik delta_jl + delta_il delta_jk
         # Sum over all 2^(n_H/2) contraction-type choices
 
+        # Pre-build partner lookup: m -> (partner_m, pair_idx)
+        partner_lookup = Dict{Int,Tuple{Int,Int}}()
+        for (p_idx, (u, v)) in enumerate(pi)
+            partner_lookup[u] = (v, p_idx)
+            partner_lookup[v] = (u, p_idx)
+        end
+
         choice_combinations = collect(Iterators.product(fill([1, 2], n_H ÷ 2)...))
 
         for choices in choice_combinations
@@ -378,20 +317,7 @@ function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
                                 visited_ports[landed_m, 1] = true
 
                                 # Use Wick contraction jump
-                                pair_idx = 0
-                                partner_m = 0
-                                for (p_idx, (u, v)) in enumerate(pi)
-                                    if u == landed_m
-                                        pair_idx = p_idx
-                                        partner_m = v
-                                        break
-                                    end
-                                    if v == landed_m
-                                        pair_idx = p_idx
-                                        partner_m = u
-                                        break
-                                    end
-                                end
+                                partner_m, pair_idx = partner_lookup[landed_m]
 
                                 if choices[pair_idx] == 2 # delta_il delta_jk (P1 -> P2)
                                     curr_m = partner_m
@@ -414,20 +340,7 @@ function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
                                 end
                                 visited_ports[landed_m, 2] = true
 
-                                pair_idx = 0
-                                partner_m = 0
-                                for (p_idx, (u, v)) in enumerate(pi)
-                                    if u == landed_m
-                                        pair_idx = p_idx
-                                        partner_m = v
-                                        break
-                                    end
-                                    if v == landed_m
-                                        pair_idx = p_idx
-                                        partner_m = u
-                                        break
-                                    end
-                                end
+                                partner_m, pair_idx = partner_lookup[landed_m]
 
                                 if choices[pair_idx] == 2 # delta_il delta_jk (P2 -> P1)
                                     curr_m = partner_m
@@ -726,98 +639,21 @@ function fallback_integrate(t::LazyTrace, measure::GinSEMeasure)
     return final_sign * res_subbed
 end
 
-"""
-    asymptotic(expr, measure::GUEMeasure, order=1)
-"""
-function asymptotic(expr, measure::GUEMeasure, order = 1)
-    d = measure.dim
-    if d isa Symbolics.Num || !(d isa Integer)
-        exact_res = integrate(expr, measure)
-        return _expand_asymptotic(exact_res, d, order)
+# Generate asymptotic methods for all Gaussian measure types
+for (T_measure, d_ctor) in [
+    (GUEMeasure, dGUE), (GOEMeasure, dGOE), (GSEMeasure, dGSE),
+    (GinUEMeasure, dGinUE), (GinOEMeasure, dGinOE), (GinSEMeasure, dGinSE),
+]
+    @eval function asymptotic(expr, measure::$T_measure, order = 1)
+        d = measure.dim
+        if d isa Symbolics.Num || !(d isa Integer)
+            exact_res = integrate(expr, measure)
+            return _expand_asymptotic(exact_res, d, order)
+        end
+
+        d_asymp = Symbolics.variable(:d_asymp)
+        m_sym = $d_ctor(d_asymp)
+        exact_res = integrate(expr, m_sym)
+        return _expand_asymptotic(exact_res, d_asymp, order)
     end
-
-    d_asymp = Symbolics.variable(:d_asymp)
-    m_sym = dGUE(d_asymp)
-    exact_res = integrate(expr, m_sym)
-    return _expand_asymptotic(exact_res, d_asymp, order)
-end
-
-"""
-    asymptotic(expr, measure::GOEMeasure, order=1)
-"""
-function asymptotic(expr, measure::GOEMeasure, order = 1)
-    d = measure.dim
-    if d isa Symbolics.Num || !(d isa Integer)
-        exact_res = integrate(expr, measure)
-        return _expand_asymptotic(exact_res, d, order)
-    end
-
-    d_asymp = Symbolics.variable(:d_asymp)
-    m_sym = dGOE(d_asymp)
-    exact_res = integrate(expr, m_sym)
-    return _expand_asymptotic(exact_res, d_asymp, order)
-end
-
-"""
-    asymptotic(expr, measure::GSEMeasure, order=1)
-"""
-function asymptotic(expr, measure::GSEMeasure, order = 1)
-    d = measure.dim
-    if d isa Symbolics.Num || !(d isa Integer)
-        exact_res = integrate(expr, measure)
-        return _expand_asymptotic(exact_res, d, order)
-    end
-
-    d_asymp = Symbolics.variable(:d_asymp)
-    m_sym = dGSE(d_asymp)
-    exact_res = integrate(expr, m_sym)
-    return _expand_asymptotic(exact_res, d_asymp, order)
-end
-
-"""
-    asymptotic(expr, measure::GinUEMeasure, order=1)
-"""
-function asymptotic(expr, measure::GinUEMeasure, order = 1)
-    d = measure.dim
-    if d isa Symbolics.Num || !(d isa Integer)
-        exact_res = integrate(expr, measure)
-        return _expand_asymptotic(exact_res, d, order)
-    end
-
-    d_asymp = Symbolics.variable(:d_asymp)
-    m_sym = dGinUE(d_asymp)
-    exact_res = integrate(expr, m_sym)
-    return _expand_asymptotic(exact_res, d_asymp, order)
-end
-
-"""
-    asymptotic(expr, measure::GinOEMeasure, order=1)
-"""
-function asymptotic(expr, measure::GinOEMeasure, order = 1)
-    d = measure.dim
-    if d isa Symbolics.Num || !(d isa Integer)
-        exact_res = integrate(expr, measure)
-        return _expand_asymptotic(exact_res, d, order)
-    end
-
-    d_asymp = Symbolics.variable(:d_asymp)
-    m_sym = dGinOE(d_asymp)
-    exact_res = integrate(expr, m_sym)
-    return _expand_asymptotic(exact_res, d_asymp, order)
-end
-
-"""
-    asymptotic(expr, measure::GinSEMeasure, order=1)
-"""
-function asymptotic(expr, measure::GinSEMeasure, order = 1)
-    d = measure.dim
-    if d isa Symbolics.Num || !(d isa Integer)
-        exact_res = integrate(expr, measure)
-        return _expand_asymptotic(exact_res, d, order)
-    end
-
-    d_asymp = Symbolics.variable(:d_asymp)
-    m_sym = dGinSE(d_asymp)
-    exact_res = integrate(expr, m_sym)
-    return _expand_asymptotic(exact_res, d_asymp, order)
 end

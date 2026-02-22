@@ -304,32 +304,40 @@ These partitions are also known as **perfect matchings** of the complete graph `
         return [Vector{Tuple{Int,Int}}()]
     end
 
-    # Recursive generation
+    k = n ÷ 2
     res = Vector{Vector{Tuple{Int,Int}}}()
+    buf = Vector{Tuple{Int,Int}}(undef, k)
+    used = falses(n)
 
-    # helper
-    function generate(current_pairs, remaining)
-        if isempty(remaining)
-            push!(res, current_pairs)
+    function generate(depth)
+        if depth > k
+            push!(res, copy(buf))
             return
         end
 
-        first = remaining[1]
-        # Try pairing `first` with each other element
-        for i = 2:length(remaining)
-            second = remaining[i]
-
-            new_pairs = copy(current_pairs)
-            push!(new_pairs, (first, second))
-
-            new_remaining = copy(remaining)
-            deleteat!(new_remaining, [1, i])
-
-            generate(new_pairs, new_remaining)
+        # Find smallest unused index
+        first = 0
+        for i = 1:n
+            if !used[i]
+                first = i
+                break
+            end
         end
+        used[first] = true
+
+        # Pair `first` with each subsequent unused index
+        for second = (first+1):n
+            if !used[second]
+                used[second] = true
+                buf[depth] = (first, second)
+                generate(depth + 1)
+                used[second] = false
+            end
+        end
+        used[first] = false
     end
 
-    generate(Vector{Tuple{Int,Int}}(), collect(1:n))
+    generate(1)
     return res
 end
 

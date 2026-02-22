@@ -189,10 +189,10 @@ function *(A::SymbolicAny, B::SymbolicAny)
     return SymbolicMatrixProduct(vcat(_factors(A), _factors(B)))
 end
 function *(A::SymbolicAny, B::AbstractMatrix)
-    return SymbolicMatrixProduct(vcat(_factors(A), Any[B]))
+    return SymbolicMatrixProduct(vcat(_factors(A), AbstractMatrix[B]))
 end
 function *(A::AbstractMatrix, B::SymbolicAny)
-    return SymbolicMatrixProduct(vcat(Any[A], _factors(B)))
+    return SymbolicMatrixProduct(vcat(AbstractMatrix[A], _factors(B)))
 end
 
 function *(A::SymbolicAny, B::SymbolicAny, Cs::SymbolicAny...)

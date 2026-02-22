@@ -99,17 +99,17 @@ function check_gaussian_library(expr, measure, type)
     val = nothing
     if type == :GUE
         if k == 2
-            return d^2
+            val = d^2
         elseif k == 4
-            return 2d^3 + d
+            val = 2d^3 + d
         elseif k == 6
-            return 5d^4 + 10d^2
+            val = 5d^4 + 10d^2
         end
     elseif type == :GOE
         if k == 2
-            return d^2 + d
+            val = d^2 + d
         elseif k == 4
-            return 2d^3 + 5d^2 + 5d
+            val = 2d^3 + 5d^2 + 5d
         end
     elseif type == :GSE
         if k == 2

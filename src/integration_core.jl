@@ -55,6 +55,17 @@ function _iszero(x)
     return _symbolic_isequal(v, 0)
 end
 
+"""
+    _ensure_symbolic_dim(d)
+
+Ensure dimension `d` is a proper Symbolics variable. If `d` unwraps to a plain
+`Symbol`, wrap it via `Symbolics.variable`; otherwise return as-is.
+"""
+function _ensure_symbolic_dim(d)
+    d_un = Symbolics.unwrap(d)
+    return d_un isa Symbol ? Symbolics.variable(d_un) : d
+end
+
 function _robust_real(x)
     if x isa AbstractArray
         return map(_robust_real, x)
@@ -283,8 +294,8 @@ function _extract_coeff_core(term)
     end
 end
 
-function _is_real_sq(term)
-    # Strip potential 1 * ... wrapper if it exists (though _extract_coeff_core should handle it)
+function _is_fn_sq(term, fn1, fn2)
+    # Strip potential 1 * ... wrapper
     if Symbolics.iscall(term) && Symbolics.operation(term) == (*)
         args = Symbolics.arguments(term)
         if length(args) == 2 && isequal(args[1], 1)
@@ -298,33 +309,15 @@ function _is_real_sq(term)
         expon = args[2]
         if isequal(expon, 2) &&
            Symbolics.iscall(base) &&
-           (Symbolics.operation(base) == real || Symbolics.operation(base) == Base.real)
+           (Symbolics.operation(base) == fn1 || Symbolics.operation(base) == fn2)
             return true, Symbolics.arguments(base)[1]
         end
     end
     return false, nothing
 end
 
-function _is_imag_sq(term)
-    if Symbolics.iscall(term) && Symbolics.operation(term) == (*)
-        args = Symbolics.arguments(term)
-        if length(args) == 2 && isequal(args[1], 1)
-            term = args[2]
-        end
-    end
-
-    if Symbolics.iscall(term) && Symbolics.operation(term) == (^)
-        args = Symbolics.arguments(term)
-        base = args[1]
-        expon = args[2]
-        if isequal(expon, 2) &&
-           Symbolics.iscall(base) &&
-           (Symbolics.operation(base) == imag || Symbolics.operation(base) == Base.imag)
-            return true, Symbolics.arguments(base)[1]
-        end
-    end
-    return false, nothing
-end
+_is_real_sq(term) = _is_fn_sq(term, real, Base.real)
+_is_imag_sq(term) = _is_fn_sq(term, imag, Base.imag)
 
 """
     _integrate_core(expr, dim, subs_dict, matcher, measure_type=:U)
@@ -2156,5 +2149,3 @@ end
 function evaluate(expr, pair::Pair)
     return evaluate(expr, Dict(pair))
 end
-
-export evaluate
