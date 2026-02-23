@@ -1,5 +1,5 @@
 function integrate_indices_centered_permutation(
-    all_indices::AbstractVector{Tuple{Int,Int}},
+    all_indices::AbstractVector,
     dim,
 )
     # Expand prod(P_u - 1/d)
@@ -10,7 +10,7 @@ function integrate_indices_centered_permutation(
     total = 0
 
     # Pre-allocate to avoid repeated allocations in the loop
-    subset_indices = Vector{Tuple{Int,Int}}(undef, k)
+    subset_indices = Vector{Tuple{Any,Any}}(undef, k)
 
     for i = 0:(UInt(2)^k-1)
         # count_ones is a fast bitwise operation in Julia

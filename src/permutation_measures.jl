@@ -137,7 +137,7 @@ end
 
 Integration over the symmetric group S_d.
 """
-function integrate_indices_permutation(indices::AbstractVector{Tuple{Int,Int}}, dim)
+function integrate_indices_permutation(indices::AbstractVector, dim)
     if isempty(indices)
         return 1
     end

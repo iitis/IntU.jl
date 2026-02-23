@@ -43,7 +43,7 @@ function Base.size(A::SymbolicMatrix)
     end
 end
 
-function Base.getindex(A::SymbolicMatrix, i::Integer, j::Integer)
+function _getindex_scalar(A::SymbolicMatrix, i, j)
     s_name = Symbol(A.name, :_, i, :_, j)
     if A.is_adj
         s_name = Symbol(A.name, :_, j, :_, i)
@@ -57,7 +57,6 @@ function Base.getindex(A::SymbolicMatrix, i::Integer, j::Integer)
     )
 
     # Use T=Number to ensure Symbolics/SymbolicUtils does not incorrectly simplify conj(v)
-    # Note: These objects do not currently wrap in Num easily because Num expects Real symtype.
     v = Symbolics.variable(s_name, T = Number)
     v_un = Symbolics.unwrap(v)
     v_meta_un = SymbolicUtils.setmetadata(v_un, MatrixMetadata, meta)
@@ -65,6 +64,11 @@ function Base.getindex(A::SymbolicMatrix, i::Integer, j::Integer)
 
     return A.is_adj ? conj(v_meta) : v_meta
 end
+
+Base.getindex(A::SymbolicMatrix, i::Integer, j::Integer) = _getindex_scalar(A, i, j)
+Base.getindex(A::SymbolicMatrix, i::Num, j::Num) = _getindex_scalar(A, i, j)
+Base.getindex(A::SymbolicMatrix, i::Integer, j::Num) = _getindex_scalar(A, i, j)
+Base.getindex(A::SymbolicMatrix, i::Num, j::Integer) = _getindex_scalar(A, i, j)
 
 function Base.getindex(
     A::SymbolicMatrix,

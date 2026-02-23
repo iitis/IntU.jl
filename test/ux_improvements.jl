@@ -33,6 +33,10 @@ using Symbolics
         res_num = @integrate abs(U[1, 1])^2 dU(2)
         @test res_num == 1//2
 
+        # Test dSU integration
+        res_su = @integrate abs(U[1, 1])^2 dSU(d)
+        @test isequal(res_su, 1/d)
+
         # Test auto-definition of multiple matrices
         res_tr = @integrate tr(U * A * U' * B) dU(d)
         @test IntU.is_number(evaluate(res_tr, [d => 2, tr(A) => 1, tr(B) => 1]))

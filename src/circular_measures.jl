@@ -91,8 +91,8 @@ of connected components in a bipartite graph:
 The loop count is computed via union-find on these ``2m`` variable nodes.
 """
 function integrate_indices_coe(
-    indices::Vector{Tuple{Int,Int}},
-    U_bar_indices::Vector{Tuple{Int,Int}},
+    indices::AbstractVector,
+    U_bar_indices::AbstractVector,
     dim,
 )
 
@@ -106,14 +106,14 @@ function integrate_indices_coe(
     m = n_s
     n = 2 * m
 
-    U_rows = Vector{Int}(undef, n)
+    U_rows = Vector{Any}(undef, n)
     for k = 1:m
         i, j = indices[k]
         U_rows[2k-1] = i
         U_rows[2k] = j
     end
 
-    U_bar_rows = Vector{Int}(undef, n)
+    U_bar_rows = Vector{Any}(undef, n)
     for k = 1:m
         p, q = U_bar_indices[k]
         U_bar_rows[2k-1] = p
@@ -253,8 +253,8 @@ function unite!(uf::ParityUnionFind, i::Int, j::Int, p::Int)
 end
 
 function integrate_indices_cse(
-    indices::Vector{Tuple{Int,Int}},
-    U_bar_indices::Vector{Tuple{Int,Int}},
+    indices::AbstractVector,
+    U_bar_indices::AbstractVector,
     dim,
     phys_dim,
 )

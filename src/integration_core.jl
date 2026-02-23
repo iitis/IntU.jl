@@ -957,8 +957,8 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
 
     is_gaussian = (measure_type === :GUE || measure_type === :GOE || measure_type === :GSE)
     coeff = 1 // 1
-    u_indices = Vector{Tuple{Int,Int}}()
-    u_bar_indices = Vector{Tuple{Int,Int}}()
+    u_indices = Vector{Tuple{Any,Any}}()
+    u_bar_indices = Vector{Tuple{Any,Any}}()
 
     function _push_matched_index!(match_res, conjugated)
         type, i, j = match_res
@@ -1345,7 +1345,7 @@ Low-level integration function using Orthogonal Weingarten calculus.
 Indices are a list of (i, j) for O_{ij}.
 Formula: sum_{pi, sigma in PairPartitions} delta_pi(i) * delta_sigma(j) * Wg(pi, sigma)
 """
-function integrate_indices_orthogonal(indices::Vector{Tuple{Int,Int}}, dim)
+function integrate_indices_orthogonal(indices::AbstractVector, dim)
     n = length(indices) # This is 2k
     if n % 2 != 0
         return 0
@@ -1485,7 +1485,7 @@ end
 Low-level integration function using Symplectic Weingarten calculus.
 Formula: sum_{pi, sigma} J_pi(i) * J_sigma(j) * Wg^Sp(pi, sigma)
 """
-function integrate_indices_symplectic(indices::Vector{Tuple{Int,Int}}, dim)
+function integrate_indices_symplectic(indices::AbstractVector, dim)
     n = length(indices)
     if n % 2 != 0
         return 0
@@ -1548,7 +1548,7 @@ end
 Low-level integration function using Wick's theorem for GUE.
 Formula: sum_{pi in PairPartitions} prod_{(u, v) in pi} delta(i_u, j_v) * delta(j_u, i_v)
 """
-function integrate_indices_gue(indices::Vector{Tuple{Int,Int}}, dim)
+function integrate_indices_gue(indices::AbstractVector, dim)
     n = length(indices) # Must be even
     partitions = get_pair_partitions(n)
 
@@ -1610,7 +1610,7 @@ Low-level integration function using Wick's theorem for GOE.
 Formula: sum_{pi in PairPartitions} prod_{(u, v) in pi} (delta(i_u, k_v)*delta(j_u, l_v) + delta(i_u, l_v)*delta(j_u, k_v))
 where pair is H_{i_u j_u} and H_{k_v l_v} (indices re-labeled for clarity).
 """
-function integrate_indices_goe(indices::Vector{Tuple{Int,Int}}, dim)
+function integrate_indices_goe(indices::AbstractVector, dim)
     n = length(indices) # Must be even
     partitions = get_pair_partitions(n)
 
@@ -1652,48 +1652,7 @@ function integrate_indices_goe(indices::Vector{Tuple{Int,Int}}, dim)
     return total
 end
 
-function integrate_indices_goe(indices::Vector{Any}, dim)
-    return integrate_indices_goe(Vector{Tuple{Any,Any}}(indices), dim)
-end
-
-function integrate_indices_goe(indices::Vector{Tuple{Any,Any}}, dim)
-    n = length(indices) # Must be even
-    partitions = get_pair_partitions(n)
-
-    total = 0 // 1
-
-    for pi in partitions
-        term_val = 1
-        possible = true
-
-        for (u, v) in pi
-            (i1, j1) = indices[u]
-            (i2, j2) = indices[v]
-
-            val_pair = 0 // 1
-            match1 = _symbolic_isequal(i1, i2) && _symbolic_isequal(j1, j2)
-            match2 = _symbolic_isequal(i1, j2) && _symbolic_isequal(j1, i2)
-
-            if match1
-                val_pair += 1
-            end
-            if match2
-                val_pair += 1
-            end
-
-            if val_pair == 0
-                possible = false
-                break
-            end
-            term_val *= val_pair
-        end
-
-        if possible
-            total += term_val
-        end
-    end
-    return total
-end
+# Removed helper methods that are no longer needed with relaxed signatures
 
 function _get_J(i, j, d)
     # J = [0 I; -I 0], d even, n = d/2
@@ -1711,11 +1670,7 @@ function _get_J(i, j, d)
     end
 end
 
-function integrate_indices_gse(indices::Vector{Any}, dim)
-    return integrate_indices_gse(Vector{Tuple{Int,Int}}(indices), dim)
-end
-
-function integrate_indices_gse(indices::Vector{Tuple{Int,Int}}, dim)
+function integrate_indices_gse(indices::AbstractVector, dim)
     n = length(indices)
     partitions = get_pair_partitions(n)
     total = 0 // 1
@@ -1823,8 +1778,8 @@ Low-level integration for Complex Ginibre Ensemble.
 Formula: sum_{sigma in S_n} prod_m delta(i_m, ib_sigma(m)) * delta(j_m, jb_sigma(m))
 """
 function integrate_indices_ginue(
-    u_indices::Vector{Tuple{Int,Int}},
-    ub_indices::Vector{Tuple{Int,Int}},
+    u_indices::AbstractVector,
+    ub_indices::AbstractVector,
     dim,
 )
     n = length(u_indices)
@@ -1856,7 +1811,7 @@ end
 Low-level integration for Real Ginibre Ensemble.
 Formula: sum_{pi in PairPartitions} prod_{(u, v) in pi} delta(i_u, i_v) * delta(j_u, j_v)
 """
-function integrate_indices_ginoe(indices::Vector{Tuple{Int,Int}}, dim)
+function integrate_indices_ginoe(indices::AbstractVector, dim)
     n = length(indices)
     if isodd(n)
         return 0
@@ -1887,7 +1842,7 @@ end
 Low-level integration for Symplectic Ginibre Ensemble.
 Uses duality with GinOE.
 """
-function integrate_indices_ginse(indices::Vector{Tuple{Int,Int}}, dim)
+function integrate_indices_ginse(indices::AbstractVector, dim)
     n = length(indices)
     if isodd(n)
         return 0
@@ -2042,8 +1997,8 @@ of U and U_bar are identical.
 Indices are already checked to be diagonal (i == j) in process_term.
 """
 function integrate_indices_diagonal(
-    U_idxs::Vector{Tuple{Int,Int}},
-    U_bar_idxs::Vector{Tuple{Int,Int}},
+    U_idxs::AbstractVector,
+    U_bar_idxs::AbstractVector,
     dim,
 )
     n = length(U_idxs)

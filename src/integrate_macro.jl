@@ -51,7 +51,7 @@ macro integrate(expr, measure)
 
     # 2. Identify "natural" symbol and tag based on measure name
     natural_sym, tag = if m_name == :dU || m_name == :dCUE || m_name == :dSU
-        :U, m_name == :dSU ? :SU : :U
+        :U, :U
     elseif m_name == :dO
         :O, :O
     elseif m_name == :dCOE
@@ -104,7 +104,9 @@ macro integrate(expr, measure)
             push!(
                 decls,
                 :(
-                    if !@isdefined($s)
+                    if !@isdefined($s) ||
+                       !($s isa SymbolicMatrix) ||
+                       $s.special_type !== $(QuoteNode(tag))
                         ;$s = SymbolicMatrix($(QuoteNode(s)), $(QuoteNode(tag)), $m_dim);
                     end
                 ),
