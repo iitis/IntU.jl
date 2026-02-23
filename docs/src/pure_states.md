@@ -33,13 +33,13 @@ println(res)
 # Output: 1/d
 
 # In element-wise mode, we can use matrix entries
-integrate(abs(psi[1, 1] * conj(phi[1, 1]))^2, dPsi(d))
+integrate(abs(psi[1, 1] * conj(psi[2, 1]))^2, dPsi(d))
 # Output: 1/(d*(d+1))
 ```
 
 ## Pitfalls
 
-- **Indexing**: `psi` behaves like a vector `psi[i]`. Internally `psi[i]` corresponds to `U[i, 1]`.
+- **Indexing**: `psi` behaves like a vector, but since it is a `SymbolicMatrix`, it requires two indices: `psi[i, 1]`. Internally `psi[i, 1]` corresponds to `U[i, 1]`.
 - **Normalization**: The standard measure assumes $\langle \psi | \psi \rangle = 1$.
   The integral volume is normalized to 1.
   $\int d\psi = 1$.

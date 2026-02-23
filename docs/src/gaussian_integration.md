@@ -69,11 +69,6 @@ You can define the Gaussian measures using `dGUE`, `dGOE`, `dGSE`, `dGinUE`, `dG
 ```julia
 using IntU, Symbolics
 
-### GUE Example
-
-```julia
-using IntU, Symbolics
-
 # GUE Measure with symbolic dimension
 # Average Trace of H^2
 # < Tr(H^2) > = d^2
