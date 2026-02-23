@@ -1,4 +1,4 @@
-
+# Symbolics' Num is real-valued; we use AbstractMatrix{Any} to support complex symbols.
 """
     SymbolicMatrix(name::Symbol)
     SymbolicMatrix(name::Symbol, special_type::Symbol)
@@ -8,7 +8,6 @@
 A wrapper associated with a symbolic name to represent a matrix in a coordinate-free way.
 Used in the symbolic trace logic (via `tr_lazy`) and for metadata-driven element-wise integration.
 """
-# Symbolics' Num is real-valued; we use AbstractMatrix{Any} to support complex symbols.
 struct SymbolicMatrix <: AbstractMatrix{Any}
     name::Symbol
     is_adj::Bool

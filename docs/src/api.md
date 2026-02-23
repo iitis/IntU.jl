@@ -4,6 +4,8 @@
 
 ```@docs
 integrate
+@integrate
+evaluate
 asymptotic
 hciz
 vandermonde_det
@@ -15,7 +17,7 @@ vandermonde_det
 ## Measures
 
 ```@docs
-AbstractMeasure
+IntU.AbstractMeasure
 IntU.measure_info
 ```
 
@@ -60,7 +62,7 @@ IntU.DiagonalUnitaryMeasure
 ## Symbolic Helpers
 
 ```@docs
-SymbolicMatrix
+IntU.SymbolicMatrix
 tr
 ```
 
@@ -78,8 +80,20 @@ partial_trace
 
 These functions are part of the internal machinery but documented for development reference.
 
+### Integration Engine & Helpers
+
 ```@docs
 integrate_indices
+IntU.integrate_indices_orthogonal
+IntU.integrate_indices_symplectic
+IntU.integrate_indices_permutation
+IntU.integrate_indices_diagonal
+IntU.integrate_indices_coe
+IntU.integrate_indices_gue
+IntU.integrate_indices_goe
+IntU.integrate_indices_ginue
+IntU.integrate_indices_ginoe
+IntU.integrate_indices_ginse
 IntU.tr_lazy
 LazyTrace
 LazySum
@@ -87,6 +101,10 @@ IntU.check_library
 IntU.tr_val
 IntU._expand_asymptotic
 IntU._poly_degree
+IntU._ensure_symbolic_dim
+IntU._try_numeric
+IntU._try_extract_int
+IntU.robust_substitute
 IntU.get_full_cycle_type
 IntU.get_weingarten_reduced_data
 ```
@@ -99,6 +117,7 @@ MetadataMatcher
 _integrate_core
 process_term
 weingarten
+IntU.ParityUnionFind
 ```
 
 ### Weingarten & Combinatorics
@@ -116,5 +135,4 @@ IntU.irrep_dimension
 IntU.compute_symplectic_contraction
 IntU.weingarten_orthogonal_val_canonical
 IntU.INTEGRATION_RULES
-IntU.measure_info
 ```

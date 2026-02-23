@@ -12,14 +12,18 @@ using IntU, ITensors
 # Define indices
 i = Index(2, "Out")
 j = Index(2, "In")
+i2 = Index(2, "Out2")
+j2 = Index(2, "In2")
 
 # Mark a Haar-random unitary U and its adjoint U_dag
 U = ITensorUnitary(out_indices=[i], in_indices=[j])
-U_dag = ITensorUnitary(out_indices=[j], in_indices=[i], is_adj=true)
+U_dag = ITensorUnitary(out_indices=[j2], in_indices=[i2], is_adj=true)
 
-# Integrate E[Tr(U A U_dag)] over U(2)
-A = randomITensor(j, j) 
-res = integrate([U, A, U_dag], dU(2))
+# Integrate E[Tr(U A U_dag B)] over U(2)
+# Here we use A and B to connect the dangling indices
+A = randomITensor(j, j2) 
+B = randomITensor(i2, i)
+res = integrate([U, A, U_dag, B], dU(2))
 ```
 
 ## Defining Random Unitaries
@@ -60,7 +64,20 @@ The ITensors integration supports all measure types provided by IntU:
 
 ### Example: Orthogonal Integration
 ```julia
-res = integrate([O1, O2, A], dO(3))
+using IntU, ITensors
+
+# Define indices for a 3x3 orthogonal matrix O
+o1 = Index(3, "Out")
+i1 = Index(3, "In")
+
+# Mark O as an orthogonal random matrix
+O = ITensorUnitary(out_indices=[o1], in_indices=[i1])
+
+# Constant tensor A
+A = randomITensor(o1, i1)
+
+# Integrate Tr(O A) - should be zero as E[O_ij] = 0
+res = integrate([O, A], dO(3))
 ```
 
 ## Symbolic Dimensions

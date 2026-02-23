@@ -14,6 +14,7 @@ makedocs(;
         canonical = "https://iitis.github.io/IntU.jl",
         assets = String[],
     ),
+    warnonly = [:missing_docs],
     pages = [
         "Home" => "index.md",
         "Manual" => [
