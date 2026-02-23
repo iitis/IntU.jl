@@ -25,14 +25,16 @@ The `@integrate` macro implicitly identifies random matrices based on the measur
 - `dSp` $\rightarrow$ `Sp` (Symplectic)
 - `dPerm` $\rightarrow$ `P` (Permutation)
 - `dCPerm` $\rightarrow$ `Y` (Centered Permutation)
-- `dCOE` $\rightarrow$ `O` (Circular Orthogonal)
-- `dCSE` $\rightarrow$ `Sp` (Circular Symplectic)
+- `dCOE`, `dCSE` $\rightarrow$ `S` (Circular Orthogonal/Symplectic)
 - `dPsi` $\rightarrow$ `psi` (Pure State)
-- `dDiagUnitary` $\rightarrow$ `V` (Diagonal Unitary)
+- `dDiagUnitary` $\rightarrow$ `D` (Diagonal Unitary)
 - `dStiefel` $\rightarrow$ `V` (Stiefel Manifold)
 - Ginibre Ensembles $\rightarrow$ `G`
 
 Unknown symbols (like `A`, `B`, `d`) are automatically treated as constants or dimensions.
+
+> [!NOTE]
+> **Symbol Scope and Redefinition**: The `@integrate` macro manages a persistent symbolic state in your session. If you use a symbol (e.g., `U`) as a random matrix in one call and then use it in a different context (e.g., as a constant in an orthogonal integral), the macro automatically re-declares and re-binds the symbol to the correct type and measure context. This "Safety Rebind" mechanism prevents silent math errors when running examples in sequence.
 
 ```julia
 using IntU, Symbolics, LinearAlgebra
@@ -116,8 +118,8 @@ IntU also supports Circular Ensembles (CUE, COE, CSE) which are commonly used in
 - **CSE (Circular Symplectic Ensemble)**: Ensemble of self-dual unitary matrices of even dimension $2n$. Use `dCSE`.
 
 ```julia
-# COE moment E[|O_{1,1}|^2]
-@integrate abs(O[1, 1])^2 dCOE(d)
+# COE moment E[|S_{1,1}|^2]
+@integrate abs(S[1, 1])^2 dCOE(d)
 # Output: 2 / (d + 1)
 ```
 
@@ -155,8 +157,8 @@ IntU supports integration over the group of diagonal unitary matrices, which
 corresponds to independent phase averaging for each diagonal entry.
 
 ```julia
-# E[|V_11|^2]
-@integrate abs(V[1, 1])^2 dDiagUnitary(d)
+# E[|D_11|^2]
+@integrate abs(D[1, 1])^2 dDiagUnitary(d)
 # Output: 1
 ```
 

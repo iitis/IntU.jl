@@ -55,11 +55,11 @@ macro integrate(expr, measure)
     elseif m_name == :dO
         :O, :O
     elseif m_name == :dCOE
-        :O, :COE
+        :S, :COE
     elseif m_name == :dSp
         :Sp, :Sp
     elseif m_name == :dCSE
-        :Sp, :CSE
+        :S, :CSE
     elseif m_name == :dPsi
         :psi, :psi
     elseif m_name == :dPerm
@@ -67,7 +67,7 @@ macro integrate(expr, measure)
     elseif m_name == :dCPerm
         :Y, :CPerm
     elseif m_name == :dDiagUnitary
-        :V, :DiagUnitary
+        :D, :DiagUnitary
     elseif m_name == :dStiefel
         :V, :U
     elseif m_name == :dGUE || m_name == :dGOE || m_name == :dGSE
@@ -106,14 +106,15 @@ macro integrate(expr, measure)
                 :(
                     if !@isdefined($s) ||
                        !($s isa SymbolicMatrix) ||
-                       $s.special_type !== $(QuoteNode(tag))
+                       $s.special_type !== $(QuoteNode(tag)) ||
+                       !isequal($s.dim, $m_dim)
                         ;$s = SymbolicMatrix($(QuoteNode(s)), $(QuoteNode(tag)), $m_dim);
                     end
                 ),
             )
         else
             push!(decls, :(
-                if !@isdefined($s)
+                if !@isdefined($s) || ($s isa SymbolicMatrix && $s.special_type !== :Constant)
                     ;$s = SymbolicMatrix($(QuoteNode(s)), :Constant, nothing);
                 end
             ))

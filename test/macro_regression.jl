@@ -2,6 +2,8 @@ using IntU
 using Test
 using Symbolics
 
+
+
 @testset "@integrate Macro Regression" begin
     @variables d
     
@@ -14,9 +16,9 @@ using Symbolics
     @testset "Orthogonal Family" begin
         @test isequal(@integrate(O[1,1]^2, dO(d)), 1/d)
         # dCOE
-        res_coe = @integrate(O[1,1], dCOE(d))
+        res_coe = @integrate(S[1,1], dCOE(d))
         @test is_really_zero(res_coe)
-        res_coe2 = @integrate(O[1,1]^2, dCOE(d))
+        res_coe2 = @integrate(S[1,1]^2, dCOE(d))
         @test is_really_zero(res_coe2)
     end
 
@@ -31,8 +33,8 @@ using Symbolics
         
         # dCSE
         # Just check it integrates
-        res_cse = @integrate(Sp[1,1]^2, dCSE(d))
-        @test !isequal(res_cse, Sp[1,1]^2)
+        res_cse = @integrate(S[1,1]^2, dCSE(d))
+        @test !isequal(res_cse, S[1,1]^2)
     end
 
     @testset "Pure States" begin
@@ -49,7 +51,7 @@ using Symbolics
     end
 
     @testset "Diagonal Unitary" begin
-        @test isequal(@integrate(abs(V[1,1])^2, dDiagUnitary(d)), 1)
+        @test isequal(@integrate(abs(D[1,1])^2, dDiagUnitary(d)), 1)
     end
 
     @testset "Stiefel" begin
@@ -66,5 +68,22 @@ using Symbolics
         @test isequal(@integrate(abs(G[1,1])^2, dGinUE(d)), 1)
         @test isequal(@integrate(G[1,1]^2, dGinOE(d)), 1)
         @test isequal(@integrate(G[1,1]^2, dGinSE(2d)), 1)
+    end
+
+    @testset "Symbol Safety" begin
+        # 1. Define U as random for dU
+        @test isequal(@integrate(abs(U[1,1])^2, dU(d)), 1/d)
+        # 2. Use U as constant for dO (it should be rebound)
+        res_o = @integrate(U[1,1] * O[1,1]^2, dO(d))
+        @test isequal(res_o, U[1,1] / d)
+        
+        # 3. Change dimension for dU
+        @variables d2
+        @test isequal(@integrate(abs(U[1,1])^2, dU(d2)), 1/d2)
+        
+        # 4. Redefine a random matrix (S) back to constant matrix
+        # S was random for dCOE earlier. Now used as constant in dU.
+        res_u = @integrate(S[1,1] * abs(U[1,1])^2, dU(d))
+        @test isequal(res_u, S[1,1] / d)
     end
 end

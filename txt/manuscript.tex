@@ -617,11 +617,11 @@ diagonal entry for the symmetric (COE) and self-dual (CSE) cases:
 
 \begin{lstlisting}[language=Julia]
 # Circular Orthogonal Ensemble (O is symmetric)
-@integrate abs(O[1, 1])^2 dCOE(d)
+@integrate abs(S[1, 1])^2 dCOE(d)
 # Output: 2/(d+1)
 
 # Circular Symplectic Ensemble (Sp is self-dual)
-@integrate abs(Sp[1, 1])^2 dCSE(d)
+@integrate abs(S[1, 1])^2 dCSE(d)
 # Output: 1/(d-1)
 
 # Example for the real orthogonal group O(d)
@@ -742,7 +742,7 @@ For the group of diagonal unitary matrices, integration reduces to independent
 phase averaging.
 \begin{lstlisting}[language=Julia]
 # Average of |V_11|^2
-@integrate abs(V[1, 1])^2 dDiagUnitary(d)
+@integrate abs(D[1, 1])^2 dDiagUnitary(d)
 # Output: 1
 \end{lstlisting}
  

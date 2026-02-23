@@ -62,10 +62,10 @@ using Symbolics
     @testset "Mixed Dimensions & Matrix Products (Regression)" begin
         @variables d
         # Use :COE tag which matches dCOE measure
-        O = SymbolicMatrix(:O, :COE, d)
+        S = SymbolicMatrix(:S, :COE, d)
         # Dimensions are symbolic (d), but measure is concrete (2)
         # This tests both the TypeError fix (isequal) and dimension unification
-        res = @integrate O * O' dCOE(2)
+        res = @integrate S * S' dCOE(2)
         @test res isa AbstractMatrix
         @test size(res) == (2, 2)
         @test isequal(res[1, 1], 1//1)
