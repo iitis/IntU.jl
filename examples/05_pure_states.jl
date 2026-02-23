@@ -33,7 +33,6 @@ println("Expected (Analytical): (d1 + d2) / (d1 * d2 + 1)")
 # Average Fidelity between a random state and a fixed state |0>
 # <psi|0> = U[1, 1]
 fidelity_expr = abs(U[1, 1])^2
-fidelity_expr = abs(U[1, 1])^2
 println("Integrating fidelity_expr...")
 avg_fidelity = integrate(fidelity_expr, dU(d))
 println("Integration done.")
@@ -42,8 +41,8 @@ println("Expected (1/d): 1/d")
 
 # Convenience dPsi shorthand:
 println("\ndPsi(d) can also be used for purely vector-based integration.")
-println("\ndPsi(d) can also be used for purely vector-based integration.")
 println("Integrating with dPsi...")
-res_psi = integrate(abs(U[1, 1])^2, dPsi(d))
+psi = SymbolicMatrix(:psi, :psi, d)
+res_psi = integrate(abs(psi[1, 1])^2, dPsi(d))
 println("Integration done.")
 println("Result using dPsi(d): ", res_psi)

@@ -24,7 +24,8 @@ println("Expansion (order 4): ", res2)
 # 4. Pure state expansion
 println("\n3. Pure State Expansion: |psi_1|^2")
 # dPsi(d) uses the first column of a Haar unitary.
-res3 = asymptotic(abs(U[1, 1])^2, dPsi(d), 2)
+psi = SymbolicMatrix(:psi, :psi, d)
+res3 = asymptotic(abs(psi[1, 1])^2, dPsi(d), 2)
 println("Expansion (order 2): ", res3)
 
 # 5. Numeric dimension handling
