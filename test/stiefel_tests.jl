@@ -36,7 +36,10 @@ using LinearAlgebra
         V = SymbolicMatrix(:V, :U, (d_sym, k_fixed))
         measure = dStiefel(d_sym, k_fixed)
 
-        # Skip this test as it causes a hang in symbolic integration (likely huge expression tree)
+        # Verify that direct SymbolicMatrixProduct integration with symbolic d throws ArgumentError
+        @test_throws ArgumentError integrate(V' * V, measure)
+
+        # Skip the original test as it causes a hang in symbolic integration (likely huge expression tree)
         println("Skipping Symbolic d Normalization test due to performance hang.")
     end
 

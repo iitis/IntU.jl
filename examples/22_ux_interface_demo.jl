@@ -6,6 +6,7 @@
 using IntU
 using Symbolics
 using LinearAlgebra
+@variables d
 
 println("=== Streamlined UX Interface Demo ===")
 
@@ -47,17 +48,17 @@ println("Result: ", val_sub2)
 # If you prefer manual declaration, new factory functions make it cleaner.
 println("\n3. Using factory functions:")
 
-U = symbolic_unitary(:U, :d)        # Shorthand for SymbolicMatrix(:U, :U, d)
+U = symbolic_unitary(:U, d)        # Shorthand for SymbolicMatrix(:U, :U, d)
 println("U: ", U)
 
-O = symbolic_orthogonal(:O, :d)     # Shorthand for SymbolicMatrix(:O, :O, d)
+O = symbolic_orthogonal(:O, d)     # Shorthand for SymbolicMatrix(:O, :O, d)
 println("O: ", O)
 
-psi = symbolic_pure_state(:psi, :d) # Shorthand for SymbolicMatrix(:psi, :psi, d)
+psi = symbolic_pure_state(:psi, d) # Shorthand for SymbolicMatrix(:psi, :psi, d)
 println("psi: ", psi)
 
 # These work seamlessly with the standard integrate() function:
-res_o = integrate(O[1, 1]^4, dO(:d))
+res_o = integrate(O[1, 1]^4, dO(d))
 println("Integral of O_11^4: ", res_o)
 
 println("\nDemo completed.")

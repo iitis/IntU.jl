@@ -106,14 +106,27 @@ for (T_measure, tag) in [
 end
 
 function fallback_integrate(t::LazyTrace, measure::GUEMeasure)
-    factors = t.factors
-    # We look for matrices tagged correctly
+    dim = measure.dim
+    if isempty(t.cycles)
+        return t.prefactor
+    end
+
     matcher = measure.matcher === nothing ? MetadataMatcher(:GUE) : measure.matcher
     H_type = (matcher isa MetadataMatcher) ? matcher.type_tag : :GUE
 
+    # Identify ALL cycles and factors
+    total_factors = 0
+    cycle_ranges = UnitRange{Int}[]
+    all_factors = Any[]
+    for cycle in t.cycles
+        start_idx = total_factors + 1
+        append!(all_factors, cycle)
+        total_factors += length(cycle)
+        push!(cycle_ranges, start_idx:total_factors)
+    end
 
     H_indices = Int[]
-    for (i, f) in enumerate(factors)
+    for (i, f) in enumerate(all_factors)
         if f isa SymbolicMatrix && f.special_type == H_type
             push!(H_indices, i)
         end
@@ -123,71 +136,73 @@ function fallback_integrate(t::LazyTrace, measure::GUEMeasure)
     if isodd(n_H)
         return 0
     end
-    if n_H == 0
-        return tr_val(factors)
+    
+    all_slots = sort(H_indices)
+    if isempty(all_slots)
+        return _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
     end
 
-    dim = measure.dim
-    n_factors = length(factors)
-
-
-    wires = Dict{Int,Any}()
-    for k = 1:n_H
-        idx = H_indices[k]
-        next_h_idx = H_indices[mod1(k+1, n_H)]
-
-        consts = SymbolicMatrix[]
-        curr = mod1(idx + 1, n_factors)
-        while curr != next_h_idx
-            push!(consts, factors[curr])
-            curr = mod1(curr + 1, n_factors)
-        end
-        wires[idx] = (next_h_idx, isempty(consts) ? nothing : consts)
-    end
+    # Build Wires and evaluate constants
+    wires, reverse_wires = _build_wires(H_indices, Int[], cycle_ranges, all_factors)
+    constant_part = _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
 
     partitions = get_pair_partitions(n_H)
     total_val = 0
 
-    for pi in partitions
-        # Each pairing connects trace cycles through Wick contraction
+    h_map = Dict(idx => m for (m, idx) in enumerate(H_indices))
 
-        # Map pairing to permutation
-        perm_map = Dict{Int,Int}()
+    for pi in partitions
+        # GUE Contraction: E[H_ij H_kl] = delta_il delta_jk
+        # This means Output of H_u connects to Input of H_v and vice-versa.
+        
+        partner_map = Dict{Int,Int}()
         for (u, v) in pi
-            perm_map[u] = v
-            perm_map[v] = u
+            partner_map[u] = v
+            partner_map[v] = u
         end
 
-
-        visited = falses(n_H)
+        visited = falses(total_factors, 2)
         current_partition_traces = []
 
-        for start_m = 1:n_H
-            if !visited[start_m]
-                curr_trace_factors = SymbolicMatrix[]
-                curr_m = start_m
-                while !visited[curr_m]
-                    visited[curr_m] = true
-                    paired_m = perm_map[curr_m]
-                    dest_factor_idx, mat_segment = wires[H_indices[curr_m]]
-                    if mat_segment !== nothing
-                        append!(curr_trace_factors, mat_segment)
+        for slot in all_slots
+            for port = 1:2
+                if !visited[slot, port]
+                    curr_factors = Any[]
+                    s, p = slot, port
+
+                    while !visited[s, p]
+                        visited[s, p] = true
+
+                        # 1. Wick Jump
+                        # In GUE, Output (2) always goes to Input (1) of partner
+                        # and Input (1) always goes to Output (2) of partner.
+                        m = h_map[s]
+                        partner_m = partner_map[m]
+                        s = H_indices[partner_m]
+                        p = (p == 1 ? 2 : 1)
+                        visited[s, p] = true
+
+                        # 2. Wire Traversal
+                        if p == 2
+                            s, mat_segment = wires[s]
+                            if mat_segment !== nothing
+                                append!(curr_factors, mat_segment)
+                            end
+                            p = 1
+                        else
+                            s, mat_segment = reverse_wires[s]
+                            if mat_segment !== nothing
+                                append!(curr_factors, mat_segment)
+                            end
+                            p = 2
+                        end
                     end
 
-                    # Find landing slot's m-index
-                    next_m = 1
-                    while H_indices[next_m] != dest_factor_idx
-                        next_m += 1
+                    if isempty(curr_factors)
+                        push!(current_partition_traces, dim)
+                    else
+                        push!(current_partition_traces, tr_val(curr_factors))
                     end
-
-                    # Wick contraction jump to partner
-                    curr_m = perm_map[next_m]
-                end
-
-                if isempty(curr_trace_factors)
-                    push!(current_partition_traces, dim)
-                else
-                    push!(current_partition_traces, tr_val(curr_trace_factors))
                 end
             end
         end
@@ -195,18 +210,33 @@ function fallback_integrate(t::LazyTrace, measure::GUEMeasure)
         total_val += isempty(current_partition_traces) ? 1 : prod(current_partition_traces)
     end
 
-    return total_val
+    return constant_part * total_val
 end
 
 
 
 function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
-    factors = t.factors
+    dim = measure.dim
+    if isempty(t.cycles)
+        return t.prefactor
+    end
+
     matcher = measure.matcher === nothing ? MetadataMatcher(:GOE) : measure.matcher
     H_type = (matcher isa MetadataMatcher) ? matcher.type_tag : :GOE
 
+    # Identify ALL cycles and factors
+    total_factors = 0
+    cycle_ranges = UnitRange{Int}[]
+    all_factors = Any[]
+    for cycle in t.cycles
+        start_idx = total_factors + 1
+        append!(all_factors, cycle)
+        total_factors += length(cycle)
+        push!(cycle_ranges, start_idx:total_factors)
+    end
+
     H_indices = Int[]
-    for (i, f) in enumerate(factors)
+    for (i, f) in enumerate(all_factors)
         if f isa SymbolicMatrix && f.special_type == H_type
             push!(H_indices, i)
         end
@@ -216,152 +246,110 @@ function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
     if isodd(n_H)
         return 0
     end
-    if n_H == 0
-        return tr_val(factors)
+    
+    all_slots = sort(H_indices)
+    if isempty(all_slots)
+        return _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
     end
 
-    dim = measure.dim
-    n_factors = length(factors)
-
-
-    wires = Dict{Int,Any}()
-    for k = 1:n_H
-        idx = H_indices[k]
-        next_h_idx = H_indices[mod1(k+1, n_H)]
-        prev_h_idx = H_indices[mod1(k-1, n_H)]
-
-
-        fwd_consts = SymbolicMatrix[]
-        curr = mod1(idx + 1, n_factors)
-        while curr != next_h_idx
-            push!(fwd_consts, factors[curr])
-            curr = mod1(curr + 1, n_factors)
-        end
-
-        # Backward segment (reversed with adjoint)
-        bwd_consts = SymbolicMatrix[]
-        curr = mod1(idx - 1, n_factors)
-        while curr != prev_h_idx
-            push!(bwd_consts, factors[curr]') # Adjoint because we go backwards
-            curr = mod1(curr - 1, n_factors)
-        end
-
-        wires[idx] = (
-            next_h_idx,
-            isempty(fwd_consts) ? nothing : fwd_consts,
-            prev_h_idx,
-            isempty(bwd_consts) ? nothing : bwd_consts,
-        )
-    end
+    # Build Wires and evaluate constants
+    wires, reverse_wires = _build_wires(H_indices, Int[], cycle_ranges, all_factors)
+    constant_part = _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
 
     partitions = get_pair_partitions(n_H)
     total_val = 0
 
-    for pi in partitions
-        # GOE: <H_ij H_kl> = delta_ik delta_jl + delta_il delta_jk
-        # Sum over all 2^(n_H/2) contraction-type choices
+    h_map = Dict(idx => m for (m, idx) in enumerate(H_indices))
 
-        # Pre-build partner lookup: m -> (partner_m, pair_idx)
-        partner_lookup = Dict{Int,Tuple{Int,Int}}()
-        for (p_idx, (u, v)) in enumerate(pi)
-            partner_lookup[u] = (v, p_idx)
-            partner_lookup[v] = (u, p_idx)
+    for pi in partitions
+        # GOE Contraction: E[H_ij H_kl] = delta_il delta_jk + delta_ik delta_jl
+        # 2nd term swaps ports for the partner comparison
+        
+        partner_lookup = Dict{Int,Int}()
+        for (u, v) in pi
+            partner_lookup[u] = v
+            partner_lookup[v] = u
         end
 
         choice_combinations = collect(Iterators.product(fill([1, 2], n_H ÷ 2)...))
 
         for choices in choice_combinations
+            # Each pair has a choice of contraction term
+            # choices[pair_idx] == 1: delta_il delta_jk (Port 1 <-> Port 2)
+            # choices[pair_idx] == 2: delta_ik delta_jl (Port 1 <-> Port 1, Port 2 <-> Port 2)
+            
+            # Map m_index to its choice based on pair index
+            pair_choices = Dict{Int, Int}()
+            for (p_idx, (u, v)) in enumerate(pi)
+                pair_choices[u] = choices[p_idx]
+                pair_choices[v] = choices[p_idx]
+            end
 
-            visited = falses(n_H)
+            visited = falses(total_factors, 2)
             current_partition_traces = []
 
-            visited_ports = falses(n_H, 2)
+            for slot in all_slots
+                for port = 1:2
+                    if !visited[slot, port]
+                        curr_factors = Any[]
+                        s, p = slot, port
 
-            for start_m = 1:n_H
-                for start_port in [1, 2]
-                    if !visited_ports[start_m, start_port]
-                        curr_trace_factors = SymbolicMatrix[]
-                        curr_m = start_m
-                        curr_port = start_port
+                        while !visited[s, p]
+                            visited[s, p] = true
 
-                        while !visited_ports[curr_m, curr_port]
-                            visited_ports[curr_m, curr_port] = true
-
-                            if curr_port == 2
-                                # Exit Port 2 (Output), take forward wire
-                                dest_idx, fwd, prev_idx, bwd = wires[H_indices[curr_m]]
-                                if fwd !== nothing
-                                    append!(curr_trace_factors, fwd)
-                                end
-
-                                # Land at Port 1 (Input) of some H
-                                landed_m = 1
-                                while H_indices[landed_m] != dest_idx
-                                    landed_m += 1
-                                end
-                                visited_ports[landed_m, 1] = true
-
-                                # Use Wick contraction jump
-                                partner_m, pair_idx = partner_lookup[landed_m]
-
-                                if choices[pair_idx] == 2 # delta_il delta_jk (P1 -> P2)
-                                    curr_m = partner_m
-                                    curr_port = 2
-                                else # delta_ik delta_jl (P1 -> P1)
-                                    curr_m = partner_m
-                                    curr_port = 1
-                                end
+                            # 1. Wick Jump
+                            m = h_map[s]
+                            partner_m = partner_lookup[m]
+                            choice = pair_choices[m]
+                            
+                            s = H_indices[partner_m]
+                            if choice == 1
+                                # Standard GUE-like jump: 1->2, 2->1
+                                p = (p == 1 ? 2 : 1)
                             else
-                                # Exit Port 1 (Input), take backward wire
-                                dest_idx, fwd, prev_idx, bwd = wires[H_indices[curr_m]]
-                                if bwd !== nothing
-                                    append!(curr_trace_factors, bwd)
-                                end
+                                # Transposed jump: 1->1, 2->2 (delta_ik delta_jl)
+                                p = p 
+                            end
+                            visited[s, p] = true
 
-                                # Land at Port 2 (Output) of some H
-                                landed_m = 1
-                                while H_indices[landed_m] != prev_idx
-                                    landed_m += 1
+                            # 2. Wire Traversal
+                            if p == 2
+                                s, mat_segment = wires[s]
+                                if mat_segment !== nothing
+                                    append!(curr_factors, mat_segment)
                                 end
-                                visited_ports[landed_m, 2] = true
-
-                                partner_m, pair_idx = partner_lookup[landed_m]
-
-                                if choices[pair_idx] == 2 # delta_il delta_jk (P2 -> P1)
-                                    curr_m = partner_m
-                                    curr_port = 1
-                                else # delta_ik delta_jl (P2 -> P2)
-                                    curr_m = partner_m
-                                    curr_port = 2
+                                p = 1
+                            else
+                                s, mat_segment = reverse_wires[s]
+                                if mat_segment !== nothing
+                                    append!(curr_factors, mat_segment)
                                 end
+                                p = 2
                             end
                         end
 
-                        if isempty(curr_trace_factors)
+                        if isempty(curr_factors)
                             push!(current_partition_traces, dim)
                         else
-                            push!(current_partition_traces, tr_val(curr_trace_factors))
+                            push!(current_partition_traces, tr_val(curr_factors))
                         end
                     end
                 end
             end
 
-
-
-            term_val =
-                isempty(current_partition_traces) ? 1 : prod(current_partition_traces)
-            total_val += term_val
+            total_val += isempty(current_partition_traces) ? 1 : prod(current_partition_traces)
         end
     end
-    return total_val
+
+    return constant_part * total_val
 end
 
 
 function fallback_integrate(t::LazyTrace, measure::GSEMeasure)
     # GSE-GOE duality: <Tr(H^k)>_GSE(d) = (-1)^(k/2+1) <Tr(H^k)>_GOE(-d)
-    factors = t.factors
+    all_factors = vcat(t.cycles...)
     H_type = :GSE
-    n_H = count(f -> f isa SymbolicMatrix && f.special_type == H_type, factors)
+    n_H = count(f -> f isa SymbolicMatrix && f.special_type == H_type, all_factors)
 
     if isodd(n_H)
         return 0

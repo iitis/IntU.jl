@@ -29,6 +29,6 @@ println("3. $(Symbolics.simplify(res3))")
 
 # manual declaration using factory functions
 println("\nDefining another symbolic matrix V using factory function:")
-V = symbolic_unitary(:V, :d)
-res_v = integrate(abs(V[1, 1])^2, dU(:d))
+V = symbolic_unitary(:V, d)
+res_v = integrate(abs(V[1, 1])^2, dU(d))
 println("Result for V: $res_v")

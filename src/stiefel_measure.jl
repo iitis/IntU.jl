@@ -123,7 +123,7 @@ function integrate(P::SymbolicMatrixProduct, measure::StiefelMeasure)
     end
 
     # Fallback to standard symbolic integration if dimensions are not concrete integers
-    return integrate_indices(P, measure)
+    throw(ArgumentError("Direct integration of SymbolicMatrixProduct for Stiefel requires concrete dimensions. Try integrating individual elements instead."))
 end
 
 """

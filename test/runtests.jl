@@ -106,6 +106,7 @@ end
 
     @testset verbose=true "Gaussian Miscellaneous" begin
         include("gaussian_misc.jl")
+        include("gaussian_symbolic_trace.jl")
     end
 
     @testset verbose=true "Integral Library" begin
