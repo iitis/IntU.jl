@@ -94,6 +94,9 @@ end
 
     @testset verbose=true "Symbolic Trace" begin
         include("symbolic_trace.jl")
+        include("bounds_checking.jl")
+        include("kron_integration.jl")
+        include("kron_enhancements.jl")
     end
 
     @testset verbose=true "GUE Integration" begin

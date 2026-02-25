@@ -762,15 +762,35 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
     end
 
     dim_measure = _get_measure_dim(measure)
+    n_factors = length(P.factors)
+    
+    # inner_dims[i] is the shared dimension between factor i-1 and factor i
+    # inner_dims[1] is number of rows, inner_dims[n+1] is number of columns
+    inner_dims = Vector{Any}(fill(nothing, n_factors + 1))
+    
+    # Pass 1: Collect known dimensions
+    for (i, f) in enumerate(P.factors)
+        fr, fc = size(f)
+        fr_un = Symbolics.unwrap(fr)
+        fc_un = Symbolics.unwrap(fc)
+        
+        if fr_un isa Integer && fr_un != typemax(Int)
+            inner_dims[i] = Int(fr_un)
+        end
+        if fc_un isa Integer && fc_un != typemax(Int)
+            inner_dims[i+1] = Int(fc_un)
+        end
+    end
+    
+    # Pass 2: Fallback to measure dimension for any remaining unknowns
+    for i in 1:(n_factors + 1)
+        if inner_dims[i] === nothing
+            inner_dims[i] = Int(dim_measure)
+        end
+    end
 
-    rows_sym = size(P.factors[1], 1)
-    cols_sym = size(P.factors[end], 2)
-
-    r_un = Symbolics.unwrap(rows_sym)
-    c_un = Symbolics.unwrap(cols_sym)
-
-    nr = (r_un isa Integer && r_un != typemax(Int)) ? r_un : dim_measure
-    nc = (c_un isa Integer && c_un != typemax(Int)) ? c_un : dim_measure
+    nr = inner_dims[1]
+    nc = inner_dims[end]
 
     if nr isa Integer && nc isa Integer
         nr = Int(nr)
@@ -778,14 +798,9 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
 
         # Pre-calculate factor matrices to avoid repeated getindex overhead
         mats = []
-        for f in P.factors
-            fr, fc = size(f)
-            fr_un = Symbolics.unwrap(fr)
-            fc_un = Symbolics.unwrap(fc)
-
-            # Use measure dim if factor size is unknown
-            cur_r = (fr_un isa Integer && fr_un != typemax(Int)) ? fr_un : dim_measure
-            cur_c = (fc_un isa Integer && fc_un != typemax(Int)) ? fc_un : dim_measure
+        for (i, f) in enumerate(P.factors)
+            cur_r = inner_dims[i]
+            cur_c = inner_dims[i+1]
 
             if !(cur_r isa Integer && cur_c isa Integer)
                 error(

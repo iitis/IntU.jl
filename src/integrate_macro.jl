@@ -30,6 +30,7 @@ const EXCLUDED_MACRO_SYMS = Set{Symbol}([
     :sin,
     :cos,
     :tan,
+    :kron,
     Symbol(":"),
 ])
 
