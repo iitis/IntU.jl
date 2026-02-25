@@ -123,6 +123,10 @@ using IntU, Symbolics
 - **Automatic Conjugation**: For $Sp(d)$, the code treats `conj(S)` non-trivially. It uses the relation $\bar{S} = -J S J$ to rewrite conjugate entries in terms of $S$ entries (and J factors). This allows using the efficient Weingarten formula for products of $S$ only.
 - **Dimension Parity**: For $Sp(d)$, $d$ must be even. The symbolic result is valid for even $d$.
 - **Computational Complexity**: The sum over pair partitions $M_{2n}$ grows as $(2n)!!$. This is significantly faster than $(n!)^2$ for $U(d)$ but still grows combinatorially.
+- **Removable Singularities**: When using `evaluate` to substitute numeric values into symbolic 
+  results, $0/0$ forms may appear. `IntU.jl` automatically detects when a 
+  denominator evaluates to zero and simplifies the expression to attempt to 
+  resolve these removable singularities.
 
 ## References
 

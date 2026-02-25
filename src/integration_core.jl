@@ -1768,10 +1768,7 @@ Computes prod_{(u, v) in partition} J(indices[u], indices[v]).
 J = [0 I; -I 0].
 """
 function compute_symplectic_contraction(partition, indices, dim)
-    val = 1
-
-    u_unwrapped = Symbolics.unwrap(dim)
-    is_d_numeric = (u_unwrapped isa Number)
+    val = Num(1)
 
     for (u, v) in partition
         idx_u = indices[u]
@@ -1795,21 +1792,11 @@ function symplectic_form(i, j, dim)
     end
 
     u_dim = Symbolics.unwrap(dim)
-    if !(u_dim isa Number)
-        return 0
-    end
+    m = u_dim / 2
 
-    dim_val = u_dim # Keep as is, potentially BigInt
-    m = div(dim_val, 2)
-
-
-    if i < 1 || i > 2*m || j < 1 || j > 2*m
-        return 0
-    end
-
-    if j == i + m
+    if _symbolic_isequal(j, i + m)
         return 1
-    elseif j == i - m
+    elseif _symbolic_isequal(j, i - m)
         return -1
     else
         return 0
@@ -1977,7 +1964,7 @@ function _expand_asymptotic(ex, d, order)
 
     f_analytic = Symbolics.simplify(p_eps / q_eps; expand = true)
 
-    total = Num(0)
+    terms = Num[]
     curr_deriv = f_analytic
     diff = m - n
 
@@ -2017,8 +2004,10 @@ function _expand_asymptotic(ex, d, order)
 
         if !_iszero(val)
             power = k + diff
-            term = (val * (1//factorial(k))) * (1/d_num)^power
-            total += term
+            # Use Rational for factorial to avoid float pollution
+            coeff = (1 // factorial(k))
+            term = Symbolics.simplify(val * coeff) * (1 / d_num)^power
+            push!(terms, term)
         end
 
         if k < max_k
@@ -2030,7 +2019,17 @@ function _expand_asymptotic(ex, d, order)
         end
     end
 
-    return Symbolics.simplify(total)
+    if isempty(terms)
+        return Num(0)
+    end
+
+    # Summing terms manually and avoiding final simplify to keep the expansion structure
+    res = terms[1]
+    for i = 2:length(terms)
+        res = res + terms[i]
+    end
+
+    return Symbolics.expand(res)
 end
 
 """
@@ -2076,20 +2075,59 @@ function _standardize_sub(k)
     return k
 end
 
+function _get_denominators(ex)
+    ex_un = Symbolics.unwrap(ex)
+    dens = Num[]
+    if SymbolicUtils.iscall(ex_un)
+        op = SymbolicUtils.operation(ex_un)
+        args = SymbolicUtils.arguments(ex_un)
+        if op == (/)
+            push!(dens, Symbolics.wrap(args[2]))
+        end
+        for a in args
+            append!(dens, _get_denominators(a))
+        end
+    end
+    return dens
+end
+
 """
     evaluate(expr, dict)
     evaluate(expr, pair)
 
 Shorthand for `Symbolics.substitute`. Useful for substituting symbolic dimensions 
 with numeric values in integration results. Also handles substituting symbolic traces.
+
+This function automatically handles removable singularities in fractions (e.g., $0/0$ forms).
+If a denominator evaluates to zero after substitution, the expression is first simplified 
+to attempt resolving the singularity before completing the evaluation.
 """
 function evaluate(expr, dict)
-    if dict isa AbstractDict || dict isa AbstractVector
-        new_dict = Dict(_standardize_sub(k) => v for (k, v) in dict)
-        res = Symbolics.substitute(expr, new_dict)
+    new_dict = if dict isa AbstractDict || dict isa AbstractVector
+        Dict(_standardize_sub(k) => v for (k, v) in dict)
     else
-        res = Symbolics.substitute(expr, dict)
+        dict
     end
+
+    # Handle removable singularities in fractions
+    # Check if any denominator is zero after substitution
+    dens = _get_denominators(expr)
+    should_simplify = false
+    for d in dens
+        # d_val can be a Num or a Number
+        d_val = Symbolics.substitute(d, new_dict)
+        if _iszero(d_val)
+            should_simplify = true
+            break
+        end
+    end
+
+    if should_simplify
+        # Simplify first to resolve removable singularities like (x^2-1)/(x-1) -> x+1
+        expr = Symbolics.simplify(expr)
+    end
+
+    res = Symbolics.substitute(expr, new_dict)
 
     # Try to return a number if the result is a Num wrapping a number
     if res isa Num

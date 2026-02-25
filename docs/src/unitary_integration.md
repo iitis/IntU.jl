@@ -170,6 +170,10 @@ See the [API Reference](api.md) for more details.
     The symbolic result assumes $d$ is generic/large. Substituting discrete values $d < n$
     into the rational function may result in division by zero, although the integral itself
     is well-defined.
+-   **Removable Singularities**: When using `evaluate` to substitute numeric values into symbolic 
+    results, $0/0$ forms may appear (e.g., at $d=1$ for some expressions). `IntU.jl` 
+    automatically detects when a denominator evaluates to zero and simplifies the expression 
+    to attempt to resolve these removable singularities.
 -   **Computational Complexity**: The sum involves $(n!)^2$ terms. While optimized
     to group cycles, integrals with high degrees ($n > 6$) can become
     computationally expensive. The number of terms grows factorially.
