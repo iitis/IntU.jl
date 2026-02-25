@@ -5,7 +5,7 @@ DocMeta.setdocmeta!(IntU, :DocTestSetup, :(using IntU); recursive = true)
 
 makedocs(;
     modules = [IntU],
-    authors = "USER",
+    authors = "Łukasz Pawela and Zbigniew Puchała",
     repo = Documenter.Remotes.GitHub("iitis", "IntU.jl"),
     sitename = "IntU.jl",
     remotes = nothing,
