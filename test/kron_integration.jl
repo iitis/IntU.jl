@@ -29,4 +29,11 @@ using Test
     expr3 = tr(U3 * U3')
     res3 = integrate(expr3, dU(3))
     @test isequal(Symbolics.simplify(res3), 3)
+
+    # 4. Small dimension symplectic integration (Singular Gram matrix regression)
+    Sp = symbolic_symplectic(:Sp, 2)
+    B = SymbolicMatrix(:B, :Constant, nothing)
+    # The integration of constant matrix returns the expanded matrix of integration over the measure.
+    res_sp = integrate(kron(Sp, Sp) * B * kron(Sp', Sp'), dSp(2))
+    @test res_sp isa Matrix
 end

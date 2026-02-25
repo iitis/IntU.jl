@@ -3,7 +3,6 @@ using Test
 using Symbolics
 
 
-
 @testset "@integrate Macro Regression" begin
     @variables d
     

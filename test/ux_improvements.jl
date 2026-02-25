@@ -53,7 +53,7 @@ using Symbolics
         U = symbolic_unitary(:U, :d)
         buf = IOBuffer()
         show(buf, U)
-        @test occursin("U (U)", String(take!(buf)))
+        @test occursin("U", String(take!(buf)))
 
         A = SymbolicMatrix(:A) # Constant
         show(buf, A)

@@ -405,6 +405,36 @@ function canonicalize_pair_partition(p::Vector{Tuple{Int,Int}})
 end
 
 """
+    _safe_solve(M, rhs)
+
+Solves `M \\ rhs` but falls back to the Moore-Penrose pseudoinverse `pinv` if `M` is singular.
+Used to compute Weingarten function for small dimensions where the Gram matrix is singular 
+(e.g., dSp(2) integration yielding d = -2).
+"""
+function _safe_solve(M::AbstractMatrix{T}, rhs) where {T}
+    try
+        return M \ rhs
+    catch e
+        if e isa LinearAlgebra.SingularException || (e isa ErrorException && occursin("singular", lowercase(e.msg)))
+            # Fallback to pseudoinverse. We convert to Float64 as pinv requires SVD, 
+            # which is not natively supported for Rational{BigInt} in Base.
+            M_float = Float64.(M)
+            rhs_float = Float64.(rhs)
+            w_float = pinv(M_float) * rhs_float
+            
+            # Recover exact rational values (Weingarten equations always yield rationals)
+            if T <: Rational
+                IntType = T.parameters[1]
+                return rationalize.(IntType, w_float, tol=1e-10)
+            else
+                return rationalize.(w_float, tol=1e-10)
+            end
+        end
+        rethrow(e)
+    end
+end
+
+"""
     get_weingarten_orthogonal_data(k, d)
 
 Internal function to generate the **Orthogonal Weingarten matrix**. 
@@ -457,7 +487,7 @@ The Weingarten matrix is the inverse of \$G\$.
     rhs = zeros(T, n_types)
     rhs[id_idx] = one(T)
 
-    w = M \ rhs
+    w = _safe_solve(M, rhs)
 
     return w, type_to_idx, type_to_parts
 end

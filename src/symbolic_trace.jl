@@ -61,7 +61,7 @@ function _getindex_scalar(A::SymbolicMatrix, i, j)
             
             # Check if i - rows is a positive constant
             sir = Symbolics.simplify(i - rows)
-            if isequal(sir, 1) || isequal(sir, 2) || (sir isa Number && sir > 0)
+            if isequal(sir, 1) || isequal(sir, 2) || (sir isa Real && !(sir isa Num) && sir > 0)
                 throw(BoundsError(A, (i, j)))
             end
         end
@@ -78,7 +78,7 @@ function _getindex_scalar(A::SymbolicMatrix, i, j)
             end
             
             sjr = Symbolics.simplify(j - cols)
-            if isequal(sjr, 1) || isequal(sjr, 2) || (sjr isa Number && sjr > 0)
+            if isequal(sjr, 1) || isequal(sjr, 2) || (sjr isa Real && !(sjr isa Num) && sjr > 0)
                 throw(BoundsError(A, (i, j)))
             end
         end
@@ -276,14 +276,25 @@ end
 function Base.size(K::SymbolicKron)
     szA = size(K.A)
     szB = size(K.B)
-    return (szA[1] * szB[1], szA[2] * szB[2])
+    
+    # helper to multiply sizes part by part
+    mul_dim(a, b) = (a === nothing || b === nothing) ? nothing : a * b
+    
+    return (mul_dim(szA[1], szB[1]), mul_dim(szA[2], szB[2]))
 end
 
 function Base.getindex(K::SymbolicKron, i::Integer, j::Integer)
     szB = size(K.B)
-    # Binary kron: (i-1) = (iA-1)*rowsB + (iB-1)
-    iA, iB = divrem(i - 1, szB[1]) .+ 1
-    jA, jB = divrem(j - 1, szB[2]) .+ 1
+    rowsB = szB[1]
+    colsB = szB[2]
+    
+    if rowsB === nothing || colsB === nothing
+        # Throw a helpful error instead of MethodError in divrem
+        error("Cannot index into SymbolicKron with unknown dimensions in factor $(K.B). Specify dimensions or use tr() for scalar results.")
+    end
+
+    iA, iB = divrem(i - 1, rowsB) .+ 1
+    jA, jB = divrem(j - 1, colsB) .+ 1
     return K.A[iA, jA] * K.B[iB, jB]
 end
 

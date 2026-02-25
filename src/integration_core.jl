@@ -750,15 +750,42 @@ function integrate(A::SymbolicMatrix, measure::AbstractMeasure)
     )
 end
 
+_get_integration_tag(m::MetadataMatcher) = m.type_tag
+
+function _has_integration_variable(expr, tag::Symbol)
+    if expr isa SymbolicMatrix
+        return expr.special_type === tag
+    elseif expr isa SymbolicKron
+        return _has_integration_variable(expr.A, tag) || _has_integration_variable(expr.B, tag)
+    elseif expr isa SymbolicMatrixProduct
+        return any(f -> _has_integration_variable(f, tag), expr.factors)
+    else
+        return false
+    end
+end
+
 """
     integrate(expr::SymbolicMatrixProduct, measure)
 
 Integrate a product of SymbolicMatrices. Returns a matrix of results if the 
-dimension in `measure` is a concrete integer.
+dimension in `measure` is a concrete integer. It skips expansion and returns the product 
+itself if it does not contain the integration variable.
 """
 function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
     if isempty(P.factors)
         return Num(1)
+    end
+
+    # Fast path: if the product does not contain the integration variable at all,
+    # it acts as a constant, so the integral is just the product itself.
+    _, matcher, _, _ = measure_info(measure)
+    
+    # We define a helper to safely extract the tag from different matchers
+    if matcher isa MetadataMatcher || (isdefined(Main, :SymbolicMatcher) && matcher isa Main.SymbolicMatcher) || hasproperty(matcher, :tag) || hasproperty(matcher, :type_tag)
+        tag = hasproperty(matcher, :type_tag) ? matcher.type_tag : matcher.tag
+        if !_has_integration_variable(P, tag)
+            return P
+        end
     end
 
     dim_measure = _get_measure_dim(measure)
@@ -775,36 +802,39 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
         fc_un = Symbolics.unwrap(fc)
         
         if fr_un isa Integer && fr_un != typemax(Int)
-            inner_dims[i] = Int(fr_un)
+            inner_dims[i] = fr_un
         end
         if fc_un isa Integer && fc_un != typemax(Int)
-            inner_dims[i+1] = Int(fc_un)
+            inner_dims[i+1] = fc_un
         end
     end
     
     # Pass 2: Fallback to measure dimension for any remaining unknowns
     for i in 1:(n_factors + 1)
         if inner_dims[i] === nothing
-            inner_dims[i] = Int(dim_measure)
+            inner_dims[i] = dim_measure
         end
     end
 
     nr = inner_dims[1]
     nc = inner_dims[end]
+    
+    nr_un = Symbolics.unwrap(nr)
+    nc_un = Symbolics.unwrap(nc)
 
-    if nr isa Integer && nc isa Integer
-        nr = Int(nr)
-        nc = Int(nc)
+    if nr_un isa Integer && nc_un isa Integer
+        nr = Int(nr_un)
+        nc = Int(nc_un)
 
         # Pre-calculate factor matrices to avoid repeated getindex overhead
         mats = []
         for (i, f) in enumerate(P.factors)
-            cur_r = inner_dims[i]
-            cur_c = inner_dims[i+1]
+            cur_r = Symbolics.unwrap(inner_dims[i])
+            cur_c = Symbolics.unwrap(inner_dims[i+1])
 
             if !(cur_r isa Integer && cur_c isa Integer)
                 error(
-                    "Factor $f has non-numeric size ($cur_r, $cur_c). Cannot expand product.",
+                    "Factor $f has non-numeric size ($cur_r, $cur_c). cannot expand product for matrix-valued integration. Use tr() for scalar results with symbolic dimensions.",
                 )
             end
 
@@ -822,7 +852,7 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
         end
         return res
     end
-    error("Direct integration of SymbolicMatrixProduct requires numeric result dimensions.")
+    error("Direct matrix-valued integration of SymbolicMatrixProduct requires numeric result dimensions (got $nr x $nc). Use tr() for scalar results.")
 end
 
 """
