@@ -11,6 +11,20 @@ In the regime where $d$ is large (stable range) or symbolic, the integration ove
 
 Use the `dSU` measure constructor.
 
+1. **Basic Integration using `@integrate`**
+
+The `@integrate` macro identifies `U` as the random matrix.
+
+```julia
+using IntU, Symbolics
+@variables d
+# E[|U_1,1|^2]
+@integrate abs(U[1, 1])^2 dSU(d)
+# Output: 1/d
+```
+
+2. **Manual Integration**
+
 ```julia
 using IntU, Symbolics
 @variables d

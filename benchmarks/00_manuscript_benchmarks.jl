@@ -132,8 +132,7 @@ println("-----------------------------------------------------------------------
 
 # Circular Ensembles
 # Symmetric S (COE)
-S_coe = SymbolicMatrix(:S, :U) # Using :U underlying type but dCOE measure handles it or requires :S?
-# examples say S = SymbolicMatrix(:S, :U) and dCOE(d)
+S_coe = SymbolicMatrix(:S, :COE) 
 mCOE = dCOE(d)
 
 t, _ = measure_median_func(() -> integrate(abs(S_coe[1, 1])^2, mCOE))
@@ -147,13 +146,14 @@ t, _ = measure_median_func(() -> integrate(abs(S_coe[1, 1])^6, mCOE))
 
 
 # Self-dual S (CSE)
+S_cse = SymbolicMatrix(:S, :CSE)
 mCSE = dCSE(d)
-t, _ = measure_median_func(() -> integrate(abs(S_coe[1, 1])^2, mCSE))
+t, _ = measure_median_func(() -> integrate(abs(S_cse[1, 1])^2, mCSE))
 @printf("%-18s %-25s %-15s %10.2f\n", "Circ. Symplectic", "|S_11|^2", "Symbolic", t)
-t, _ = measure_median_func(() -> integrate(abs(S_coe[1, 1])^4, mCSE))
+t, _ = measure_median_func(() -> integrate(abs(S_cse[1, 1])^4, mCSE))
 @printf("%-18s %-25s %-15s %10.2f\n", "Circ. Symplectic", "|S_11|^4", "Symbolic", t)
 # |S_11|^6, Symbolic
-t, _ = measure_median_func(() -> integrate(abs(S_coe[1, 1])^6, mCSE))
+t, _ = measure_median_func(() -> integrate(abs(S_cse[1, 1])^6, mCSE))
 @printf("%-18s %-25s %-15s %10.2f\n", "Circ. Symplectic", "|S_11|^6", "Symbolic", t)
 # @printf("%-18s %-25s %-15s %10s\n", "Circ. Symplectic", "|S_11|^6", "Symbolic", "Skipped")
 

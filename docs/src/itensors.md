@@ -85,10 +85,18 @@ res = integrate([O, A], dO(3))
 You can use symbolic dimensions from `Symbolics.jl` even when working with ITensors. While ITensor objects require a concrete size for construction, IntU will interpret the integration dimension symbolically if a symbolic variable is passed to the measure.
 
 ```julia
-using Symbolics
+using IntU, ITensors, Symbolics
+
 @variables d_sym
+i = Index(2, "Out"); j = Index(2, "In")
+i2 = Index(2, "Out2"); j2 = Index(2, "In2")
+
+U = ITensorUnitary(out_indices=[i], in_indices=[j])
+U_dag = ITensorUnitary(out_indices=[j2], in_indices=[i2], is_adj=true)
+
+# Integrate E[U ⊗ U†]
 res = integrate([U, U_dag], dU(d_sym))
-# Result will be an ITensor with scalar value involving d_sym (e.g., 1/d_sym)
+# Result is an ITensor with indices {i, j, i2, j2} involving d_sym
 ```
 
 ## Nested and Sequential Integration
@@ -96,7 +104,17 @@ res = integrate([U, U_dag], dU(d_sym))
 For networks with multiple independent random unitaries, you can perform integration in steps.
 
 ```julia
-# Network: U * V
+using IntU, ITensors
+
+i = Index(2); j = Index(2); k = Index(2)
+U_it = randomITensor(i, j); V_it = randomITensor(j, k)
+A = randomITensor(k, i) # Constant tensor to close the loop
+
+# Wrap U and V
+U_wrap = ITensorUnitary(U_it, out_indices=[i], in_indices=[j])
+V_wrap = ITensorUnitary(V_it, out_indices=[j], in_indices=[k])
+
+# Network: Tr(U * V * A)
 # Step 1: Integrate over U
 res_partial = integrate([U_wrap, V_it, A], dU(2))
 

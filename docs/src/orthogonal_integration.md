@@ -26,21 +26,37 @@ where:
 *   $\Delta_\pi(i)$ is a delta function that equals 1 if the indices $i$ match the pairing $\pi$ (i.e., $i_a = i_b$ for all pairs $\{a, b\} \in \pi$), and 0 otherwise.
 *   $\text{Wg}^O(\pi_1, \pi_2, d)$ is the Orthogonal Weingarten function. It depends on the loop structure of the graph formed by superimposing the two matchings $\pi_1$ and $\pi_2$.
 
-### Usage
+### 1. Basic Integration using `@integrate`
+
+The `@integrate` macro automatically identifies `O` as the random orthogonal matrix.
 
 ```julia
 using IntU, Symbolics
-
-# Define dimension
 @variables d
-# Define Orthogonal matrix
-O = SymbolicMatrix(:O, :O)
-# Integrate squared element
-res = integrate(O[1, 1]^2, dO(d))
+# E[O_11^2]
+@integrate O[1, 1]^2 dO(d)
 # Output: 1/d
+```
 
-# 2. Fourth power
-integrate(O[1, 1]^4, dO(d))
+### 2. Manual Integration
+
+For more control, you can declare symbols explicitly.
+
+```julia
+using IntU, Symbolics
+@variables d
+O = SymbolicMatrix(:O, :O)
+integrate(O[1, 1]^2, dO(d))
+```
+
+### 3. Higher Moments
+
+The `@integrate` macro can be used for higher moments too.
+
+```julia
+using IntU, Symbolics
+@variables d
+@integrate O[1, 1]^4 dO(d)
 # Output: 3 / (d*(d + 2))
 ```
 
@@ -72,21 +88,33 @@ The integration formula is analogous to the orthogonal case but involves the sym
 where $\Delta^J_\pi(i)$ contracts the indices $i$ using the symplectic metric $J$ (introducing signs $\pm 1$).
 The Weingarten function $\text{Wg}^{Sp}$ is related to $\text{Wg}^O$ by the dimensional shift $d \to -d$ (and sign adjustments).
 
-### Usage
+### 1. Basic Integration using `@integrate`
+
+The `@integrate` macro is also available for the symplectic group. It identifies `Sp` as the random symplectic matrix.
 
 ```julia
 using IntU, Symbolics
-
 @variables d
-# Define Symplectic matrix (Complex entries, unlike O(d))
+# E[|Sp_11|^2]
+@integrate abs(Sp[1, 1])^2 dSp(2)
+# Output: 1/2
+```
+
+### 2. Manual Integration
+
+```julia
+using IntU, Symbolics
+@variables d
 S = SymbolicMatrix(:S, :Sp)
+integrate(abs(S[1, 1])^2, dSp(d))
+```
 
-# |S_{1,1}|^2 integration
-res = integrate(abs(S[1, 1])^2, dSp(d))
-# Output: 1/d
+### 3. Higher Moments
 
-# |S_{1,1}|^4 integration
-integrate(abs(S[1, 1])^4, dSp(d))
+```julia
+using IntU, Symbolics
+@variables d
+@integrate abs(Sp[1, 1])^4 dSp(d)
 # Output: 2 / ((d + 1)*(d - 1))
 ```
 

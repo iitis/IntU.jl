@@ -5,7 +5,7 @@ using BenchmarkTools
 println("=== Permutation Group Integration Benchmark ===")
 
 function benchmark_permutation(k, d_val)
-    P_sym = SymbolicMatrix(:P, :P, d_val)
+    P_sym = SymbolicMatrix(:P, :Perm, d_val)
     P = P_sym[1:d_val, 1:d_val]
     measure = dPerm(d_val)
     # Integral of P[1,1] * P[2,2] * ... * P[k,k]
@@ -16,7 +16,7 @@ function benchmark_permutation(k, d_val)
 end
 
 function benchmark_centered_permutation(k, d_val)
-    Y_sym = SymbolicMatrix(:Y, :Y, d_val)
+    Y_sym = SymbolicMatrix(:Y, :CPerm, d_val)
     Y = Y_sym[1:d_val, 1:d_val]
     measure = dCPerm(d_val)
     # Integral of Y[1,1]^k
@@ -27,7 +27,7 @@ function benchmark_centered_permutation(k, d_val)
 end
 
 function benchmark_trace(k, d_val)
-    P_sym = SymbolicMatrix(:P, :P, d_val)
+    P_sym = SymbolicMatrix(:P, :Perm, d_val)
     P = P_sym[1:d_val, 1:d_val]
     @variables A[1:d_val, 1:d_val]
     measure = dPerm(d_val)
@@ -39,10 +39,10 @@ function benchmark_trace(k, d_val)
 end
 
 # Warmup
-P_warm_sym = SymbolicMatrix(:P, :P, 2)
+P_warm_sym = SymbolicMatrix(:P, :Perm, 2)
 P_warm = P_warm_sym[1:2, 1:2]
 integrate(P_warm[1, 1], dPerm(2))
-Y_warm_sym = SymbolicMatrix(:Y, :Y, 2)
+Y_warm_sym = SymbolicMatrix(:Y, :CPerm, 2)
 Y_warm = Y_warm_sym[1:2, 1:2]
 integrate(Y_warm[1, 1], dCPerm(2))
 integrate(Symbolics.scalarize(IntU.tr(P_warm)), dPerm(2))

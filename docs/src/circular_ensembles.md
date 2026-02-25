@@ -21,9 +21,22 @@ dCSE
 
 For the COE, the matrix $S$ is symmetric unitary. The diagonal entries have different statistical properties than off-diagonal entries.
 
+1. **Basic Integration using `@integrate`**
+
+The `@integrate` macro automatically identifies `S` as the random matrix when `dCOE` is used.
+
 ```julia
 using IntU, Symbolics
+@variables d
+# COE moment E[|S_{1,1}|^2]
+@integrate abs(S[1, 1])^2 dCOE(d)
+# Output: 2 / (d + 1)
+```
 
+2. **Manual Integration**
+
+```julia
+using IntU, Symbolics
 @variables d
 S = SymbolicMatrix(:S, :COE)
 # COE moment E[|S_{1,1}|^2]
@@ -34,6 +47,18 @@ integrate(abs(S[1, 1])^2, dCOE(d))
 ### CSE (Circular Symplectic Ensemble)
 
 For the CSE, the matrix $S$ is defined on a space of dimension $2N$ and satisfies $S = J S^T J^T$.
+
+1. **Basic Integration using `@integrate`**
+
+```julia
+using IntU, Symbolics
+@variables d
+# CSE moment E[|S_{1,1}|^2]
+@integrate abs(S[1, 1])^2 dCSE(d)
+# Output: 1 / (d - 1)
+```
+
+2. **Manual Integration**
 
 ```julia
 using IntU, Symbolics
@@ -47,6 +72,18 @@ integrate(abs(S[1, 1])^2, dCSE(d))
 ### CUE (Circular Unitary Ensemble)
 
 The CUE is statistical identical to the standard Unitary Haar measure.
+
+1. **Basic Integration using `@integrate`**
+
+```julia
+using IntU, Symbolics
+@variables d
+# CUE moment E[|U_{1,1}|^2]
+@integrate abs(U[1, 1])^2 dCUE(d)
+# Output: 1 / d
+```
+
+2. **Manual Integration**
 
 ```julia
 using IntU, Symbolics

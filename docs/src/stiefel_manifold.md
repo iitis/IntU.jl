@@ -28,6 +28,20 @@ quantum states $|\psi\rangle$.
 
 To perform integration over the Stiefel manifold, use the `dStiefel(d, k)` measure.
 
+1. **Basic Integration using `@integrate`**
+
+The `@integrate` macro automatically identifies `V` as the random Stiefel matrix.
+
+```julia
+using IntU, Symbolics
+@variables d
+# Integration over V_2(C^d)
+@integrate abs(V[1, 1])^2 dStiefel(d, 2)
+# Output: 1/d
+```
+
+2. **Manual Integration**
+
 ```julia
 using IntU, Symbolics
 

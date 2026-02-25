@@ -38,6 +38,8 @@ function _integrate_tensor_network(tensors::AbstractVector, measure)
             )
         elseif t isa ITensor
             push!(constants, t)
+        elseif t isa Union{Number,IntU.Num}
+            push!(constants, ITensor(t))
         else
             # Try to handle other types if possible, or error
             error("Unknown tensor type: $(typeof(t))")

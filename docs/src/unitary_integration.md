@@ -76,7 +76,22 @@ of arbitrary (symbolic) size.
 
 ## Examples
 
-### 1. Basic Integration
+### 1. Basic Integration using `@integrate`
+ 
+ The `@integrate` macro provides a convenient way to integrate expressions without manually declaring variables. It uses heuristics to identify random unitaries (usually `U`) and dimensions.
+ 
+ ```julia
+ using IntU, Symbolics
+ @variables d
+ # E[|U_11|^2]
+ @integrate abs(U[1, 1])^2 dU(d)
+ # Output: 1/d
+ ```
+ 
+ ### 2. Manual Integration
+ 
+ For more control, or when dealing with multiple matrices, you can declare symbols explicitly.
+ 
 
 ```julia
 using IntU, Symbolics
@@ -89,7 +104,7 @@ integrate(abs(U[1, 1])^2, dU(d))
 # Output: 1/d
 ```
 
-### 2. Higher Unitary Moments
+### 3. Higher Unitary Moments
 
 ```julia
 using IntU, Symbolics
@@ -102,7 +117,7 @@ integrate(abs(U[1, 1])^4, dU(d))
 # Output: 2 / (d*(d + 1))
 ```
 
-### 3. Trace Moments
+### 4. Trace Moments
 
 ```julia
 using IntU, Symbolics
@@ -115,7 +130,7 @@ integrate(abs(tr(U))^2, dU(d))
 # Output: 1
 ```
 
-### 4. Matrix Integration
+### 5. Matrix Integration
 
 You can integrate matrix-valued expressions directly. The function `integrate` will element-wise integrate any `AbstractArray` (including `SymbolicMatrix` and `SymbolicMatrixProduct`) passed to it.
 
@@ -129,7 +144,7 @@ B = SymbolicMatrix(:B)
 integrate(tr(U * A * U' * B), dU(d))
 ```
 
-### 5. HCIZ Integrals
+### 6. HCIZ Integrals
 
 IntU.jl provides direct support for **Harish-Chandra-Itzykson-Zuber (HCIZ)** integrals.
 

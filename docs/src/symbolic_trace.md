@@ -10,11 +10,20 @@ The package provides a `tr` function (representing a lazy trace) that delays eva
 
 ## Usage
 
-1.  **Define Symbolic Matrices**: Use `SymbolicMatrix(name, is_adj, type)`.
-    *   Set type to `:U` for the random unitary.
-    *   Set type to `:Constant` for fixed matrices.
-2.  **Define Measure**: Create a `HaarMeasure` using `dU`. The `dim` is crucial.
-3.  **Construct Trace**: Use `IntU.tr` with standard matrix multiplication `*` and adjoint `'`.
+1. **Basic Integration using `@integrate`**
+
+The `@integrate` macro works seamlessly with traces.
+
+```julia
+using IntU, Symbolics
+@variables d
+# E[tr(U A U' B)] = tr(A)*tr(B) / d
+@integrate tr(U * A * U' * B) dU(d)
+```
+
+2. **Manual Integration**
+
+For more control, or when dealing with complex expressions, you can declare symbols explicitly.
 
 ```julia
 using IntU, Symbolics
@@ -59,15 +68,11 @@ Information Theory without getting bogged down in index hell.
 ### Example
 
 ```julia
+using IntU, Symbolics
+@variables d
 # Product of traces
-expr = tr(U * A) * tr(U' * B)
-integrate(expr, measure)
+@integrate tr(U * A) * tr(U' * B) dU(d)
 # Output: tr(A*B) / d
-
-# Sum of traces
-expr_sum = tr(U * A * U') + tr(B)
-integrate(expr_sum, measure)
-# Output: (tr(A) / d) * tr(I_d) + tr(B) = tr(A) + tr(B)
 ```
 
 The underlying engine handles the "wiring" of indices across multiple trace cycles automatically.

@@ -20,6 +20,21 @@ Integration is then performed using the standard unitary Weingarten calculus.
 Use `dPsi(d)` where `d` is the dimension of the state space.
 
 ## Usage
+
+1. **Basic Integration using `@integrate`**
+
+The `@integrate` macro identifies `psi` as the random state vector.
+
+```julia
+using IntU, Symbolics
+@variables d
+# E[|psi_1|^2] = 1/d
+@integrate abs(psi[1, 1])^2 dPsi(d)
+# Output: 1/d
+```
+
+2. **Manual Integration**
+
 ```julia
 using IntU, Symbolics
 
