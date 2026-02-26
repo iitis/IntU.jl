@@ -7,6 +7,7 @@ using SymbolicUtils
 using Memoization
 using DataStructures
 using MacroTools
+using ProgressMeter
 
 
 # Core Weingarten logic

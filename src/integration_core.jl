@@ -696,6 +696,16 @@ function _integrate_core(
             op = Symbolics.operation(ex_un)
             if op == (+)
                 terms = Symbolics.arguments(ex_un)
+                n_terms = length(terms)
+                if n_terms > 1
+                    p = Progress(n_terms; dt=10.0, desc="Integrating terms... ")
+                    res = zero(Num)
+                    for t in terms
+                        res += process_term_wrapped(t)
+                        next!(p)
+                    end
+                    return res
+                end
                 return sum(process_term_wrapped, terms)
             end
             if op == complex || op == Base.complex
@@ -713,6 +723,16 @@ function _integrate_core(
 end
 
 function integrate(expr::LazySum, measure::AbstractMeasure)
+    n_terms = length(expr.terms)
+    if n_terms > 1
+        p = Progress(n_terms; dt=10.0, desc="Integrating lazy terms... ")
+        res = zero(Num)
+        for t in expr.terms
+            res += integrate(t, measure)
+            next!(p)
+        end
+        return res
+    end
     return sum(t -> integrate(t, measure), expr.terms)
 end
 
@@ -738,9 +758,11 @@ function integrate(A::SymbolicMatrix, measure::AbstractMeasure)
     if dim isa Integer
         res = Matrix{Any}(undef, dim, dim)
         fill!(res, 0)
+        p = Progress(dim*dim; dt=10.0, desc="Integrating matrix elements... ")
         for i = 1:dim
             for j = 1:dim
                 res[i, j] = integrate(A[i, j], measure)
+                next!(p)
             end
         end
         return res
@@ -845,9 +867,11 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
 
         res = Matrix{Any}(undef, nr, nc)
         fill!(res, 0)
+        p = Progress(nr*nc; dt=10.0, desc="Integrating matrix product elements... ")
         for i = 1:nr
             for j = 1:nc
                 res[i, j] = integrate(res_mat[i, j], measure)
+                next!(p)
             end
         end
         return res
@@ -1279,12 +1303,27 @@ function integrate_indices(U_idxs::Vector{<:Tuple}, U_bar_idxs::Vector{<:Tuple},
 
     # Group terms by cycle type
     cycle_counts = Dict{Vector{Int},Int}()
-    for sigma in valid
-        for tau in valid_taus
-            inv_tau = invperm(tau)
-            P = [sigma[inv_tau[i]] for i = 1:n]
-            cycle_type = get_cycle_type(P)
-            cycle_counts[cycle_type] = get(cycle_counts, cycle_type, 0) + 1
+    n_v = length(valid)
+    n_vt = length(valid_taus)
+    if n_v * n_vt > 100 # Only if there are enough terms to justify overhead
+        p = Progress(n_v * n_vt; dt=10.0, desc="Calculating cycle types... ")
+        for sigma in valid
+            for tau in valid_taus
+                inv_tau = invperm(tau)
+                P = [sigma[inv_tau[i]] for i = 1:n]
+                cycle_type = get_cycle_type(P)
+                cycle_counts[cycle_type] = get(cycle_counts, cycle_type, 0) + 1
+                next!(p)
+            end
+        end
+    else
+        for sigma in valid
+            for tau in valid_taus
+                inv_tau = invperm(tau)
+                P = [sigma[inv_tau[i]] for i = 1:n]
+                cycle_type = get_cycle_type(P)
+                cycle_counts[cycle_type] = get(cycle_counts, cycle_type, 0) + 1
+            end
         end
     end
 
@@ -1458,11 +1497,25 @@ function integrate_indices_orthogonal(indices::AbstractVector, dim)
     w, type_to_idx, _ = get_weingarten_reduced_data(k, dim)
     total = zero(eltype(w))
 
-    for (c_pi, count_pi) in pi_counts
-        for (c_sigma, count_sigma) in sigma_counts
-            ct = get_full_cycle_type(c_pi, c_sigma)
-            val = w[type_to_idx[ct]]
-            total += (BigInt(count_pi) * BigInt(count_sigma)) * val
+    n_pi = length(pi_counts)
+    n_sigma = length(sigma_counts)
+    if n_pi * n_sigma > 100
+        p = Progress(n_pi * n_sigma; dt=10.0, desc="Calculating orthogonal integrals... ")
+        for (c_pi, count_pi) in pi_counts
+            for (c_sigma, count_sigma) in sigma_counts
+                ct = get_full_cycle_type(c_pi, c_sigma)
+                val = w[type_to_idx[ct]]
+                total += (BigInt(count_pi) * BigInt(count_sigma)) * val
+                next!(p)
+            end
+        end
+    else
+        for (c_pi, count_pi) in pi_counts
+            for (c_sigma, count_sigma) in sigma_counts
+                ct = get_full_cycle_type(c_pi, c_sigma)
+                val = w[type_to_idx[ct]]
+                total += (BigInt(count_pi) * BigInt(count_sigma)) * val
+            end
         end
     end
 
@@ -1572,12 +1625,27 @@ function integrate_indices_symplectic(indices::AbstractVector, dim)
     T = eltype(w)
     total = zero(T)
 
-    for (c_pi, val_pi) in pi_contractions
-        for (c_sigma, val_sigma) in sigma_contractions
-            ct = get_full_cycle_type(c_pi, c_sigma)
-            loops = length(ct)
-            wg = ((-1)^loops) * w[type_to_idx[ct]]
-            total += val_pi * val_sigma * wg
+    n_pi = length(pi_contractions)
+    n_sigma = length(sigma_contractions)
+    if n_pi * n_sigma > 100
+        p = Progress(n_pi * n_sigma; dt=10.0, desc="Calculating symplectic integrals... ")
+        for (c_pi, val_pi) in pi_contractions
+            for (c_sigma, val_sigma) in sigma_contractions
+                ct = get_full_cycle_type(c_pi, c_sigma)
+                loops = length(ct)
+                wg = ((-1)^loops) * w[type_to_idx[ct]]
+                total += val_pi * val_sigma * wg
+                next!(p)
+            end
+        end
+    else
+        for (c_pi, val_pi) in pi_contractions
+            for (c_sigma, val_sigma) in sigma_contractions
+                ct = get_full_cycle_type(c_pi, c_sigma)
+                loops = length(ct)
+                wg = ((-1)^loops) * w[type_to_idx[ct]]
+                total += val_pi * val_sigma * wg
+            end
         end
     end
 

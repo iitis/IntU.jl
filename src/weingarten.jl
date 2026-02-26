@@ -449,9 +449,18 @@ The Weingarten matrix is the inverse of \$G\$.
 
     # Group partitions by cycle type with respect to pi_id
     type_to_parts = Dict{Vector{Int},Vector{Int}}()
-    for i = 1:N
-        ct = get_full_cycle_type(parts[i], pi_id)
-        push!(get!(type_to_parts, ct, Int[]), i)
+    if N > 1000
+        p = Progress(N; dt=10.0, desc="Grouping partitions by orbit... ")
+        for i = 1:N
+            ct = get_full_cycle_type(parts[i], pi_id)
+            push!(get!(type_to_parts, ct, Int[]), i)
+            next!(p)
+        end
+    else
+        for i = 1:N
+            ct = get_full_cycle_type(parts[i], pi_id)
+            push!(get!(type_to_parts, ct, Int[]), i)
+        end
     end
 
     cts = collect(keys(type_to_parts))
@@ -466,19 +475,39 @@ The Weingarten matrix is the inverse of \$G\$.
     end
 
     M = zeros(T, n_types, n_types)
-    for i = 1:n_types
-        pi_lambda = parts[type_to_parts[cts[i]][1]]
-        for j = 1:n_types
-            sum_g = zero(T)
-            for sigma_idx in type_to_parts[cts[j]]
-                loops = count_loops(pi_lambda, parts[sigma_idx])
-                if d isa Integer
-                    sum_g += (Rational{BigInt}(d)^loops)
-                else
-                    sum_g += d^loops
+    if n_types * N > 10000
+        p = Progress(n_types * N; dt=10.0, desc="Building reduced Gram matrix... ")
+        for i = 1:n_types
+            pi_lambda = parts[type_to_parts[cts[i]][1]]
+            for j = 1:n_types
+                sum_g = zero(T)
+                for sigma_idx in type_to_parts[cts[j]]
+                    loops = count_loops(pi_lambda, parts[sigma_idx])
+                    if d isa Integer
+                        sum_g += (Rational{BigInt}(d)^loops)
+                    else
+                        sum_g += d^loops
+                    end
+                    next!(p)
                 end
+                M[i, j] = sum_g
             end
-            M[i, j] = sum_g
+        end
+    else
+        for i = 1:n_types
+            pi_lambda = parts[type_to_parts[cts[i]][1]]
+            for j = 1:n_types
+                sum_g = zero(T)
+                for sigma_idx in type_to_parts[cts[j]]
+                    loops = count_loops(pi_lambda, parts[sigma_idx])
+                    if d isa Integer
+                        sum_g += (Rational{BigInt}(d)^loops)
+                    else
+                        sum_g += d^loops
+                    end
+                end
+                M[i, j] = sum_g
+            end
         end
     end
 
