@@ -464,6 +464,67 @@ function adjoint(P::SymbolicMatrixProduct)
     return SymbolicMatrixProduct(reverse([adjoint(f) for f in P.factors]))
 end
 
+function _is_identity(A)
+    if A isa AbstractMatrix && !(A isa IntU.SymbolicAny)
+        return A == I || (size(A,1) == size(A,2) && A == I(size(A,1)))
+    end
+    return false
+end
+
+function _are_inverses(A, B)
+    if A isa IntU.SymbolicMatrix && B isa IntU.SymbolicMatrix
+        if A.name === B.name && A.special_type === B.special_type && 
+           isequal(A.dim, B.dim) && A.is_adj != B.is_adj
+            if A.special_type in (:U, :O, :Sp, :CUE, :COE, :CSE, :Perm, :CPerm, :DiagUnitary)
+                return true
+            end
+        end
+    end
+    
+    if A isa IntU.SymbolicKron && B isa IntU.SymbolicKron
+        cancel1 = _are_inverses(A.A, B.A) || (_is_identity(A.A) && _is_identity(B.A))
+        cancel2 = _are_inverses(A.B, B.B) || (_is_identity(A.B) && _is_identity(B.B))
+        return cancel1 && cancel2
+    end
+    
+    return false
+end
+
+function _simplify_cycle(factors::AbstractVector)
+    if isempty(factors)
+        return factors
+    end
+    
+    changed = true
+    current_factors = copy(factors)
+    
+    while changed && length(current_factors) >= 2
+        changed = false
+        n = length(current_factors)
+        
+        for i in 1:n
+            j = (i % n) + 1
+            f1 = current_factors[i]
+            f2 = current_factors[j]
+            
+            cancels = _are_inverses(f1, f2) || _are_inverses(f2, f1)
+            
+            if cancels
+                if i < j
+                    deleteat!(current_factors, j)
+                    deleteat!(current_factors, i)
+                else
+                    deleteat!(current_factors, i)
+                    deleteat!(current_factors, j)
+                end
+                changed = true
+                break
+            end
+        end
+    end
+    return current_factors
+end
+
 """
     tr(A::SymbolicMatrix)
     tr(A::SymbolicMatrixProduct)
@@ -504,13 +565,15 @@ Creates a `LazyTrace` representing the symbolic trace of a matrix product.
 The product can be a `SymbolicMatrix`, `SymbolicMatrixProduct`, or a vector of matrices.
 """
 function tr_lazy(product::AbstractVector)
-    return LazyTrace([collect(Any, product)], 1)
+    simplified_factors = _simplify_cycle(product)
+    return LazyTrace([collect(Any, simplified_factors)], 1)
 end
 function tr_lazy(product::SymbolicMatrix)
     return LazyTrace([[product]], 1)
 end
 function tr_lazy(product::SymbolicMatrixProduct)
-    return LazyTrace([product.factors], 1)
+    simplified_factors = _simplify_cycle(product.factors)
+    return LazyTrace([simplified_factors], 1)
 end
 
 function Base.:*(a::LazyTrace, b::LazyTrace)
