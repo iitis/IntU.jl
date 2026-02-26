@@ -571,8 +571,8 @@ function fallback_integrate(t::LazyTrace, measure::GinOEMeasure)
 
                         # Determine partner port via index matching
                         f_partner = all_factors[G_indices[partner_m]]
-                        # If same is_adj, row is at same port index. If different, they swap.
-                        if f_landed.is_adj == f_partner.is_adj
+                        # If orientations match, row is at same port index. If different, they swap.
+                        if f_landed.is_trans == f_partner.is_trans
                             partner_port = landed_port
                         else
                             partner_port = (landed_port == 1 ? 2 : 1)

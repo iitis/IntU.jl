@@ -415,19 +415,41 @@ function _safe_solve(M::AbstractMatrix{T}, rhs) where {T}
     try
         return M \ rhs
     catch e
-        if e isa LinearAlgebra.SingularException || (e isa ErrorException && occursin("singular", lowercase(e.msg)))
-            # Fallback to pseudoinverse. We convert to Float64 as pinv requires SVD, 
-            # which is not natively supported for Rational{BigInt} in Base.
-            M_float = Float64.(M)
-            rhs_float = Float64.(rhs)
-            w_float = pinv(M_float) * rhs_float
-            
-            # Recover exact rational values (Weingarten equations always yield rationals)
+        # Catch singular cases robustly
+        is_singular = false
+        if occursin("SingularException", string(typeof(e)))
+            is_singular = true
+        elseif e isa ErrorException && occursin("singular", lowercase(e.msg))
+            is_singular = true
+        end
+
+        if is_singular
+            # 2. If it's a Rational system, it might be a pole of the Weingarten system but NOT the integral.
             if T <: Rational
-                IntType = T.parameters[1]
-                return rationalize.(IntType, w_float, tol=1e-10)
+                M_bf = BigFloat.(M)
+                rhs_bf = BigFloat.(rhs)
+                
+                # Use a very high precision for the pseudoinverse
+                return setprecision(BigFloat, 1024) do
+                    # Add a tiny diagonal perturbation to M to push it off the pole
+                    n = size(M_bf, 1)
+                    # Use a very small epsilon relative to matrix scale
+                    eps_val = BigFloat(1) / BigInt(10)^60
+                    for i = 1:n
+                        M_bf[i, i] += eps_val
+                    end
+                    
+                    w_bf = M_bf \ rhs_bf
+                    
+                    IntType = T.parameters[1]
+                    # We use a tolerance that is small but larger than epsilon effect
+                    return rationalize.(IntType, w_bf, tol=1//BigInt(10)^30)
+                end
             else
-                return rationalize.(w_float, tol=1e-10)
+                # Non-rational, use pinv
+                M_f = Float64.(M)
+                rhs_f = Float64.(rhs)
+                return pinv(M_f) * rhs_f
             end
         end
         rethrow(e)

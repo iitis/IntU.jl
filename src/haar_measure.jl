@@ -161,7 +161,7 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
         rev_wires_s[s] = rs; rev_wires_m[s] = rm
     end
 
-    is_adj_vec = [f.is_adj for f in all_factors]
+    is_trans_vec = [f.is_trans for f in all_factors]
 
     perms = collect(Combinatorics.permutations(1:n_U))
     inv_perms = [invperm(p) for p in perms]
@@ -224,7 +224,7 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
                             rev_wires_m,
                             u_map_vec,
                             ub_map_vec,
-                            is_adj_vec,
+                            is_trans_vec,
                             U_idx_vec,
                             Ub_idx_vec,
                             total_factors,
@@ -279,7 +279,7 @@ function _build_wires(U_indices, U_bar_indices, cycle_ranges, all_factors)
                 reverse_wires[slot] = (curr, isempty(consts_rev) ? nothing : consts_rev)
                 break
             end
-            push!(consts_rev, adjoint(all_factors[curr]))
+            push!(consts_rev, transpose(all_factors[curr]))
         end
     end
     return wires, reverse_wires
@@ -317,7 +317,7 @@ function _traverse_trace_cycle_fast(
     rev_wires_m,
     u_map_vec,
     ub_map_vec,
-    is_adj_vec,
+    is_trans_vec,
     U_idx_vec,
     Ub_idx_vec,
     total_factors,
@@ -339,16 +339,15 @@ function _traverse_trace_cycle_fast(
             if p == 1 # Row-port of U matches Row-port of U_bar
                 ub_k = sigma[u_m]
                 s = Ub_idx_vec[ub_k]
-                p = is_adj_vec[s] ? 2 : 1
+                p = is_trans_vec[s] ? 2 : 1
             else # Col-port of U matches Col-port of U_bar
                 ub_k = tau[u_m]
                 s = Ub_idx_vec[ub_k]
-                p = is_adj_vec[s] ? 1 : 2
+                p = is_trans_vec[s] ? 1 : 2
             end
         else # s is in U_bar
             ub_m = ub_map_vec[s]
-            is_adj = is_adj_vec[s]
-            is_row_port = (is_adj && p == 2) || (!is_adj && p == 1)
+            is_row_port = (is_trans_vec[s] && p == 2) || (!is_trans_vec[s] && p == 1)
             if is_row_port
                 u_k = inv_sigma[ub_m]
                 s = U_idx_vec[u_k]

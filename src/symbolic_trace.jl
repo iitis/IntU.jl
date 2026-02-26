@@ -11,11 +11,12 @@ Used in the symbolic trace logic (via `tr_lazy`) and for metadata-driven element
 struct SymbolicMatrix <: AbstractMatrix{Any}
     name::Symbol
     is_adj::Bool
+    is_trans::Bool
     special_type::Symbol
     dim::Union{Nothing,Integer,Num,Tuple{Union{Integer,Num},Union{Integer,Num}},Any}
 
-    function SymbolicMatrix(name::Symbol, is_adj::Bool, special_type::Symbol, dim::Any)
-        new(name, is_adj, special_type, dim)
+    function SymbolicMatrix(name::Symbol, is_adj::Bool, is_trans::Bool, special_type::Symbol, dim::Any)
+        new(name, is_adj, is_trans, special_type, dim)
     end
 end
 
@@ -32,13 +33,15 @@ Base.showerror(io::IO, e::IntegrationError) = print(io, "IntegrationError: ", e.
 
 struct MatrixMetadata end
 
-SymbolicMatrix(name::Symbol) = SymbolicMatrix(name, false, :Constant, nothing)
+SymbolicMatrix(name::Symbol) = SymbolicMatrix(name, false, false, :Constant, nothing)
 SymbolicMatrix(name::Symbol, special_type::Symbol) =
-    SymbolicMatrix(name, false, special_type, nothing)
+    SymbolicMatrix(name, false, false, special_type, nothing)
 SymbolicMatrix(name::Symbol, is_adj::Bool, special_type::Symbol) =
-    SymbolicMatrix(name, is_adj, special_type, nothing)
+    SymbolicMatrix(name, is_adj, false, special_type, nothing)
 SymbolicMatrix(name::Symbol, special_type::Symbol, dim) =
-    SymbolicMatrix(name, false, special_type, dim)
+    SymbolicMatrix(name, false, false, special_type, dim)
+SymbolicMatrix(name::Symbol, is_adj::Bool, special_type::Symbol, dim) =
+    SymbolicMatrix(name, is_adj, false, special_type, dim)
 
 import Base: *, adjoint, transpose, show, ^, size, getindex
 import LinearAlgebra: tr
@@ -95,15 +98,16 @@ function _getindex_scalar(A::SymbolicMatrix, i, j)
         end
     end
 
-    s_name = Symbol(A.name, :_, i, :_, j)
-    if A.is_adj
-        s_name = Symbol(A.name, :_, j, :_, i)
-    end
+    # If transposed, the row index of A^T is the col index of A
+    actual_i = A.is_trans ? j : i
+    actual_j = A.is_trans ? i : j
+
+    s_name = Symbol(A.name, :_, actual_i, :_, actual_j)
 
     meta = Dict(
         :name => A.name,
         :type => A.special_type,
-        :indices => (A.is_adj ? (j, i) : (i, j)),
+        :indices => (actual_i, actual_j),
         :is_adj => A.is_adj,
     )
 
@@ -145,11 +149,21 @@ function Base.getindex(
 end
 
 function Base.adjoint(A::SymbolicMatrix)
-    return SymbolicMatrix(A.name, !A.is_adj, A.special_type, A.dim)
+    return conj(transpose(A))
 end
 
 function Base.transpose(A::SymbolicMatrix)
-    return SymbolicMatrix(A.name, !A.is_adj, A.special_type, A.dim)
+    # Pure transpose
+    return SymbolicMatrix(A.name, A.is_adj, !A.is_trans, A.special_type, A.dim)
+end
+
+function Base.conj(A::SymbolicMatrix)
+    # real special types: O, COE, GOE, GinOE, Perm, CPerm
+    if A.special_type in (:O, :COE, :GOE, :GinOE, :Perm, :CPerm)
+        return A
+    end
+    # Pure conjugation
+    return SymbolicMatrix(A.name, !A.is_adj, A.is_trans, A.special_type, A.dim)
 end
 
 # Factory functions for symbolic matrices
@@ -161,15 +175,23 @@ symbolic_permutation(name, d) = SymbolicMatrix(name, false, :Perm, d)
 
 function Base.show(io::IO, A::SymbolicMatrix)
     print(io, A.name)
-    if A.is_adj
+    if A.is_adj && A.is_trans
         print(io, "'")
+    elseif A.is_trans
+        print(io, ".'")
+    elseif A.is_adj
+        print(io, "ᴴ") # Or conj... maybe just denote it somehow.
     end
 end
 
 function Base.show(io::IO, ::MIME"text/plain", A::SymbolicMatrix)
     print(io, A.name)
-    if A.is_adj
+    if A.is_adj && A.is_trans
         print(io, "'")
+    elseif A.is_trans
+        print(io, ".'")
+    elseif A.is_adj
+        print(io, "ᴴ")
     end
     print(io, " (Symbolic Matrix")
     if A.dim !== nothing
@@ -744,8 +766,8 @@ function tr_val(factors::AbstractVector)
     end
 
     s1 = get_norm_string(factors)
-    adj_factors = reverse([adjoint(f) for f in factors])
-    s2 = get_norm_string(adj_factors)
+    trans_factors = reverse([transpose(f) for f in factors])
+    s2 = get_norm_string(trans_factors)
 
     name = "tr(" * (s1 < s2 ? s1 : s2) * ")"
     # Use T=Number to preserve symbolic structure.

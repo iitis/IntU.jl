@@ -1,4 +1,3 @@
-using IntU
 using Test
 using Aqua
 
