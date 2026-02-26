@@ -96,7 +96,11 @@ macro integrate(expr, measure)
 
     # Handle dimension
     if m_dim isa Symbol
-        push!(decls, :(@variables $m_dim))
+        push!(decls, :(
+            if !@isdefined($m_dim)
+                @variables $m_dim
+            end
+        ))
     end
 
     # Handle integrand symbols
