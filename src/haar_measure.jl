@@ -141,45 +141,107 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
 
     u_map = Dict(idx => m for (m, idx) in enumerate(U_indices))
     ub_map = Dict(idx => m for (m, idx) in enumerate(U_bar_indices))
-    permutations = collect(Combinatorics.permutations(1:n_U))
-    total_val = Num(0)
+    
+    # NEW: Convert maps to speed up inner loop. Max slot index is total_factors.
+    # total_factors = n_U + n_U_bar (usually 2*n_U)
+    u_map_vec = fill(0, total_factors)
+    for (idx, m) in u_map; u_map_vec[idx] = m; end
+    ub_map_vec = fill(0, total_factors)
+    for (idx, m) in ub_map; ub_map_vec[idx] = m; end
+    
+    # Convert wires to vectors
+    wires_s = fill(0, total_factors)
+    wires_m = Vector{Any}(nothing, total_factors)
+    rev_wires_s = fill(0, total_factors)
+    rev_wires_m = Vector{Any}(nothing, total_factors)
+    for s in all_slots
+        ws, wm = wires[s]
+        wires_s[s] = ws; wires_m[s] = wm
+        rs, rm = reverse_wires[s]
+        rev_wires_s[s] = rs; rev_wires_m[s] = rm
+    end
 
-    for sigma in permutations
-        for tau in permutations
-            inv_sigma = invperm(sigma)
-            inv_tau = invperm(tau)
-            visited = falses(total_factors, 2)
-            current_term_traces = Any[]
+    is_adj_vec = [f.is_adj for f in all_factors]
 
-            for slot in all_slots
-                for port = 1:2
-                    if !visited[slot, port]
-                        val = _traverse_trace_cycle_final(
-                            slot,
-                            port,
+    perms = collect(Combinatorics.permutations(1:n_U))
+    inv_perms = [invperm(p) for p in perms]
+    n_perms = length(perms)
+
+    d_un = Symbolics.unwrap(dim)
+    is_numeric_dim = d_un isa Integer
+
+    # Detect "pure trace" case: no constant matrices
+    is_pure_trace = all(m -> m === nothing, wires_m) && all(m -> m === nothing, rev_wires_m)
+    
+    if is_pure_trace
+        total_val_pi = is_numeric_dim ? zero(Rational{BigInt}) : Num(0)
+        p_fast = Progress(n_perms; dt=0.5, desc="Integrating Haar (n=$n_U, fast path)... ")
+        for Pi in perms
+            ct = get_cycle_type(Pi)
+            n_cycles = length(ct)
+            wg_val = weingarten(ct, dim)
+            term_prod = dim^n_cycles
+            total_val_pi += term_prod * wg_val
+            next!(p_fast)
+        end
+        return constant_part * n_perms * total_val_pi
+    end
+
+    total_iters = n_perms * n_perms
+    desc = "Integrating Haar (n=$n_U)... "
+    p = Progress(total_iters; dt=0.5, desc=desc)
+
+    total_val = is_numeric_dim ? zero(Rational{BigInt}) : Num(0)
+    P = Vector{Int}(undef, n_U)
+    U_idx_vec = collect(U_indices)
+    Ub_idx_vec = collect(U_bar_indices)
+
+    for (i, sigma) in enumerate(perms)
+        inv_sigma = inv_perms[i]
+        for (j, tau) in enumerate(perms)
+            inv_tau = inv_perms[j]
+            # Use bitmask for visited if total_factors <= 32
+            # 2 ports * total_factors
+            visited = UInt64(0)
+            term_prod = is_numeric_dim ? one(Rational{BigInt}) : Num(1)
+
+            for start_slot in all_slots
+                for start_port = 1:2
+                    # bit index: (port-1)*total_factors + slot
+                    bit_idx = (start_port - 1) * total_factors + start_slot
+                    if (visited & (UInt64(1) << (bit_idx - 1))) == 0
+                        # Traverse cycle
+                        val, visited = _traverse_trace_cycle_fast(
+                            start_slot,
+                            start_port,
                             sigma,
                             tau,
                             inv_sigma,
                             inv_tau,
-                            wires,
-                            reverse_wires,
-                            u_map,
-                            ub_map,
-                            visited,
-                            U_indices,
-                            U_bar_indices,
-                            all_factors,
+                            wires_s,
+                            wires_m,
+                            rev_wires_s,
+                            rev_wires_m,
+                            u_map_vec,
+                            ub_map_vec,
+                            is_adj_vec,
+                            U_idx_vec,
+                            Ub_idx_vec,
+                            total_factors,
                             dim,
+                            visited
                         )
-                        push!(current_term_traces, val)
+                        term_prod *= val
                     end
                 end
             end
 
-            P = [sigma[inv_tau[i]] for i = 1:n_U]
+            for k = 1:n_U
+                P[k] = sigma[inv_tau[k]]
+            end
             wg_val = weingarten(get_cycle_type(P), dim)
-            term_prod = isempty(current_term_traces) ? Num(1) : prod(current_term_traces)
             total_val += term_prod * wg_val
+            next!(p)
         end
     end
 
@@ -242,75 +304,87 @@ function _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
     return res
 end
 
-function _traverse_trace_cycle_final(
+function _traverse_trace_cycle_fast(
     s,
     p,
     sigma,
     tau,
     inv_sigma,
     inv_tau,
-    wires,
-    reverse_wires,
-    u_map,
-    ub_map,
-    visited,
-    U_indices,
-    U_bar_indices,
-    all_factors,
+    wires_s,
+    wires_m,
+    rev_wires_s,
+    rev_wires_m,
+    u_map_vec,
+    ub_map_vec,
+    is_adj_vec,
+    U_idx_vec,
+    Ub_idx_vec,
+    total_factors,
     dim,
+    visited
 )
     curr_factors = Any[]
 
-    while !visited[s, p]
-        visited[s, p] = true
+    while true
+        bit_idx = (p - 1) * total_factors + s
+        if (visited & (UInt64(1) << (bit_idx - 1))) != 0
+            break
+        end
+        visited |= (UInt64(1) << (bit_idx - 1))
 
         # 1. Weingarten Matching
-        if haskey(u_map, s)
-            u_m = u_map[s]
+        u_m = u_map_vec[s]
+        if u_m != 0
             if p == 1 # Row-port of U matches Row-port of U_bar
                 ub_k = sigma[u_m]
-                s = U_bar_indices[ub_k]
-                p = all_factors[s].is_adj ? 2 : 1
+                s = Ub_idx_vec[ub_k]
+                p = is_adj_vec[s] ? 2 : 1
             else # Col-port of U matches Col-port of U_bar
                 ub_k = tau[u_m]
-                s = U_bar_indices[ub_k]
-                p = all_factors[s].is_adj ? 1 : 2
+                s = Ub_idx_vec[ub_k]
+                p = is_adj_vec[s] ? 1 : 2
             end
         else # s is in U_bar
-            ub_m = ub_map[s]
-            is_adj = all_factors[s].is_adj
+            ub_m = ub_map_vec[s]
+            is_adj = is_adj_vec[s]
             is_row_port = (is_adj && p == 2) || (!is_adj && p == 1)
             if is_row_port
                 u_k = inv_sigma[ub_m]
-                s = U_indices[u_k]
+                s = U_idx_vec[u_k]
                 p = 1
             else
                 u_k = inv_tau[ub_m]
-                s = U_indices[u_k]
+                s = U_idx_vec[u_k]
                 p = 2
             end
         end
-        visited[s, p] = true
+        
+        # Mark the other port of the newly reached factor as visited too
+        bit_idx_other = (p - 1) * total_factors + s
+        visited |= (UInt64(1) << (bit_idx_other - 1))
 
         # 2. Wire Traversal
         if p == 2
-            s, mat_segment = wires[s]
+            mat_segment = wires_m[s]
             if mat_segment !== nothing
                 append!(curr_factors, mat_segment)
             end
+            s = wires_s[s]
             p = 1
         else
-            s, mat_segment = reverse_wires[s]
+            mat_segment = rev_wires_m[s]
             if mat_segment !== nothing
                 append!(curr_factors, mat_segment)
             end
+            s = rev_wires_s[s]
             p = 2
         end
     end
 
     if isempty(curr_factors)
-        return dim
+        return dim, visited
     else
-        return tr_val(curr_factors)
+        return tr_val(curr_factors), visited
     end
 end

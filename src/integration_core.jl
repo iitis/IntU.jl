@@ -736,6 +736,16 @@ function integrate(expr::LazySum, measure::AbstractMeasure)
     return sum(t -> integrate(t, measure), expr.terms)
 end
 
+function integrate(lp::LazyPower, measure::AbstractMeasure)
+    e = Symbolics.unwrap(lp.exponent)
+    if e isa Integer
+        return integrate(lp.base^Int(e), measure)
+    elseif e isa Number && isinteger(e)
+        return integrate(lp.base^Int(e), measure)
+    end
+    throw(IntegrationError("Non-integer power of trace integration not supported yet: ($(lp.base))^$(lp.exponent)"))
+end
+
 function _get_measure_dim(measure)
     if hasproperty(measure, :dim)
         d = measure.dim
@@ -948,7 +958,7 @@ function _safe_Num(x)
     if x isa Num || x isa Complex{Num}
         return x
     end
-    if x isa LazyTrace || x isa LazySum
+    if x isa LazyTrace || x isa LazySum || x isa LazyPower
         return x
     end
     if x isa AbstractArray
@@ -1404,14 +1414,35 @@ function get_matching_permutations(target::AbstractVector, source::AbstractVecto
 end
 
 function get_cycle_type(p::Vector{Int})
-    visited = falses(length(p))
+    n = length(p)
+    if n > 64
+        visited = falses(n)
+        lengths = Int[]
+        for i = 1:n
+            if !visited[i]
+                curr = i
+                len = 0
+                while !visited[curr]
+                    visited[curr] = true
+                    curr = p[curr]
+                    len += 1
+                end
+                push!(lengths, len)
+            end
+        end
+        sort!(lengths, rev = true)
+        return lengths
+    end
+
+    visited = UInt64(0)
     lengths = Int[]
-    for i = 1:length(p)
-        if !visited[i]
+    sizehint!(lengths, n)
+    for i = 1:n
+        if (visited & (UInt64(1) << (i - 1))) == 0
             curr = i
             len = 0
-            while !visited[curr]
-                visited[curr] = true
+            while (visited & (UInt64(1) << (curr - 1))) == 0
+                visited |= (UInt64(1) << (curr - 1))
                 curr = p[curr]
                 len += 1
             end

@@ -19,6 +19,17 @@ struct SymbolicMatrix <: AbstractMatrix{Any}
     end
 end
 
+"""
+    IntegrationError(msg::String)
+
+Custom exception thrown when a symbolic integration step fails (e.g., non-integer powers of traces).
+"""
+struct IntegrationError <: Exception
+    msg::String
+end
+
+Base.showerror(io::IO, e::IntegrationError) = print(io, "IntegrationError: ", e.msg)
+
 struct MatrixMetadata end
 
 SymbolicMatrix(name::Symbol) = SymbolicMatrix(name, false, :Constant, nothing)
@@ -198,6 +209,17 @@ Enables symbolic integration of expressions like `tr(A*B) + tr(C*D)`.
 """
 struct LazySum
     terms::Vector{LazyTrace}
+end
+
+"""
+    LazyPower(base, exponent)
+
+A lazy representation of a power of a `LazyTrace` or `LazySum`.
+Used to represent expressions like `abs(tr(U))` as `(tr(U)*tr(U'))^0.5`.
+"""
+struct LazyPower
+    base::Union{LazyTrace,LazySum}
+    exponent::Any
 end
 
 struct SymbolicMatrixProduct <: AbstractMatrix{Any}
@@ -624,6 +646,22 @@ function Base.:^(a::LazyTrace, n::Integer)
     return LazyTrace(repeat(a.cycles, n), a.prefactor^n)
 end
 
+function Base.:^(a::Union{LazyTrace,LazySum}, n::Any)
+    return LazyPower(a, n)
+end
+
+function Base.:^(a::LazyPower, n::Any)
+    return LazyPower(a.base, a.exponent * n)
+end
+
+function Base.abs(t::Union{LazyTrace,LazySum})
+    return (t * conj(t))^0.5
+end
+
+function Base.sqrt(t::Union{LazyTrace,LazySum})
+    return t^0.5
+end
+
 function show(io::IO, t::LazyTrace)
     if t.prefactor != 1
         print(io, t.prefactor, "*")
@@ -642,6 +680,12 @@ function show(io::IO, t::LazyTrace)
         end
         print(io, ")")
     end
+end
+
+function show(io::IO, lp::LazyPower)
+    print(io, "(")
+    show(io, lp.base)
+    print(io, ")^", lp.exponent)
 end
 
 """

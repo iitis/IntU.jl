@@ -155,5 +155,6 @@ end
     @testset verbose=true "UX Improvements" begin
         include("ux_improvements.jl")
         include("macro_regression.jl")
+        include("lazy_abs.jl")
     end
 end
