@@ -2098,7 +2098,7 @@ end
 Shorthand for `Symbolics.substitute`. Useful for substituting symbolic dimensions 
 with numeric values in integration results. Also handles substituting symbolic traces.
 
-This function automatically handles removable singularities in fractions (e.g., $0/0$ forms).
+This function automatically handles removable singularities in fractions (e.g., \$0/0\$ forms).
 If a denominator evaluates to zero after substitution, the expression is first simplified 
 to attempt resolving the singularity before completing the evaluation.
 """
