@@ -11,19 +11,30 @@ In the regime where $d$ is large (stable range) or symbolic, the integration ove
 
 Use the `dSU` measure constructor.
 
+1. **Basic Integration using `@integrate`**
+
+The `@integrate` macro identifies `U` as the random matrix.
+
 ```julia
 using IntU, Symbolics
 @variables d
-@symbolic_dimension U[1:d, 1:d]
+# E[|U_1,1|^2]
+@integrate abs(U[1, 1])^2 dSU(d)
+# Output: 1/d
+```
 
-measure = dSU(U, d)
+2. **Manual Integration**
 
-# Balanced moment (same as U(d))
-integrate(abs(U[1,1])^2, measure)
+```julia
+using IntU, Symbolics
+@variables d
+U = SymbolicMatrix(:U, :U)
+# E[|U_{1,1}|^2]
+res = integrate(abs(U[1, 1])^2, dSU(d))
 # Output: 1/d
 
 # Unbalanced moment
-integrate(U[1,1], measure)
+integrate(U[1, 1], dSU(d))
 # Output: 0
 ```
 

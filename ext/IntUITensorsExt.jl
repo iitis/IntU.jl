@@ -1,4 +1,3 @@
-# ext/IntUITensorsExt.jl
 
 module IntUITensorsExt
 
@@ -18,23 +17,20 @@ function integrate(u::ITensorUnitary, measure::IntU.HaarMeasure)
 end
 
 # Main entry points for a network of tensors
-function integrate(tensors::AbstractVector, measure::IntU.HaarMeasure)
-    _integrate_tensor_network(tensors, measure, :U)
+function integrate(tensors::AbstractVector, measure::IntU.AbstractMeasure)
+    # Guard: only treat as a tensor network if it contains ITensors or ITensorUnitary
+    is_tensor_network = any(t -> t isa ITensor || t isa ITensorUnitary, tensors)
+    
+    if is_tensor_network
+        return _integrate_tensor_network(tensors, measure)
+    else
+        # Fallback to standard element-wise integration from IntU
+        # we use invoke to call the more general AbstractArray method from IntU
+        return invoke(integrate, Tuple{AbstractArray, IntU.AbstractMeasure}, tensors, measure)
+    end
 end
 
-function integrate(tensors::AbstractVector, measure::IntU.OrthogonalMeasure)
-    _integrate_tensor_network(tensors, measure, :O)
-end
-
-function integrate(tensors::AbstractVector, measure::IntU.SymplecticMeasure)
-    _integrate_tensor_network(tensors, measure, :Sp)
-end
-
-function integrate(tensors::AbstractVector, measure::IntU.UnitaryDesign)
-    _integrate_tensor_network(tensors, measure, (:Design, measure.t))
-end
-
-function _integrate_tensor_network(tensors::AbstractVector, measure, m_type)
+function _integrate_tensor_network(tensors::AbstractVector, measure)
     # Identify random unitaries and constants
     unitaries = GraphicalUnitary[]
     constants = ITensor[]
@@ -51,30 +47,19 @@ function _integrate_tensor_network(tensors::AbstractVector, measure, m_type)
             )
         elseif t isa ITensor
             push!(constants, t)
+        elseif t isa Union{Number,IntU.Num}
+            push!(constants, ITensor(t))
         else
             # Try to handle other types if possible, or error
             error("Unknown tensor type: $(typeof(t))")
         end
     end
 
-    dim = measure.dim
-    return IntU.integrate_graphical(constants, unitaries, dim, m_type)
+    return IntU.integrate_graphical(constants, unitaries, measure)
 end
 
 # Specific overloads for ITensor vectors to ensure they hit the extension
-function integrate(tensors::AbstractVector{<:ITensor}, measure::IntU.HaarMeasure)
-    return integrate(collect(Any, tensors), measure)
-end
-
-function integrate(tensors::AbstractVector{<:ITensor}, measure::IntU.OrthogonalMeasure)
-    return integrate(collect(Any, tensors), measure)
-end
-
-function integrate(tensors::AbstractVector{<:ITensor}, measure::IntU.SymplecticMeasure)
-    return integrate(collect(Any, tensors), measure)
-end
-
-function integrate(tensors::AbstractVector{<:ITensor}, measure::IntU.UnitaryDesign)
+function integrate(tensors::AbstractVector{<:ITensor}, measure::IntU.AbstractMeasure)
     return integrate(collect(Any, tensors), measure)
 end
 

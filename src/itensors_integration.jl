@@ -1,4 +1,3 @@
-# src/itensors_integration.jl
 
 """
     GraphicalUnitary
@@ -33,34 +32,31 @@ function ITensorUnitary(; out_indices, in_indices, is_adj = false)
 end
 
 """
-    integrate_graphical(constants, unitaries, dim, measure_type=:U)
+    integrate_graphical(constants, unitaries, measure::AbstractMeasure)
 
 Integrates a tensor network.
 `constants` is a list of tensors (e.g. ITensors).
 `unitaries` is a list of `GraphicalUnitary`.
-`dim` is the dimension of the space.
-`measure_type` can be `:U`, `:O`, or `:Sp`.
+`measure` is an `AbstractMeasure` (e.g. `HaarMeasure`, `OrthogonalMeasure`).
 
 Returns a sum of terms, where each term is a product of `constants` and deltas.
 """
-function integrate_graphical(constants, unitaries, dim, measure_type = :U)
-    if measure_type == :U
-        return _integrate_graphical_unitary(constants, unitaries, dim)
-    elseif measure_type == :O
-        return _integrate_graphical_orthogonal(constants, unitaries, dim)
-    elseif measure_type == :Sp
-        return _integrate_graphical_symplectic(constants, unitaries, dim)
-    elseif measure_type isa Tuple && measure_type[1] == :Design
-        return _integrate_graphical_unitary(
-            constants,
-            unitaries,
-            dim;
-            design_t = measure_type[2],
-        )
-    else
-        error("Unsupported measure type: $measure_type")
-    end
+function integrate_graphical(constants, unitaries, measure::AbstractMeasure)
+    # Default fallback or error
+    error("Graphical integration not implemented for measure $(typeof(measure))")
 end
+
+integrate_graphical(constants, unitaries, measure::HaarMeasure) =
+    _integrate_graphical_unitary(constants, unitaries, measure.dim)
+
+integrate_graphical(constants, unitaries, measure::UnitaryDesign) =
+    _integrate_graphical_unitary(constants, unitaries, measure.dim; design_t = measure.t)
+
+integrate_graphical(constants, unitaries, measure::OrthogonalMeasure) =
+    _integrate_graphical_real(constants, unitaries, measure)
+
+integrate_graphical(constants, unitaries, measure::SymplecticMeasure) =
+    _integrate_graphical_real(constants, unitaries, measure)
 
 function _integrate_graphical_unitary(constants, unitaries, dim; design_t = nothing)
     # 1. Separate U and U_dag
@@ -84,17 +80,19 @@ function _integrate_graphical_unitary(constants, unitaries, dim; design_t = noth
         return _contract_all(constants)
     end
 
-    # 2. Iterate over permutations sigma, tau in S_n
-    perms = collect(permutations(1:n_u))
+    # Pre-extract indices to avoid repeated access and allocations
+    u_out = [u.out_indices for u in u_list]
+    u_in = [u.in_indices for u in u_list]
+    u_dag_out = [u.out_indices for u in u_dag_list]
+    u_dag_in = [u.in_indices for u in u_dag_list]
 
+    perms = collect(permutations(1:n_u))
     total_result = nothing
 
     for sigma_p in perms
         for tau_p in perms
             # sigma and tau are permutations of 1..n
             # Cycle type of sigma * tau^-1
-            # We can use IntU's existing get_cycle_type if we have the combined permutation
-            # sigma_p * inv(tau_p)
             P = [sigma_p[invperm(tau_p)[i]] for i = 1:n_u]
             cycle_type = get_cycle_type(P)
             wg_val = weingarten(cycle_type, dim)
@@ -104,24 +102,12 @@ function _integrate_graphical_unitary(constants, unitaries, dim; design_t = noth
             end
 
             # Create deltas
-            # For each k, match u_list[k].out with u_dag_list[sigma_p[k]].out
-            # and u_list[k].in with u_dag_list[tau_p[k]].in
-
             deltas = []
             for k = 1:n_u
                 # Out matchings
-                append!(
-                    deltas,
-                    _create_deltas(
-                        u_list[k].out_indices,
-                        u_dag_list[sigma_p[k]].out_indices,
-                    ),
-                )
+                append!(deltas, _create_deltas(u_out[k], u_dag_out[sigma_p[k]]))
                 # In matchings
-                append!(
-                    deltas,
-                    _create_deltas(u_list[k].in_indices, u_dag_list[tau_p[k]].in_indices),
-                )
+                append!(deltas, _create_deltas(u_in[k], u_dag_in[tau_p[k]]))
             end
 
             # The result for this permutation pair is wg_val * constants * deltas
@@ -138,8 +124,8 @@ function _integrate_graphical_unitary(constants, unitaries, dim; design_t = noth
     return total_result === nothing ? 0 : total_result
 end
 
-function _integrate_graphical_orthogonal(constants, unitaries, dim)
-    # Orthogonal: all unitaries are treated same (O = O_bar)
+function _integrate_graphical_real(constants, unitaries, measure::AbstractMeasure)
+    # Orthogonal/Symplectic: all unitaries are treated same (O = O_bar)
     # n_total must be even
     n_total = length(unitaries)
     if n_total == 0
@@ -149,37 +135,40 @@ function _integrate_graphical_orthogonal(constants, unitaries, dim)
         return 0
     end
 
+    dim = measure.dim
     k = div(n_total, 2)
     # Get all pair partitions of 1..2k
     partitions = get_pair_partitions(n_total)
 
+    # Pre-extract indices
+    all_out = [u.out_indices for u in unitaries]
+    all_in = [u.in_indices for u in unitaries]
+
+    # Pre-canonicalize partitions for faster Wg lookup
+    c_partitions = [canonicalize_pair_partition(p) for p in partitions]
     total_result = nothing
 
-    for pi in partitions
-        for sigma in partitions
-            wg_val = weingarten_orthogonal_val(pi, sigma, dim)
+    for i = 1:length(partitions)
+        pi = partitions[i]
+        c_pi = c_partitions[i]
+        for j = 1:length(partitions)
+            sigma = partitions[j]
+            c_sigma = c_partitions[j]
+
+            wg_val = _weingarten_real(measure, c_pi, c_sigma, dim)
+
             if _iszero(wg_val)
                 continue
             end
 
-            # Create deltas for pi (out) and sigma (in)
-            # Actually for Orthogonal, we match legs within members of the partition
             deltas = []
-            # Combine all unitaries' legs into a single list
-            all_out = []
-            all_in = []
-            for u in unitaries
-                push!(all_out, u.out_indices)
-                push!(all_in, u.in_indices)
-            end
-
             # pi specifies which out legs to match
             for (a, b) in pi
-                append!(deltas, _create_deltas(all_out[a], all_out[b]))
+                append!(deltas, _create_deltas_general(measure, all_out[a], all_out[b]))
             end
             # sigma specifies which in legs to match
             for (a, b) in sigma
-                append!(deltas, _create_deltas(all_in[a], all_in[b]))
+                append!(deltas, _create_deltas_general(measure, all_in[a], all_in[b]))
             end
 
             term = _contract_with_deltas(constants, deltas, wg_val)
@@ -193,51 +182,15 @@ function _integrate_graphical_orthogonal(constants, unitaries, dim)
     return total_result === nothing ? 0 : total_result
 end
 
-function _integrate_graphical_symplectic(constants, unitaries, dim)
-    # Symplectic: similar to orthogonal but with symplectic form J
-    n_total = length(unitaries)
-    if n_total == 0
-        return _contract_all(constants)
-    end
-    if n_total % 2 != 0
-        return 0
-    end
+# Helpers for real integration dispatch
+_weingarten_real(::OrthogonalMeasure, c_pi, c_sigma, dim) =
+    weingarten_orthogonal_val_canonical(c_pi, c_sigma, dim)
+_weingarten_real(::SymplecticMeasure, c_pi, c_sigma, dim) =
+    weingarten_symplectic_val(c_pi, c_sigma, dim)
 
-    partitions = get_pair_partitions(n_total)
-    total_result = nothing
-
-    for pi in partitions
-        for sigma in partitions
-            wg_val = weingarten_symplectic_val(pi, sigma, dim)
-            if _iszero(wg_val)
-                continue
-            end
-
-            # Matchings involve the symplectic form J
-            # In graphical terms, this means adding a J tensor between legs
-            # For simplicity, we can treat J as part of _create_deltas_symplectic
-
-            deltas = []
-            all_out = [u.out_indices for u in unitaries]
-            all_in = [u.in_indices for u in unitaries]
-
-            for (a, b) in pi
-                append!(deltas, _create_deltas_symplectic(all_out[a], all_out[b], dim))
-            end
-            for (a, b) in sigma
-                append!(deltas, _create_deltas_symplectic(all_in[a], all_in[b], dim))
-            end
-
-            term = _contract_with_deltas(constants, deltas, wg_val)
-            if total_result === nothing
-                total_result = term
-            else
-                total_result = total_result + term
-            end
-        end
-    end
-    return total_result === nothing ? 0 : total_result
-end
+_create_deltas_general(::AbstractMeasure, idxs1, idxs2) = _create_deltas(idxs1, idxs2)
+_create_deltas_general(m::SymplecticMeasure, idxs1, idxs2) =
+    _create_deltas_symplectic(idxs1, idxs2, m.dim)
 
 # Additional symplectic helper
 function _create_deltas_symplectic end

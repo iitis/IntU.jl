@@ -1,9 +1,6 @@
 #!/usr/bin/env julia
-# stress_benchmark_intu.jl
-#
 # Usage:
-#   julia stress_benchmark_intu.jl
-#   julia stress_benchmark_intu.jl --out results.json --samples 50
+#   julia benchmarks/09_stress_test_2.jl --out results.json --samples 50
 #
 # What it does:
 #   - Runs a battery of higher-degree Haar integrals (8th/10th moments, mixed moments)
@@ -45,35 +42,19 @@ function sym_is_zero(x)
 end
 
 function safe_string(x)
-    try
-        return string(x)
-    catch
-        return "<unprintable>"
-    end
+    return string(x)
 end
 
 # Evaluate symbolic expression at d = val (if d is a Symbolics variable)
 function eval_at(expr, dvar, val::Int)
     subbed = Symbolics.substitute(expr, Dict(dvar => val))
-    try
-        return Symbolics.simplify(subbed)
-    catch
-        return subbed
-    end
+    return Symbolics.simplify(subbed)
 end
 
 function full_simplify(x)
     # Mathematica's FullSimplify equivalent in Symbolics is often simplify(expand(x))
-    try
-        # Canonicalize by expanding then simplifying
-        return Symbolics.simplify(Symbolics.expand(x))
-    catch
-        try
-            return Symbolics.simplify(x)
-        catch
-            return x
-        end
-    end
+    # Canonicalize by expanding then simplifying
+    return Symbolics.simplify(Symbolics.expand(x))
 end
 
 # --- Expected-value constructors ----------------------------------------------
@@ -141,8 +122,8 @@ println()
 
 # ---------------- U(d): symbolic-d stress tests -------------------------------
 @variables d::Int
-@symbolic_dimension U[1:d, 1:d]
-μU = dU(U)  # IntU.jl measure constructor
+U = SymbolicMatrix(:U, :U, d)
+μU = dU(d)  # IntU.jl measure constructor
 
 U_cases = [
     ("U_abs2_pow4__|U11|^8", abs2(U[1, 1])^4, unitary_abs2_moment(d, 4)),
@@ -156,12 +137,8 @@ U_cases = [
 ]
 
 function safe_eq(x, y)
-    try
-        val = (x == y)
-        return val isa Bool ? val : false
-    catch
-        return false
-    end
+    val = (x == y)
+    return val isa Bool ? val : false
 end
 
 for (name, expr, expected) in U_cases
@@ -206,8 +183,10 @@ end
 
 # ------------- O(d): symbolic-d stress tests ----------------------------------
 N_sym = 10
-@variables O[1:N_sym, 1:N_sym]::Real
-μO = dO(O, d)  # IntU.jl measure constructor
+@variables d
+O_sym = SymbolicMatrix(:O, :O, d)
+O = O_sym[1:N_sym, 1:N_sym]
+μO = dO(d)  # IntU.jl measure constructor
 
 O_cases = [
     # (name, expr, k, degree_for_expected)
@@ -223,7 +202,7 @@ for (name, expr, k) in O_cases
     # We use a Float64 dimension (20.0) to avoid Int64 rational overflow 
     # and speed up matrix inversion.
     use_concrete_O = (k >= 4)
-    local_μO = use_concrete_O ? dO(O, 20.0) : μO
+    local_μO = use_concrete_O ? dO(20.0) : μO
     local_d = use_concrete_O ? 20.0 : d
 
     local_expected = if name == "O_row_prod4__∏O1j^2"
@@ -292,9 +271,10 @@ for dnum in dnums
     if quick && dnum > 10
         continue
     end
-    @variables Ubig[1:dnum, 1:dnum]::Complex
+    Ubig_sym = SymbolicMatrix(:Ubig, :U, dnum)
+    Ubig = Ubig_sym[1:dnum, 1:dnum]
     # Use Float64 for high degree to avoid rational overhead
-    μUbig = dU(Ubig, Float64(dnum))
+    μUbig = dU(Float64(dnum))
     expr = abs2(Ubig[1, 1])^5  # |U11|^10
     expected = 120.0 / (dnum*(dnum+1)*(dnum+2)*(dnum+3)*(dnum+4))
 
@@ -330,9 +310,10 @@ for dnum in dnums
     if quick && dnum > 10
         continue
     end
-    @variables Obig[1:dnum, 1:dnum]::Real
+    Obig_sym = SymbolicMatrix(:Obig, :O, dnum)
+    Obig = Obig_sym[1:dnum, 1:dnum]
     # Use Float64 to avoid Int64 rational overflow for k=5 (10th moment)
-    μObig = dO(Obig, Float64(dnum))
+    μObig = dO(Float64(dnum))
     expr = Obig[1, 1]^10
     expected =
         Float64((doublefactorial_odd(9)) // (dnum*(dnum+2)*(dnum+4)*(dnum+6)*(dnum+8)))  # 945/...
@@ -375,8 +356,9 @@ for N in Nvals
     # For Sp(d), degree 10 mapped to O(-d) is very slow (~75s).
     # Skip larger N in quick mode for the heavy degree-10 cases.
     dSp_num = 2N
-    @variables S[1:dSp_num, 1:dSp_num]::Complex
-    μSp = dSp(S, dSp_num)
+    S_sym = SymbolicMatrix(:S, :Sp, dSp_num)
+    S = S_sym[1:dSp_num, 1:dSp_num]
+    μSp = dSp(dSp_num)
 
     # (a) |S11|^8 and |S11|^10
     expr8 = abs2(S[1, 1])^4
@@ -396,7 +378,7 @@ for N in Nvals
 
     for (nm, expr, expected) in cases_Sp
         # Use Float64 for high degree to avoid rational overflow in the O(-d) mapping
-        local_μSp = dSp(S, Float64(dSp_num))
+        local_μSp = dSp(Float64(dSp_num))
         local_expected = Float64(expected)
 
         got, bm = bench_integrate(expr, local_μSp; samples = samples)
@@ -431,7 +413,7 @@ for N in Nvals
     expected_collins = Float64(1 // (4*N*(N-1)*(2N+1)))  # = 1 / (d(d-2)(d+1)) with d=2N
 
     # Use Float64 for consistency
-    μSp_f = dSp(S, Float64(dSp_num))
+    μSp_f = dSp(Float64(dSp_num))
     gotC, bmC = bench_integrate(expr_collins, μSp_f; samples = samples)
     okC = isapprox(Symbolics.value(gotC), expected_collins; atol = 1e-14)
 

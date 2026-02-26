@@ -15,23 +15,36 @@ This concept is crucial in Quantum Information for efficient randomization, benc
 
 ## Usage
 
-Usage:
-
-Use the `dDesign(U, dim, t)` function to define a measure representing a unitary $t$-design.
+Use the `dDesign(dim, t)` function to define a measure representing a unitary $t$-design.
 
 ```@docs
 dDesign
 ```
+
+1. **Basic Integration using `@integrate`**
+
+The `@integrate` macro automatically identifies `U` as the random matrix.
+
+```julia
+using IntU, Symbolics
+@variables d
+# E[|U_11|^2] (degree 1 in U, 1 in U*)
+@integrate abs(U[1,1])^2 dDesign(d, 2)
+# Output: 1/d
+```
+
+2. **Manual Integration**
 
 ```julia
 using IntU, Symbolics
 
 # Define dimension and matrix
 @variables d
-@symbolic_dimension U[1:d, 1:d]
+U = SymbolicMatrix(:U, :U, d)
 
 # Create a 2-design measure
-design = dDesign(U, d, 2)
+design = dDesign(d, 2)
+integrate(abs(U[1,1])^2, design)
 ```
 
 ## Integration Behavior
@@ -45,19 +58,13 @@ When integrating with `integrate(expr, design)`:
 ## Example
 
 ```julia
-# 1. 2-design supports 2nd moments (degree 1 in U, 1 in U*)
-expr = abs(U[1,1])^2
-res = integrate(expr, design)
-println(res)
-# Output: 1/d (Matches Haar)
-
-# 2. 2-design supports 4th moments (degree 2 in U, 2 in U*)
+# 1. 2-design supports 4th moments (degree 2 in U, 2 in U*)
 expr2 = abs(U[1,1] * U[2,2])^2
 res2 = integrate(expr2, design)
 println(res2)
 # Output: 1 / (d^2 - 1) * ... (Matches Haar)
 
-# 3. 2-design DOES NOT support 6th moments (degree 3)
+# 2. 2-design DOES NOT support 6th moments (degree 3)
 try
     expr3 = abs(U[1,1])^6
     integrate(expr3, design)

@@ -45,7 +45,7 @@ For small $n$, the values are:
 *   **n=1**: $\text{Wg}([1], d) = \frac{1}{d}$
 *   **n=2**:
     *   Identity $\text{Wg}([1,1], d) = \frac{1}{d^2-1}$
-    *   Transposition $\text{Wg}([2], d) = -\frac{1}{d(d^2-1)$
+    *   Transposition $\text{Wg}([2], d) = -\frac{1}{d(d^2-1)}$
 *   **n=3**:
     *   $\text{Wg}([1,1,1], d) = \frac{d^2-2}{d(d^2-1)(d^2-4)}$
     *   $\text{Wg}([2,1], d) = -\frac{1}{(d^2-1)(d^2-4)}$
@@ -71,70 +71,82 @@ IntU.jl automates the following steps:
 ### Symbolic Dimension
 
 A key feature of IntU.jl is the ability to leave the dimension $d$ as a symbolic variable.
-This is achieved through the `SymbolicUnitary` type, which represents a Unitary matrix
+This is achieved through the `SymbolicMatrix` type, which represents a matrix
 of arbitrary (symbolic) size.
-
-The macro `@symbolic_dimension` facilitates the creation of such matrices.
 
 ## Examples
 
-### 1. Basic Integration
+### 1. Basic Integration using `@integrate`
+ 
+ The `@integrate` macro provides a convenient way to integrate expressions without manually declaring variables. It uses heuristics to identify random unitaries (usually `U`) and dimensions.
+ 
+ ```julia
+ using IntU, Symbolics
+ @variables d
+ # E[|U_11|^2]
+ @integrate abs(U[1, 1])^2 dU(d)
+ # Output: 1/d
+ ```
+ 
+ ### 2. Manual Integration
+ 
+ For more control, or when dealing with multiple matrices, you can declare symbols explicitly.
+ 
 
 ```julia
 using IntU, Symbolics
-
-# Define a unitary matrix U of symbolic dimension d
 @variables d
-@symbolic_dimension U[1:d, 1:d]
-measure = dU(U)
+U = SymbolicMatrix(:U, :U)
 
 # 1. Norm of a matrix element
 # Integral of |U_{11}|^2
-expr = abs(U[1,1])^2 
-res = integrate(expr, measure)
-println(res)
+integrate(abs(U[1, 1])^2, dU(d))
 # Output: 1/d
 ```
 
-### 2. Higher Unitary Moments
+### 3. Higher Unitary Moments
 
 ```julia
+using IntU, Symbolics
+@variables d
+U = SymbolicMatrix(:U, :U)
+
 # 2. Fourth moment
 # Integral of |U_{11}|^4
-expr2 = abs(U[1,1])^4
-res2 = integrate(expr2, measure)
-println(res2)
+integrate(abs(U[1, 1])^4, dU(d))
 # Output: 2 / (d*(d + 1))
 ```
 
-### 3. Trace Moments
+### 4. Trace Moments
 
 ```julia
+using IntU, Symbolics
+@variables d
+U = SymbolicMatrix(:U, :U)
+
 # 3. Trace moments
-tr_U = IntU.tr(U)
 # Integral of |Tr(U)|^2
-res3 = integrate(abs(tr_U)^2, measure)
-println(res3)
+integrate(abs(tr(U))^2, dU(d))
 # Output: 1
 ```
 
-### 4. Matrix Integration
+### 5. Matrix Integration
 
-New in v0.2: You can integrate matrix-valued expressions directly. The function `integrate` will element-wise integrate any `AbstractArray` passed to it.
+You can integrate matrix-valued expressions directly. The function `integrate` will element-wise integrate any `AbstractArray` (including `SymbolicMatrix` and `SymbolicMatrixProduct`) passed to it.
 
 ```julia
-using LinearAlgebra
-
-# Integrate U * U' (should be identity)
-# We collect the symbolic expression to a Matrix{Num} to ensure it's treated as an array of expressions
-expr_mat = collect(U * U')
-res_mat = integrate(expr_mat, measure)
-# Result is the Identity matrix
+using IntU, Symbolics
+@variables d
+U = SymbolicMatrix(:U, :U)
+# E[tr(U A U' B)] = tr(A) * tr(B) / d
+A = SymbolicMatrix(:A)
+B = SymbolicMatrix(:B)
+integrate(tr(U * A * U' * B), dU(d))
 ```
 
-### 5. HCIZ Integrals
+### 6. HCIZ Integrals
 
-New in v0.2: Direct support for **Harish-Chandra-Itzykson-Zuber (HCIZ)** integrals.
+IntU.jl provides direct support for **Harish-Chandra-Itzykson-Zuber (HCIZ)** integrals.
 
 ```julia
 using IntU, LinearAlgebra
@@ -158,6 +170,10 @@ See the [API Reference](api.md) for more details.
     The symbolic result assumes $d$ is generic/large. Substituting discrete values $d < n$
     into the rational function may result in division by zero, although the integral itself
     is well-defined.
+-   **Removable Singularities**: When using `evaluate` to substitute numeric values into symbolic 
+    results, $0/0$ forms may appear (e.g., at $d=1$ for some expressions). `IntU.jl` 
+    automatically detects when a denominator evaluates to zero and simplifies the expression 
+    to attempt to resolve these removable singularities.
 -   **Computational Complexity**: The sum involves $(n!)^2$ terms. While optimized
     to group cycles, integrals with high degrees ($n > 6$) can become
     computationally expensive. The number of terms grows factorially.

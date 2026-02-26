@@ -5,8 +5,8 @@ using Symbolics
 @testset "Symbolic Trace Logic" begin
 
     @variables d
-    U = SymbolicMatrix(:U, false, :U)
-    measure = dU(U, d)
+    U = SymbolicMatrix(:U, :U, d)
+    measure = dU(d)
 
     # 1. Tr(U U') = Tr(I) = d
     @testset "Tr(U U')" begin

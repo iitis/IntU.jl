@@ -1,111 +1,135 @@
 # Permutation Group measures
 
 # Dummy types to represent the measures
-struct PermutationMeasure{M,D}
-    P::M
+struct PermutationMeasure{D,M} <: AbstractMeasure
     dim::D
+    matcher::M
 end
+PermutationMeasure(dim) = PermutationMeasure(dim, nothing)
 
-struct CenteredPermutationMeasure{M,D}
-    Y::M
+struct CenteredPermutationMeasure{D,M} <: AbstractMeasure
     dim::D
+    matcher::M
 end
+CenteredPermutationMeasure(dim) = CenteredPermutationMeasure(dim, nothing)
 
+@doc raw"""
+    dPerm(dim)
+
+Defines the Haar measure for the Symmetric group $S_d$ (permutation matrices) of dimension `dim`.
+
+Integration engine identifies variables via metadata tag `:Perm`.
 """
-    dPerm(P, dim)
+dPerm(dim) = PermutationMeasure(dim)
 
-Defines the Haar measure for the Symmetric group S_d (permutation matrices).
+@doc raw"""
+    dCPerm(dim)
 
-The integration of a monomial of entries is given by:
-```math
-\\int_{S_d} P_{i_1 j_1} \\dots P_{i_n j_n} dP = \\begin{cases} \\frac{(d-k)!}{d!} & \\text{if indices are consistent} \\\\ 0 & \\text{otherwise} \\end{cases}
-```
-where k is the number of distinct pairs (i, j) in the product.
+Defines the measure for Centered Permutation matrices $Y = P - J/d$ where $P \in S_d$.
 """
-dPerm(P, dim) = PermutationMeasure(P, dim)
-dPerm(dim) = PermutationMeasure(nothing, dim)
-
-"""
-    dCPerm(Y, dim)
-
-Defines the measure for Centered Permutation matrices Y = P - J/d.
-"""
-dCPerm(Y, dim) = CenteredPermutationMeasure(Y, dim)
-dCPerm(dim) = CenteredPermutationMeasure(nothing, dim)
-
-function integrate(expr::AbstractArray, measure::PermutationMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
-
-function integrate(expr::AbstractArray, measure::CenteredPermutationMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
+dCPerm(dim) = CenteredPermutationMeasure(dim)
 
 function IntU.measure_info(measure::PermutationMeasure)
-    P_sym = measure.P
-    dim = measure.dim
-
-    if P_sym isa SymbolicUnitary
-        subs_dict = Dict{Any,Any}()
-        matcher = SymbolicMatcher(Regex("^$(P_sym.name)_(\\d+)_(\\d+)\$"))
-        return (subs_dict, matcher, dim, :Perm)
-    end
-
     subs_dict = Dict{Any,Any}()
-    P_atomic_lookup = Dict{Any,Tuple}()
-
-    if P_sym isa AbstractArray
-        for i = 1:size(P_sym, 1)
-            for j = 1:size(P_sym, 2)
-                p_ij_num = _safe_Num(P_sym[i, j])
-                p_ij_un = Symbolics.unwrap(p_ij_num)
-                p_atomic = Symbolics.variable(:P_atomic, i, j)
-
-                P_atomic_lookup[Symbolics.unwrap(p_atomic)] = (i, j)
-
-                subs_dict[p_ij_un] = p_atomic
-                # P is real
-                subs_dict[Symbolics.unwrap(conj(p_ij_un))] = p_atomic
-                subs_dict[Symbolics.unwrap(Base.conj(p_ij_un))] = p_atomic
-            end
-        end
+    matcher = measure.matcher === nothing ? MetadataMatcher(:Perm) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
     end
-
-    matcher = LookupMatcher(P_atomic_lookup, Dict{Any,Tuple}())
     return (subs_dict, matcher, dim, :Perm)
 end
 
 function IntU.measure_info(measure::CenteredPermutationMeasure)
-    Y_sym = measure.Y
+    subs_dict = Dict{Any,Any}()
+    matcher = measure.matcher === nothing ? MetadataMatcher(:CPerm) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
+    end
+    return (subs_dict, matcher, dim, :CPerm)
+end
+
+function fallback_integrate(t::LazyTrace, measure::PermutationMeasure)
+    # E[tr(PA)] = sum(A) / d for one P.
+    # For more complex terms, we expand to element-wise integration.
+    matcher = measure.matcher === nothing ? MetadataMatcher(:Perm) : measure.matcher
     dim = measure.dim
 
-    if Y_sym isa SymbolicUnitary
-        
-        subs_dict = Dict{Any,Any}()
-    end
-
-    subs_dict = Dict{Any,Any}()
-    P_atomic_lookup = Dict{Any,Tuple}()
-
-    if Y_sym isa AbstractArray
-        for i = 1:size(Y_sym, 1)
-            for j = 1:size(Y_sym, 2)
-                y_ij_num = _safe_Num(Y_sym[i, j])
-                y_ij_un = Symbolics.unwrap(y_ij_num)
-
-                # Y_ij = P_ij - 1/dim
-                p_atomic = Symbolics.variable(:P_atomic, i, j)
-                P_atomic_lookup[Symbolics.unwrap(p_atomic)] = (i, j)
-
-                subs_dict[y_ij_un] = p_atomic - 1/dim
-                subs_dict[Symbolics.unwrap(conj(y_ij_un))] = p_atomic - 1/dim
-                subs_dict[Symbolics.unwrap(Base.conj(y_ij_un))] = p_atomic - 1/dim
+    # If it's a simple tr(PA), keep the symbolic result if A is not concrete
+    if length(t.cycles) == 1 && length(t.cycles[1]) == 2
+        factors = t.cycles[1]
+        P_idx = nothing
+        for (i, f) in enumerate(factors)
+            if match_index(matcher, f) !== nothing
+                P_idx = i;
+                break
+            end
+        end
+        if P_idx !== nothing
+            A = factors[P_idx == 1 ? 2 : 1]
+            # If A is a SymbolicMatrix or a simple numeric matrix, we return a symbolic sum result
+            if A isa SymbolicMatrix || !(A isa AbstractMatrix && !(eltype(A) <: Num))
+                return t.prefactor *
+                       (Symbolics.variable(Symbol("sum(" * string(A) * ")")) / measure.dim)
             end
         end
     end
 
-    matcher = LookupMatcher(P_atomic_lookup, Dict{Any,Tuple}())
-    return (subs_dict, matcher, dim, :Perm)
+    # General expansion
+    expr = t.prefactor
+    for cycle in t.cycles
+        # Each cycle is tr(ABC...)
+        # Expand tr(ABC...) as sum_{i,j,k...} A_ij B_jk C_ki
+        n = length(cycle)
+        dims = [size(f) for f in cycle]
+
+        # We need a shared dimension for all factors in the cycle for trace to exist.
+        # But for symbolic ones it is dim.
+        d_val = dim isa Integer ? Int(dim) : 0
+        if d_val == 0
+            # Try to find a concrete dimension from any factor
+            for f in cycle
+                s = size(f, 1)
+                if s isa Integer && s < 1000 # heuristic
+                    d_val = s;
+                    break
+                end
+            end
+        end
+
+        if d_val == 0
+            error(
+                "Cannot expand LazyTrace for Permutations: dimension is not concrete and term is not linear.",
+            )
+        end
+
+        # Manual expansion of tr(C1 * C2 * ... * Cn)
+        # sum_{i1, i2, ..., in} C1[i1, i2] * C2[i2, i3] * ... * Cn[in, i1]
+        indices = Symbolics.variable.(Symbol.("i", 1:n), T = Int) # Not really needed as symbols if we just use loop
+
+        term_sum = 0
+        for idxs in Iterators.product(fill(1:d_val, n)...)
+            prod_val = 1
+            for k = 1:n
+                next_k = (k % n) + 1
+                prod_val *= cycle[k][idxs[k], idxs[next_k]]
+            end
+            term_sum += prod_val
+        end
+        expr *= term_sum
+    end
+
+    return integrate(expr, measure)
+end
+
+function fallback_integrate(t::LazyTrace, measure::CenteredPermutationMeasure)
+    # E[tr(YA)] = 0 because E[P - J/d] = 0.
+    if length(t.cycles) == 1 && length(t.cycles[1]) == 2
+        return 0
+    end
+    error(
+        "Graphical integration for Centered Permutations only supported for tr(YA) currently.",
+    )
 end
 
 """
@@ -113,7 +137,7 @@ end
 
 Integration over the symmetric group S_d.
 """
-function integrate_indices_permutation(indices::Vector{Tuple{Int,Int}}, dim)
+function integrate_indices_permutation(indices::AbstractVector, dim)
     if isempty(indices)
         return 1
     end

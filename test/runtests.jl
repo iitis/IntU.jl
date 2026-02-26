@@ -4,39 +4,64 @@ using Symbolics
 
 # Helper to convert symbolic results to numbers
 function to_numeric(x)
-    x_un = Symbolics.unwrap(x)
-    if x_un isa Number
-        return x_un
+    # Flatten any complex(...) calls
+    ux = Symbolics.unwrap(x)
+    xf = SymbolicUtils.Postwalk(
+        t -> begin
+            ut = Symbolics.unwrap(t)
+            if Symbolics.iscall(ut) && (
+                Symbolics.operation(ut) == complex ||
+                Symbolics.operation(ut) == Base.complex
+            )
+                aa = Symbolics.arguments(ut)
+                return aa[1] + im*aa[2]
+            end
+            return t
+        end,
+    )(
+        ux,
+    )
+    sim = Symbolics.simplify(Symbolics.wrap(xf))
+    v = Symbolics.value(sim)
+    if v isa Number
+        return v
     end
-    # If it's a symbolic constant (like Num(0)), try to simplify/substitute
-    sim = Symbolics.simplify(x)
-    sim_un = Symbolics.unwrap(sim)
-    if sim_un isa Number
-        return sim_un
+    if v isa Real
+        return Float64(v)
+    elseif v isa Number
+        return ComplexF64(v)
     end
-
-    # Try brute force substitution
-    sim2 = Symbolics.substitute(sim, Dict())
-    sim2_un = Symbolics.unwrap(sim2)
-    if sim2_un isa Number
-        return sim2_un
-    end
-
-    if IntU._symbolic_isequal(sim, 0) || IntU._symbolic_isequal(sim2, 0)
-        return 0.0
-    end
-
-    # Last resort: try evaluating
-    try
-        val = eval(Meta.parse(string(sim)))
-        if val isa Number
-            return val
-        end
-    catch
-    end
-
-    return x_un
+    return v
 end
+
+function is_really_zero(x)
+    x = Symbolics.simplify(x)
+    IntU._symbolic_isequal(x, 0) && return true
+    x = Symbolics.expand(x)
+    x = Symbolics.simplify(x)
+    IntU._symbolic_isequal(x, 0) && return true
+
+    vars = Symbolics.get_variables(x)
+    if isempty(vars)
+        v = Symbolics.value(x)
+        return v isa Number && abs(v) < 1e-10
+    end
+
+    for i = 1:3
+        subs = Dict(v => rand() + 0.1 for v in vars)
+        val_sub = Symbolics.substitute(x, subs)
+        v = to_numeric(val_sub)
+        if v isa Number
+            if abs(v) < 1e-9
+                continue
+            end
+            return false
+        end
+        return false
+    end
+    return true
+end
+
 
 @testset verbose=true "IntU.jl Suite" begin
     @testset verbose=true "Aqua Tests" begin
@@ -69,6 +94,9 @@ end
 
     @testset verbose=true "Symbolic Trace" begin
         include("symbolic_trace.jl")
+        include("bounds_checking.jl")
+        include("kron_integration.jl")
+        include("kron_enhancements.jl")
     end
 
     @testset verbose=true "GUE Integration" begin
@@ -81,6 +109,7 @@ end
 
     @testset verbose=true "Gaussian Miscellaneous" begin
         include("gaussian_misc.jl")
+        include("gaussian_symbolic_trace.jl")
     end
 
     @testset verbose=true "Integral Library" begin
@@ -121,5 +150,10 @@ end
 
     @testset verbose=true "Ginibre Ensembles" begin
         include("ginibre.jl")
+    end
+
+    @testset verbose=true "UX Improvements" begin
+        include("ux_improvements.jl")
+        include("macro_regression.jl")
     end
 end

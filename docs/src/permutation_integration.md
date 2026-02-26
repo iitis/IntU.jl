@@ -16,21 +16,34 @@ discrete set:
 
 ### Usage
 
-Use `dPerm(d)` or `dPerm(P, d)` to define the measure.
+Use `dPerm(d)` to define the measure.
+
+1. **Basic Integration using `@integrate`**
+
+The `@integrate` macro automatically identifies `P` as the random permutation matrix.
+
+```julia
+using IntU, Symbolics
+@variables d
+# E[P_11] = 1/d
+@integrate P[1,1] dPerm(d)
+# Output: 1 / d
+```
+
+2. **Manual Integration**
 
 ```julia
 using IntU, Symbolics
 
 @variables d
-@variables P[1:2, 1:2]
-measure = dPerm(P, d)
+P = SymbolicMatrix(:P, :Perm)
 
 # Expected value of a single entry: E[P_ij] = 1/d
-integrate(P[1,1], measure)
+integrate(P[1,1], dPerm(d))
 # Output: 1 / d
 
 # Expected value of a product: E[P_11 * P_22] = 1 / (d(d-1))
-integrate(P[1,1] * P[2,2], measure)
+integrate(P[1, 1] * P[2, 2], dPerm(d))
 # Output: 1 / (d * (d - 1))
 ```
 
@@ -41,7 +54,7 @@ follows simple combinatorial rules:
 1. **Consistency**: If the set of pairs $\{(i_m, j_m)\}$ overlaps in rows but
    not columns (e.g., $P_{11}P_{12}$) or vice versa, the integral is **$0$**
    because no permutation matrix can have two $1$s in the same row or column.
-   $i_m$ are distinct and all $j_m$ are distinct), the result is:
+2. **Monomial Integration**: If the indices are consistent (i.e., all $i_m$ are distinct and all $j_m$ are distinct), the result is:
 ```math
 \mathbb{E}[P_{i_1, j_1} \dots P_{i_k, j_k}] = \frac{(d-k)!}{d!}
 ```
@@ -66,18 +79,33 @@ fluctuations and correlations in permutations.
 
 ### Usage
 
-Use `dCPerm(d)` or `dCPerm(Y, d)` to define the measure.
+Use `dCPerm(d)` to define the measure.
+
+1. **Basic Integration using `@integrate`**
+
+The `@integrate` macro automatically identifies `Y` as the centered permutation matrix.
 
 ```julia
-@variables Y[1:2, 1:2]
-m_centered = dCPerm(Y, d)
+using IntU, Symbolics
+@variables d
+# Variance E[Y_11^2] = (d-1)/d^2
+@integrate Y[1, 1]^2 dCPerm(d)
+# Output: (d - 1) / d^2
+```
+
+2. **Manual Integration**
+
+```julia
+using IntU, Symbolics
+@variables d
+Y = SymbolicMatrix(:Y, :CPerm)
 
 # The first moment is zero by definition
-integrate(Y[1,1], m_centered)
+integrate(Y[1,1], dCPerm(d))
 # Output: 0
 
 # The second moment (variance) is E[(P_11 - 1/d)^2] = 1/d - 1/d^2 = (d-1)/d^2
-integrate(Y[1,1]^2, m_centered)
+integrate(Y[1, 1]^2, dCPerm(d))
 # Output: (d - 1) / d^2
 ```
 
@@ -90,9 +118,9 @@ Integration for centered permutations is handled by substituting $Y_{ij} = P_{ij
 IntU.jl supports integration of traces involving permutation matrices. While these can be integrated using `Symbolics.jl` arrays and `scalarize`, the combinatorial nature of $S_d$ means that correlations are correctly handled even for large expressions.
 
 ```julia
-@variables A[1:d, 1:d]
+using IntU, Symbolics
+@variables d
 # E[tr(P * A)]
-expr = Symbolics.scalarize(IntU.tr(P * A))
-integrate(expr, measure)
+@integrate tr(P * A) dPerm(d)
 # Output: Sum(A_ij) / d
 ```

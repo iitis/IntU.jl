@@ -6,12 +6,15 @@ using LinearAlgebra
 using SymbolicUtils
 using Memoization
 using DataStructures
+using MacroTools
+
 
 # Core Weingarten logic
 include("weingarten.jl")
 
 # Symbolic Trace Logic
 include("symbolic_trace.jl")
+include("centered_perm_impl.jl")
 
 # Shared integration engine
 include("integration_core.jl")
@@ -29,6 +32,7 @@ include("hciz.jl")
 include("su_measure.jl")
 include("diagonal_unitary.jl")
 include("stiefel_measure.jl")
+include("integrate_macro.jl")
 
 
 # Quantum Information helpers
@@ -39,37 +43,28 @@ include("library.jl")
 
 import LinearAlgebra: det
 import Symbolics: Num
-export integrate,
-    asymptotic,
-    dU,
-    hciz,
-    vandermonde_det,
-    dSU,
-    SpecialUnitary,
-    dPsi,
-    dO,
-    dSp,
-    dGUE,
-    dGOE,
-    dGSE,
-    dGinUE,
-    dGinOE,
-    dGinSE,
-    dDiagUnitary,
-    dStiefel,
-    integrate_indices,
-    tr,
-    det,
-    purity,
-    average_purity,
-    fidelity,
-    average_fidelity,
-    partial_trace,
-    dDesign,
-    symbolic_dimension_unitary,
-    @symbolic_dimension
+
+# --- Exports ---
+
+# Core integration API
+export integrate, evaluate, asymptotic, @integrate
+
+# Measures
+export dU, dSU, SpecialUnitary
+export dPsi
+export dO, dSp
+export dGUE, dGOE, dGSE
+export dGinUE, dGinOE, dGinSE
+export dDiagUnitary, dStiefel
+export dDesign
 export dPerm, dCPerm
 export dCOE, dCSE, dCUE
+
+# HCIZ
+export hciz, vandermonde_det
+
+# Weingarten calculus
+export integrate_indices
 export weingarten, weingarten_orthogonal_val, weingarten_symplectic_val
 export get_pair_partitions,
     canonicalize_pair_partition,
@@ -79,9 +74,17 @@ export get_pair_partitions,
     character_at_id,
     irrep_dimension,
     get_weingarten_orthogonal_data
-export AbstractIndexMatcher, LookupMatcher, _integrate_core, SymbolicUnitary, process_term
 
+# Quantum information helpers
+export tr, det, purity, average_purity, fidelity, average_fidelity, partial_trace
+
+# Internal API (exported for advanced use)
+export AbstractIndexMatcher, MetadataMatcher, _integrate_core, process_term
+
+# Symbolic matrix types
 export SymbolicMatrix, tr_lazy, LazyTrace, LazySum
+export symbolic_unitary,
+    symbolic_orthogonal, symbolic_symplectic, symbolic_pure_state, symbolic_permutation
 export integrate_graphical, GraphicalUnitary, ITensorUnitary
 
 end # module

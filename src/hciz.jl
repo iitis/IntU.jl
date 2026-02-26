@@ -44,6 +44,16 @@ function hciz(A::AbstractMatrix, B::AbstractMatrix)
     return hciz(a, b)
 end
 
+function hciz(A::SymbolicMatrix, B::SymbolicMatrix)
+    if A.dim !== nothing
+        return hciz(A, B, A.dim)
+    else
+        error(
+            "Must provide dimension d for symbolic HCIZ if matrices have symbolic dimension.",
+        )
+    end
+end
+
 function hciz(A::SymbolicMatrix, B::SymbolicMatrix, d::Int)
     # Generate symbolic eigenvalues for matrices with only names
     a = [Symbolics.variable(Symbol(string(A.name) * "_$i"); T = Real) for i = 1:d]
@@ -52,34 +62,27 @@ function hciz(A::SymbolicMatrix, B::SymbolicMatrix, d::Int)
 end
 
 function _get_eigenvalues(M::AbstractMatrix)
-    # Check if numeric
+    # Check if numeric (Float64, ComplexF64 etc.)
     if all(x -> x isa Number && !(x isa Num), M)
         return eigen(M).values
     end
 
-    # Handle Matrix{Num}
+    # Handle Matrix{Num} or mixed types
     # 1. Check if diagonal
-    is_diag = true
-    d = size(M, 1)
-    for i = 1:d, j = 1:d
-        if i != j && !isequal(Symbolics.unwrap(M[i, j]), 0)
-            is_diag = false
-            break
-        end
-    end
-    if is_diag
-        return [M[i, i] for i = 1:d]
+    if isdiag(M)
+        return [M[i, i] for i = 1:size(M, 1)]
     end
 
-    # 2. Handle 2x2 symbolic
+    # 2. Handle 2x2 symbolic explicitly
+    d = size(M, 1)
     if d == 2
         # λ^2 - tr(M)λ + det(M) = 0
-        t = M[1, 1] + M[2, 2]
-        det_M = M[1, 1]*M[2, 2] - M[1, 2]*M[2, 1]
-        disc = Symbolics.simplify(t^2 - 4*det_M)
+        t = tr(M)
+        det_M = det(M)
+        disc = Symbolics.simplify(t^2 - 4 * det_M)
         return [
-            Symbolics.simplify((t + sqrt(disc))/2),
-            Symbolics.simplify((t - sqrt(disc))/2),
+            Symbolics.simplify((t + sqrt(disc)) / 2),
+            Symbolics.simplify((t - sqrt(disc)) / 2),
         ]
     end
 
@@ -95,10 +98,9 @@ function hciz(a::AbstractVector, b::AbstractVector)
 
     # Check for degeneracies
     if _has_degeneracies(a) || _has_degeneracies(b)
-        # For numeric values, we can add a tiny perturbation
         if eltype(a) <: Number && eltype(b) <: Number
-            a = a .+ (rand(d) .- 0.5) .* 1e-12
-            b = b .+ (rand(d) .- 0.5) .* 1e-12
+            a = [a[i] + i * 1e-10 for i = 1:d]
+            b = [b[i] + i * 1e-10 for i = 1:d]
         else
             # For symbolic, this is harder. 
             # In some cases L'Hopital's rule or character expansions are needed.

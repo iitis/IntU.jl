@@ -1,6 +1,15 @@
 _to_Num(z::Complex) = Complex(Num(real(z)), Num(imag(z)))
 _to_Num(z) = Num(z)
 
+"""
+    AbstractMeasure
+
+Abstract base type for all integration measures (Haar, Gaussian, Circular, etc.).
+Provides generic dispatch for element-wise integration of arrays and 
+ambiguity resolution for `SymbolicMatrix` and `SymbolicMatrixProduct`.
+"""
+abstract type AbstractMeasure end
+
 function _symbolic_isequal(a, b)
     a_v = Symbolics.value(a)
     b_v = Symbolics.value(b)
@@ -11,7 +20,6 @@ function _symbolic_isequal(a, b)
 
     a_un = Symbolics.unwrap(a_v)
     b_un = Symbolics.unwrap(b_v)
-
 
     if a_un isa Complex && b_un isa Complex
         return _symbolic_isequal(real(a_un), real(b_un)) &&
@@ -26,7 +34,6 @@ function _symbolic_isequal(a, b)
         return _symbolic_isequal(a_un, real(b_un)) && _iszero(imag(b_un))
     end
 
-
     if Symbolics.iscall(a_un) &&
        (Symbolics.operation(a_un) == complex || Symbolics.operation(a_un) == Base.complex)
         args = Symbolics.arguments(a_un)
@@ -39,14 +46,6 @@ function _symbolic_isequal(a, b)
         return _symbolic_isequal(a_un, args[1]) && _iszero(args[2])
     end
 
-
-    try
-        if a_un == b_un
-            return true
-        end
-    catch
-    end
-
     res = isequal(a_un, b_un)
     v = Symbolics.value(res)
     return v === true
@@ -57,15 +56,41 @@ function _iszero(x)
     if v isa Number
         return iszero(v)
     end
-    try
-        s = Symbolics.simplify(x)
-        sv = Symbolics.value(s)
-        if sv isa Number
-            return iszero(sv)
-        end
-    catch
+    s = Symbolics.simplify(x)
+    sv = Symbolics.value(s)
+    if sv isa Number
+        return iszero(sv)
     end
     return _symbolic_isequal(v, 0)
+end
+
+"""
+    _ensure_symbolic_dim(d)
+
+Ensure dimension `d` is a proper Symbolics variable. If `d` unwraps to a plain
+`Symbol`, wrap it via `Symbolics.variable`; otherwise return as-is.
+"""
+function _ensure_symbolic_dim(d)
+    d_un = Symbolics.unwrap(d)
+    return d_un isa Symbol ? Symbolics.variable(d_un) : d
+end
+
+"""
+    _try_numeric(v)
+
+Attempt to convert a value to a clean numeric form. Returns the converted value,
+or `nothing` if conversion is not possible.
+- `AbstractFloat` → rationalized
+- `Real` → returned as-is
+"""
+function _try_numeric(v)
+    if v isa AbstractFloat
+        return rationalize(v, tol = 1e-13)
+    end
+    if v isa Real
+        return v
+    end
+    return nothing
 end
 
 function _robust_real(x)
@@ -75,14 +100,10 @@ function _robust_real(x)
 
     x_un = Symbolics.unwrap(x)
 
-
     v = Symbolics.value(x_un)
-    if v isa AbstractFloat
-        return rationalize(v, tol = 1e-13)
-    end
-    if v isa Real
-        return v
-    end
+    result = _try_numeric(v)
+    result !== nothing && return result
+
     if v isa Complex
         rv = _robust_real(real(v))
         iv = _robust_real(imag(v))
@@ -91,7 +112,6 @@ function _robust_real(x)
         end
         return Complex(rv, iv)
     end
-
 
     if Symbolics.iscall(x_un) &&
        (Symbolics.operation(x_un) == complex || Symbolics.operation(x_un) == Base.complex)
@@ -107,51 +127,34 @@ function _robust_real(x)
         return x_un
     end
 
-
     if _is_manifestly_real(x_un)
         return x_un
     end
 
 
-    try
-        nx = _safe_Num(x_un)
+    nx = _safe_Num(x_un)
 
-
-        v = Symbolics.value(nx)
-        if v isa AbstractFloat
-            return rationalize(v, tol = 1e-13)
-        end
-        if v isa Real
-            return v
-        end
-
-
-        nx = Symbolics.simplify(nx)
-        v = Symbolics.value(nx)
-        if v isa AbstractFloat
-            return rationalize(v, tol = 1e-13)
-        end
-        if v isa Real
-            return v
-        end
-
-
-        if _iszero(Symbolics.simplify(imag(nx)))
-            rx = Symbolics.simplify(real(nx))
-            vx = Symbolics.value(rx)
-            if vx isa AbstractFloat
-                return rationalize(vx, tol = 1e-13)
-            end
-            if vx isa Real
-                return vx
-            end
-            return rx
-        end
-        return nx
-    catch
+    if !(nx isa Num || nx isa Complex{Num})
+        return x_un
     end
 
-    return x_un
+    v = Symbolics.value(nx)
+    result = _try_numeric(v)
+    result !== nothing && return result
+
+    nx = Symbolics.simplify(nx)
+    v = Symbolics.value(nx)
+    result = _try_numeric(v)
+    result !== nothing && return result
+
+    if _iszero(Symbolics.simplify(imag(nx)))
+        rx = Symbolics.simplify(real(nx))
+        vx = Symbolics.value(rx)
+        result = _try_numeric(vx)
+        result !== nothing && return result
+        return rx
+    end
+    return nx
 end
 
 function _is_manifestly_real(x)
@@ -189,7 +192,6 @@ function _is_manifestly_real(x)
             return false
         end
 
-
         args = SymbolicUtils.arguments(x)
         for arg in args
             if !_is_manifestly_real(arg)
@@ -199,15 +201,10 @@ function _is_manifestly_real(x)
         return true
     end
 
-
-    try
-        v = Symbolics.value(x)
-        if v !== x
-            return _is_manifestly_real(v)
-        end
-    catch
+    v = Symbolics.value(x)
+    if v !== x
+        return _is_manifestly_real(v)
     end
-
 
     return false
 end
@@ -219,37 +216,54 @@ Base type for index matching strategies. Subtypes must implement `match_index`.
 """
 abstract type AbstractIndexMatcher end
 
-"""
-    LookupMatcher(U_lookup, U_bar_lookup)
 
-A matcher that uses dictionaries to map symbolic variables to (row, column) indices.
-Used primarily for GUE/GOE/GSE and list-based unitary integration.
+
 """
-struct LookupMatcher <: AbstractIndexMatcher
-    U_lookup::Dict{Any,Tuple}
-    U_bar_lookup::Dict{Any,Tuple}
+    MetadataMatcher(type_tag::Symbol)
+
+A matcher that identifies random matrix entries based on metadata attached to the symbols.
+The `type_tag` should match the `special_type` of a `SymbolicMatrix` (e.g., `:U`, `:O`, `:Sp`).
+"""
+struct MetadataMatcher <: AbstractIndexMatcher
+    type_tag::Symbol # :U, :O, :Sp, etc.
 end
 
-function match_index(m::LookupMatcher, t)
-    t_un = Symbolics.unwrap(t)
+function match_index(m::MetadataMatcher, t)
+    s = Symbolics.unwrap(t)
 
+    if s isa SymbolicMatrix
+        if s.special_type === m.type_tag
+            final_tag = s.is_adj ? Symbol(m.type_tag, :_bar) : m.type_tag
+            return (final_tag, nothing, nothing)
+        end
+        return nothing
+    end
 
-    if haskey(m.U_lookup, t_un)
-        v = m.U_lookup[t_un]
+    # Handle conj(U_i_j)
+    is_conj = false
+    if Symbolics.iscall(s) &&
+       (Symbolics.operation(s) == conj || Symbolics.operation(s) == Base.conj)
+        is_conj = true
+        s = Symbolics.arguments(s)[1]
+    end
 
-        if length(v) == 3 && v[3] == :conj
-            return (:U_bar, v[1], v[2])
-        else
-            return (:U, v[1], v[2])
+    can_have_meta =
+        (s isa SymbolicUtils.BasicSymbolic) && SymbolicUtils.hasmetadata(s, MatrixMetadata)
+
+    if can_have_meta
+        meta = SymbolicUtils.getmetadata(s, MatrixMetadata)
+        if get(meta, :type, nothing) === m.type_tag
+            indices = get(meta, :indices, nothing)
+            if indices !== nothing
+                i, j = indices
+                # Combine is_conj (from call) and :is_adj (from metadata)
+                final_is_conj = is_conj || get(meta, :is_adj, false)
+
+                final_tag = final_is_conj ? Symbol(m.type_tag, :_bar) : m.type_tag
+                return (final_tag, i, j)
+            end
         end
     end
-
-
-    if haskey(m.U_bar_lookup, t_un)
-        v = m.U_bar_lookup[t_un]
-        return (:U_bar, v[1], v[2])
-    end
-
     return nothing
 end
 
@@ -259,7 +273,92 @@ end
 A dictionary mapping measure types (symbols) to their respective integration rule functions.
 Each rule function should have the signature `(u_indices, u_bar_indices, dim, measure_type)`.
 """
-const INTEGRATION_RULES = Dict{Any,Function}()
+const INTEGRATION_RULES = Dict{Symbol,Function}()
+
+function _extract_coeff_core(term)
+    if term isa Number
+        return term, 1
+    end
+
+    if Symbolics.iscall(term) && Symbolics.operation(term) == (*)
+        args = Symbolics.arguments(term)
+        c = 1
+        others = Any[]
+        for a in args
+            if a isa Number
+                c *= a
+            else
+                push!(others, a)
+            end
+        end
+
+        if isempty(others)
+            core = 1
+        elseif length(others) == 1
+            core = others[1]
+        else
+            core = prod(others)
+        end
+        return c, core
+    else
+        return 1, term
+    end
+end
+
+function _is_fn_sq(term, fn1, fn2)
+    # Strip potential 1 * ... wrapper
+    if Symbolics.iscall(term) && Symbolics.operation(term) == (*)
+        args = Symbolics.arguments(term)
+        if length(args) == 2 && isequal(args[1], 1)
+            term = args[2]
+        end
+    end
+
+    if Symbolics.iscall(term) && Symbolics.operation(term) == (^)
+        args = Symbolics.arguments(term)
+        base = args[1]
+        expon = args[2]
+        if isequal(expon, 2) &&
+           Symbolics.iscall(base) &&
+           (Symbolics.operation(base) == fn1 || Symbolics.operation(base) == fn2)
+            return true, Symbolics.arguments(base)[1]
+        end
+    end
+    return false, nothing
+end
+
+_is_real_sq(term) = _is_fn_sq(term, real, Base.real)
+_is_imag_sq(term) = _is_fn_sq(term, imag, Base.imag)
+
+"""
+    robust_substitute(ex, dict)
+
+Substitute symbolic variables in `ex` using `dict`. Falls back to manual
+Postwalk traversal with unwrapped keys if `Symbolics.substitute` doesn't
+produce a different expression.
+"""
+function robust_substitute(ex, dict)
+    res = Symbolics.substitute(Symbolics.wrap(ex), dict)
+
+    if !_symbolic_isequal(res, Symbolics.wrap(ex))
+        return res
+    end
+
+    # Fallback: manual Postwalk traversal with unwrapped keys
+    unwrapped_dict = Dict(Symbolics.unwrap(k) => Symbolics.unwrap(v) for (k, v) in dict)
+
+    p_res = SymbolicUtils.Postwalk(x -> begin
+        u = Symbolics.unwrap(x)
+        if haskey(unwrapped_dict, u)
+            return unwrapped_dict[u]
+        end
+        return x
+    end)(
+        Symbolics.unwrap(ex),
+    )
+
+    return Symbolics.wrap(p_res)
+end
 
 """
     _integrate_core(expr, dim, subs_dict, matcher, measure_type=:U)
@@ -280,7 +379,7 @@ function _integrate_core(
     if expr isa Complex
         val_re = _integrate_core(real(expr), dim, subs_dict, matcher, measure_type)
         val_im = _integrate_core(imag(expr), dim, subs_dict, matcher, measure_type)
-        return _robust_real(val_re + im * val_im)
+        return _robust_real(val_re + 1im * val_im)
     end
 
     expr_un = Symbolics.unwrap(expr)
@@ -294,18 +393,10 @@ function _integrate_core(
     end
 
 
-    expr_num = _safe_Num(expr_un)
-    try
-        expr_num = Symbolics.expand(expr_num)
-    catch
-    end
-
-
     function is_add(t)
         Symbolics.iscall(t) && Symbolics.operation(t) == (+)
     end
 
-    # Rewrite rules: expand abs², real, imag into polynomial form
     r_abs2 = @rule abs2(~x) => (~x) * conj(~x)
     r_abs_pow = @rule abs(~x)^~n => begin
         n_un = Symbolics.unwrap(~n)
@@ -332,6 +423,22 @@ function _integrate_core(
 
     r_complex = @rule complex(~x, ~y) => ~x + im*~y
     r_complex_base = @rule Base.complex(~x, ~y) => ~x + im*~y
+
+    r_rev_abs2 = @rule real(~x)^2 + imag(~x)^2 => (~x) * conj(~x)
+    r_rev_abs2_coeff = @rule ~c * real(~x)^2 + ~c * imag(~x)^2 => ~c * (~x) * conj(~x)
+
+    r_rev_abs2_base = @rule Base.real(~x)^2 + Base.imag(~x)^2 => (~x) * conj(~x)
+    r_rev_abs2_coeff_base =
+        @rule ~c * Base.real(~x)^2 + ~c * Base.imag(~x)^2 => ~c * (~x) * conj(~x)
+
+    r_conj_add = @rule conj(~x + ~y) => conj(~x) + conj(~y)
+    r_conj_add_base = @rule Base.conj(~x + ~y) => conj(~x) + conj(~y)
+    r_conj_mul = @rule conj(~x * ~y) => conj(~x) * conj(~y)
+    r_conj_mul_base = @rule Base.conj(~x * ~y) => conj(~x) * conj(~y)
+    r_conj_pow = @rule conj((~x)^~n) => (conj(~x))^~n
+    r_conj_conj = @rule conj(conj(~x)) => ~x
+    r_conj_conj_base = @rule Base.conj(Base.conj(~x)) => ~x
+    r_conj_neg = @rule conj(-(~x)) => -(conj(~x))
 
 
     function power_simplifier(x, a, b)
@@ -364,10 +471,11 @@ function _integrate_core(
         end
     end
 
-    expr_unwrapped = Symbolics.unwrap(expr)
-
-
     chain = SymbolicUtils.Chain([
+        r_rev_abs2_coeff,
+        r_rev_abs2,
+        r_rev_abs2_coeff_base,
+        r_rev_abs2_base,
         r_abs_pow,
         r_abs2,
         r_abs,
@@ -379,12 +487,149 @@ function _integrate_core(
         r_hypot_default,
         r_complex,
         r_complex_base,
+        r_conj_add,
+        r_conj_add_base,
+        r_conj_mul,
+        r_conj_mul_base,
+        r_conj_pow,
+        r_conj_conj,
+        r_conj_conj_base,
+        r_conj_neg,
         r_pow_nested,
         r_hypot_pow,
         r_float_to_int_pow,
     ])
+
+    function pair_real_imag(expr)
+        if !Symbolics.iscall(expr) || Symbolics.operation(expr) != (+)
+            return expr
+        end
+
+        args = Symbolics.arguments(expr)
+        n_args = length(args)
+        new_args = []
+        skip_indices = falses(n_args)
+
+        for i = 1:n_args
+            if skip_indices[i]
+                continue
+            end
+
+            term_i = args[i]
+
+            c_i, core_i = _extract_coeff_core(term_i)
+
+            is_real_sq, x_real = _is_real_sq(core_i)
+            is_imag_sq, x_imag = _is_imag_sq(core_i)
+
+            matched = false
+
+            if is_real_sq || is_imag_sq
+                target_x = is_real_sq ? x_real : x_imag
+                target_is_real = !is_real_sq
+
+                for j = (i+1):n_args
+                    if skip_indices[j]
+                        continue
+                    end
+
+                    term_j = args[j]
+                    c_j, core_j = _extract_coeff_core(term_j)
+
+                    if !isequal(c_i, c_j)
+                        continue
+                    end
+
+                    is_real_sq_j, x_real_j = _is_real_sq(core_j)
+                    is_imag_sq_j, x_imag_j = _is_imag_sq(core_j)
+
+                    if target_is_real
+                        if is_real_sq_j && isequal(x_real_j, target_x)
+                            # Found match!
+                            push!(new_args, c_i * target_x * conj(target_x))
+                            skip_indices[j] = true
+                            matched = true
+                            break
+                        end
+                    else
+                        if is_imag_sq_j && isequal(x_imag_j, target_x)
+                            # Found match!
+                            push!(new_args, c_i * target_x * conj(target_x))
+                            skip_indices[j] = true
+                            matched = true
+                            break
+                        end
+                    end
+                end
+            end
+
+            if !matched
+                push!(new_args, term_i)
+            end
+        end
+
+        return sum(new_args)
+    end
+
+    function monomializer(x)
+        ux = Symbolics.unwrap(x)
+        if !Symbolics.iscall(ux)
+            return x
+        end
+        op = Symbolics.operation(ux)
+        args = Symbolics.arguments(ux)
+        if op == conj || op == Base.conj
+            inner = Symbolics.unwrap(args[1])
+            if Symbolics.iscall(inner)
+                inner_op = Symbolics.operation(inner)
+                inner_args = Symbolics.arguments(inner)
+                if inner_op == (+)
+                    return sum(monomializer(conj(a)) for a in inner_args)
+                elseif inner_op == (*)
+                    return prod(monomializer(conj(a)) for a in inner_args)
+                elseif inner_op == (/)
+                    return monomializer(conj(inner_args[1])) /
+                           monomializer(conj(inner_args[2]))
+                elseif inner_op == (^)
+                    return monomializer(conj(inner_args[1])) ^
+                           monomializer(conj(inner_args[2]))
+                elseif inner_op == conj || inner_op == Base.conj
+                    return monomializer(Symbolics.arguments(inner)[1])
+                end
+            end
+        elseif op == (/)
+            # (A + B) / C -> A/C + B/C
+            numerator = Symbolics.unwrap(args[1])
+            if Symbolics.iscall(numerator) && Symbolics.operation(numerator) == (+)
+                return sum(
+                    monomializer(a / args[2]) for a in Symbolics.arguments(numerator)
+                )
+            end
+        elseif op == complex || op == Base.complex
+            return monomializer(args[1]) + im * monomializer(args[2])
+        elseif op == real || op == Base.real
+            return monomializer((args[1] + conj(args[1])) / 2)
+        elseif op == imag || op == Base.imag
+            return monomializer((args[1] - conj(args[1])) / (2im))
+        end
+        return Symbolics.wrap(
+            Symbolics.iscall(ux) ?
+            SymbolicUtils.maketerm(
+                typeof(ux),
+                op,
+                [monomializer(a) for a in args],
+                SymbolicUtils.metadata(ux),
+            ) : ux,
+        )
+    end
+
     expr_rewritten = SymbolicUtils.Postwalk(
-        SymbolicUtils.PassThrough(chain);
+        x -> begin
+            # Apply rules first
+            res = SymbolicUtils.PassThrough(chain)(x)
+            # Then distribute
+            return monomializer(res)
+        end;
         maketerm = (st, f, args, metadata; kwargs...) -> begin
             if f == complex || f == Base.complex
                 return args[1] + im * args[2]
@@ -392,47 +637,13 @@ function _integrate_core(
             SymbolicUtils.maketerm(st, f, args, metadata)
         end,
     )(
-        expr_unwrapped,
+        expr_un,
     )
-    if expr_rewritten isa Complex
-        return _integrate_core(expr_rewritten, dim, subs_dict, matcher, measure_type)
-    end
+
+    expr_rewritten = pair_real_imag(expr_rewritten)
+
     expr_num = _safe_Num(expr_rewritten)
-
-
-
-    try
-        expr_num = Symbolics.expand(_safe_Num(Symbolics.unwrap(expr_num)))
-    catch
-    end
-
-
-    function robust_substitute(ex, dict)
-        try
-            res = Symbolics.substitute(Symbolics.wrap(ex), dict)
-
-            if _symbolic_isequal(res, Symbolics.wrap(ex))
-                throw(error("No change"))
-            end
-            return res
-        catch
-            # Fallback: manual Postwalk traversal with unwrapped keys
-            unwrapped_dict =
-                Dict(Symbolics.unwrap(k) => Symbolics.unwrap(v) for (k, v) in dict)
-
-            p_res = SymbolicUtils.Postwalk(x -> begin
-                u = Symbolics.unwrap(x)
-                if haskey(unwrapped_dict, u)
-                    return unwrapped_dict[u]
-                end
-                return x
-            end)(
-                Symbolics.unwrap(ex),
-            )
-
-            return Symbolics.wrap(p_res)
-        end
-    end
+    expr_num = Symbolics.expand(expr_num)
 
     expr_subbed = if expr_num isa Complex
         robust_substitute(Symbolics.unwrap(real(expr_num)), subs_dict) +
@@ -443,11 +654,7 @@ function _integrate_core(
 
 
 
-    expanded_expr = try
-        Symbolics.expand(_safe_Num(Symbolics.unwrap(expr_subbed)))
-    catch
-        _safe_Num(expr_subbed)
-    end
+    expanded_expr = Symbolics.expand(_safe_Num(Symbolics.unwrap(expr_subbed)))
 
     # Flatten complex(...) calls introduced by substitution
     expanded_expr = _safe_Num(
@@ -469,11 +676,7 @@ function _integrate_core(
     )
 
 
-    expanded_expr = try
-        Symbolics.expand(expanded_expr)
-    catch
-        expanded_expr
-    end
+    expanded_expr = Symbolics.expand(expanded_expr)
 
 
     function process_term_wrapped(term)
@@ -509,8 +712,147 @@ function _integrate_core(
     return res
 end
 
-function integrate(expr::LazySum, measure)
+function integrate(expr::LazySum, measure::AbstractMeasure)
     return sum(t -> integrate(t, measure), expr.terms)
+end
+
+function _get_measure_dim(measure)
+    if hasproperty(measure, :dim)
+        d = measure.dim
+        if d isa SymbolicMatrix
+            return d.dim
+        end
+        return d
+    end
+    return nothing
+end
+
+"""
+    integrate(expr::SymbolicMatrix, measure)
+
+Integrate a SymbolicMatrix as a whole. Returns a matrix of results if the 
+dimension in `measure` is a concrete integer.
+"""
+function integrate(A::SymbolicMatrix, measure::AbstractMeasure)
+    dim = _get_measure_dim(measure)
+    if dim isa Integer
+        res = Matrix{Any}(undef, dim, dim)
+        fill!(res, 0)
+        for i = 1:dim
+            for j = 1:dim
+                res[i, j] = integrate(A[i, j], measure)
+            end
+        end
+        return res
+    end
+    error(
+        "Direct integration of SymbolicMatrix requires a numeric dimension in the measure.",
+    )
+end
+
+_get_integration_tag(m::MetadataMatcher) = m.type_tag
+
+function _has_integration_variable(expr, tag::Symbol)
+    if expr isa SymbolicMatrix
+        return expr.special_type === tag
+    elseif expr isa SymbolicKron
+        return _has_integration_variable(expr.A, tag) || _has_integration_variable(expr.B, tag)
+    elseif expr isa SymbolicMatrixProduct
+        return any(f -> _has_integration_variable(f, tag), expr.factors)
+    else
+        return false
+    end
+end
+
+"""
+    integrate(expr::SymbolicMatrixProduct, measure)
+
+Integrate a product of SymbolicMatrices. Returns a matrix of results if the 
+dimension in `measure` is a concrete integer. It skips expansion and returns the product 
+itself if it does not contain the integration variable.
+"""
+function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
+    if isempty(P.factors)
+        return Num(1)
+    end
+
+    # Fast path: if the product does not contain the integration variable at all,
+    # it acts as a constant, so the integral is just the product itself.
+    _, matcher, _, _ = measure_info(measure)
+    
+    # We define a helper to safely extract the tag from different matchers
+    if matcher isa MetadataMatcher || (isdefined(Main, :SymbolicMatcher) && matcher isa Main.SymbolicMatcher) || hasproperty(matcher, :tag) || hasproperty(matcher, :type_tag)
+        tag = hasproperty(matcher, :type_tag) ? matcher.type_tag : matcher.tag
+        if !_has_integration_variable(P, tag)
+            return P
+        end
+    end
+
+    dim_measure = _get_measure_dim(measure)
+    n_factors = length(P.factors)
+    
+    # inner_dims[i] is the shared dimension between factor i-1 and factor i
+    # inner_dims[1] is number of rows, inner_dims[n+1] is number of columns
+    inner_dims = Vector{Any}(fill(nothing, n_factors + 1))
+    
+    # Pass 1: Collect known dimensions
+    for (i, f) in enumerate(P.factors)
+        fr, fc = size(f)
+        fr_un = Symbolics.unwrap(fr)
+        fc_un = Symbolics.unwrap(fc)
+        
+        if fr_un isa Integer && fr_un != typemax(Int)
+            inner_dims[i] = fr_un
+        end
+        if fc_un isa Integer && fc_un != typemax(Int)
+            inner_dims[i+1] = fc_un
+        end
+    end
+    
+    # Pass 2: Fallback to measure dimension for any remaining unknowns
+    for i in 1:(n_factors + 1)
+        if inner_dims[i] === nothing
+            inner_dims[i] = dim_measure
+        end
+    end
+
+    nr = inner_dims[1]
+    nc = inner_dims[end]
+    
+    nr_un = Symbolics.unwrap(nr)
+    nc_un = Symbolics.unwrap(nc)
+
+    if nr_un isa Integer && nc_un isa Integer
+        nr = Int(nr_un)
+        nc = Int(nc_un)
+
+        # Pre-calculate factor matrices to avoid repeated getindex overhead
+        mats = []
+        for (i, f) in enumerate(P.factors)
+            cur_r = Symbolics.unwrap(inner_dims[i])
+            cur_c = Symbolics.unwrap(inner_dims[i+1])
+
+            if !(cur_r isa Integer && cur_c isa Integer)
+                error(
+                    "Factor $f has non-numeric size ($cur_r, $cur_c). cannot expand product for matrix-valued integration. Use tr() for scalar results with symbolic dimensions.",
+                )
+            end
+
+            push!(mats, [f[r, c] for r = 1:Int(cur_r), c = 1:Int(cur_c)])
+        end
+        # Calculate the full symbolic product once
+        res_mat = reduce(*, mats)
+
+        res = Matrix{Any}(undef, nr, nc)
+        fill!(res, 0)
+        for i = 1:nr
+            for j = 1:nc
+                res[i, j] = integrate(res_mat[i, j], measure)
+            end
+        end
+        return res
+    end
+    error("Direct matrix-valued integration of SymbolicMatrixProduct requires numeric result dimensions (got $nr x $nc). Use tr() for scalar results.")
 end
 
 """
@@ -519,7 +861,7 @@ end
 Performs element-wise integration of a matrix or array of expressions.
 Returns an array of the same shape containing integrated values.
 """
-function integrate(expr::AbstractArray, measure)
+function integrate(expr::AbstractArray, measure::AbstractMeasure)
     return map(t -> integrate(t, measure), expr)
 end
 
@@ -529,13 +871,30 @@ end
 Top-level integration function. It first checks the [Pre-computed Integral Library](@ref) 
 for instant results. If not found, it calls `fallback_integrate` for the specific measure.
 """
-function integrate(expr, measure)
+function integrate(expr, measure::AbstractMeasure)
     lib_res = check_library(expr, measure)
     if lib_res !== nothing
         return lib_res
     end
 
     return fallback_integrate(expr, measure)
+end
+
+function _integrate_core(
+    expr::Complex{Num},
+    dim,
+    subs_dict,
+    matcher::AbstractIndexMatcher,
+    measure_type = :U,
+)
+    # Split into real and imaginary parts to avoid recursion
+    re = Symbolics.real(expr)
+    im_part = Symbolics.imag(expr)
+
+    int_re = _integrate_core(re, dim, subs_dict, matcher, measure_type)
+    int_im = _integrate_core(im_part, dim, subs_dict, matcher, measure_type)
+
+    return int_re + 1im * int_im # standard complex number result
 end
 
 function fallback_integrate(expr, measure)
@@ -565,11 +924,41 @@ function _safe_Num(x)
     if x isa Num || x isa Complex{Num}
         return x
     end
-    if !(x isa Number) && !(x isa AbstractArray)
-        return Num(x)
+    if x isa LazyTrace || x isa LazySum
+        return x
+    end
+    if x isa AbstractArray
+        return map(_safe_Num, x)
+    end
+    if !(x isa Number)
+        # Only wrap if it's a known symbolic object to avoid overhead/errors on obscure types
+        if x isa SymbolicUtils.BasicSymbolic || x isa Symbolics.ComplexTerm
+            return Num(x)
+        end
+        return x
     end
     x_un = Symbolics.unwrap(x)
     return _to_Num(x_un)
+end
+
+"""
+    _try_extract_int(p_val)
+
+Attempt to extract an integer from a symbolic or numeric value.
+Handles Julia `Integer`, `AbstractFloat` with integer value, and
+`SymbolicUtils.BasicSymbolic` types that print as integers.
+Returns the `Int` value or `nothing`.
+"""
+function _try_extract_int(p_val)
+    if p_val isa Integer
+        return Int(p_val)
+    end
+    if p_val isa AbstractFloat && isinteger(p_val)
+        return Int(p_val)
+    end
+    # Fallback for symbolic types (e.g. BasicSymbolic{SymReal}) that
+    # represent integers but aren't Julia Integer subtypes
+    return tryparse(Int, string(p_val))
 end
 
 
@@ -592,6 +981,13 @@ Integrates a single monomial term.
 """
 function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :U)
     term = Symbolics.unwrap(term)
+    if term isa LazyTrace
+        # If it leaked here, it means it's not specialized for this measure.
+        # Try a very basic expansion? No, let's error gracefully if not handled.
+        error(
+            "Graphical integration (LazyTrace) not implemented for measure type $measure_type. Try expanding traces element-wise.",
+        )
+    end
 
     if Symbolics.iscall(term)
         op = Symbolics.operation(term)
@@ -606,20 +1002,27 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
 
     is_gaussian = (measure_type === :GUE || measure_type === :GOE || measure_type === :GSE)
     coeff = 1 // 1
-    u_indices = Vector{Tuple{Int,Int}}()
-    u_bar_indices = Vector{Tuple{Int,Int}}()
+    u_indices = Vector{Tuple{Any,Any}}()
+    u_bar_indices = Vector{Tuple{Any,Any}}()
 
-    function traverse(t)
+    function _push_matched_index!(match_res, conjugated)
+        type, i, j = match_res
+        is_bar = endswith(string(type), "_bar")
+        final_is_bar = is_bar ⊻ conjugated
+        if final_is_bar
+            push!(u_bar_indices, (i, j))
+        else
+            push!(u_indices, (i, j))
+        end
+    end
+
+    function traverse(t, conjugated = false)
         t_unwrapped = Symbolics.unwrap(t)
 
+        # Try to match the variable directly (handles getindex, metadata, etc.)
         match_res = match_index(matcher, t_unwrapped)
         if match_res !== nothing
-            type, i, j = match_res
-            if type == :U
-                push!(u_indices, (i, j))
-            else
-                push!(u_bar_indices, (i, j))
-            end
+            _push_matched_index!(match_res, conjugated)
             return
         end
 
@@ -632,55 +1035,59 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
             local op = Symbolics.operation(t_unwrapped)
             local args = Symbolics.arguments(t_unwrapped)
 
+            # Multiplicative: traverse each factor
             if op == (*)
                 for arg in args
-                    traverse(arg)
+                    traverse(arg, conjugated)
                 end
                 return
+            # Power: repeat base p times
             elseif op == (^)
                 base = args[1]
                 p_val = Symbolics.unwrap(args[2])
-                p = try
-                    parse(Int, string(p_val))
-                catch
-                    nothing
-                end
+                p = _try_extract_int(p_val)
                 if p isa Integer
                     for _ = 1:p
-                        traverse(base)
+                        traverse(base, conjugated)
                     end
                     return
                 end
-                traverse(base)
+                traverse(base, conjugated)
                 return
+            # Division: traverse numerator, divide coefficient
             elseif op == (/)
-                traverse(args[1])
+                traverse(args[1], conjugated)
                 coeff /= args[2]
                 return
+            # Conjugation: flip conjugated flag
             elseif op == conj || op == Base.conj
-                inner = Symbolics.unwrap(args[1])
-                match_res_inner = match_index(matcher, inner)
-                if match_res_inner !== nothing
-                    type, i, j = match_res_inner
-                    if type == :U
-                        push!(u_bar_indices, (i, j))
-                    else
-                        push!(u_indices, (i, j))
-                    end
-                    return
-                end
+                traverse(args[1], !conjugated)
+                return
+            # real(x) = (x + conj(x)) / 2
+            elseif op == real || op == Base.real
+                coeff *= 1 // 2
+                traverse(args[1], conjugated)
+                traverse(args[1], !conjugated)
+                return
+            # imag(x) = (x - conj(x)) / (2im)
+            elseif op == imag || op == Base.imag
+                coeff *= 1 // (2im)
+                traverse(args[1], conjugated)
+                coeff *= -1
+                traverse(args[1], !conjugated)
+                return
+            # Distributive: complex, +, -
             elseif op == complex || op == Base.complex || op == (+) || op == (-)
                 for arg in args
-                    traverse(arg)
+                    traverse(arg, conjugated)
                 end
                 return
             end
-
         end
 
-        coeff *= t
+        coeff *= conjugated ? conj(t) : t
     end
-    traverse(term)
+    traverse(term, false)
 
     n_u = length(u_indices)
     n_bar = length(u_bar_indices)
@@ -703,11 +1110,17 @@ end
 
 INTEGRATION_RULES[:U] =
     (u, ub, d, mt) -> begin
+        d = _ensure_symbolic_dim(d)
         length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices(u, ub, d))
     end
 
+# Stiefel V_k(C^d) and pure state integration are same as Haar U(d) for entries
+INTEGRATION_RULES[:V] = INTEGRATION_RULES[:U]
+INTEGRATION_RULES[:psi] = INTEGRATION_RULES[:U]
+
 INTEGRATION_RULES[:O] =
     (u, ub, d, mt) -> begin
+        d = _ensure_symbolic_dim(d)
         all_indices = [u; ub]
         length(all_indices) % 2 != 0 ? 0 :
         (length(all_indices) == 0 ? 1 : integrate_indices_orthogonal(all_indices, d))
@@ -715,13 +1128,43 @@ INTEGRATION_RULES[:O] =
 
 INTEGRATION_RULES[:Sp] =
     (u, ub, d, mt) -> begin
-        all_indices = [u; ub]
+        d = _ensure_symbolic_dim(d)
+        d_un = Symbolics.unwrap(d)
+        if !(d_un isa Integer) || isodd(d_un)
+            # For now, if we have bars, we can't handle symbolic d easily.
+            if length(ub) > 0
+                return 0
+            end
+            all_indices = u
+        else
+            m = div(d_un, 2)
+            sign_factor = 1
+            converted_ub = Vector{Tuple{Int,Int}}()
+
+            for (p, q) in ub
+                pk = p <= m ? p + m : p - m
+                qk = q <= m ? q + m : q - m
+
+                j1 = p <= m ? 1 : -1
+                j2 = q <= m ? -1 : 1
+
+                curr_sign = -1 * j1 * j2
+                sign_factor *= curr_sign
+                push!(converted_ub, (pk, qk))
+            end
+            all_indices = [u; converted_ub]
+            if sign_factor != 1
+                return sign_factor * integrate_indices_symplectic(all_indices, d)
+            end
+        end
+
         length(all_indices) % 2 != 0 ? 0 :
         (length(all_indices) == 0 ? 1 : integrate_indices_symplectic(all_indices, d))
     end
 
 INTEGRATION_RULES[:GUE] =
     (u, ub, d, mt) -> begin
+        d = _ensure_symbolic_dim(d)
         all_indices = [u; ub]
         length(all_indices) % 2 != 0 ? 0 :
         (length(all_indices) == 0 ? 1 : integrate_indices_gue(all_indices, d))
@@ -729,6 +1172,7 @@ INTEGRATION_RULES[:GUE] =
 
 INTEGRATION_RULES[:GOE] =
     (u, ub, d, mt) -> begin
+        d = _ensure_symbolic_dim(d)
         all_indices = [u; ub]
         length(all_indices) % 2 != 0 ? 0 :
         (length(all_indices) == 0 ? 1 : integrate_indices_goe(all_indices, d))
@@ -736,6 +1180,7 @@ INTEGRATION_RULES[:GOE] =
 
 INTEGRATION_RULES[:GSE] =
     (u, ub, d, mt) -> begin
+        d = _ensure_symbolic_dim(d)
         all_indices = [u; ub]
         length(all_indices) % 2 != 0 ? 0 :
         (length(all_indices) == 0 ? 1 : integrate_indices_gse(all_indices, d))
@@ -743,11 +1188,14 @@ INTEGRATION_RULES[:GSE] =
 
 INTEGRATION_RULES[:COE] =
     (u, ub, d, mt) -> begin
+        d = _ensure_symbolic_dim(d)
         length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices_coe(u, ub, d))
     end
 
 INTEGRATION_RULES[:CSE] =
     (u, ub, d, mt) -> begin
+        d = _ensure_symbolic_dim(d)
+        d_un = Symbolics.unwrap(d)
         length(u) != length(ub) ? 0 :
         (
             begin
@@ -755,6 +1203,21 @@ INTEGRATION_RULES[:CSE] =
                 length(u) == 0 ? 1 : integrate_indices_cse(u, ub, d, phys_dim)
             end
         )
+    end
+
+INTEGRATION_RULES[:Perm] =
+    (u, ub, d, mt) -> begin
+        d = _ensure_symbolic_dim(d)
+        all_indices = [u; ub]
+        length(all_indices) == 0 ? 1 : integrate_indices_permutation(all_indices, d)
+    end
+
+INTEGRATION_RULES[:CPerm] =
+    (u, ub, d, mt) -> begin
+        d = _ensure_symbolic_dim(d)
+        all_indices = [u; ub]
+        length(all_indices) == 0 ? 1 :
+        integrate_indices_centered_permutation(all_indices, d)
     end
 
 INTEGRATION_RULES[:Design] =
@@ -765,12 +1228,6 @@ INTEGRATION_RULES[:Design] =
             error("Integrand degree ($(length(u))) exceeds design order t=$t_val")
         end
         length(u) == 0 ? 1 : integrate_indices(u, ub, d)
-    end
-
-INTEGRATION_RULES[:Perm] =
-    (u, ub, d, mt) -> begin
-        all_indices = [u; ub]
-        length(all_indices) == 0 ? 1 : integrate_indices_permutation(all_indices, d)
     end
 
 INTEGRATION_RULES[:DiagUnitary] =
@@ -806,11 +1263,7 @@ INTEGRATION_RULES[:GinSE] =
 
 Low-level integration function using Weingarten calculus (Unitary).
 """
-function integrate_indices(
-    U_idxs::Vector{Tuple{Int,Int}},
-    U_bar_idxs::Vector{Tuple{Int,Int}},
-    dim,
-)
+function integrate_indices(U_idxs::Vector{<:Tuple}, U_bar_idxs::Vector{<:Tuple}, dim)
     n = length(U_idxs)
     I = [x[1] for x in U_idxs]
     J = [x[2] for x in U_idxs]
@@ -865,19 +1318,19 @@ function integrate_indices(
     end
 end
 
-function get_matching_permutations(target::Vector{Int}, source::Vector{Int})
+function get_matching_permutations(target::AbstractVector, source::AbstractVector)
     n = length(target)
     if n != length(source)
         return Vector{Vector{Int}}()
     end
 
 
-    source_groups = Dict{Int,Vector{Int}}()
+    source_groups = Dict{Any,Vector{Int}}()
     for (idx, val) in enumerate(source)
         push!(get!(source_groups, val, Int[]), idx)
     end
 
-    target_groups = Dict{Int,Vector{Int}}()
+    target_groups = Dict{Any,Vector{Int}}()
     for (idx, val) in enumerate(target)
         push!(get!(target_groups, val, Int[]), idx)
     end
@@ -937,14 +1390,50 @@ Low-level integration function using Orthogonal Weingarten calculus.
 Indices are a list of (i, j) for O_{ij}.
 Formula: sum_{pi, sigma in PairPartitions} delta_pi(i) * delta_sigma(j) * Wg(pi, sigma)
 """
-function integrate_indices_orthogonal(indices::Vector{Tuple{Int,Int}}, dim)
+function integrate_indices_orthogonal(indices::AbstractVector, dim)
     n = length(indices) # This is 2k
     if n % 2 != 0
         return 0
     end
+    k = n ÷ 2
 
     I = [x[1] for x in indices]
     J = [x[2] for x in indices]
+
+    # Shortcut: if all I are equal OR all J are equal
+    is_I_uniform = all(x -> x == I[1], I)
+    is_J_uniform = all(x -> x == J[1], J)
+
+    if is_I_uniform || is_J_uniform
+        # Row sum of Wg matrix is 1 / prod_{j=0}^{k-1} (dim + 2j)
+        # Total sum = count_valid_partitions * row_sum
+        if is_I_uniform && is_J_uniform
+            # Both uniform: result is N_total / prod
+            num = 1
+            for i = 1:k
+                num *= (2*i-1)
+            end
+            denom = one(Rational{BigInt})
+            for j = 0:(k-1)
+                denom *= (dim + 2*j)
+            end
+            return num / denom
+        elseif is_I_uniform
+            valid_sigma = get_matching_pair_partitions_filtered(J)
+            denom = one(Rational{BigInt})
+            for j = 0:(k-1)
+                denom *= (dim + 2*j)
+            end
+            return length(valid_sigma) / denom
+        else # is_J_uniform
+            valid_pi = get_matching_pair_partitions_filtered(I)
+            denom = one(Rational{BigInt})
+            for j = 0:(k-1)
+                denom *= (dim + 2*j)
+            end
+            return length(valid_pi) / denom
+        end
+    end
 
     valid_pi = get_matching_pair_partitions_filtered(I)
     valid_sigma = get_matching_pair_partitions_filtered(J)
@@ -966,26 +1455,19 @@ function integrate_indices_orthogonal(indices::Vector{Tuple{Int,Int}}, dim)
         sigma_counts[c_sigma] = get(sigma_counts, c_sigma, 0) + 1
     end
 
-    val_mat, lookup = get_weingarten_orthogonal_data(n ÷ 2, dim)
+    w, type_to_idx, _ = get_weingarten_reduced_data(k, dim)
+    total = zero(eltype(w))
 
-    total = 0 // 1
     for (c_pi, count_pi) in pi_counts
-        idx_pi = get(lookup, c_pi, nothing)
-        idx_pi === nothing && continue
-
         for (c_sigma, count_sigma) in sigma_counts
-            idx_sigma = get(lookup, c_sigma, nothing)
-            idx_sigma === nothing && continue
-
-            val = val_mat[idx_pi, idx_sigma]
-            total += (count_pi * count_sigma) * val
+            ct = get_full_cycle_type(c_pi, c_sigma)
+            val = w[type_to_idx[ct]]
+            total += (BigInt(count_pi) * BigInt(count_sigma)) * val
         end
     end
+
     if !(dim isa Integer)
-        try
-            return Symbolics.simplify(Symbolics.wrap(total))
-        catch
-        end
+        return Symbolics.simplify(Symbolics.wrap(total))
     end
     return total
 end
@@ -1048,52 +1530,59 @@ end
 Low-level integration function using Symplectic Weingarten calculus.
 Formula: sum_{pi, sigma} J_pi(i) * J_sigma(j) * Wg^Sp(pi, sigma)
 """
-function integrate_indices_symplectic(indices::Vector{Tuple{Int,Int}}, dim)
+function integrate_indices_symplectic(indices::AbstractVector, dim)
     n = length(indices)
-    k = div(n, 2)
+    if n % 2 != 0
+        return 0
+    end
+    k = n ÷ 2
     partitions = get_pair_partitions(n)
 
     I = [x[1] for x in indices]
-    J_idx = [x[2] for x in indices]
+    J = [x[2] for x in indices]
 
-    dim_int = dim isa Integer ? dim : nothing
-
-    total = 0 // 1
-
+    # Pre-calculate and group contractions
     pi_contractions = Dict{Any,Any}()
-    sigma_contractions = Dict{Any,Any}()
-
     for pi in partitions
         val_I = compute_symplectic_contraction(pi, I, dim)
-        if !_symbolic_isequal(val_I, 0)
-            pi_contractions[pi] = val_I
-        end
-
-        val_J = compute_symplectic_contraction(pi, J_idx, dim)
-        if !_symbolic_isequal(val_J, 0)
-            sigma_contractions[pi] = val_J
+        if !_iszero(val_I)
+            c_pi = canonicalize_pair_partition(pi)
+            pi_contractions[c_pi] = get(pi_contractions, c_pi, 0) + val_I
         end
     end
 
-    if isempty(pi_contractions) || isempty(sigma_contractions)
+    if isempty(pi_contractions)
         return 0
     end
 
+    sigma_contractions = Dict{Any,Any}()
+    for sigma in partitions
+        val_J = compute_symplectic_contraction(sigma, J, dim)
+        if !_iszero(val_J)
+            c_sigma = canonicalize_pair_partition(sigma)
+            sigma_contractions[c_sigma] = get(sigma_contractions, c_sigma, 0) + val_J
+        end
+    end
 
-    total = 0 // 1
+    if isempty(sigma_contractions)
+        return 0
+    end
 
-    for (pi, val_pi) in pi_contractions
-        for (sigma, val_sigma) in sigma_contractions
-            wg = weingarten_symplectic_val(pi, sigma, dim)
+    w, type_to_idx, _ = get_weingarten_reduced_data(k, -dim)
+    T = eltype(w)
+    total = zero(T)
+
+    for (c_pi, val_pi) in pi_contractions
+        for (c_sigma, val_sigma) in sigma_contractions
+            ct = get_full_cycle_type(c_pi, c_sigma)
+            loops = length(ct)
+            wg = ((-1)^loops) * w[type_to_idx[ct]]
             total += val_pi * val_sigma * wg
         end
     end
 
     if !(dim isa Integer)
-        try
-            return Symbolics.simplify(Symbolics.wrap(total))
-        catch
-        end
+        return Symbolics.simplify(Symbolics.wrap(total))
     end
     return total
 end
@@ -1104,7 +1593,7 @@ end
 Low-level integration function using Wick's theorem for GUE.
 Formula: sum_{pi in PairPartitions} prod_{(u, v) in pi} delta(i_u, j_v) * delta(j_u, i_v)
 """
-function integrate_indices_gue(indices::Vector{Tuple{Int,Int}}, dim)
+function integrate_indices_gue(indices::AbstractVector, dim)
     n = length(indices) # Must be even
     partitions = get_pair_partitions(n)
 
@@ -1166,7 +1655,7 @@ Low-level integration function using Wick's theorem for GOE.
 Formula: sum_{pi in PairPartitions} prod_{(u, v) in pi} (delta(i_u, k_v)*delta(j_u, l_v) + delta(i_u, l_v)*delta(j_u, k_v))
 where pair is H_{i_u j_u} and H_{k_v l_v} (indices re-labeled for clarity).
 """
-function integrate_indices_goe(indices::Vector{Tuple{Int,Int}}, dim)
+function integrate_indices_goe(indices::AbstractVector, dim)
     n = length(indices) # Must be even
     partitions = get_pair_partitions(n)
 
@@ -1208,48 +1697,7 @@ function integrate_indices_goe(indices::Vector{Tuple{Int,Int}}, dim)
     return total
 end
 
-function integrate_indices_goe(indices::Vector{Any}, dim)
-    return integrate_indices_goe(Vector{Tuple{Any,Any}}(indices), dim)
-end
-
-function integrate_indices_goe(indices::Vector{Tuple{Any,Any}}, dim)
-    n = length(indices) # Must be even
-    partitions = get_pair_partitions(n)
-
-    total = 0 // 1
-
-    for pi in partitions
-        term_val = 1
-        possible = true
-
-        for (u, v) in pi
-            (i1, j1) = indices[u]
-            (i2, j2) = indices[v]
-
-            val_pair = 0 // 1
-            match1 = _symbolic_isequal(i1, i2) && _symbolic_isequal(j1, j2)
-            match2 = _symbolic_isequal(i1, j2) && _symbolic_isequal(j1, i2)
-
-            if match1
-                val_pair += 1
-            end
-            if match2
-                val_pair += 1
-            end
-
-            if val_pair == 0
-                possible = false
-                break
-            end
-            term_val *= val_pair
-        end
-
-        if possible
-            total += term_val
-        end
-    end
-    return total
-end
+# Removed helper methods that are no longer needed with relaxed signatures
 
 function _get_J(i, j, d)
     # J = [0 I; -I 0], d even, n = d/2
@@ -1267,11 +1715,7 @@ function _get_J(i, j, d)
     end
 end
 
-function integrate_indices_gse(indices::Vector{Any}, dim)
-    return integrate_indices_gse(Vector{Tuple{Int,Int}}(indices), dim)
-end
-
-function integrate_indices_gse(indices::Vector{Tuple{Int,Int}}, dim)
+function integrate_indices_gse(indices::AbstractVector, dim)
     n = length(indices)
     partitions = get_pair_partitions(n)
     total = 0 // 1
@@ -1324,10 +1768,7 @@ Computes prod_{(u, v) in partition} J(indices[u], indices[v]).
 J = [0 I; -I 0].
 """
 function compute_symplectic_contraction(partition, indices, dim)
-    val = 1
-
-    u_unwrapped = Symbolics.unwrap(dim)
-    is_d_numeric = (u_unwrapped isa Number)
+    val = Num(1)
 
     for (u, v) in partition
         idx_u = indices[u]
@@ -1350,23 +1791,12 @@ function symplectic_form(i, j, dim)
         return 0
     end
 
-
     u_dim = Symbolics.unwrap(dim)
-    if !(u_dim isa Number)
-        return 0
-    end
+    m = u_dim / 2
 
-    dim_val = Int(u_dim)
-    m = div(dim_val, 2)
-
-
-    if i < 1 || i > 2*m || j < 1 || j > 2*m
-        return 0
-    end
-
-    if j == i + m
+    if _symbolic_isequal(j, i + m)
         return 1
-    elseif j == i - m
+    elseif _symbolic_isequal(j, i - m)
         return -1
     else
         return 0
@@ -1380,8 +1810,8 @@ Low-level integration for Complex Ginibre Ensemble.
 Formula: sum_{sigma in S_n} prod_m delta(i_m, ib_sigma(m)) * delta(j_m, jb_sigma(m))
 """
 function integrate_indices_ginue(
-    u_indices::Vector{Tuple{Int,Int}},
-    ub_indices::Vector{Tuple{Int,Int}},
+    u_indices::AbstractVector,
+    ub_indices::AbstractVector,
     dim,
 )
     n = length(u_indices)
@@ -1413,7 +1843,7 @@ end
 Low-level integration for Real Ginibre Ensemble.
 Formula: sum_{pi in PairPartitions} prod_{(u, v) in pi} delta(i_u, i_v) * delta(j_u, j_v)
 """
-function integrate_indices_ginoe(indices::Vector{Tuple{Int,Int}}, dim)
+function integrate_indices_ginoe(indices::AbstractVector, dim)
     n = length(indices)
     if isodd(n)
         return 0
@@ -1444,7 +1874,7 @@ end
 Low-level integration for Symplectic Ginibre Ensemble.
 Uses duality with GinOE.
 """
-function integrate_indices_ginse(indices::Vector{Tuple{Int,Int}}, dim)
+function integrate_indices_ginse(indices::AbstractVector, dim)
     n = length(indices)
     if isodd(n)
         return 0
@@ -1457,40 +1887,14 @@ function integrate_indices_ginse(indices::Vector{Tuple{Int,Int}}, dim)
 end
 
 
-# Overloads for symbolic arrays
-"""
-    tr(A)
-
-Compute the trace of a matrix. Works for both standard matrices (via `LinearAlgebra.tr`) 
-and symbolic arrays (by summing diagonal elements).
-"""
-function tr(A::Symbolics.Arr{T,2}) where {T}
-    return sum(A[i, i] for i = 1:size(A, 1))
-end
-
-function tr(A)
-    return LinearAlgebra.tr(A)
-end
-
-
 """
     _poly_degree(p, d)
 
 Helper to get the degree of a polynomial `p` in variable `d`.
 """
 function _poly_degree(p, d)
-    try
-        deg = Symbolics.degree(Symbolics.wrap(p), Symbolics.wrap(d))
-        return Int(Symbolics.unwrap(deg))
-    catch
-        # Fallback: basic manual check
-        p_un = Symbolics.unwrap(p)
-        d_un = Symbolics.unwrap(d)
-        if _symbolic_isequal(p_un, d_un)
-            return 1
-        end
-        return 0
-    end
+    deg = Symbolics.degree(Symbolics.wrap(p), Symbolics.wrap(d))
+    return Int(Symbolics.unwrap(deg))
 end
 
 
@@ -1529,11 +1933,7 @@ function _expand_asymptotic(ex, d, order)
     d_num = Symbolics.wrap(d_un)
 
     # Substitute d -> 1/ε and clear denominators
-    ex_sim = try
-        Symbolics.simplify(Symbolics.wrap(ex_un))
-    catch
-        Symbolics.wrap(ex_un)
-    end
+    ex_sim = Symbolics.simplify(Symbolics.wrap(ex_un))
 
 
     if ex_sim isa Complex
@@ -1553,73 +1953,83 @@ function _expand_asymptotic(ex, d, order)
     ϵ_un = Symbolics.unwrap(ϵ)
 
 
-    p_eps = try
-        Symbolics.simplify(Symbolics.substitute(num, Dict(d_num => 1/ϵ)) * ϵ^n; expand = true)
-    catch
-        Symbolics.substitute(num, Dict(d_num => 1/ϵ)) * ϵ^n
-    end
-    q_eps = try
-        Symbolics.simplify(Symbolics.substitute(den, Dict(d_num => 1/ϵ)) * ϵ^m; expand = true)
-    catch
-        Symbolics.substitute(den, Dict(d_num => 1/ϵ)) * ϵ^m
-    end
+    p_eps = Symbolics.simplify(
+        Symbolics.substitute(num, Dict(d_num => 1/ϵ)) * ϵ^n;
+        expand = true,
+    )
+    q_eps = Symbolics.simplify(
+        Symbolics.substitute(den, Dict(d_num => 1/ϵ)) * ϵ^m;
+        expand = true,
+    )
 
+    f_analytic = Symbolics.simplify(p_eps / q_eps; expand = true)
 
-    f_analytic = try
-        Symbolics.simplify(p_eps / q_eps; expand = true)
-    catch
-        p_eps / q_eps
-    end
-
-    total = Num(0)
+    terms = Num[]
     curr_deriv = f_analytic
     diff = m - n
 
     max_k = order - diff
 
     for k = 0:max_k
-        val = try
-            v = Symbolics.substitute(curr_deriv, Dict(ϵ => 0))
-            vu = Symbolics.unwrap(v)
-            if isnan(vu) || isinf(vu)
-                curr_sim = Symbolics.simplify(curr_deriv; expand = true)
-                Symbolics.substitute(curr_sim, Dict(ϵ => 0))
-            else
-                v
+        v = Symbolics.substitute(curr_deriv, Dict(ϵ => 0))
+        vu = Symbolics.unwrap(v)
+
+        needs_sim = false
+        if vu isa Number && (isnan(vu) || isinf(vu))
+            needs_sim = true
+        elseif !(vu isa Number)
+            # Check if substitute resulted in something with NaN or Inf structurally
+            s_val = string(vu)
+            if occursin("NaN", s_val) || occursin("Inf", s_val) || occursin("1//0", s_val)
+                needs_sim = true
             end
-        catch
-            try
-                curr_sim = Symbolics.simplify(curr_deriv; expand = true)
-                Symbolics.substitute(curr_sim, Dict(ϵ => 0))
-            catch
-                # Last resort: postwalk replacement
-                Symbolics.wrap(
+        end
+
+        if needs_sim
+            curr_sim = Symbolics.simplify(curr_deriv; expand = true)
+            val = Symbolics.substitute(curr_sim, Dict(ϵ => 0))
+
+            # Fallback if simplify didn't resolve epsilon cleanly
+            vars_val = Symbolics.get_variables(val)
+            if any(var -> isequal(var, ϵ_un), vars_val)
+                val = Symbolics.wrap(
                     SymbolicUtils.Postwalk(x -> _symbolic_isequal(x, ϵ_un) ? 0 : x)(
                         Symbolics.unwrap(curr_deriv),
                     ),
                 )
             end
+        else
+            val = v
         end
 
         if !_iszero(val)
             power = k + diff
-            term = (val * (1//factorial(k))) * (1/d_num)^power
-            total += term
+            # Use Rational for factorial to avoid float pollution
+            coeff = (1 // factorial(k))
+            term = Symbolics.simplify(val * coeff) * (1 / d_num)^power
+            push!(terms, term)
         end
 
         if k < max_k
             curr_deriv = Symbolics.derivative(curr_deriv, ϵ)
             # Periodic simplification to manage expression size
             if k % 2 == 0
-                try
-                    curr_deriv = Symbolics.simplify(curr_deriv; expand = true)
-                catch
-                end
+                curr_deriv = Symbolics.simplify(curr_deriv; expand = true)
             end
         end
     end
 
-    return Symbolics.simplify(total)
+    if isempty(terms)
+        return Num(0)
+    end
+
+    # Summing terms manually and avoiding final simplify to keep the expansion structure
+    res = terms[1]
+    for i = 2:length(terms)
+        res = res + terms[i]
+    end
+
+    return Symbolics.expand(res)
 end
 
 """
@@ -1631,8 +2041,8 @@ of U and U_bar are identical.
 Indices are already checked to be diagonal (i == j) in process_term.
 """
 function integrate_indices_diagonal(
-    U_idxs::Vector{Tuple{Int,Int}},
-    U_bar_idxs::Vector{Tuple{Int,Int}},
+    U_idxs::AbstractVector,
+    U_bar_idxs::AbstractVector,
     dim,
 )
     n = length(U_idxs)
@@ -1651,4 +2061,105 @@ function integrate_indices_diagonal(
     else
         return 0
     end
+end
+
+function _standardize_sub(k)
+    uk = Symbolics.unwrap(k)
+    if uk isa LazyTrace
+        if length(uk.cycles) == 1
+            # This is a bit hacky as it depends on tr_val being in scope 
+            # and implemented the way it is.
+            return tr_val(uk.cycles[1])
+        end
+    end
+    return k
+end
+
+function _get_denominators(ex)
+    ex_un = Symbolics.unwrap(ex)
+    dens = Num[]
+    if SymbolicUtils.iscall(ex_un)
+        op = SymbolicUtils.operation(ex_un)
+        args = SymbolicUtils.arguments(ex_un)
+        if op == (/)
+            push!(dens, Symbolics.wrap(args[2]))
+        end
+        for a in args
+            append!(dens, _get_denominators(a))
+        end
+    end
+    return dens
+end
+
+"""
+    evaluate(expr, dict)
+    evaluate(expr, pair)
+
+Shorthand for `Symbolics.substitute`. Useful for substituting symbolic dimensions 
+with numeric values in integration results. Also handles substituting symbolic traces.
+
+This function automatically handles removable singularities in fractions (e.g., \$0/0\$ forms).
+If a denominator evaluates to zero after substitution, the expression is first simplified 
+to attempt resolving the singularity before completing the evaluation.
+"""
+function evaluate(expr, dict)
+    new_dict = if dict isa AbstractDict || dict isa AbstractVector
+        Dict(_standardize_sub(k) => v for (k, v) in dict)
+    else
+        dict
+    end
+
+    # Handle removable singularities in fractions
+    # Check if any denominator is zero after substitution
+    dens = _get_denominators(expr)
+    should_simplify = false
+    for d in dens
+        # d_val can be a Num or a Number
+        d_val = Symbolics.substitute(d, new_dict)
+        if _iszero(d_val)
+            should_simplify = true
+            break
+        end
+    end
+
+    if should_simplify
+        # Simplify first to resolve removable singularities like (x^2-1)/(x-1) -> x+1
+        expr = Symbolics.simplify(expr)
+    end
+
+    res = Symbolics.substitute(expr, new_dict)
+
+    # Try to return a number if the result is a Num wrapping a number
+    if res isa Num
+        val = Symbolics.unwrap(res)
+        if val isa Number
+            return val
+        end
+
+        if hasproperty(val, :val) ? val.val isa Number : false
+            return val.val
+        end
+        if SymbolicUtils.iscall(val)
+            op = SymbolicUtils.operation(val)
+            args = SymbolicUtils.arguments(val)
+            # Safe evaluation for basic arithmetic if all args are numeric
+            if (op === (+) || op === (*) || op === (-) || op === (/)) &&
+               all(x -> x isa Number, args)
+                return op(args...)
+            end
+        end
+
+        # Also try simplifying to see if it becomes a number
+        # Note: simplify can return a Num, so we check again
+        sim_res = Symbolics.simplify(res)
+        val_sim = Symbolics.unwrap(sim_res)
+        if val_sim isa Number
+            return val_sim
+        end
+    end
+    return res
+end
+
+function evaluate(expr, pair::Pair)
+    return evaluate(expr, Dict(pair))
 end

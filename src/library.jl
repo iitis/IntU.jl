@@ -1,4 +1,3 @@
-# src/library.jl
 
 """
     check_library(expr, measure)
@@ -37,20 +36,37 @@ function check_haar_library(expr, measure)
         if length(factors) == 4
             # Normalize cycle
             # We want to find a cyclic shift that is [U, A, U', B]
-            # where factors[1] == measure.U and factors[3] == measure.U'
             for i = 1:4
                 shifted = circshift(factors, -i+1)
-                if shifted[1].special_type == :U &&
-                   shifted[1].name ==
-                   (measure.U isa SymbolicMatrix ? measure.U.name : :nothing) &&
-                   shifted[3].special_type == :U_dag &&
-                   shifted[3].name ==
-                   (measure.U isa SymbolicMatrix ? measure.U.name : :nothing)
+                U_cand = shifted[1]
+                U_dag_cand = shifted[3]
 
-                    A = shifted[2]
-                    B = shifted[4]
-                    return prefactor * (tr_val([A]) * tr_val([B])) / measure.dim
+                # Verify factor roles and dimensions match measure
+                if !(U_cand isa SymbolicMatrix) || U_cand.special_type != :U
+                    continue
                 end
+
+                if !isequal(U_cand.dim, measure.dim)
+                    continue
+                end
+
+                # Ensure U_dag_cand is the adjoint of U_cand
+                if !(U_dag_cand isa SymbolicMatrix) ||
+                   U_dag_cand.special_type != :U ||
+                   U_dag_cand.name != U_cand.name ||
+                   U_dag_cand.is_adj == U_cand.is_adj
+                    continue
+                end
+
+                A = shifted[2]
+                B = shifted[4]
+
+                if (A isa SymbolicMatrix && A.name == U_cand.name) ||
+                   (B isa SymbolicMatrix && B.name == U_cand.name)
+                    continue
+                end
+
+                return prefactor * (tr_val([A]) * tr_val([B])) / measure.dim
             end
         end
     end
@@ -71,10 +87,9 @@ function check_gaussian_library(expr, measure, type)
     factors = expr.cycles[1]
     prefactor = expr.prefactor
 
-    H_name = measure.H isa SymbolicMatrix ? measure.H.name : :H
+    expected_tag = type
 
-    # Check if all factors are H
-    if !all(f -> f.name == H_name, factors)
+    if !all(f -> (f isa SymbolicMatrix) && f.special_type == expected_tag, factors)
         return nothing
     end
 
@@ -84,17 +99,17 @@ function check_gaussian_library(expr, measure, type)
     val = nothing
     if type == :GUE
         if k == 2
-            return d^2
+            val = d^2
         elseif k == 4
-            return 2d^3 + d
+            val = 2d^3 + d
         elseif k == 6
-            return 5d^4 + 10d^2
+            val = 5d^4 + 10d^2
         end
     elseif type == :GOE
         if k == 2
-            return d^2 + d
+            val = d^2 + d
         elseif k == 4
-            return 2d^3 + 5d^2 + 5d
+            val = 2d^3 + 5d^2 + 5d
         end
     elseif type == :GSE
         if k == 2

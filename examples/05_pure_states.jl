@@ -4,37 +4,45 @@ using LinearAlgebra
 
 # Example: Average Purity of a Haar-random pure state
 # For a pure state psi, rho = psi * psi'
-# Purity Tr(rho^2) = Tr((psi * psi')^2) = (psi' * psi)^2 = 1 (always)
-# But let's look at a subsystem purity.
+# We can represent it as the first column of a Haar-random unitary U.
 
 d1 = 2
 d2 = 2
 d = d1 * d2
-@variables psi_re[1:d] psi_im[1:d]
-psi = [(psi_re[i] + im*psi_im[i]) for i = 1:d]
-measure = dPsi(psi, d)
+U = SymbolicMatrix(:U, :U, d)
 
-# Average Purity of subsystem 1: E[Tr(rho1^2)]
-psi_mat = Array{Any}(undef, d1, d2)
-let idx = 1
-    for i = 1:d1
-        for j = 1:d2
-            psi_mat[i, j] = psi[idx]
-            idx += 1
-        end
-    end
-end
+# Subsystem 1 density matrix from the first column of U
+# rho1_ij = sum_k U_{ik} * conj(U_{jk}) where indices are mapped appropriately
+# For simplicity in this symbolic example, we use the entry-wise definition:
+println("Calculating average purity for a bipartite state of dimension d1*d2...")
 
-rho1 = [sum(psi_mat[i, k] * conj(psi_mat[j, k]) for k = 1:d2) for i = 1:d1, j = 1:d1]
-purity_expr = sum(rho1[i, j] * conj(rho1[i, j]) for i = 1:d1, j = 1:d1)
+# Pure state |psi> = U[:, 1]. We map the single index i to (a, b)
+# psi_{a,b} = U[(a-1)*d2 + b, 1]
+rho1(a, c) = sum(U[(a-1)*d2+k, 1] * conj(U[(c-1)*d2+k, 1]) for k = 1:d2)
 
-println("Calculating average purity for d1=$d1, d2=$d2...")
-avg_purity = integrate(purity_expr, measure)
+# Subsystem Purity Tr(rho1^2)
+purity_expr = sum(rho1(a, c) * rho1(c, a) for a = 1:d1, c = 1:d1)
+
+println("Integrating purity_expr...")
+avg_purity = integrate(purity_expr, dU(d))
+println("Integration done.")
+
 println("Average Purity: ", avg_purity)
-println("Expected (Analytical): ", (d1 + d2) / (d1 * d2 + 1))
+println("Expected (Analytical): (d1 + d2) / (d1 * d2 + 1)")
 
 # Average Fidelity between a random state and a fixed state |0>
-fidelity_expr = conj(psi[1]) * psi[1]
-avg_fidelity = integrate(fidelity_expr, measure)
-println("Average Fidelity with |0>: ", avg_fidelity)
-println("Expected (1/d): ", 1//d)
+# <psi|0> = U[1, 1]
+fidelity_expr = abs(U[1, 1])^2
+println("Integrating fidelity_expr...")
+avg_fidelity = integrate(fidelity_expr, dU(d))
+println("Integration done.")
+println("\nAverage Fidelity with |0>: ", avg_fidelity)
+println("Expected (1/d): 1/d")
+
+# Convenience dPsi shorthand:
+println("\ndPsi(d) can also be used for purely vector-based integration.")
+println("Integrating with dPsi...")
+psi = SymbolicMatrix(:psi, :psi, d)
+res_psi = integrate(abs(psi[1, 1])^2, dPsi(d))
+println("Integration done.")
+println("Result using dPsi(d): ", res_psi)

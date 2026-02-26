@@ -1,77 +1,129 @@
 # Stiefel Manifold integration
 
-"""
-    dStiefel(V, dim, k)
+@doc raw"""
+    dStiefel(dim, k)
+    dStiefel(V::SymbolicMatrix, k)
 
-Defines the measure for integration over the Stiefel manifold V_k(C^d).
-This manifold represents the set of d x k matrices with orthonormal columns.
+Defines the measure for integration over the Stiefel manifold $V_k(\mathbb{C}^d)$.
+This manifold represents the set of $d \times k$ matrices with orthonormal columns.
 
-The integration is performed by mapping V to the first k columns of a
-Haar-random unitary matrix U(d).
+The integration is performed by mapping $V$ to the first $k$ columns of a Haar-random unitary matrix $U(d)$.
+If called with `dim`, it integrates entries tagged with `:U` via `SymbolicMatrix(:V, :U)`.
 
 Reference:
 - Edelman, A., Arias, T. A., & Smith, S. T. (1998). The geometry of algorithms with orthogonality constraints.
 """
-dStiefel(V, dim, k) = StiefelMeasure(V, dim, k)
+dStiefel(dim, k) = StiefelMeasure(dim, k)
 
 
 """
-    StiefelMeasure(V, dim, k)
+    StiefelMeasure(dim, k)
 
 Internal type representing the measure on the Stiefel manifold. 
-Users should use `dStiefel` constructor.
+Users should use `dStiefel` constructors.
 """
-struct StiefelMeasure{M,D,K}
-    V::M
+struct StiefelMeasure{D,K,M} <: AbstractMeasure
     dim::D
     k::K
+    matcher::M
 end
-
-"""
-    integrate(expr, measure::StiefelMeasure)
-"""
-function integrate(expr::AbstractArray, measure::StiefelMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
+StiefelMeasure(dim, k) = StiefelMeasure(dim, k, nothing)
 
 function IntU.measure_info(measure::StiefelMeasure)
-    V_input = measure.V
-    dim = measure.dim
-    k_dim = measure.k
-
     subs_dict = Dict{Any,Any}()
-    V_atomic_lookup = Dict{Any,Tuple}()
-    V_bar_lookup = Dict{Any,Tuple}()
+    # Default to matching :U, as per docs and examples
+    matcher = measure.matcher === nothing ? MetadataMatcher(:U) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
+    end
+    # The integration rule uses :U logic (mapping V -> U P, where P is projection)
+    return (subs_dict, matcher, dim, :U)
+end
 
-    # V is a d x k matrix
-    if V_input isa AbstractArray
-        rows = size(V_input, 1)
-        cols = size(V_input, 2)
-
-        for i = 1:rows
-            for j = 1:cols
-                v_ij_num = _safe_Num(V_input[i, j])
-                v_ij_un = Symbolics.unwrap(v_ij_num)
-
-                if k_dim isa Integer && j > k_dim
-                    error("Matrix column index $j exceeds Stiefel dimension k=$k_dim")
-                end
-
-                v_atomic = Symbolics.variable(:V_atomic, i, j)
-                v_bar_atomic = Symbolics.variable(:V_bar_atomic, i, j)
-
-                V_atomic_lookup[Symbolics.unwrap(v_atomic)] = (i, j)
-                V_bar_lookup[Symbolics.unwrap(v_bar_atomic)] = (i, j)
-
-                subs_dict[v_ij_un] = v_atomic
-                subs_dict[Symbolics.unwrap(conj(v_ij_num))] = v_bar_atomic
-                subs_dict[Symbolics.unwrap(Base.conj(v_ij_num))] = v_bar_atomic
-            end
-        end
+function integrate(P::SymbolicMatrixProduct, measure::StiefelMeasure)
+    if isempty(P.factors)
+        return Num(1)
     end
 
-    matcher = LookupMatcher(V_atomic_lookup, V_bar_lookup)
-    return (subs_dict, matcher, dim, :U)
+    dim_d = measure.dim
+    dim_k = measure.k
+
+    rows_sym = size(P.factors[1], 1)
+    cols_sym = size(P.factors[end], 2)
+
+    # Helper to resolve dimension symbols to measure dimensions
+    function resolve_dim(d_sym)
+        d_un = Symbolics.unwrap(d_sym)
+        if d_un isa Integer && d_un != typemax(Int)
+            return d_un
+        end
+        return dim_d # preferring measure dim d for expansion if matrix dim is unknown/symbolic
+    end
+
+
+    if dim_d isa Integer && dim_k isa Integer
+
+        # We assume standard SymbolicMatrix/Adjoint wrappers
+        function get_size(F)
+            # Unwrap Adjoint/Transpose
+            wrapper_adj = false
+            if F isa Adjoint || F isa Transpose
+                wrapper_adj = true
+                F = parent(F)
+            end
+
+            if F isa SymbolicMatrix
+
+                # Combine wrapper adjacency with internal adjacency
+                effective_adj = F.is_adj
+                if wrapper_adj
+                    effective_adj = !effective_adj
+                end
+
+                # We treat it as d x k.
+                if effective_adj
+                    return (dim_k, dim_d)
+                else
+                    return (dim_d, dim_k)
+                end
+            end
+
+            # Fallback for known matrices
+            sz = size(F)
+            if wrapper_adj
+                return (sz[2], sz[1])
+            end
+            return sz
+        end
+
+        # 1. Expand all factors into dense Matrix{Any} of symbols
+        numeric_factors = Vector{Matrix{Any}}(undef, length(P.factors))
+
+        for (idx, f) in enumerate(P.factors)
+            rows, cols = get_size(f)
+            mat = Matrix{Any}(undef, rows, cols)
+            for i = 1:rows
+                for j = 1:cols
+                    mat[i, j] = f[i, j]
+                end
+            end
+            numeric_factors[idx] = mat
+        end
+
+        # 2. Multiply them using standard linear algebra
+        # This expands the sums symbolically
+        total_prod = numeric_factors[1]
+        for idx = 2:length(numeric_factors)
+            total_prod = total_prod * numeric_factors[idx]
+        end
+
+        # 3. Integrate the result element-wise
+        return map(x -> integrate(x, measure), total_prod)
+    end
+
+    # Fallback to standard symbolic integration if dimensions are not concrete integers
+    throw(ArgumentError("Direct integration of SymbolicMatrixProduct for Stiefel requires concrete dimensions. Try integrating individual elements instead."))
 end
 
 """
@@ -87,7 +139,7 @@ function asymptotic(expr, measure::StiefelMeasure, order = 1)
     end
 
     d_asymp = Symbolics.variable(:d_asymp)
-    m_sym = dStiefel(measure.V, d_asymp, measure.k)
+    m_sym = dStiefel(d_asymp, measure.k)
     exact_res = integrate(expr, m_sym)
     return _expand_asymptotic(exact_res, d_asymp, order)
 end

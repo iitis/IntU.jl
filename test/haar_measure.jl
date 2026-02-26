@@ -3,12 +3,11 @@ using Test
 using Symbolics
 using LinearAlgebra
 
-@testset verbose=true "Haar Measure Integration" begin
-    # Define variables
+@testset "Haar Measure Integration" begin
     d_val = 3
-    # Use literal dimensions for macro
-    @variables U[1:3, 1:3]::Complex
-    measure = dU(U, d_val)
+    @variables d
+    U = SymbolicMatrix(:U, :U, d_val)
+    measure = dU(d_val)
 
     @testset verbose=true "Example 1: |u11|^2" begin
         expr = abs(U[1, 1])^2
@@ -49,25 +48,23 @@ using LinearAlgebra
     end
 
     @testset "Matrix Integration Checks" begin
-        # Example 4: Matrix integration U * U' -> I
-        # We collect to ensure we are working with a Matrix{Num} and not a lazy Symbolic Array wrapper
-        # which might cause dispatch or iteration issues in some versions of Symbolics.
-        expr_mat = collect(U * U')
-        res_matrix = integrate(expr_mat, measure)
-        # res_matrix should be a 3x3 Matrix of numbers
+        res_matrix = integrate(U * U', measure)
         @test res_matrix isa AbstractMatrix
-        @test size(res_matrix) == (3, 3)
+        @test size(res_matrix) == (d_val, d_val)
 
         # Expected result is Identity
-        I_mat = Matrix{Complex{Rational{Int}}}(I, 3, 3)
-        # Simplify elementwise
-        res_simp = map(x -> to_numeric(real(x)) + im*to_numeric(imag(x)), res_matrix)
-        @test res_simp ≈ I_mat
+        I_mat = Matrix(I, d_val, d_val)
 
-        # Example 5: U' * U -> I
-        expr_mat_2 = collect(U' * U)
-        res_matrix_2 = integrate(expr_mat_2, measure)
-        res_simp_2 = map(x -> to_numeric(real(x)) + im*to_numeric(imag(x)), res_matrix_2)
-        @test res_simp_2 ≈ I_mat
+        # Convert to numeric float for ≈ check
+        res_num = zeros(Float64, d_val, d_val)
+        for i = 1:d_val, j = 1:d_val
+            val = to_numeric(real(res_matrix[i, j]))
+            res_num[i, j] = Float64(val)
+        end
+        @test res_num ≈ I_mat
+
+        res_matrix_2 = integrate(U' * U, measure)
+        res_num_2 = map(x -> Float64(to_numeric(real(x))), res_matrix_2)
+        @test res_num_2 ≈ I_mat
     end
 end

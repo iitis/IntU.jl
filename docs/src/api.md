@@ -4,18 +4,26 @@
 
 ```@docs
 integrate
+@integrate
+evaluate
 asymptotic
 hciz
 vandermonde_det
 ```
 
+> [!NOTE]
+> `integrate(expr, measure)` is the universal entry point for all calculations in IntU.jl. It automatically handles symbolic dimensions, matrix-valued expressions, and library lookups.
+
 ## Measures
+
+```@docs
+IntU.AbstractMeasure
+IntU.measure_info
+```
 
 ### Unitary Group
 ```@docs
 dU
-symbolic_dimension_unitary
-@symbolic_dimension
 ```
 
 ### Orthogonal & Symplectic
@@ -54,7 +62,7 @@ IntU.DiagonalUnitaryMeasure
 ## Symbolic Helpers
 
 ```@docs
-SymbolicMatrix
+IntU.SymbolicMatrix
 tr
 ```
 
@@ -72,38 +80,44 @@ partial_trace
 
 These functions are part of the internal machinery but documented for development reference.
 
+### Integration Engine & Helpers
+
 ```@docs
 integrate_indices
-tr_lazy
-LazyTrace
-LazySum
+IntU.integrate_indices_orthogonal
+IntU.integrate_indices_symplectic
+IntU.integrate_indices_permutation
+IntU.integrate_indices_diagonal
+IntU.integrate_indices_coe
 IntU.integrate_indices_gue
 IntU.integrate_indices_goe
 IntU.integrate_indices_ginue
 IntU.integrate_indices_ginoe
 IntU.integrate_indices_ginse
-IntU.integrate_indices_orthogonal
-IntU.integrate_indices_symplectic
-IntU.integrate_indices_coe
-IntU.integrate_indices_cse
-IntU.integrate_indices_permutation
-IntU.integrate_indices_diagonal
-IntU.fallback_integrate
+IntU.tr_lazy
+LazyTrace
+LazySum
 IntU.check_library
 IntU.tr_val
 IntU._expand_asymptotic
 IntU._poly_degree
+IntU._ensure_symbolic_dim
+IntU._try_numeric
+IntU._try_extract_int
+IntU.robust_substitute
+IntU.get_full_cycle_type
+IntU.get_weingarten_reduced_data
 ```
 
 ### Matcher and Logic
 
 ```@docs
 AbstractIndexMatcher
-LookupMatcher
-SymbolicUnitary
+MetadataMatcher
 _integrate_core
 process_term
 weingarten
+IntU.ParityUnionFind
 ```
 
 ### Weingarten & Combinatorics
@@ -115,13 +129,10 @@ IntU.get_pair_partitions
 IntU.get_matching_pair_partitions_filtered
 IntU.canonicalize_pair_partition
 IntU.conjugate_partition
-IntU.count_loops
 IntU.murnaghan_nakayama
 IntU.character_at_id
 IntU.irrep_dimension
-IntU.get_weingarten_orthogonal_data
 IntU.compute_symplectic_contraction
 IntU.weingarten_orthogonal_val_canonical
 IntU.INTEGRATION_RULES
-IntU.measure_info
 ```

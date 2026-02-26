@@ -26,22 +26,29 @@ quantum states $|\psi\rangle$.
 
 ## Usage
 
-To perform integration over the Stiefel manifold, use the `dStiefel(V, d, k)` measure.
+To perform integration over the Stiefel manifold, use the `dStiefel(d, k)` measure.
 
-```@example stiefel
+1. **Basic Integration using `@integrate`**
+
+The `@integrate` macro automatically identifies `V` as the random Stiefel matrix.
+
+```julia
+using IntU, Symbolics
+@variables d
+# Integration over V_2(C^d)
+@integrate abs(V[1, 1])^2 dStiefel(d, 2)
+# Output: 1/d
+```
+
+2. **Manual Integration**
+
+```julia
 using IntU, Symbolics
 
 @variables d
-k = 2
-
-# Define a symbolic matrix V
-# Note: For full symbolic integration, we can define just the elements needed
-V = [Symbolics.variable(Symbol("V_\$(i)_\$(j)"), T=Complex{Num}) for i=1:k, j=1:k] 
-
-measure = dStiefel(V, d, k)
-
-# Compute moments
-integrate(abs(V[1,1])^2, measure)
+V = SymbolicMatrix(:V, :U)
+# Integration over V_2(C^d)
+integrate(abs(V[1, 1])^2, dStiefel(d, 2))
 ```
 
 The system automatically handles the mapping to the unitary group and applies
@@ -52,7 +59,11 @@ Weingarten calculus.
 Large-$d$ expansions are fully supported:
 
 ```@example stiefel
-expr = abs(V[1,1])^2 * abs(V[1,2])^2
+using IntU, Symbolics
+@variables d
+V = SymbolicMatrix(:V, :U)
+measure = dStiefel(d, 2)
+expr = abs(V[1, 1])^2 * abs(V[1, 2])^2
 asymptotic(expr, measure, 2)
 ```
 

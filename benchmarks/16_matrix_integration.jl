@@ -11,8 +11,10 @@ function benchmark_matrix_integration(sizes)
         println("\nBenchmarking Matrix Size N=$N")
         # Define N x N symbolic matrix
         # Note: integration dimension is symbolic 'd', but matrix size is fixed N
-        @variables U[1:N, 1:N]::Complex
-        measure = dU(U, d)
+        # Define N x N symbolic matrix with metadata tag :U
+        U_sym = SymbolicMatrix(:U, :U, d)
+        U = U_sym[1:N, 1:N]
+        measure = dU(d)
 
         # We need to collect to ensure we pass a Matrix{Num} to integrate
         expr = collect(U * U')

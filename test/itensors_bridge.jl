@@ -1,4 +1,3 @@
-# test/itensors_bridge.jl
 
 using Test
 using IntU
@@ -70,7 +69,7 @@ end
 
     mock_mode[] = :Unitary
 
-    res = integrate_graphical(constants, unitaries, 2, :U) # dim=2
+    res = integrate_graphical(constants, unitaries, dU(2)) # dim=2
 
     @test res == "1//2 * Tr(A)Tr(B)"
 
@@ -86,7 +85,7 @@ end
     # Orthogonal integration for n=2
     # weingarten_orthogonal_val sum
     # This is more complex to predict exactly in mock, but we check if it runs.
-    res_o = integrate_graphical([], [O1, O2], 2, :O)
+    res_o = integrate_graphical([], [O1, O2], dO(2))
     @test contains(res_o, "Tr(O1 O2)")
 
     # 3. Test Symplectic
@@ -96,6 +95,6 @@ end
 
     mock_mode[] = :Symplectic
 
-    res_sp = integrate_graphical([], [O1, O2], 2, :Sp)
+    res_sp = integrate_graphical([], [O1, O2], dSp(2))
     @test contains(res_sp, "Tr(O1 O2)")
 end

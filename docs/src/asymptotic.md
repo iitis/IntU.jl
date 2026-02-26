@@ -20,10 +20,15 @@ Evaluating the fourth moment of a matrix entry $|U_{11}|^4$:
 
 ```julia
 @variables d
-@symbolic_dimension U[1:d, 1:d]
-res = asymptotic(abs(U[1,1])^4, dU(U), 4)
+U = SymbolicMatrix(:U, :U, d)
+res = asymptotic(abs(U[1,1])^4, dU(d), 4)
 # Output: 2/d^2 - 2/d^3 + 2/d^4
 ```
+
+> [!TIP]
+> When substituting numeric values into asymptotic results using `evaluate`, `IntU.jl` 
+> automatically handles removable singularities (e.g., $0/0$ forms) by simplifying 
+> the expression if a denominator evaluates to zero.
 
 This approximation is useful for checking convergence properties or
 leading-order behavior in high-dimensional quantum systems.

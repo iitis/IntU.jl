@@ -1,129 +1,58 @@
 """
-    dCUE(U, dim)
+    dCUE(dim)
 
 Defines the Circular Unitary Ensemble measure for U(d).
 This is mathematically equivalent to the Haar measure on U(d).
 """
-dCUE(U, dim) = dU(U, dim)
+dCUE(dim) = dU(dim)
 
-struct COEMeasure{M,D}
-    S::M
+struct COEMeasure{D,M} <: AbstractMeasure
     dim::D
+    matcher::M
 end
+COEMeasure(dim) = COEMeasure(dim, nothing)
 
-struct CSEMeasure{M,D}
-    S::M
+struct CSEMeasure{D,M} <: AbstractMeasure
     dim::D
+    matcher::M
 end
+CSEMeasure(dim) = CSEMeasure(dim, nothing)
 
 @doc raw"""
-    dCOE(S, dim)
+    dCOE(dim)
 
 Defines the Circular Orthogonal Ensemble (COE) measure on U(N).
-Matrices in COE are symmetric unitary matrices.
-They can be modeled as
-```math
-S = U U^T
-```
-where \$U \sim \text{Haar}(U(N))\$.
+Integration engine identifies variables via metadata tag `:COE`.
 """
-dCOE(S, dim) = COEMeasure(S, dim)
+dCOE(dim) = COEMeasure(dim)
 
 @doc raw"""
-    dCSE(S, dim)
+    dCSE(dim)
 
 Defines the Circular Symplectic Ensemble (CSE) measure on U(2N).
-Matrices in CSE are self-dual unitary matrices:
-```math
-S = S^R = J S^T J^T
-```
-They can be modeled as
-```math
-S = U U^R
-```
-where \$U \sim \text{Haar}(U(2N))\$.
-Note: The dimension `dim` corresponds to the size of the matrix, so it must be 2N.
+Integration engine identifies variables via metadata tag `:CSE`.
 """
-dCSE(S, dim) = CSEMeasure(S, dim)
+dCSE(dim) = CSEMeasure(dim)
 
-
-"""
-    integrate(expr, measure::COEMeasure)
-"""
-function integrate(expr::AbstractArray, measure::COEMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
-
-function integrate(expr::AbstractArray, measure::CSEMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
 
 function IntU.measure_info(measure::COEMeasure)
-    S_sym = measure.S
-    dim = measure.dim
-
     subs_dict = Dict{Any,Any}()
-    S_atomic_lookup = Dict{Any,Tuple}()
-
-    if S_sym isa AbstractArray
-        for i = 1:size(S_sym, 1)
-            for j = 1:size(S_sym, 2)
-                s_ij_num = _safe_Num(S_sym[i, j])
-                s_ij_un = Symbolics.unwrap(s_ij_num)
-                s_atomic = Symbolics.variable(:S_atomic, i, j)
-                s_bar_atomic = Symbolics.variable(:S_bar_atomic, i, j)
-
-                S_atomic_lookup[Symbolics.unwrap(s_atomic)] = (i, j)
-                S_atomic_lookup[Symbolics.unwrap(s_bar_atomic)] = (i, j)
-
-                subs_dict[s_ij_un] = s_atomic
-                subs_dict[Symbolics.unwrap(conj(s_ij_num))] = s_bar_atomic
-                subs_dict[Symbolics.unwrap(Base.conj(s_ij_num))] = s_bar_atomic
-            end
-        end
+    matcher = measure.matcher === nothing ? MetadataMatcher(:COE) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
     end
-
-    matcher = LookupMatcher(
-        Dict(k => v for (k, v) in S_atomic_lookup if occursin("S_atomic", string(k))),
-        Dict(k => v for (k, v) in S_atomic_lookup if occursin("S_bar_atomic", string(k))),
-    )
-
     return (subs_dict, matcher, dim, :COE)
 end
 
 function IntU.measure_info(measure::CSEMeasure)
-    S_sym = measure.S
-    dim = measure.dim
-
     subs_dict = Dict{Any,Any}()
-    S_atomic_lookup = Dict{Any,Tuple}()
-
-    if S_sym isa AbstractArray
-        for i = 1:size(S_sym, 1)
-            for j = 1:size(S_sym, 2)
-                s_ij_num = _safe_Num(S_sym[i, j])
-                s_ij_un = Symbolics.unwrap(s_ij_num)
-
-                s_atomic = Symbolics.variable(:S_atomic, i, j)
-                s_bar_atomic = Symbolics.variable(:S_bar_atomic, i, j)
-
-                S_atomic_lookup[Symbolics.unwrap(s_atomic)] = (i, j)
-                S_atomic_lookup[Symbolics.unwrap(s_bar_atomic)] = (i, j)
-
-                subs_dict[s_ij_un] = s_atomic
-                subs_dict[Symbolics.unwrap(conj(s_ij_num))] = s_bar_atomic
-                subs_dict[Symbolics.unwrap(Base.conj(s_ij_num))] = s_bar_atomic
-            end
-        end
+    matcher = measure.matcher === nothing ? MetadataMatcher(:CSE) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
     end
-
-    matcher = LookupMatcher(
-        Dict(k => v for (k, v) in S_atomic_lookup if occursin("S_atomic", string(k))),
-        Dict(k => v for (k, v) in S_atomic_lookup if occursin("S_bar_atomic", string(k))),
-    )
-
-    phys_dim = S_sym isa AbstractArray ? size(S_sym, 1) : 0
-    return (subs_dict, matcher, dim, (:CSE, phys_dim))
+    return (subs_dict, matcher, dim, :CSE)
 end
 
 
@@ -162,8 +91,8 @@ of connected components in a bipartite graph:
 The loop count is computed via union-find on these ``2m`` variable nodes.
 """
 function integrate_indices_coe(
-    indices::Vector{Tuple{Int,Int}},
-    U_bar_indices::Vector{Tuple{Int,Int}},
+    indices::AbstractVector,
+    U_bar_indices::AbstractVector,
     dim,
 )
 
@@ -177,14 +106,14 @@ function integrate_indices_coe(
     m = n_s
     n = 2 * m
 
-    U_rows = Vector{Int}(undef, n)
+    U_rows = Vector{Any}(undef, n)
     for k = 1:m
         i, j = indices[k]
         U_rows[2k-1] = i
         U_rows[2k] = j
     end
 
-    U_bar_rows = Vector{Int}(undef, n)
+    U_bar_rows = Vector{Any}(undef, n)
     for k = 1:m
         p, q = U_bar_indices[k]
         U_bar_rows[2k-1] = p
@@ -196,11 +125,7 @@ function integrate_indices_coe(
         return 0
     end
 
-    n_fact = try
-        factorial(n)
-    catch
-        BigInt(1)
-    end
+    n_fact = factorial(BigInt(n))
 
     is_full_group = length(valid_sigmas) == n_fact
 
@@ -284,39 +209,52 @@ function integrate_indices_coe(
 end
 
 
-@doc raw"""
-    integrate_indices_cse(indices, U_bar_indices, dim, phys_dim)
-
-Integration of CSE terms by reducing to Haar integration with symplectic structure.
-
-## Index Mapping
-
-``S = U U^R`` where ``U^R = J U^T J^T`` is the symplectic reverse.
-Using the symplectic form ``J = [0\; I; -I\; 0]`` with ``\dim = 2N``:
-```math
-(U^R)_{aj} = \text{sign}(a)\,\text{sign}(j)\, U_{\text{pair}(j),\,\text{pair}(a)}
-```
-where ``\text{pair}(k)`` maps ``k \leftrightarrow k \pm N`` and
-``\text{sign}(k) = J_{k,\text{pair}(k)}``.
-
-Each ``S_{ij}`` produces two U-type indices with coefficients ``\text{sign}(j)\,\text{sign}(a_k)``,
-and each ``\bar{S}_{pq}`` produces two ``\bar{U}``-type indices similarly.
-
-## Signed Loop Count
-
-Like COE, dummy column summation yields a factor per connected component.
-However, the symplectic signs introduce parity constraints:
-- Each variable ``a_k`` or ``b_k`` contributes ``\text{sign}(\cdot)`` to the product.
-- ``\text{sign}(\text{pair}(x)) = -\text{sign}(x)``, so traversing a ``\text{pair}``
-  operation flips the sign.
-- A component with even total sign-flips contributes ``2N = d``;
-  odd total sign-flips gives ``\sum \text{sign}(x) = 0``, killing the term.
-
-The parity is tracked via union-find on these ``2m`` variable nodes.
 """
+    ParityUnionFind
+
+Union-find data structure with parity tracking for CSE integration.
+Tracks whether the path from a node to its root has odd or even parity.
+"""
+mutable struct ParityUnionFind
+    parent::Vector{Int}
+    parity::Vector{Int}
+    function ParityUnionFind(n::Int)
+        new(collect(1:n), zeros(Int, n))
+    end
+end
+
+function find!(uf::ParityUnionFind, idx::Int)
+    if uf.parent[idx] == idx
+        return idx, 0
+    end
+    root, root_parity = find!(uf, uf.parent[idx])
+    uf.parent[idx] = root
+    uf.parity[idx] = (uf.parity[idx] + root_parity) % 2
+    return root, uf.parity[idx]
+end
+
+function unite!(uf::ParityUnionFind, i::Int, j::Int, p::Int)
+    root_i, par_i = find!(uf, i)
+    root_j, par_j = find!(uf, j)
+    if root_i != root_j
+        uf.parent[root_i] = root_j
+        uf.parity[root_i] = (p - par_i - par_j) % 2
+        if uf.parity[root_i] < 0
+            uf.parity[root_i] += 2
+        end
+        return true
+    else
+        current_rel = (par_i - par_j) % 2
+        if current_rel < 0
+            current_rel += 2
+        end
+        return current_rel == p
+    end
+end
+
 function integrate_indices_cse(
-    indices::Vector{Tuple{Int,Int}},
-    U_bar_indices::Vector{Tuple{Int,Int}},
+    indices::AbstractVector,
+    U_bar_indices::AbstractVector,
     dim,
     phys_dim,
 )
@@ -329,13 +267,13 @@ function integrate_indices_cse(
 
     m = n_s
     n = 2 * m
-    half_dim = div(phys_dim, 2)
+    half_dim = (phys_dim isa Integer) ? div(phys_dim, 2) : phys_dim / 2
 
-    U_rows = Vector{Int}(undef, n)
+    U_rows = Vector{Any}(undef, n)
     fixed_sign_coeff = 1
 
-    get_sign(idx) = (idx <= half_dim ? 1 : -1)
-    get_pair(idx) = (idx <= half_dim ? idx + half_dim : idx - half_dim)
+    get_sign(idx) = isodd(idx) ? 1 : -1
+    get_pair(idx) = isodd(idx) ? idx + 1 : idx - 1
 
     for k = 1:m
         i, j = indices[k]
@@ -345,7 +283,7 @@ function integrate_indices_cse(
         fixed_sign_coeff *= get_sign(j)
     end
 
-    U_bar_rows = Vector{Int}(undef, n)
+    U_bar_rows = Vector{Any}(undef, n)
     for k = 1:m
         p, q = U_bar_indices[k]
         U_bar_rows[2k-1] = p
@@ -367,37 +305,7 @@ function integrate_indices_cse(
 
     for tau in permutations_n
         possible = true
-        uf_parent = collect(1:(2*m))
-        uf_parity = zeros(Int, 2*m)
-
-        function find_local(idx)
-            if uf_parent[idx] == idx
-                return idx, 0
-            end
-            root, root_parity = find_local(uf_parent[idx])
-            uf_parent[idx] = root
-            uf_parity[idx] = (uf_parity[idx] + root_parity) % 2
-            return root, uf_parity[idx]
-        end
-
-        function unite_local(i, j, p)
-            root_i, par_i = find_local(i)
-            root_j, par_j = find_local(j)
-            if root_i != root_j
-                uf_parent[root_i] = root_j
-                uf_parity[root_i] = (p - par_i - par_j) % 2
-                if uf_parity[root_i] < 0
-                    uf_parity[root_i] += 2
-                end
-                return true
-            else
-                current_rel = (par_i - par_j) % 2
-                if current_rel < 0
-                    current_rel += 2
-                end
-                return current_rel == p
-            end
-        end
+        uf = ParityUnionFind(2 * m)
 
         for r = 1:n
             var_idx_L = div(r - 1, 2) + 1
@@ -407,7 +315,7 @@ function integrate_indices_cse(
             is_pair_R = ((tr - 1) % 2 == 1)
             parity = (is_pair_L != is_pair_R ? 1 : 0)
 
-            if !unite_local(var_idx_L, var_idx_R, Int(parity) % 2)
+            if !unite!(uf, var_idx_L, var_idx_R, Int(parity) % 2)
                 possible = false
                 break
             end
@@ -421,10 +329,10 @@ function integrate_indices_cse(
         processed = zeros(Bool, 2*m)
         for i = 1:(2*m)
             if !processed[i]
-                root, _ = find_local(i)
+                root, _ = find!(uf, i)
                 members = Int[]
                 for j = i:(2*m)
-                    rj, _ = find_local(j)
+                    rj, _ = find!(uf, j)
                     if rj == root
                         push!(members, j)
                         processed[j] = true
@@ -432,7 +340,7 @@ function integrate_indices_cse(
                 end
 
                 K = length(members)
-                dist_sum = sum(find_local(j)[2] for j in members)
+                dist_sum = sum(find!(uf, j)[2] for j in members)
                 prefactor = (-1)^dist_sum
 
                 if K % 2 == 0

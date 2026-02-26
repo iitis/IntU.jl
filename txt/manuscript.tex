@@ -361,12 +361,10 @@ The package supports a wide range of integration measures, grouped as follows:
 \begin{itemize}
     \item \textbf{Compact groups}: Standard Haar measures on the unitary $U(d)$,
     orthogonal $O(d)$, and symplectic $Sp(d)$ groups. These are defined via
-    \texttt{dU(U, d)}, \texttt{dO(O, d)}, and \texttt{dSp(S, d)}, where the
-    first argument is a symbolic matrix variable (constructed via
-    \texttt{Symbolics.jl} or the \texttt{@symbolic\_dimension} macro) and the
-    second is the dimension, which can itself be a symbolic variable.
+    \texttt{dU(d)}, \texttt{dO(d)}, and \texttt{dSp(d)}, where the
+    argument is the dimension $d$, which can be a symbolic variable or a concrete integer.
     \item \textbf{Special unitary group}: The Haar measure on $SU(d)$, accessed
-    via \texttt{dSU(U, d)}. This measure enforces the $U(d)$ integration logic
+    via \texttt{dSU(d)}. This measure enforces the $U(d)$ integration logic
     for balanced moments while strictly annihilating unbalanced terms,
     consistent with the large-$d$ limit.
     \item \textbf{Circular ensembles}: Measures for the circular unitary (CUE),
@@ -376,7 +374,7 @@ The package supports a wide range of integration measures, grouped as follows:
     \item \textbf{Quantum states}: The induced measure on pure states
     $|\psi\rangle$ drawn from the complex projective space $\mathbb{C}P^{d-1}$
     \cite{zyczkowski2001induced, bengtsson2017geometry}, accessed via
-    \texttt{dPsi(psi, d)}. This corresponds to the distribution of the first
+    \texttt{dPsi(d)}. This corresponds to the distribution of the first
     column of a Haar-random unitary matrix.
     \item \textbf{Permutation groups}: Measures for the Symmetric Group $S_d$
     (\texttt{dPerm}) and the ensemble of centered permutation matrices
@@ -392,7 +390,7 @@ The package supports a wide range of integration measures, grouped as follows:
     \item \textbf{Stiefel manifolds}: The Stiefel manifold $V_k(\mathbb{C}^d)$,
     representing $d \times k$ matrices with orthonormal columns. This
     generalizes Haar-random pure states ($k=1$) and is implemented via
-    \texttt{dStiefel(V, d, k)}.
+    \texttt{dStiefel(d, k)}.
     \item \textbf{Diagonal unitary matrices}: Integration over the torus group
     $T^d$ (\texttt{dDiagUnitary}), representing independent phase averaging for
     each diagonal entry.
@@ -477,8 +475,8 @@ symmetric spaces.
     transpose). The integration is similarly performed by mapping to $U(2d)$
     integrals.
 \end{itemize}
-These measures are accessed via \texttt{dCOE(S, d)}, \texttt{dCSE(S, d)}, and
-\texttt{dCUE(U, d)} (alias for \texttt{dU}).
+These are accessed via \texttt{dCOE(d)}, \texttt{dCSE(d)}, and
+\texttt{dCUE(d)} (alias for \texttt{dU}).
 
 \subsection{Unitary designs}
 Unitary $t$-designs \cite{dankert2009exact, gross2007evenly,
@@ -490,7 +488,7 @@ $\mathcal{D} \subset U(d)$ is a $t$-design if:
 \end{equation}
 for all polynomials $P$ of degree $q \le t$ in the entries of $U$ and $\bar{U}$.
 
-\texttt{IntU.jl} provides the \texttt{dDesign(U, d, t)} measure to represent
+\texttt{IntU.jl} provides the \texttt{dDesign(d, t)} measure to represent
 such ensembles. The implementation strictly enforces the moment-matching
 condition:
 \begin{enumerate}
@@ -602,12 +600,9 @@ Note that we define a symbolic dimension $d$ and a symbolic unitary matrix $U$
 of size $d \times d$:
 
 \begin{lstlisting}[language=Julia]
-using IntU, Symbolics
-@variables d
-@symbolic_dimension U[1:d, 1:d]
-measure = dU(U)
-expr = abs(U[1,1])^2
-result = integrate(expr, measure)
+using IntU
+# The @integrate macro automatically handles symbolic dimensions and measures
+result = @integrate abs(U[1,1])^2 dU(d)
 # Output: 1/d
 \end{lstlisting}
 
@@ -621,17 +616,22 @@ compared to the standard Haar measure. Here, we compute the second moment of a
 diagonal entry for the symmetric (COE) and self-dual (CSE) cases:
 
 \begin{lstlisting}[language=Julia]
-@symbolic_dimension S[1:d, 1:d]
-
 # Circular Orthogonal Ensemble (S is symmetric)
-measure_coe = dCOE(S, d)
-res_coe = integrate(abs(S[1,1])^2, measure_coe)
+@integrate abs(S[1, 1])^2 dCOE(d)
 # Output: 2/(d+1)
 
 # Circular Symplectic Ensemble (S is self-dual)
-measure_cse = dCSE(S, d)
-res_cse = integrate(abs(S[1,1])^2, measure_cse)
+@integrate abs(S[1, 1])^2 dCSE(d)
 # Output: 1/(d-1)
+
+# Example for the real orthogonal group O(d)
+# E[O_11^2]
+@integrate O[1, 1]^2 dO(d)
+# Output: 1/d
+
+# E[O_11^4]
+@integrate O[1, 1]^4 dO(d)
+# Output: 3 / (d*(d+2))
 \end{lstlisting}
 
 These results contrast with the Haar unitary value of $1/d$, reflecting the
@@ -641,13 +641,12 @@ constraints imposed by the respective symmetries ($S=S^T$ and $S=S^R$).
 For the special unitary group $SU(d)$, the integration behaves similarly to
 $U(d)$ for balanced moments but differs for unbalanced ones.
 \begin{lstlisting}[language=Julia]
-measure = dSU(U, d)
 # Balanced moment: E[|U_11|^2] matches U(d)
-integrate(abs(U[1,1])^2, measure)
+@integrate abs(U[1, 1])^2 dSU(d)
 # Output: 1/d
 
 # Unbalanced moment: E[U_11]
-integrate(U[1,1], measure)
+@integrate U[1, 1] dSU(d)
 # Output: 0
 \end{lstlisting}
 
@@ -657,11 +656,10 @@ This eliminates the need for manual element-wise iteration or broadcasting,
 automatically performing the integration over all array entries. For Haar-random
 unitary matrices, we verify the relation $\int U U^\dagger dU = I$:
 \begin{lstlisting}[language=Julia]
-@symbolic_dimension U[1:d, 1:d]
-measure = dU(U, d)
+using IntU
 # Integrate the matrix product U * U'
 # IntU handles the element-wise operations internally
-res = integrate(collect(U * U'), measure)
+@integrate U * U' dU(2)
 # Output: Identity Matrix I
 \end{lstlisting}
 
@@ -674,15 +672,9 @@ appearing in the study of quantum channels (specifically, the definition of the
 depolarizing channel):
 
 \begin{lstlisting}[language=Julia]
-# Define symbolic matrices
-U_var = SymbolicMatrix(:U, :U)
-A = SymbolicMatrix(:A); B = SymbolicMatrix(:B)
-measure = dU(U_var, d)
-
 # Compute integral of tr(U A U' B)
-# tr_lazy constructs a lazy trace object
-expr = tr_lazy(U_var * A * U_var' * B)
-result = integrate(expr, measure)
+# The @integrate macro automatically treats unknown symbols as constant matrices
+@integrate tr(U * A * U' * B) dU(d)
 # Output: tr(A)tr(B)/d
 \end{lstlisting}
 
@@ -696,9 +688,12 @@ facilitates this analysis by expanding exact rational results into power series.
 Consider the fourth moment of a matrix entry, $|U_{11}|^4$:
 
 \begin{lstlisting}[language=Julia]
+using IntU
+# The shorthand factory functions can be used for explicit variable creation
+U = symbolic_unitary(:U, d)
 expr = abs(U[1,1])^4
 # Exact result computed internally: 2/(d*(d+1))
-asymp_res = asymptotic(expr, measure, 4)
+asymp_res = asymptotic(expr, dU(d), 4)
 # Output: 2/d^2 - 2/d^3 + 2/d^4
 \end{lstlisting}
 
@@ -721,7 +716,7 @@ U_dag = ITensorUnitary(out_indices=[k], in_indices=[l], is_adj=true)
 A = randomITensor(j, k); B = randomITensor(l, i)
 
 # Integrate the balanced network [U, A, U_dag, B] over U(2)
-result = integrate([U, A, U_dag, B], dU(2))
+integrate([U, A, U_dag, B], dU(2))
 # result is a scalar ITensor: tr(A) * tr(B) / 2
 \end{lstlisting}
 
@@ -733,18 +728,12 @@ topology.
 Symbolic integration over the Symmetric Group $S_d$ is particularly useful for
 combinatorial problems and studying centered permutation ensembles.
 \begin{lstlisting}[language=Julia]
-@variables d
-@symbolic_dimension P[1:d, 1:d]
-measure = dPerm(P, d)
-
 # Average of a product of entries
-integrate(P[1,1] * P[2,2], measure)
+@integrate P[1, 1] * P[2, 2] dPerm(d)
 # Output: 1 / (d * (d - 1))
 
 # Centered permutations Y = P - J/d
-@symbolic_dimension Y[1:d, 1:d]
-m_centered = dCPerm(Y, d)
-integrate(Y[1,1]^2, m_centered)
+@integrate Y[1, 1]^2 dCPerm(d)
 # Output: (d - 1) / d^2
 \end{lstlisting}
 
@@ -752,11 +741,8 @@ integrate(Y[1,1]^2, m_centered)
 For the group of diagonal unitary matrices, integration reduces to independent
 phase averaging.
 \begin{lstlisting}[language=Julia]
-@symbolic_dimension V[1:d, 1:d]
-measure = dDiagUnitary(V, d)
-
 # Average of |V_11|^2
-integrate(abs(V[1,1])^2, measure)
+@integrate abs(D[1, 1])^2 dDiagUnitary(d)
 # Output: 1
 \end{lstlisting}
  
@@ -767,13 +753,8 @@ variational quantum algorithms and tensor network optimization
 \cite{edelman1998geometry}.
 
 \begin{lstlisting}[language=Julia]
-@variables d
-k = 2
-V = [Symbolics.variable(Symbol("V_$(i)_$(j)"), T=Complex{Num}) for i=1:3, j=1:k] 
-measure = dStiefel(V, d, k)
-
 # E[|V_{1,1}|^2]
-integrate(abs(V[1,1])^2, measure)
+@integrate abs(V[1, 1])^2 dStiefel(d, 2)
 # Output: 1 / d
 \end{lstlisting}
 
@@ -782,12 +763,8 @@ Integration over Ginibre ensembles is useful for studying non-Hermitian random
 matrix properties. We compute the second moment $\langle \mathrm{tr}(G
 G^\dagger) \rangle$:
 \begin{lstlisting}[language=Julia]
-@variables d
-Gs = SymbolicMatrix(:G)
-measure = dGinUE(Gs, d)
 # Compute <tr(G G')>
-expr = tr_lazy(Gs * Gs')
-result = integrate(expr, measure)
+@integrate tr(G * G') dGinUE(d)
 # Output: d^2
 \end{lstlisting}
 
@@ -815,14 +792,19 @@ dispatch symbolic expressions efficiently:
     This relies on the efficient sparse polynomial handling of
     \texttt{Symbolics.jl}.
     \item \textbf{Dispatch}: Each monomial is analyzed to extract the indices of
-    the random matrices. The integration is then dispatched to the specific
-    algorithm appropriate for the group ($U, O, Sp$) or measure (Gaussian), relying on
-    Julia's multiple dispatch to handle different measure types without branching logic.
+    the random matrices. The integration is then dispatched to a centralized
+    engine. This engine leverages the \texttt{AbstractMeasure} base type and a
+    unified \texttt{measure\_info} interface, which provides the necessary
+    metadata (substitution dictionaries, dimension parameters, and ensemble
+    tags) for all supported measures. This architecture eliminates redundant
+    boilerplate and ensures consistent dispatch behavior across the library.
 \end{enumerate}
 
 \subsection{Weingarten engine}
-The calculation of Weingarten functions is computationally intensive. To achieve
-high performance, \texttt{IntU.jl} implements specialized algorithms for each group:
+The calculation of Weingarten functions and combinatorial contractions is
+centralized within a generic integration engine. To achieve high performance
+and extensibility, \texttt{IntU.jl} implements specialized logic for different
+mathematical structures while sharing the top-level dispatch mechanism:
 \begin{itemize}
     \item \textbf{Unitary group}: Characters of the symmetric group are computed
     using the Murnaghan-Nakayama rule, which is significantly faster than determinantal
@@ -844,6 +826,10 @@ high performance, \texttt{IntU.jl} implements specialized algorithms for each gr
     \mathrm{Wg}^{Sp}(p, q, d) = (-1)^{k + \mathrm{loops}(p, q)} \mathrm{Wg}^O(p, q, -d),
     \end{equation}
     avoiding the need for a separate symplectic solver.
+    \item \textbf{Gaussian and Ginibre Ensembles}: Integration over Gaussian
+    ensembles is performed via Wick contractions. The engine decomposes the
+    monomial into atomic factors and generates all valid pair partitions of
+    indices, weighted by the ensemble-specific contraction rules.
     \item \textbf{Diagonal unitary matrices}: For the torus group $T^d$, the
     integration is performed by verifying that the integrand is composed of
     diagonal elements and checking the multiset correspondence of indices
@@ -853,7 +839,7 @@ high performance, \texttt{IntU.jl} implements specialized algorithms for each gr
     \item \textbf{Memoization}: All computed characters, dimensions, and
     Weingarten values are cached using the \texttt{Memoization.jl} package.
     Memoization occurs at the granular level of individual character and
-    dimension calls, ensuring maximizing reuse across different partition
+    call, ensuring maximum reuse across different partition
     structures and integration orders.
 \end{itemize}
 
@@ -918,15 +904,16 @@ slightly higher degrees.
 Table \ref{tab:benchmarks} summarizes the execution times for selected integrals.
 Key observations include:
 \begin{enumerate}
-    \item \textbf{Symbolic overhead}: Computing integrals with symbolic dimension
-    $d$ is computationally demanding, but optimization strategies significantly reduce this cost.
-    For example, computing $\int |U_{11}|^{10} dU$ symbolically
-    took approximately 46 ms, achieving performance comparable to fixed $d=50$ numeric integration ($47$ ms).
-    This efficiency leverages the grouping of identical cycle structures in the Weingarten sum.
+    \item \textbf{Symbolic overhead}: Computing integrals with symbolic
+    dimension $d$ is computationally demanding, but optimization strategies
+    significantly reduce this cost. For example, computing $\int |U_{11}|^{10}
+    dU$ symbolically took approximately 8 ms, achieving performance comparable
+    to fixed $d=10$ numeric integration ($3$ ms). This efficiency leverages the
+    grouping of identical cycle structures in the Weingarten sum.
     \item \textbf{Low-degree performance}: For common use cases involving
     lower-degree polynomials (e.g., $2k=6$), the package is extremely fast. The
-    symbolic integration of $|U_{11}|^6$ completes in approximately 4 ms, and
-    for the orthogonal group, computing $O_{11}^6$ takes only 0.3 ms for $d=10$.
+    symbolic integration of $|U_{11}|^6$ completes in approximately 1.6 ms, and
+    for the orthogonal group, computing $O_{11}^6$ takes only 0.4 ms for $d=10$.
     \item \textbf{Group differences}: Orthogonal and symplectic integrals are
     comparable to unitary ones for numerical dimensions. When $d$ is symbolic, 
     the high performance of the unitary group is maintained via Schur polynomial 
@@ -938,10 +925,10 @@ Key observations include:
     implementation even for large dimensions (e.g., $d=50$).
     \item \textbf{Application}: The purity calculation for a bipartite state
     ($d=6$), which involves contracting a 4$^\mathrm{th}$ degree polynomial over
-    the unitary group, completes in approximately 81.1 ms, demonstrating the
+    the unitary group, completes in approximately 9.8 ms, demonstrating the
     tool's applicability to quantum information tasks.
-    \item \textbf{Tensor network scaling}: The graphical engine scales efficiently
-    with both the degree $k$ and dimension $d$. As shown in Table
+    \item \textbf{Tensor network scaling}: The graphical engine scales
+    efficiently with both the degree $k$ and dimension $d$. As shown in Table
     \ref{tab:itensor_benchmarks}, for a loop network of Haar unitaries, the
     median time increases from 5.5 $\mu\text{s}$ at $k=1$ to 32 ms at $k=4$ for
     fixed $d=2$. Dimension scaling for $k=2$ remains sub-second up to $d=50$,
@@ -950,7 +937,7 @@ Key observations include:
     increasing rank of intermediate tensor contractions.
     \item \textbf{Permutation groups}: Integration over the symmetric group
     $S_d$ is exceptionally fast due to its combinatorial nature. Computing the
-    10$^\mathrm{th}$ moment $P_{11}^{10}$ for $d=100$ takes only 65.7 ms. This
+    10$^\mathrm{th}$ moment $P_{11}^{10}$ for $d=100$ takes only 0.4 ms. This
     high performance extends to the centered permutation ensemble, which remains
     efficient even after polynomial expansion.
 \end{enumerate}
@@ -963,56 +950,55 @@ Key observations include:
 \hline
 Group & Integrand & Dimension $d$ & Time (ms) \\
 \hline
-Unitary & $|U_{11}|^6$ & Symbolic & 2.3 \\
-Unitary & $|U_{11}|^8$ & Symbolic & 4.7 \\
-Unitary & $|U_{11}|^{10}$ & Symbolic & 12.5 \\
-Unitary & $|U_{11}|^{10}$ & $d=10$ & 5.2 \\
-Unitary & $|U_{11}|^{10}$ & $d=50$ & 46.8 \\
+Unitary & $|U_{11}|^6$ & Symbolic & 1.6 \\
+Unitary & $|U_{11}|^8$ & Symbolic & 3.4 \\
+Unitary & $|U_{11}|^{10}$ & Symbolic & 7.9 \\
+Unitary & $|U_{11}|^{10}$ & $d=10$ & 2.7 \\
+Unitary & $|U_{11}|^{10}$ & $d=50$ & 2.8 \\
 \hline
-Orthogonal & $O_{11}^2$ & Symbolic & 2.8 \\
-Orthogonal & $O_{11}^4$ & Symbolic & 8891.9 \\
-Orthogonal & $O_{11}^6$ & $d=10$ & 0.2 \\
-Orthogonal & $O_{11}^8$ & $d=20$ & 1.1 \\
-Orthogonal & $O_{11}^{10}$ & $d=20$ & 80.7 \\
-Orthogonal & $O_{11}^{10}$ & $d=50$ & 93.3 \\
+Orthogonal & $O_{11}^2$ & Symbolic & 0.4 \\
+Orthogonal & $O_{11}^4$ & Symbolic & 0.4 \\
+Orthogonal & $O_{11}^6$ & $d=10$ & 0.4 \\
+Orthogonal & $O_{11}^8$ & $d=20$ & 0.4 \\
+Orthogonal & $O_{11}^{10}$ & $d=20$ & 0.4 \\
+Orthogonal & $O_{11}^{10}$ & $d=50$ & 0.4 \\
 \hline
 Symplectic & $|S_{11}|^8$ & $d=10$ & 1.8 \\
-Symplectic & $|S_{11}|^{10}$ & $d=10$ & 4.9 \\
-Symplectic & $|S_{11}|^{10}$ & $d=20$ & 9.6 \\
+Symplectic & $|S_{11}|^{10}$ & $d=10$ & 14.8 \\
+Symplectic & $|S_{11}|^{10}$ & $d=20$ & 14.9 \\
 \hline
 GinUE & $\mathrm{tr}(GG^\dagger)$ & Symbolic & 0.01 \\
-GinUE & $\mathrm{tr}(GG^\dagger)$ & $d=4$ & 5.8 \\
+GinUE & $\mathrm{tr}(GG^\dagger)$ & $d=4$ & $<$ 0.01 \\
 \hline
-Circ. Orthogonal & $|S_{11}|^2$ & Symbolic & 1.6 \\
-Circ. Orthogonal & $|S_{11}|^4$ & Symbolic & 7.8 \\
-Circ. Orthogonal & $|S_{11}|^6$ & Symbolic & 55.7 \\
-Circ. Symplectic & $|S_{11}|^2$ & Symbolic & 1.6 \\
-Circ. Symplectic & $|S_{11}|^4$ & Symbolic & 8.6 \\
-Circ. Symplectic & $|S_{11}|^6$ & Symbolic & 127.1 \\
+Circ. Orthogonal & $|S_{11}|^2$ & Symbolic & 0.8 \\
+Circ. Orthogonal & $|S_{11}|^4$ & Symbolic & 0.8 \\
+Circ. Orthogonal & $|S_{11}|^6$ & Symbolic & 0.8 \\
+Circ. Symplectic & $|S_{11}|^2$ & Symbolic & 0.8 \\
+Circ. Symplectic & $|S_{11}|^4$ & Symbolic & 0.8 \\
+Circ. Symplectic & $|S_{11}|^6$ & Symbolic & 0.8 \\
 \hline
-Permutation & $P_{11}^{10}$ & $d=100$ & 49.3 \\
-Permutation & $\mathrm{tr}(PA)^2$ & $d=4$ & 20.3 \\
-Centered Perm. & $Y_{11}^4$ & $d=10$ & 1.1 \\
+Permutation & $P_{11}^{10}$ & $d=100$ & 0.4 \\
+Permutation & $\mathrm{tr}(PA)^2$ & $d=4$ & 13.2 \\
+Centered Perm. & $Y_{11}^4$ & $d=10$ & 0.4 \\
 \hline
-Application & Purity & $d=6$ & 51.4 \\
+Application & Purity & $d=6$ & 9.8 \\
 \hline
 \end{tabular}
 \end{table}
 
 The results demonstrate that \texttt{IntU.jl} remains efficient for practically
 relevant problem sizes. The rapid execution of the purity application ($\approx$
-51 ms) highlights the library's utility for routine quantum information tasks,
+10 ms) highlights the library's utility for routine quantum information tasks,
 while the sub-millisecond performance for low-degree orthogonal integrals
 facilitates large-scale statistical sampling. We further note that the circular
 ensembles (COE/CSE) maintain excellent performance. For highly symmetric
 integrands, such as powers of a single matrix entry, the integration engine
 utilizes an optimized grouped-summation technique that significantly reduces
 symbolic overhead by collecting terms with identical cycle types. Consequently,
-high-degree moments such as $|S_{11}|^6$ are computed in under 130~ms.
-Simultaneously, the symbolic engine proves
-capable of handling high-degree moments that are intractable by hand. The
-caching mechanism ensures that subsequent calls with the same parameters are
-virtually instantaneous.
+high-degree moments such as $|S_{11}|^6$ are computed in under 1 ms.
+Simultaneously, the symbolic engine proves capable of handling high-degree
+moments that are intractable by hand. The caching mechanism ensures that
+subsequent calls with the same parameters are virtually instantaneous.
 
 \begin{table}[ht]
 \centering
@@ -1023,22 +1009,22 @@ showing scaling with degree $k$ and dimension $d$.}
 \hline
 Scaling Type & Degree $k$ & Dimension $d$ & Time (ms) \\
 \hline
-Degree $k$ & 1 & 2 & 0.019 \\
-Degree $k$ & 2 & 2 & 0.125 \\
-Degree $k$ & 3 & 2 & 1.52 \\
-Degree $k$ & 4 & 2 & 31.6 \\
+Degree $k$ (U) & 1 & 2 & 0.02 \\
+Degree $k$ (U) & 2 & 2 & 0.1 \\
+Degree $k$ (U) & 3 & 2 & 1.4 \\
+Degree $k$ (U) & 4 & 2 & 29.0 \\
 \hline
-Dimension $d$ ($k=2$) & 2 & 2 & 0.101 \\
-Dimension $d$ ($k=2$) & 2 & 10 & 0.171 \\
-Dimension $d$ ($k=2$) & 2 & 50 & 44.4 \\
-Dimension $d$ ($k=2$) & 2 & 100 & 1092 \\
+Dimension $d$ ($k=2$) & 2 & 2 & 0.1 \\
+Dimension $d$ ($k=2$) & 2 & 10 & 0.2 \\
+Dimension $d$ ($k=2$) & 2 & 50 & 42.6 \\
+Dimension $d$ ($k=2$) & 2 & 100 & 894.8 \\
 \hline
-Dimension $d$ ($k=3$) & 3 & 2 & 2.11 \\
-Dimension $d$ ($k=3$) & 3 & 10 & 26.5 \\
-Dimension $d$ ($k=3$) & 3 & 20 & 1936 \\
-Dimension $d$ ($k=3$) & 3 & 30 & 16607 \\
+Dimension $d$ ($k=3$) & 3 & 2 & 1.4 \\
+Dimension $d$ ($k=3$) & 3 & 10 & 11.3 \\
+Dimension $d$ ($k=3$) & 3 & 20 & 1478.5 \\
+Dimension $d$ ($k=3$) & 3 & 30 & 15651.5 \\
 \hline
-Orthogonal & 6 & 3 & 512.5 \\
+Orthogonal & 6 & 3 & 396.7 \\
 \hline
 \end{tabular}
 \end{table}
@@ -1059,9 +1045,9 @@ matrix of expressions.}
 \toprule
 Matrix Size ($N$) & Mean Time (ms) & Allocations (MiB) \\
 \midrule
-$2 \times 2$ & 1.91 & 0.82 \\
-$3 \times 3$ & 6.26 & 3.03 \\
-$4 \times 4$ & 15.44 & 8.26 \\
+$2 \times 2$ & 2.61 & 0.87 \\
+$3 \times 3$ & 6.36 & 2.35 \\
+$4 \times 4$ & 12.47 & 5.13 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1096,10 +1082,10 @@ information scientists.
 \label{sec:availability}
 The source code for \texttt{IntU.jl} is available on GitHub under the Apache License 2.0.
 \begin{itemize}
-    \item \textbf{Repository URL}: \url{https://github.com/iitis/IntU}
+    \item \textbf{Repository URL}: \url{https://github.com/iitis/IntU.jl}
     \item \textbf{License}: Apache License 2.0
     \item \textbf{Version}: The results in this paper were generated using
-    version v0.7.0.
+    version v0.9.0.
     \item \textbf{Benchmarks}: To reproduce the benchmarks presented in Section
     \ref{sec:performance}, execute the provided script from the repository root:
     \begin{lstlisting}[language=bash]

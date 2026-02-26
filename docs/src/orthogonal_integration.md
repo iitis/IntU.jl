@@ -26,27 +26,37 @@ where:
 *   $\Delta_\pi(i)$ is a delta function that equals 1 if the indices $i$ match the pairing $\pi$ (i.e., $i_a = i_b$ for all pairs $\{a, b\} \in \pi$), and 0 otherwise.
 *   $\text{Wg}^O(\pi_1, \pi_2, d)$ is the Orthogonal Weingarten function. It depends on the loop structure of the graph formed by superimposing the two matchings $\pi_1$ and $\pi_2$.
 
-### Usage
+### 1. Basic Integration using `@integrate`
+
+The `@integrate` macro automatically identifies `O` as the random orthogonal matrix.
 
 ```julia
 using IntU, Symbolics
-
-# Define dimension
 @variables d
-# Define Orthogonal matrix
-@variables O_mat[1:d, 1:d]::Real
-measure_O = dO(O_mat, d)
-
-# 1. Squared element
-expr = O_mat[1,1]^2
-res = integrate(expr, measure_O)
-println(res)
+# E[O_11^2]
+@integrate O[1, 1]^2 dO(d)
 # Output: 1/d
+```
 
-# 2. Fourth power
-expr4 = O_mat[1,1]^4
-res4 = integrate(expr4, measure_O)
-println(res4)
+### 2. Manual Integration
+
+For more control, you can declare symbols explicitly.
+
+```julia
+using IntU, Symbolics
+@variables d
+O = SymbolicMatrix(:O, :O)
+integrate(O[1, 1]^2, dO(d))
+```
+
+### 3. Higher Moments
+
+The `@integrate` macro can be used for higher moments too.
+
+```julia
+using IntU, Symbolics
+@variables d
+@integrate O[1, 1]^4 dO(d)
 # Output: 3 / (d*(d + 2))
 ```
 
@@ -78,27 +88,34 @@ The integration formula is analogous to the orthogonal case but involves the sym
 where $\Delta^J_\pi(i)$ contracts the indices $i$ using the symplectic metric $J$ (introducing signs $\pm 1$).
 The Weingarten function $\text{Wg}^{Sp}$ is related to $\text{Wg}^O$ by the dimensional shift $d \to -d$ (and sign adjustments).
 
-### Usage
+### 1. Basic Integration using `@integrate`
+
+The `@integrate` macro is also available for the symplectic group. It identifies `Sp` as the random symplectic matrix.
 
 ```julia
 using IntU, Symbolics
-
 @variables d
-# Define Symplectic matrix (Complex entries, unlike O(d))
-@variables S_mat[1:d, 1:d]::Complex
-measure_S = dSp(S_mat, d)
+# E[|Sp_11|^2]
+@integrate abs(Sp[1, 1])^2 dSp(2)
+# Output: 1/2
+```
 
-# |S_{1,1}|^2 integration
-expr = abs(S_mat[1,1])^2
-res = integrate(expr, measure_S)
-println(res)
-# Output: 1/d
+### 2. Manual Integration
 
-# |S_{1,1}|^4 integration
-expr4 = abs(S_mat[1,1])^4
-res4 = integrate(expr4, measure_S)
-println(res4)
-# Output: 2 / ((d + 1)*(d - 2))
+```julia
+using IntU, Symbolics
+@variables d
+S = SymbolicMatrix(:S, :Sp)
+integrate(abs(S[1, 1])^2, dSp(d))
+```
+
+### 3. Higher Moments
+
+```julia
+using IntU, Symbolics
+@variables d
+@integrate abs(Sp[1, 1])^4 dSp(d)
+# Output: 2 / ((d + 1)*(d - 1))
 ```
 
 ## Implementation Details & Pitfalls
@@ -106,6 +123,10 @@ println(res4)
 - **Automatic Conjugation**: For $Sp(d)$, the code treats `conj(S)` non-trivially. It uses the relation $\bar{S} = -J S J$ to rewrite conjugate entries in terms of $S$ entries (and J factors). This allows using the efficient Weingarten formula for products of $S$ only.
 - **Dimension Parity**: For $Sp(d)$, $d$ must be even. The symbolic result is valid for even $d$.
 - **Computational Complexity**: The sum over pair partitions $M_{2n}$ grows as $(2n)!!$. This is significantly faster than $(n!)^2$ for $U(d)$ but still grows combinatorially.
+- **Removable Singularities**: When using `evaluate` to substitute numeric values into symbolic 
+  results, $0/0$ forms may appear. `IntU.jl` automatically detects when a 
+  denominator evaluates to zero and simplifies the expression to attempt to 
+  resolve these removable singularities.
 
 ## References
 

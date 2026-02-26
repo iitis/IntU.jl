@@ -17,44 +17,44 @@ $\psi_i = U_{i,1}$.
 IntU.jl leverages this connection. The function `dPsi` creates a symbolic vector that is internally linked to the first column of a symbolic unitary matrix.
 Integration is then performed using the standard unitary Weingarten calculus.
 
-Use `dPsi(psi, d)` where `psi` is a vector of symbolic variables.
+Use `dPsi(d)` where `d` is the dimension of the state space.
 
 ## Usage
+
+1. **Basic Integration using `@integrate`**
+
+The `@integrate` macro identifies `psi` as the random state vector.
+
+```julia
+using IntU, Symbolics
+@variables d
+# E[|psi_1|^2] = 1/d
+@integrate abs(psi[1, 1])^2 dPsi(d)
+# Output: 1/d
+```
+
+2. **Manual Integration**
 
 ```julia
 using IntU, Symbolics
 
 @variables d
-# Define a symbolic vector for the state
-@variables psi[1:d]::Complex
-measure = dPsi(psi, d)
+# Use SymbolicMatrix for the state vector
+psi = SymbolicMatrix(:psi, :psi)
 
-# 1. Normalization check
-# Sum over all components |psi_i|^2 should average to 1?
-# Note: IntU.jl handles explicit indices.
-# Integral of |psi_1|^2
-expr = abs(psi[1])^2
-res = integrate(expr, measure)
+# 1. Average of |psi_1|^2
+res = integrate(abs(psi[1, 1])^2, dPsi(d))
 println(res)
 # Output: 1/d
 
-# 2. Purity of a mixed state
-# If we have a state rho = |psi><psi|, then Tr(rho^2) = 1.
-# This integration checks components.
-
-# 3. Overlap with fixed state
-@variables phi[1:d]::Complex
-# Suppose phi is a fixed unit vector.
-# Calculate < |<psi|phi>|^2 >
-# = sum_{i,j} < \bar{psi}_i phi_i psi_j \bar{phi}_j >
-# = sum_{i,j} phi_i \bar{phi}_j < \bar{psi}_i psi_j >
-# = sum_{i,j} phi_i \bar{phi}_j (1/d * delta_{ij})
-# = 1/d * sum |phi_i|^2 = 1/d
+# In element-wise mode, we can use matrix entries
+integrate(abs(psi[1, 1] * conj(psi[2, 1]))^2, dPsi(d))
+# Output: 1/(d*(d+1))
 ```
 
 ## Pitfalls
 
-- **Indexing**: `psi` behaves like a vector `psi[i]`. Internally `psi[i]` corresponds to `U[i, 1]`.
+- **Indexing**: `psi` behaves like a vector, but since it is a `SymbolicMatrix`, it requires two indices: `psi[i, 1]`. Internally `psi[i, 1]` corresponds to `U[i, 1]`.
 - **Normalization**: The standard measure assumes $\langle \psi | \psi \rangle = 1$.
   The integral volume is normalized to 1.
   $\int d\psi = 1$.

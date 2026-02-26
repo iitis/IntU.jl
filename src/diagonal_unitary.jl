@@ -1,60 +1,32 @@
 # Diagonal Unitary Matrices (Torus group) Integration
 
 @doc raw"""
-    DiagonalUnitaryMeasure{M, D}
+    DiagonalUnitaryMeasure{D}
 
-Represents integration over the group of diagonal unitary matrices (the torus \$T^d\$).
-For a diagonal unitary matrix \$V\$, the only non-zero entries are \$V_{ii} = e^{i\theta_i}\$.
-Integration over \$T^d\$ is equivalent to independent phase integrations for each diagonal entry.
+Represents integration over the group of diagonal unitary matrices (the torus $T^d$).
+For a diagonal unitary matrix $V$, the only non-zero entries are $V_{ii} = e^{i\theta_i}$.
+Integration over $T^d$ is equivalent to independent phase integrations for each diagonal entry.
 """
-struct DiagonalUnitaryMeasure{M,D}
-    V::M
+struct DiagonalUnitaryMeasure{D,M} <: AbstractMeasure
     dim::D
+    matcher::M
 end
+DiagonalUnitaryMeasure(dim) = DiagonalUnitaryMeasure(dim, nothing)
 
-"""
-    dDiagUnitary(V, dim)
+@doc raw"""
     dDiagUnitary(dim)
 
-Defines the measure for the group of diagonal unitary matrices of dimension `dim`.
+Defines the measure for the group of diagonal unitary matrices (the torus $T^d$) of dimension `dim`.
+Integration engine identifies variables via metadata tag `:DiagUnitary`.
 """
-dDiagUnitary(V, dim) = DiagonalUnitaryMeasure(V, dim)
-dDiagUnitary(dim) = DiagonalUnitaryMeasure(nothing, dim)
-
-"""
-    integrate(expr, measure::DiagonalUnitaryMeasure)
-"""
-function integrate(expr::AbstractArray, measure::DiagonalUnitaryMeasure)
-    return map(e -> integrate(e, measure), expr)
-end
+dDiagUnitary(dim) = DiagonalUnitaryMeasure(dim)
 
 function IntU.measure_info(measure::DiagonalUnitaryMeasure)
-    V_sym = measure.V
-    dim = measure.dim
-
     subs_dict = Dict{Any,Any}()
-    V_atomic_lookup = Dict{Any,Tuple}()
-    V_bar_lookup = Dict{Any,Tuple}()
-
-    if V_sym isa AbstractArray
-        for i = 1:size(V_sym, 1)
-            for j = 1:size(V_sym, 2)
-                v_ij_num = _safe_Num(V_sym[i, j])
-                v_ij_un = Symbolics.unwrap(v_ij_num)
-
-                v_atomic = Symbolics.variable(:V_atomic, i, j)
-                v_bar_atomic = Symbolics.variable(:V_bar_atomic, i, j)
-
-                V_atomic_lookup[Symbolics.unwrap(v_atomic)] = (i, j)
-                V_bar_lookup[Symbolics.unwrap(v_bar_atomic)] = (i, j)
-
-                subs_dict[v_ij_un] = v_atomic
-                subs_dict[Symbolics.unwrap(conj(v_ij_num))] = v_bar_atomic
-                subs_dict[Symbolics.unwrap(Base.conj(v_ij_num))] = v_bar_atomic
-            end
-        end
+    matcher = measure.matcher === nothing ? MetadataMatcher(:DiagUnitary) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
     end
-
-    matcher = LookupMatcher(V_atomic_lookup, V_bar_lookup)
     return (subs_dict, matcher, dim, :DiagUnitary)
 end

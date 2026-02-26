@@ -13,6 +13,28 @@ using Pkg
 Pkg.add(url="https://github.com/iitis/IntU.jl")
 ```
 
+## The @integrate Macro
+
+For more intuitive symbolic integration, **IntU.jl** provides the `@integrate` macro. It automatically identifies random matrices based on the measure and manages variable declarations.
+
+```julia
+@integrate expr measure
+```
+
+> [!TIP]
+> **Symbol Scope and Redefinition**: The macro manages a persistent symbolic state. If a symbol is used in one context (e.g., as a random matrix for `dU`) and then in another (e.g., as a constant for `dO`), the macro automatically re-binds it to the correct type. This "Safety Rebind" prevents silent mathematical errors during sequential execution.
+
+## Common Interface
+
+The primary way to interact with **IntU.jl** is through the `integrate` function. It provides a unified interface for all supported groups and ensembles.
+
+```julia
+integrate(expr, measure)
+```
+
+- **`expr`**: A symbolic expression (e.g., product of `SymbolicMatrix` elements) or an array of such expressions.
+- **`measure`**: A measure object defining the group/ensemble and its dimension (e.g., `dU(d)`, `dO(d)`, `dGUE(d)`).
+
 ## Manual
 
 - [Unitary Integration](unitary_integration.md): Core functionality for $U(d)$.

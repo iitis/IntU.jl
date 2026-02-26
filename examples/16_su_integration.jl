@@ -5,71 +5,34 @@ using LinearAlgebra
 println("=== SU(d) Integration (Stable Range) ===\n")
 
 @variables d
-@symbolic_dimension U[1:d, 1:d]
+U = SymbolicMatrix(:U, :U)
 
 # Define the Special Unitary Measure
 # In the stable range (d large), SU(d) integrals coincide with U(d) for balanced moments.
 println("--- 1. Define Measure ---")
-measure = dSU(U, d)
-println("Measure defined: ", measure)
-println("")
+# The new interface supports dSU(d) directly
+println("Using measure dSU(d)")
 
 # Example 1: Balanced Moment
 # E[ |U_11|^2 ] = 1/d
-println("--- 2. Balanced Moment ---")
+println("\n--- 2. Balanced Moment ---")
 println("Computing E[ |U_11|^2 ]...")
-expr_balanced = U[1, 1] * conj(U[1, 1])
-res_balanced = integrate(expr_balanced, measure)
+res_balanced = integrate(abs(U[1, 1])^2, dSU(d))
 println("Result: ", res_balanced)
 println("Expected: 1/d")
-println("")
 
-# Example 1b: Matrix Integration (SU(d) -> Identity)
-# Example 1b: Matrix Integration (SU(d) -> Identity)
-println("--- 2b. Matrix Integration ---")
-println("Integrating U * U' (should be Identity)")
-
-# To demonstrate matrix integration, we define a fixed-size symbolic matrix (N=3).
-# We must use the matching numeric dimension d=3 for the measure to recover Identity
-# (since matrix multiplication sums over the fixed column count).
-@variables U_mat[1:3, 1:3]::Complex
-d_numeric = 3
-measure_mat = dSU(U_mat, d_numeric)
-
-# We can now collect into a Julia Matrix and multiply
-expr_mat = collect(U_mat * U_mat')
-
-println("Integrating 3x3 matrix U * U' over SU(3)...")
-res_mat = integrate(expr_mat, measure_mat)
+# Example 2: Matrix Integration (SU(d) -> Identity)
+println("\n--- 3. Matrix Integration ---")
+println("Integrating U * U' over SU(3) (should be Identity)")
+res_mat = integrate(U * U', dSU(3))
 display(res_mat)
-
-println("Result[1,1]: ", res_mat[1, 1], " (Expected: 1)")
-println("Result[1,2]: ", res_mat[1, 2], " (Expected: 0)")
-
-# Example 2: Unbalanced Moment
-# E[ U_11 ] = 0
-println("--- 3. Unbalanced Moment ---")
-println("Computing E[ U_11 ]...")
-# Note: For SU(d), moments like E[ det(U) ] would be 1, but typical single entries are 0.
-# The current implementation assumes stable range where unbalanced terms vanish.
-expr_unbalanced = U[1, 1]
-res_unbalanced = integrate(expr_unbalanced, measure)
-println("Result: ", res_unbalanced)
-println("Expected: 0")
-println("")
 
 # Example 3: Higher Order Moment
 # E[ |U_11 U_22|^2 ] = 1 / (d^2 - 1)
-println("--- 4. Higher Order Moment ---")
+println("\n--- 4. Higher Order Moment ---")
 println("Computing E[ |U_11 U_22|^2 ]...")
-expr_higher = abs2(U[1, 1]) * abs2(U[2, 2])
-res_higher = Symbolics.simplify(integrate(expr_higher, measure); expand = true)
-println("Result: ", res_higher)
+res_higher = integrate(abs(U[1, 1])^2 * abs(U[2, 2])^2, dSU(d))
+println("Result: ", Symbolics.simplify(res_higher))
 println("Expected: 1 / (d^2 - 1)")
-
-# Verify numerically (symbolic check)
-expected = 1 / (d^2 - 1)
-diff = Symbolics.simplify(res_higher - expected; expand = true)
-println("Difference from expected: ", diff)
 
 println("\nDone.")

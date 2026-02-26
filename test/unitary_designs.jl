@@ -5,10 +5,11 @@ using Symbolics
 
 @testset verbose=true "Unitary t-Designs" begin
     d_val = 3
-    @variables U[1:3, 1:3]::Complex
+    # Use SymbolicMatrix tagged as :U
+    U = SymbolicMatrix(:U, :U, d_val)
 
     # Define a 2-design
-    design2 = dDesign(U, d_val, 2)
+    design2 = dDesign(d_val, 2)
 
     @testset verbose=true "Degree <= t (t=2)" begin
         # Degree 1 integrals (should match Haar)
@@ -36,7 +37,7 @@ using Symbolics
     end
 
     # Define a 1-design
-    design1 = dDesign(U, d_val, 1)
+    design1 = dDesign(d_val, 1)
 
     @testset verbose=true "1-Design Constraints" begin
         # Degree 1 works
