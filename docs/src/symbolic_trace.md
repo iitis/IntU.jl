@@ -76,3 +76,18 @@ using IntU, Symbolics
 ```
 
 The underlying engine handles the "wiring" of indices across multiple trace cycles automatically.
+
+## Advanced: 2-Design Identities
+
+For deeper insights into quantum chaos or state designs, you can integrate more complex expressions. A well-known identity involving two $U$ and two $U^\dagger$ factors (a 2-design property) is:
+
+```julia
+using IntU, Symbolics
+@variables d
+# E[tr(U A U' B U C U' D)]
+res = @integrate tr(U*A*U'*B*U*C*U'*D) dU(d)
+# Simplified result:
+# (tr(AC)tr(BD) - d*tr(A)tr(BD)tr(C) - d*tr(AC)tr(B)tr(D) + tr(A)tr(B)tr(C)tr(D)) / (d - d^3)
+```
+
+This showcases how the symbolic engine resolves complex Weingarten sums into readable rational functions of $d$ and traces of the constant matrices.

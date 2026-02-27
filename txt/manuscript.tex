@@ -218,11 +218,7 @@ integration with the Julia \texttt{Symbolics.jl} ecosystem, treating dimensions
 $d$ as native symbolic rational functions rather than requiring separate
 symbolic algebra backends or manual substitutions.
 
-Beyond compact groups, the package provides comprehensive support for the beta
-ensembles of random matrix theory (GUE, GOE, GSE, GinUE, GinOE, GinSE) via
-Wick's theorem, as well as circular ensembles and unitary $t$-designs. This
-diverse ensemble support, combined with specialized utilities for quantum
-information metrics like purity and fidelity, makes \texttt{IntU.jl} a versatile
+diverse ensemble support, combined with specialized utilities for partial traces of symbolic subsystems, makes \texttt{IntU.jl} a versatile
 environment for both theoretical derivations and complex numerical experiments.
 
 \texttt{IntU.jl} offers a pure Julia implementation of the Weingarten calculus
@@ -243,8 +239,7 @@ symmetric group $S_d$. Key features distinguishing our approach include:
     \texttt{ITensors.jl} \cite{fishman2022itensor}, enabling the symbolic
     averaging of large-scale random tensor networks.
     \item \textbf{Quantum information utilities}: Specialized functions for
-    computing averages of purity, fidelity, and partial traces of symbolic
-    subsystems.
+    computing partial traces of symbolic subsystems.
     \item \textbf{Performance}: Leveraging Julia's just-in-time compilation and
     efficient caching strategies to handle high-degree moments.
 \end{itemize}
@@ -297,15 +292,11 @@ k - c(\sigma)$. For the identity permutation, the leading order term is
 $\mathrm{Wg}^U(\mathrm{id}, d) \approx d^{-k}$, recovering the normalization
 expected from independent Gaussian entries at the naive limit.
 
-\subsection{Special Unitary group $SU(d)$}
-The Special Unitary group $SU(d)$ consists of unitary matrices with unit
-determinant. In the stable range regime (large $d$), integration over $SU(d)$
-coincides with $U(d)$ for balanced polynomials (where the number of $U$ and
-$\bar{U}$ indices matches). For unbalanced polynomials, which would typically
-involve $\epsilon$-tensor contractions at specific finite dimensions, the stable
-range integral vanishes. \texttt{IntU.jl} currently supports this stable range
-behavior, treating $SU(d)$ integrals as equivalent to $U(d)$ for balanced
-moments and zero otherwise.
+\paragraph{Symbolic ($d$) Pitfalls}
+While Weingarten functions are rational in $d$, they contain poles at small integer dimensions (typically $d < k$ for degree $k$ moments). Furthermore, substituting numeric values can yield $0/0$ expressions (removable singularities) at specific points like $d=1, 2$. \texttt{IntU.jl}'s \texttt{evaluate} function automatically simplifies these expressions to resolve such singularities.
+
+\paragraph{Special Unitary group $SU(d)$}
+For all currently supported ``balanced'' polynomial expressions (where the number of $U$ and $\bar{U}$ factors are equal), the integration over $SU(d)$ is equivalent to $U(d)$. Non-stable-range effects involving $\epsilon$-tensor contractions for specific small $d$ are not currently covered.
 
 \subsection{Orthogonal and symplectic groups}
 For the orthogonal group $O(d)$ and symplectic group $Sp(d)$, the integration
@@ -360,13 +351,10 @@ where $k$ is the number of distinct index pairs.
 The package supports a wide range of integration measures, grouped as follows:
 \begin{itemize}
     \item \textbf{Compact groups}: Standard Haar measures on the unitary $U(d)$,
-    orthogonal $O(d)$, and symplectic $Sp(d)$ groups. These are defined via
-    \texttt{dU(d)}, \texttt{dO(d)}, and \texttt{dSp(d)}, where the
-    argument is the dimension $d$, which can be a symbolic variable or a concrete integer.
-    \item \textbf{Special unitary group}: The Haar measure on $SU(d)$, accessed
-    via \texttt{dSU(d)}. This measure enforces the $U(d)$ integration logic
-    for balanced moments while strictly annihilating unbalanced terms,
-    consistent with the large-$d$ limit.
+    special unitary $SU(d)$, orthogonal $O(d)$, and symplectic $Sp(d)$ groups.
+    These are defined via \texttt{dU(d)}, \texttt{dSU(d)}, \texttt{dO(d)}, and
+    \texttt{dSp(d)}, where the argument is the dimension $d$. For balanced
+    polynomials, $SU(d)$ and $U(d)$ integrals coincide.
     \item \textbf{Circular ensembles}: Measures for the circular unitary (CUE),
     orthogonal (COE), and symplectic (CSE) ensembles. While CUE is equivalent to
     the Haar measure on $U(d)$, COE and CSE represent symmetric and self-dual
@@ -428,7 +416,7 @@ Gaussian ensembles (GUE, GOE, GSE). These are implemented using Wick's theorem
 Gaussian Hermitian matrix $H$, the expectation values are determined by the
 pairwise contractions:
 \begin{itemize}
-    \item \textbf{GUE}: $\langle H_{ij} \bar{H}_{kl} \rangle = \delta_{il} \delta_{jk}$, leading to $\langle \mathrm{tr}(H^2) \rangle = d^2$.
+    \item \textbf{GUE}: $\langle H_{ij} \bar{H}_{kl} \rangle = \delta_{il} \delta_{jk}$, leading to $\langle \mathrm{tr}(H^2) \rangle = d^2$, $\langle \mathrm{tr}(H^4) \rangle = 2d^3 + d$, and $\langle \mathrm{tr}(H^6) \rangle = 5d^4 + 10d^2$.
     \item \textbf{GOE}: $\langle H_{ij} H_{kl} \rangle = \delta_{ik} \delta_{jl} + \delta_{il} \delta_{jk}$ (for real symmetric $H$), leading to $\langle \mathrm{tr}(H^2) \rangle = d^2 + d$.
     \item \textbf{GSE}: For self-dual Hermitian matrices, the package utilizes
     the duality relation:
@@ -447,9 +435,7 @@ ensembles (GinUE, GinOE, GinSE) \cite{ginibre1965statistical}, which consist of
 non-Hermitian matrices with independent and identically distributed (i.i.d.)
 Gaussian entries. These are integrated using similar Wick contraction rules:
 \begin{itemize}
-    \item \textbf{GinUE}: $\langle G_{ij} \bar{G}_{kl} \rangle = \delta_{ik}
-    \delta_{jl}$. Only contractions between $G$ and its conjugate $\bar{G}$ are
-    non-vanishing.
+    \item \textbf{GinUE}: $\langle G_{ij} \bar{G}_{kl} \rangle = \delta_{ik} \delta_{jl}$, leading to $\langle \mathrm{tr}(G G^\dagger) \rangle = d^2$, $\langle \mathrm{tr}(G G^\dagger)^2 \rangle = d^4 + d^2$, and $\langle \mathrm{tr}((G G^\dagger)^2) \rangle = 2d^3$. Only contractions between $G$ and its conjugate $\bar{G}$ are non-vanishing.
     \item \textbf{GinOE}: $\langle G_{ij} G_{kl} \rangle = \delta_{ik}
     \delta_{jl}$ for real entries.
     \item \textbf{GinSE}: Quaternionic entries treated via duality relations.
@@ -478,7 +464,7 @@ symmetric spaces.
 These are accessed via \texttt{dCOE(d)}, \texttt{dCSE(d)}, and
 \texttt{dCUE(d)} (alias for \texttt{dU}).
 
-\subsection{Unitary designs}
+\subsection{Unitary designs: Finite-moment measures and guards}
 Unitary $t$-designs \cite{dankert2009exact, gross2007evenly,
 ambainis2007quantum} are ensembles of unitary matrices that mimic the Haar
 measure up to the $t^\mathrm{th}$ moment. Specifically, a set of unitaries
@@ -505,20 +491,13 @@ sampling distribution.
 The package includes a suite of helper functions tailored for quantum information
 tasks, designed to work seamlessly with symbolic expressions:
 \begin{itemize}
-    \item \textbf{Purity}: The \texttt{purity($\rho$)} function computes
-    $\mathrm{tr}(\rho^2)$. The companion function \texttt{average\_purity}
-    automates the integration of this quantity over the specified measure,
-    returning analytical averages for random states or channels.
-    \item \textbf{Fidelity}: The \texttt{fidelity($\rho, \sigma$)} function
-    calculates the fidelity between two states. For pure states or when one state
-    is pure, this simplifies to the Hilbert-Schmidt inner product $\mathrm{tr}(\rho
-    \sigma)$. \texttt{average\_fidelity} computes the expectation value of this
-    metric.
     \item \textbf{Partial Trace}: The \texttt{partial\_trace(M, dims, system)}
     function computes the partial trace of a symbolic matrix $M$ over a specified
     subsystem. It handles composite dimensions $d = d_A d_B$ symbolically, ensuring
     that the resulting reduced density matrix retains the correct symbolic
-    dependencies for further integration.
+    dependencies for further integration. This allows for the exact calculation
+    of entanglement metrics like purity by integrating the trace of the squared
+    reduced density matrix.
 \end{itemize}
 These utilities reduce the boilerplate code required for setting up common
 calculations in quantum information theory, such as entanglement quantification
@@ -537,8 +516,9 @@ where $N(d)$ and $D(d)$ are polynomials. This capability is critical for studyin
     dimensions where the Weingarten expansion breaks down (e.g., $d < k$).
     \item \textbf{Thermodynamic limits}: The \texttt{asymptotic(expr, measure, order)}
     function computes the series expansion of the result in powers of $1/d$.
-    This automates the extraction of large-$d$ behavior, facilitating the study
-    of concentration of measure and asymptotic freeness.
+    This automates the extraction of large-$d$ behavior even for high-degree
+    moments like $|\mathrm{tr}(U)|^{12}$, where exact rational results are
+    combinatorially heavy to simplify.
 \end{itemize}
 Even when the input dimension is numeric (e.g., $d=3$), the \texttt{asymptotic}
 routine can introduce a dummy symbolic variable to perform the expansion, providing
@@ -608,6 +588,20 @@ result = @integrate abs(U[1,1])^2 dU(d)
 # Complex trace moments are also supported
 res_tr = @integrate abs(tr(U))^4 dU(d)
 # Output: 2
+
+# High-degree moments (Example A: different rows/cols)
+res_a = @integrate abs(U[1, 1])^2 * abs(U[2, 2])^4 * abs(U[1, 3])^6 dU(d)
+
+# High-degree moments (Example B: same row, Dirichlet behavior)
+res_b = @integrate abs(U[1, 1])^2 * abs(U[1, 2])^4 * abs(U[1, 3])^6 dU(d)
+
+# Example C: "2-design style" correlator identity
+res_c = @integrate U[1, 1] * conj(U[1, 2]) * U[2, 2] * conj(U[2, 1]) dU(d)
+
+# Special Unitary group (stable range)
+# Balanced moment: E[|U_11|^2] matches U(d)
+@integrate abs(U[1, 1])^2 dSU(d)
+# Output: 1/d
 \end{lstlisting}
 
 The result $1/d$ confirms the expected normalization: since the rows and columns
@@ -636,23 +630,22 @@ diagonal entry for the symmetric (COE) and self-dual (CSE) cases:
 # E[O_11^4]
 @integrate O[1, 1]^4 dO(d)
 # Output: 3 / (d*(d+2))
+
+# Example O1: high powers, single row
+@integrate O[1,1]^2 * O[1,2]^4 * O[1,3]^6 dO(d)
+
+# Example O2: mixed rows/cols
+@integrate O[1,1]^2 * O[2,2]^4 * O[1,3]^6 dO(d)
+
+# Example S1: Symplectic mixed moments
+@integrate abs(Sp[1,1])^2 * abs(Sp[1,2])^2 dSp(d)
+
+# Example Sp1: high powers, single row
+@integrate abs(Sp[1,1])^2 * abs(Sp[1,2])^4 * abs(Sp[1,3])^6 dSp(d)
 \end{lstlisting}
 
 These results contrast with the Haar unitary value of $1/d$, reflecting the
 constraints imposed by the respective symmetries ($S=S^T$ and $S=S^R$).
-
-\subsection{Special unitary group}
-For the special unitary group $SU(d)$, the integration behaves similarly to
-$U(d)$ for balanced moments but differs for unbalanced ones.
-\begin{lstlisting}[language=Julia]
-# Balanced moment: E[|U_11|^2] matches U(d)
-@integrate abs(U[1, 1])^2 dSU(d)
-# Output: 1/d
-
-# Unbalanced moment: E[U_11]
-@integrate U[1, 1] dSU(d)
-# Output: 0
-\end{lstlisting}
 
 \subsection{Matrix integration}
 \texttt{IntU.jl} allows for the direct integration of matrix-valued expressions.
@@ -928,7 +921,7 @@ Key observations include:
     \item \textbf{Correctness}: All benchmarks were verified against known exact
     values or asymptotic results, confirming the numerical stability of the
     implementation even for large dimensions (e.g., $d=50$).
-    \item \textbf{Application}: The purity calculation for a bipartite state
+    \item \textbf{Application}: The integration of the trace of the squared reduced density matrix for a bipartite state
     ($d=6$), which involves contracting a 4$^\mathrm{th}$ degree polynomial over
     the unitary group, completes in approximately 9.8 ms, demonstrating the
     tool's applicability to quantum information tasks.
@@ -988,13 +981,13 @@ Permutation & $P_{11}^{10}$ & $d=100$ & 0.4 \\
 Permutation & $\mathrm{tr}(PA)^2$ & $d=4$ & 12.3 \\
 Centered Perm. & $Y_{11}^4$ & $d=10$ & 0.4 \\
 \hline
-Application & Purity & $d=6$ & 9.3 \\
+Application & Bipartite & $d=6$ & 9.3 \\
 \hline
 \end{tabular}
 \end{table}
 
 The results demonstrate that \texttt{IntU.jl} remains efficient for practically
-relevant problem sizes. The rapid execution of the purity application ($\approx$
+relevant problem sizes. The rapid execution of the bipartite state application ($\approx$
 10 ms) highlights the library's utility for routine quantum information tasks,
 while the sub-millisecond performance for low-degree orthogonal integrals
 facilitates large-scale statistical sampling. We further note that the circular

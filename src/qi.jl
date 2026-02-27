@@ -1,41 +1,4 @@
 
-"""
-    purity(rho)
-
-Calculate the purity of a density matrix `rho`, defined as Tr(rho^2).
-"""
-function purity(rho)
-    return tr(rho * rho)
-end
-
-"""
-    average_purity(rho, measure)
-
-Calculate the Haar-average purity of a density matrix `rho` under the given `measure`.
-"""
-function average_purity(rho, measure)
-    return integrate(purity(rho), measure)
-end
-
-"""
-    fidelity(rho, sigma)
-
-Calculate the fidelity between two density matrices `rho` and `sigma`.
-For pure states, this is |<phi|psi>|^2. In this package, we use the 
-Hilbert-Schmidt inner product Tr(rho * sigma) as a convenience.
-"""
-function fidelity(rho, sigma)
-    return tr(rho * sigma)
-end
-
-"""
-    average_fidelity(rho, sigma, measure)
-
-Calculate the Haar-average fidelity between `rho` and `sigma` under the given `measure`.
-"""
-function average_fidelity(rho, sigma, measure)
-    return integrate(fidelity(rho, sigma), measure)
-end
 
 """
     partial_trace(M, dims, subsystem)

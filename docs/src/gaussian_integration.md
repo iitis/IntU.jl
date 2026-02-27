@@ -75,6 +75,14 @@ using IntU, Symbolics
 res = @integrate tr(H^2) dGUE(d)
 println(res)
 # Output: d^2
+
+# Average Trace of H^4
+# < Tr(H^4) > = 2d^3 + d
+res4 = @integrate tr(H^4) dGUE(d)
+
+# Average Trace of H^6
+# < Tr(H^6) > = 5d^4 + 10d^2
+res6 = @integrate tr(H^6) dGUE(d)
 ```
 
 ### GinUE Example
@@ -86,6 +94,17 @@ println(res)
 res_ginue = @integrate tr(G * G') dGinUE(d)
 println(res_ginue)
 # Output: d^2
+
+# Average Trace of (G G')^2
+# < Tr(G G' G G') > = 2d^3
+res_ginue_sq = @integrate tr(G * G' * G * G') dGinUE(d)
+
+# Wishart-style moments
+# < Tr(G G')^2 > = d^4 + d^2
+x2 = @integrate tr(G * G')^2 dGinUE(d)
+
+# < Tr((G G')^2) > = 2d^3 (matches the identity above)
+y2 = @integrate tr((G * G')^2) dGinUE(d)
 ```
 
 ### GOE Example
@@ -127,6 +146,14 @@ IntU.jl automates the following steps:
 2.  **Pair Partitioning**: Generates all ways to pair up the matrix factors.
 3.  **Contraction**: For each pair, applies the specific ensemble contraction rule.
 4.  **Summation**: Sums the contributions.
+
+## Potential Pitfalls
+
+> [!IMPORTANT]
+> ### Symbolic (d) Pitfalls
+> - **Small Dimensions**: For Haar-related measures (Unitary, Orthogonal, Circular), results are rational functions with poles at small $d$ (typically $d < n$ for degree $n$ moments).
+> - **Removable Singularities**: Substituting numeric values can yield $0/0$ forms (e.g., at $d=1$ or $d=2$).
+> - **Automatic Handling**: `IntU.jl`'s `evaluate` function automatically simplifies expressions to resolve removable singularities when a denominator evaluates to zero.
 
 ## References
 

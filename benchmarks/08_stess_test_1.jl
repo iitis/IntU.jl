@@ -250,16 +250,16 @@ function test_application()
     Uψ = Uψ_sym[1:D, 1:D]
     μConcrete = dU(D)
     psi(a, b) = Uψ[(a-1)*nB+b, 1]
-    purity = zero(Num)
+    tr_rhoA2 = zero(Num)
     for a = 1:nA, ap = 1:nA, b = 1:nB, bp = 1:nB
-        purity += psi(a, b) * conj(psi(ap, b)) * psi(ap, bp) * conj(psi(a, bp))
+        tr_rhoA2 += psi(a, b) * conj(psi(ap, b)) * psi(ap, bp) * conj(psi(a, bp))
     end
-    expected_purity = (nA + nB) // (D + 1)
+    expected_tr_rhoA2 = (nA + nB) // (D + 1)
     run_example(
-        "Purity (nA=2,nB=3,D=6): E[tr(ρ_A^2)]",
-        purity,
+        "Bipartite (nA=2,nB=3,D=6): E[tr(ρ_A^2)]",
+        tr_rhoA2,
         μConcrete,
-        expected_purity,
+        expected_tr_rhoA2,
         benchmark = true,
     )
 end

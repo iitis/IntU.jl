@@ -193,7 +193,7 @@ t, _ = measure_median_func(() -> integrate(Y10[1, 1]^4, mCP10))
 
 println("------------------------------------------------------------------------")
 
-function benchmark_purity()
+function benchmark_bipartite()
     d_total = 6
     dims = (3, 2)
     U = SymbolicMatrix(:U, :U, d_total)
@@ -204,12 +204,12 @@ function benchmark_purity()
 
     t, _ = measure_median_func(() -> begin
         rho_A = partial_trace(rho_random, dims, 2)
-        integrate(purity(rho_A), measure)
+        integrate(tr(rho_A * rho_A), measure)
     end)
     return t
 end
-t_pure = benchmark_purity()
-@printf("%-18s %-25s %-15s %10.2f\n", "Application", "Purity", "d=6", t_pure)
+t_pure = benchmark_bipartite()
+@printf("%-18s %-25s %-15s %10.2f\n", "Application", "Bipartite", "d=6", t_pure)
 
 
 # --- TABLE 2: ITensor Scaling ---

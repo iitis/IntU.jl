@@ -199,7 +199,9 @@ Reference:
     wnum, wden = weingarten_raw(partition_type, d)
     res = wnum / wden
     if !(d isa Integer)
-        return Symbolics.simplify(res)
+        # Avoid radical simplify that can lead to integer overflow
+        # for high-degree moments. asymptotic() will handle expansion.
+        return Num(quick_cancel(Symbolics.unwrap(res)))
     end
     return res
 end
@@ -637,7 +639,7 @@ function _univariate_poly_solve(M::AbstractMatrix{Num}, rhs::AbstractVector{Num}
         com = from_vec(g, var)
         
         unwrapped = (Symbolics.unwrap(num) / Symbolics.unwrap(com)) / (Symbolics.unwrap(den) / Symbolics.unwrap(com))
-        x[i] = Num(Symbolics.simplify(quick_cancel(unwrapped)))
+        x[i] = Num(quick_cancel(unwrapped))
     end
     return x
 end

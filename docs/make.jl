@@ -19,9 +19,7 @@ makedocs(;
         "Home" => "index.md",
         "Manual" => [
             "Unitary Integration" => "unitary_integration.md",
-            "Special Unitary Group" => "su_integration.md",
             "Diagonal Unitaries" => "diagonal_unitary.md",
-            "Unitary Designs" => "unitary_designs.md",
             "Orthogonal & Symplectic" => "orthogonal_integration.md",
             "Permutation Groups" => "permutation_integration.md",
             "Circular Ensembles" => "circular_ensembles.md",

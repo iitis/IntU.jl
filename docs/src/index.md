@@ -37,14 +37,12 @@ integrate(expr, measure)
 
 ## Manual
 
-- [Unitary Integration](unitary_integration.md): Core functionality for $U(d)$.
-- [Special Unitary Group](su_integration.md): Integration over SU(d).
+- [Unitary Integration](unitary_integration.md): Core functionality for $U(d)$ and $SU(d)$.
 - [Diagonal Unitaries](diagonal_unitary.md): Integration over the Torus group.
 - [Orthogonal & Symplectic](orthogonal_integration.md): Integration over real groups.
 - [Gaussian Ensembles](gaussian_integration.md): GUE, GOE, and GSE.
 - [Circular Ensembles](circular_ensembles.md): COE, CUE, and CSE.
 - [Permutation Groups](permutation_integration.md): Symmetric and centered permutations.
-- [Unitary Designs](unitary_designs.md): Exact moments of $t$-designs.
 - [Pure States](pure_states.md): Integration over random vectors.
 - [Symbolic Trace Logic](symbolic_trace.md): Index-free matrix integration.
 - [Asymptotic Expansions](asymptotic.md): Large-$d$ limit analysis.

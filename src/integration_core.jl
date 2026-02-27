@@ -2019,7 +2019,7 @@ end
     _expand_asymptotic(ex, d, order)
 
 Helper to expand a rational function of `d` in powers of `1/d`.
-Uses Taylor expansion in ε = 1/d around ε = 0.
+Uses a series dictionary representation for robust recursive processing.
 """
 function _expand_asymptotic(ex, d, order)
     ex_un = Symbolics.unwrap(ex)
@@ -2040,19 +2040,120 @@ function _expand_asymptotic(ex, d, order)
     d_un = Symbolics.unwrap(d)
     d_num = Symbolics.wrap(d_un)
 
-    # Substitute d -> 1/ε and clear denominators
-    ex_sim = Symbolics.simplify(Symbolics.wrap(ex_un))
+    series_dict = _asymptotic_series_dict(ex_un, d_un, order)
 
+    if isempty(series_dict)
+        return Num(0)
+    end
+
+    # Build Num from terms
+    res = Num(0)
+    for p in sort(collect(keys(series_dict)))
+        coeff = series_dict[p]
+        if !_iszero(coeff)
+            if p == 0
+                res = res + coeff
+            elseif p > 0
+                res = res + coeff * (1 / d_num)^p
+            else
+                res = res + coeff * d_num^(-p)
+            end
+        end
+    end
+
+    return Symbolics.expand(res)
+end
+
+function _asymptotic_series_dict(ex_un, d_un, order)
+    if !(ex_un isa SymbolicUtils.BasicSymbolic)
+        return Dict(0 => Symbolics.wrap(ex_un))
+    end
+
+    # Constants
+    vars = Symbolics.get_variables(ex_un)
+    if !any(v -> isequal(v, d_un), vars)
+        return Dict(0 => Symbolics.wrap(ex_un))
+    end
+
+    if isequal(ex_un, d_un)
+        return Dict(-1 => Num(1))
+    end
+
+    if SymbolicUtils.isadd(ex_un)
+        res = Dict{Int,Any}()
+        for arg in SymbolicUtils.arguments(ex_un)
+            s_arg = _asymptotic_series_dict(arg, d_un, order)
+            for (p, v) in s_arg
+                if p <= order
+                    res[p] = get(res, p, Num(0)) + v
+                end
+            end
+        end
+        return res
+    end
+
+    if SymbolicUtils.ismul(ex_un)
+        res = Dict(0 => Num(1))
+        for arg in SymbolicUtils.arguments(ex_un)
+            s_arg = _asymptotic_series_dict(arg, d_un, order)
+            new_res = Dict{Int,Any}()
+            for (p1, v1) in res
+                for (p2, v2) in s_arg
+                    p = p1 + p2
+                    if p <= order
+                        val = v1 * v2
+                        new_res[p] = get(new_res, p, Num(0)) + val
+                    end
+                end
+            end
+            res = new_res
+            if isempty(res) break end
+        end
+        return res
+    end
+
+    if SymbolicUtils.ispow(ex_un)
+        base, exp = SymbolicUtils.arguments(ex_un)
+        if exp isa Integer && exp > 1
+            # Simple integer power expansion
+            res = Dict(0 => Num(1))
+            s_base = _asymptotic_series_dict(Symbolics.unwrap(base), d_un, order)
+            for _ = 1:exp
+                new_res = Dict{Int,Any}()
+                for (p1, v1) in res
+                    for (p2, v2) in s_base
+                        p = p1 + p2
+                        if p <= order
+                            new_res[p] = get(new_res, p, Num(0)) + v1 * v2
+                        end
+                    end
+                end
+                res = new_res
+            end
+            return res
+        end
+    end
+
+    return _asymptotic_leaf_dict(ex_un, d_un, order)
+end
+
+function _asymptotic_leaf_dict(ex_un, d_un, order)
+    d_num = Symbolics.wrap(d_un)
+    # expand() is generally safer than simplify() for large mixed rational functions
+    ex_sim = Symbolics.expand(Symbolics.wrap(ex_un))
 
     if ex_sim isa Complex
-        re_part = _expand_asymptotic(real(ex_sim), d, order)
-        im_part = _expand_asymptotic(imag(ex_sim), d, order)
-        return re_part + im * im_part
+        re_dict = _asymptotic_series_dict(Symbolics.unwrap(real(ex_sim)), d_un, order)
+        im_dict = _asymptotic_series_dict(Symbolics.unwrap(imag(ex_sim)), d_un, order)
+        res = copy(re_dict)
+        for (p, v) in im_dict
+            res[p] = get(res, p, Num(0)) + im * v
+        end
+        return res
     end
 
     num = Symbolics.numerator(ex_sim)
     den = Symbolics.denominator(ex_sim)
-
 
     n = _poly_degree(num, d_un)
     m = _poly_degree(den, d_un)
@@ -2060,19 +2161,12 @@ function _expand_asymptotic(ex, d, order)
     ϵ = Symbolics.variable(:ϵ)
     ϵ_un = Symbolics.unwrap(ϵ)
 
-
-    p_eps = Symbolics.simplify(
-        Symbolics.substitute(num, Dict(d_num => 1/ϵ)) * ϵ^n;
-        expand = true,
-    )
-    q_eps = Symbolics.simplify(
-        Symbolics.substitute(den, Dict(d_num => 1/ϵ)) * ϵ^m;
-        expand = true,
-    )
+    p_eps = Symbolics.expand(Symbolics.substitute(num, Dict(d_num => 1 / ϵ)) * ϵ^n)
+    q_eps = Symbolics.expand(Symbolics.substitute(den, Dict(d_num => 1 / ϵ)) * ϵ^m)
 
     f_analytic = Symbolics.simplify(p_eps / q_eps; expand = true)
 
-    terms = Num[]
+    res_dict = Dict{Int,Any}()
     curr_deriv = f_analytic
     diff = m - n
 
@@ -2086,7 +2180,6 @@ function _expand_asymptotic(ex, d, order)
         if vu isa Number && (isnan(vu) || isinf(vu))
             needs_sim = true
         elseif !(vu isa Number)
-            # Check if substitute resulted in something with NaN or Inf structurally
             s_val = string(vu)
             if occursin("NaN", s_val) || occursin("Inf", s_val) || occursin("1//0", s_val)
                 needs_sim = true
@@ -2094,12 +2187,9 @@ function _expand_asymptotic(ex, d, order)
         end
 
         if needs_sim
-            curr_sim = Symbolics.simplify(curr_deriv; expand = true)
+            curr_sim = Symbolics.expand(curr_deriv)
             val = Symbolics.substitute(curr_sim, Dict(ϵ => 0))
-
-            # Fallback if simplify didn't resolve epsilon cleanly
-            vars_val = Symbolics.get_variables(val)
-            if any(var -> isequal(var, ϵ_un), vars_val)
+            if any(var -> isequal(var, ϵ_un), Symbolics.get_variables(val))
                 val = Symbolics.wrap(
                     SymbolicUtils.Postwalk(x -> _symbolic_isequal(x, ϵ_un) ? 0 : x)(
                         Symbolics.unwrap(curr_deriv),
@@ -2112,32 +2202,18 @@ function _expand_asymptotic(ex, d, order)
 
         if !_iszero(val)
             power = k + diff
-            # Use Rational for factorial to avoid float pollution
             coeff = (1 // factorial(k))
-            term = Symbolics.simplify(val * coeff) * (1 / d_num)^power
-            push!(terms, term)
+            res_dict[power] = get(res_dict, power, Num(0)) + Symbolics.expand(val * coeff)
         end
 
         if k < max_k
             curr_deriv = Symbolics.derivative(curr_deriv, ϵ)
-            # Periodic simplification to manage expression size
             if k % 2 == 0
-                curr_deriv = Symbolics.simplify(curr_deriv; expand = true)
+                curr_deriv = Symbolics.expand(curr_deriv)
             end
         end
     end
-
-    if isempty(terms)
-        return Num(0)
-    end
-
-    # Summing terms manually and avoiding final simplify to keep the expansion structure
-    res = terms[1]
-    for i = 2:length(terms)
-        res = res + terms[i]
-    end
-
-    return Symbolics.expand(res)
+    return res_dict
 end
 
 """

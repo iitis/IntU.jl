@@ -15,6 +15,9 @@ where $U$ is a $d \times d$ unitary matrix ($U U^\dagger = I$). The integral is 
 to the Haar measure, which is the unique translation-invariant probability measure on the compact
 Lie group $U(d)$.
 
+> [!NOTE]
+> **Special Unitary Group $SU(d)$**: For all currently supported "balanced" polynomial expressions (where the number of $U$ and $\bar{U}$ factors are equal), the integration over $SU(d)$ is equivalent to $U(d)$. Non-stable-range effects involving $\epsilon$-tensors for specific small $d$ are not currently covered.
+
 The result is expressed in terms of the dimension $d$ and Kronecker deltas matching the indices.
 
 ## Theory: Weingarten Calculus
@@ -74,24 +77,62 @@ A key feature of IntU.jl is the ability to leave the dimension $d$ as a symbolic
 This is achieved through the `SymbolicMatrix` type, which represents a matrix
 of arbitrary (symbolic) size.
 
+## Unitary Designs
+ 
+In many applications, full Haar integration is not required. Instead, one uses **Unitary $t$-designs**, which are ensembles that mimic the first $t$ moments of the Haar measure. A unitary $t$-design is a probability distribution $\nu$ such that for any polynomial $P$ of degree at most $t$ in $U$ and $\bar{U}$:
+```math
+\mathbb{E}_{U \sim \nu} [P(U, \bar{U})] = \mathbb{E}_{U \sim \text{Haar}} [P(U, \bar{U})]
+```
+ 
+### Usage: dDesign
+ 
+Use the `dDesign(d, t)` measure to define a unitary $t$-design of dimension $d$ and order $t$.
+ 
+```julia
+using IntU, Symbolics
+@variables d
+# E[|U_11|^2] using a 2-design (degree 1 in U, 1 in U*)
+@integrate abs(U[1,1])^2 dDesign(d, 2)
+# Output: 1/d
+```
+ 
+### Integration Behavior and Guards
+ 
+`IntU.jl` strictly enforces the validity of the integration over $t$-designs:
+ 
+1. **Degree Check**: The integrator calculates the total degree $q$ of the integrand in $U$ and $U^\dagger$.
+2. **Guards**: If the degree $q$ exceeds the design order $t$ ($q > t$), the package throws an `ErrorException` (e.g., `Integrand degree (3, 3) exceeds design order t=2`). This prevents accidental reliance on non-guaranteed values.
+3. **Performance**: For valid degrees ($q \le t$), the computation uses the standard Weingarten formulas, ensuring Haar-exact results.
+ 
+This guard mechanism ensures that physical simulations and protocol verifications (such as randomized benchmarking) remain mathematically rigorous.
+
 ## Examples
 
 ### 1. Basic Integration using `@integrate`
- 
- The `@integrate` macro provides a convenient way to integrate expressions without manually declaring variables. It uses heuristics to identify random unitaries (usually `U`) and dimensions.
- 
- ```julia
- using IntU, Symbolics
- @variables d
- # E[|U_11|^2]
- @integrate abs(U[1, 1])^2 dU(d)
- # Output: 1/d
- ```
- 
- ### 2. Manual Integration
- 
- For more control, or when dealing with multiple matrices, you can declare symbols explicitly.
- 
+
+The `@integrate` macro provides a convenient way to integrate expressions without manually declaring variables. It uses heuristics to identify random unitaries (usually `U`) and dimensions.
+
+```julia
+using IntU, Symbolics
+@variables d
+# E[|U_11|^2]
+@integrate abs(U[1, 1])^2 dU(d)
+# Output: 1/d
+
+# High-degree moments (Example A: different rows/cols)
+res_a = @integrate abs(U[1, 1])^2 * abs(U[2, 2])^4 * abs(U[1, 3])^6 dU(d)
+
+# High-degree moments (Example B: same row, Dirichlet behavior)
+res_b = @integrate abs(U[1, 1])^2 * abs(U[1, 2])^4 * abs(U[1, 3])^6 dU(d)
+
+# Example C: "2-design style" correlator identity
+res_c = @integrate U[1, 1] * conj(U[1, 2]) * U[2, 2] * conj(U[2, 1]) dU(d)
+```
+
+### 2. Manual Integration
+
+For more control, or when dealing with multiple matrices, you can declare symbols explicitly.
+
 
 ```julia
 using IntU, Symbolics
@@ -142,6 +183,7 @@ U = SymbolicMatrix(:U, :U)
 A = SymbolicMatrix(:A)
 B = SymbolicMatrix(:B)
 integrate(tr(U * A * U' * B), dU(d))
+```
 
 ### 6. Complex Trace Powers
 
@@ -178,16 +220,13 @@ See the [API Reference](api.md) for more details.
 
 ## Potential Pitfalls
 
--   **Symbolic vs Numeric Dimension**: The dimension $d$ can be symbolic.
-    However, the Weingarten function has poles at small integers ($d < n$).
-    The symbolic result assumes $d$ is generic/large. Substituting discrete values $d < n$
-    into the rational function may result in division by zero, although the integral itself
-    is well-defined.
--   **Removable Singularities**: When using `evaluate` to substitute numeric values into symbolic 
-    results, $0/0$ forms may appear (e.g., at $d=1$ for some expressions). `IntU.jl` 
-    automatically detects when a denominator evaluates to zero and simplifies the expression 
-    to attempt to resolve these removable singularities.
--   **Computational Complexity**: The sum involves $(n!)^2$ terms. While optimized
+> [!IMPORTANT]
+> ### Symbolic (d) Pitfalls
+> - **Small Dimensions**: For Haar-related measures (Unitary, Orthogonal, Circular), results are rational functions with poles at small $d$ (typically $d < n$ for degree $n$ moments).
+> - **Removable Singularities**: Substituting numeric values can yield $0/0$ forms (e.g., at $d=1$ or $d=2$).
+> - **Automatic Handling**: `IntU.jl`'s `evaluate` function automatically simplifies expressions to resolve removable singularities when a denominator evaluates to zero.
+
+- **Computational Complexity**: The sum involves $(n!)^2$ terms. While optimized
     to group cycles, integrals with high degrees ($n > 6$) can become
     computationally expensive. The number of terms grows factorially.
 

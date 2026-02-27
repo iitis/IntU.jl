@@ -77,7 +77,7 @@ export get_pair_partitions,
     get_weingarten_orthogonal_data
 
 # Quantum information helpers
-export tr, det, purity, average_purity, fidelity, average_fidelity, partial_trace
+export tr, det, partial_trace
 
 # Internal API (exported for advanced use)
 export AbstractIndexMatcher, MetadataMatcher, _integrate_core, process_term
