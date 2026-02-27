@@ -122,7 +122,9 @@ using IntU, Symbolics
 
 - **Automatic Conjugation**: For $Sp(d)$, the code treats `conj(S)` non-trivially. It uses the relation $\bar{S} = -J S J$ to rewrite conjugate entries in terms of $S$ entries (and J factors). This allows using the efficient Weingarten formula for products of $S$ only.
 - **Dimension Parity**: For $Sp(d)$, $d$ must be even. The symbolic result is valid for even $d$.
-- **Computational Complexity**: The sum over pair partitions $M_{2n}$ grows as $(2n)!!$. This is significantly faster than $(n!)^2$ for $U(d)$ but still grows combinatorially.
+- **High-Performance Symbolic Solver**: For symbolic dimensions $d$, `IntU.jl` uses a specialized univariate polynomial solver based on the **Bareiss algorithm**. This is significantly faster and more robust than general-purpose symbolic simplifiers, especially for high-degree moments ($k \ge 6$).
+- **Exact Rational Summation**: To ensure stability and correctness for symbolic results, orthogonal integration uses an internal exact rational arithmetic engine to compute Weingarten sums. This avoids issues with floating-point precision and symbolic simplification bugs.
+- **Cycle Type Grouping**: The integration engine automatically groups pair partitions by their loop cycle types, reducing the number of symbolic operations from $(2k-1)!!$ to the number of partitions of $k$.
 - **Removable Singularities**: When using `evaluate` to substitute numeric values into symbolic 
   results, $0/0$ forms may appear. `IntU.jl` automatically detects when a 
   denominator evaluates to zero and simplifies the expression to attempt to 

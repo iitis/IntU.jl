@@ -142,9 +142,22 @@ U = SymbolicMatrix(:U, :U)
 A = SymbolicMatrix(:A)
 B = SymbolicMatrix(:B)
 integrate(tr(U * A * U' * B), dU(d))
+
+### 6. Complex Trace Powers
+
+`IntU.jl` supports integrating complex powers and absolute values of traces, such as $|tr(U)|^n$. These are processed efficiently using a lazy evaluation engine.
+
+```julia
+using IntU, Symbolics
+@variables d
+U = SymbolicMatrix(:U, :U)
+
+# Integral of |Tr(U)|^4
+integrate(abs(tr(U))^4, dU(d))
+# Output: 2
 ```
 
-### 6. HCIZ Integrals
+### 7. HCIZ Integrals
 
 IntU.jl provides direct support for **Harish-Chandra-Itzykson-Zuber (HCIZ)** integrals.
 

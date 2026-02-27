@@ -1525,33 +1525,42 @@ function integrate_indices_orthogonal(indices::AbstractVector, dim)
         sigma_counts[c_sigma] = get(sigma_counts, c_sigma, 0) + 1
     end
 
-    w, type_to_idx, _ = get_weingarten_reduced_data(k, dim)
-    total = zero(eltype(w))
-
-    n_pi = length(pi_counts)
-    n_sigma = length(sigma_counts)
-    if n_pi * n_sigma > 100
-        p = Progress(n_pi * n_sigma; dt=10.0, desc="Calculating orthogonal integrals... ")
-        for (c_pi, count_pi) in pi_counts
-            for (c_sigma, count_sigma) in sigma_counts
-                ct = get_full_cycle_type(c_pi, c_sigma)
-                val = w[type_to_idx[ct]]
-                total += (BigInt(count_pi) * BigInt(count_sigma)) * val
-                next!(p)
-            end
-        end
-    else
-        for (c_pi, count_pi) in pi_counts
-            for (c_sigma, count_sigma) in sigma_counts
-                ct = get_full_cycle_type(c_pi, c_sigma)
-                val = w[type_to_idx[ct]]
-                total += (BigInt(count_pi) * BigInt(count_sigma)) * val
-            end
+    # Pre-aggregate counts by cycle type to minimize symbolic additions
+    type_counts = Dict{Vector{Int}, BigInt}()
+    for (c_pi, count_pi) in pi_counts
+        for (c_sigma, count_sigma) in sigma_counts
+            ct = get_full_cycle_type(c_pi, c_sigma)
+            type_counts[ct] = get(type_counts, ct, zero(BigInt)) + BigInt(count_pi) * BigInt(count_sigma)
         end
     end
 
     if !(dim isa Integer)
-        return Symbolics.simplify(Symbolics.wrap(total))
+        w, type_to_idx, _ = get_weingarten_reduced_data(k, dim, return_rationals=true)
+        
+        # Exact rational summation to bypass Symbolics.simplify bugs
+        local_total_rat = nothing
+        for (ct, count) in type_counts
+            term = _rational_mul(w[type_to_idx[ct]], count)
+            if local_total_rat === nothing
+                local_total_rat = term
+            else
+                local_total_rat = _rational_add(local_total_rat, term)
+            end
+        end
+        
+        if local_total_rat === nothing
+            return Num(0)
+        end
+        return from_rational(local_total_rat)
+    end
+    
+    # Numeric case
+    w, type_to_idx, _ = get_weingarten_reduced_data(k, dim)
+    T_val = eltype(w)
+    total = zero(T_val)
+    for (ct, count) in type_counts
+        val = w[type_to_idx[ct]]
+        total += count * val
     end
     return total
 end
