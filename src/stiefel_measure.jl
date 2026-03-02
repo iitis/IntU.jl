@@ -29,17 +29,8 @@ struct StiefelMeasure{D,K,M} <: AbstractMeasure
 end
 StiefelMeasure(dim, k) = StiefelMeasure(dim, k, nothing)
 
-function IntU.measure_info(measure::StiefelMeasure)
-    subs_dict = Dict{Any,Any}()
-    # Default to matching :U, as per docs and examples
-    matcher = measure.matcher === nothing ? MetadataMatcher(:U) : measure.matcher
-    dim = measure.dim
-    if dim isa SymbolicMatrix
-        dim = dim.dim
-    end
-    # The integration rule uses :U logic (mapping V -> U P, where P is projection)
-    return (subs_dict, matcher, dim, :U)
-end
+# Integration uses :U logic (mapping V -> U P, where P is projection)
+IntU._measure_tag(::StiefelMeasure) = :U
 
 function integrate(P::SymbolicMatrixProduct, measure::StiefelMeasure)
     if isempty(P.factors)
@@ -126,20 +117,4 @@ function integrate(P::SymbolicMatrixProduct, measure::StiefelMeasure)
     throw(ArgumentError("Direct integration of SymbolicMatrixProduct for Stiefel requires concrete dimensions. Try integrating individual elements instead."))
 end
 
-"""
-    asymptotic(expr, measure::StiefelMeasure, order=1)
-
-Returns the series expansion of the integral in powers of `1/d`.
-"""
-function asymptotic(expr, measure::StiefelMeasure, order = 1)
-    d = measure.dim
-    if d isa Symbolics.Num || !(d isa Integer)
-        exact_res = integrate(expr, measure)
-        return _expand_asymptotic(exact_res, d, order)
-    end
-
-    d_asymp = Symbolics.variable(:d_asymp)
-    m_sym = dStiefel(d_asymp, measure.k)
-    exact_res = integrate(expr, m_sym)
-    return _expand_asymptotic(exact_res, d_asymp, order)
-end
+IntU._reconstruct_symbolic(m::StiefelMeasure, d_asymp) = dStiefel(d_asymp, m.k)

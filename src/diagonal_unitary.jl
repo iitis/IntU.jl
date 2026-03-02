@@ -21,12 +21,4 @@ Integration engine identifies variables via metadata tag `:DiagUnitary`.
 """
 dDiagUnitary(dim) = DiagonalUnitaryMeasure(dim)
 
-function IntU.measure_info(measure::DiagonalUnitaryMeasure)
-    subs_dict = Dict{Any,Any}()
-    matcher = measure.matcher === nothing ? MetadataMatcher(:DiagUnitary) : measure.matcher
-    dim = measure.dim
-    if dim isa SymbolicMatrix
-        dim = dim.dim
-    end
-    return (subs_dict, matcher, dim, :DiagUnitary)
-end
+IntU._measure_tag(::DiagonalUnitaryMeasure) = :DiagUnitary

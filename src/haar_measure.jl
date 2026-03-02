@@ -49,48 +49,14 @@ Integration engine identifies variables via metadata tag `:U`.
 dU(dim) = HaarMeasure(dim)
 
 
-"""
-    measure_info(measure)
-
-Returns a tuple `(matcher, dim, type)` for the given measure. 
-Internal function used for dispatching integration logic.
-"""
-function IntU.measure_info(measure::HaarMeasure)
-    subs_dict = Dict{Any,Any}()
-    matcher = measure.matcher === nothing ? MetadataMatcher(:U) : measure.matcher
-    dim = measure.dim
-    if dim isa SymbolicMatrix
-        dim = dim.dim
-    end
-    return (subs_dict, matcher, dim, :U)
-end
+IntU._measure_tag(::HaarMeasure) = :U
 
 function _manual_fallback(expr, measure::HaarMeasure)
     # LazyTrace expressions are handled by fallback_integrate dispatch, not here.
     error("HaarMeasure integration failed for: $(typeof(expr))")
 end
 
-"""
-    asymptotic(expr, measure::HaarMeasure, order=1)
-
-Returns the series expansion of the integral in powers of `1/d`.
-"""
-function asymptotic(expr, measure::HaarMeasure, order = 1)
-    d = measure.dim
-    if d isa SymbolicMatrix
-        d = d.dim
-    end
-
-    if d isa Symbolics.Num || !(d isa Integer)
-        exact_res = integrate(expr, measure)
-        return _expand_asymptotic(exact_res, d, order)
-    end
-
-    d_asymp = Symbolics.variable(:d_asymp)
-    m_sym = dU(d_asymp)
-    exact_res = integrate(expr, m_sym)
-    return _expand_asymptotic(exact_res, d_asymp, order)
-end
+IntU._reconstruct_symbolic(::HaarMeasure, d_asymp) = dU(d_asymp)
 
 # Integrate a product of traces of matrices over the Haar measure.
 # Uses the graphical Weingarten calculus.

@@ -17,8 +17,17 @@ include("weingarten.jl")
 include("symbolic_trace.jl")
 include("centered_perm_impl.jl")
 
-# Shared integration engine
+# Symbolic utilities and index matching
+include("symbolic_utils.jl")
+
+# Core type definitions and integrate dispatches
 include("integration_core.jl")
+
+# Integration engine (rewrite rules, _integrate_core, process_term)
+include("integration_engine.jl")
+
+# Integration rule registrations and low-level integrate_indices_* functions
+include("integration_rules.jl")
 
 # Specific measures
 include("haar_measure.jl")
@@ -34,6 +43,9 @@ include("su_measure.jl")
 include("diagonal_unitary.jl")
 include("stiefel_measure.jl")
 include("integrate_macro.jl")
+
+# Public API: asymptotic, evaluate (after all measures for _reconstruct_symbolic)
+include("integration_api.jl")
 
 
 # Quantum Information helpers

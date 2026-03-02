@@ -33,15 +33,8 @@ Integration engine identifies variables via metadata tag `:Sp`.
 dSp(dim) = SymplecticMeasure(dim)
 
 
-function IntU.measure_info(measure::OrthogonalMeasure)
-    subs_dict = Dict{Any,Any}()
-    matcher = MetadataMatcher(:O)
-    dim = measure.dim
-    if dim isa SymbolicMatrix
-        dim = dim.dim
-    end
-    return (subs_dict, matcher, dim, :O)
-end
+IntU._measure_tag(::OrthogonalMeasure) = :O
+IntU._measure_tag(::SymplecticMeasure) = :Sp
 
 function _j_pair_sign(idx, n)
     if idx <= n
@@ -51,36 +44,5 @@ function _j_pair_sign(idx, n)
     end
 end
 
-function IntU.measure_info(measure::SymplecticMeasure)
-    subs_dict = Dict{Any,Any}()
-    matcher = MetadataMatcher(:Sp)
-    dim = measure.dim
-    if dim isa SymbolicMatrix
-        dim = dim.dim
-    end
-    return (subs_dict, matcher, dim, :Sp)
-end
-
-"""
-    asymptotic(expr, measure::Union{OrthogonalMeasure, SymplecticMeasure}, order=1)
-"""
-function asymptotic(expr, measure::Union{OrthogonalMeasure,SymplecticMeasure}, order = 1)
-    d = measure.dim
-    # If d is symbolic or not an integer, we can proceed directly
-    if d isa Symbolics.Num || !(d isa Integer)
-        exact_res = integrate(expr, measure)
-        return _expand_asymptotic(exact_res, d, order)
-    end
-
-    # If d is integer, checking asymptotic might require symbolic d
-    d_asymp = Symbolics.variable(:d_asymp)
-    # Reconstruct measure with symbolic dim
-    m_sym = if measure isa OrthogonalMeasure
-        dO(d_asymp)
-    else
-        dSp(d_asymp)
-    end
-
-    exact_res = integrate(expr, m_sym)
-    return _expand_asymptotic(exact_res, d_asymp, order)
-end
+IntU._reconstruct_symbolic(::OrthogonalMeasure, d_asymp) = dO(d_asymp)
+IntU._reconstruct_symbolic(::SymplecticMeasure, d_asymp) = dSp(d_asymp)

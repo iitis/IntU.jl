@@ -29,25 +29,8 @@ Defines the measure for Centered Permutation matrices $Y = P - J/d$ where $P \in
 """
 dCPerm(dim) = CenteredPermutationMeasure(dim)
 
-function IntU.measure_info(measure::PermutationMeasure)
-    subs_dict = Dict{Any,Any}()
-    matcher = measure.matcher === nothing ? MetadataMatcher(:Perm) : measure.matcher
-    dim = measure.dim
-    if dim isa SymbolicMatrix
-        dim = dim.dim
-    end
-    return (subs_dict, matcher, dim, :Perm)
-end
-
-function IntU.measure_info(measure::CenteredPermutationMeasure)
-    subs_dict = Dict{Any,Any}()
-    matcher = measure.matcher === nothing ? MetadataMatcher(:CPerm) : measure.matcher
-    dim = measure.dim
-    if dim isa SymbolicMatrix
-        dim = dim.dim
-    end
-    return (subs_dict, matcher, dim, :CPerm)
-end
+IntU._measure_tag(::PermutationMeasure) = :Perm
+IntU._measure_tag(::CenteredPermutationMeasure) = :CPerm
 
 function fallback_integrate(t::LazyTrace, measure::PermutationMeasure)
     # E[tr(PA)] = sum(A) / d for one P.

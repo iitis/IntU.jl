@@ -41,25 +41,8 @@ Integration engine identifies variables via metadata tag `:CSE`.
 dCSE(dim) = CSEMeasure(dim)
 
 
-function IntU.measure_info(measure::COEMeasure)
-    subs_dict = Dict{Any,Any}()
-    matcher = measure.matcher === nothing ? MetadataMatcher(:COE) : measure.matcher
-    dim = measure.dim
-    if dim isa SymbolicMatrix
-        dim = dim.dim
-    end
-    return (subs_dict, matcher, dim, :COE)
-end
-
-function IntU.measure_info(measure::CSEMeasure)
-    subs_dict = Dict{Any,Any}()
-    matcher = measure.matcher === nothing ? MetadataMatcher(:CSE) : measure.matcher
-    dim = measure.dim
-    if dim isa SymbolicMatrix
-        dim = dim.dim
-    end
-    return (subs_dict, matcher, dim, :CSE)
-end
+IntU._measure_tag(::COEMeasure) = :COE
+IntU._measure_tag(::CSEMeasure) = :CSE
 
 
 
