@@ -158,8 +158,8 @@ function Base.transpose(A::SymbolicMatrix)
 end
 
 function Base.conj(A::SymbolicMatrix)
-    # real special types: O, COE, GOE, GinOE, Perm, CPerm
-    if A.special_type in (:O, :COE, :GOE, :GinOE, :Perm, :CPerm)
+    # real special types: O, GOE, GinOE, Perm, CPerm
+    if A.special_type in (:O, :GOE, :GinOE, :Perm, :CPerm)
         return A
     end
     # Pure conjugation

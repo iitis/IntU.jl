@@ -1164,36 +1164,47 @@ INTEGRATION_RULES[:Sp] =
     (u, ub, d, mt) -> begin
         d = _ensure_symbolic_dim(d)
         d_un = Symbolics.unwrap(d)
-        if !(d_un isa Integer) || isodd(d_un)
-            # For now, if we have bars, we can't handle symbolic d easily.
-            if length(ub) > 0
+        if d_un isa Integer
+            if isodd(d_un)
+                # Sp(d) only exists for even d
                 return 0
             end
-            all_indices = u
-        else
             m = div(d_un, 2)
             sign_factor = 1
-            converted_ub = Vector{Tuple{Int,Int}}()
+            converted_ub = Vector{Tuple{Any,Any}}()
 
             for (p, q) in ub
                 pk = p <= m ? p + m : p - m
                 qk = q <= m ? q + m : q - m
-
-                j1 = p <= m ? 1 : -1
-                j2 = q <= m ? -1 : 1
-
-                curr_sign = -1 * j1 * j2
-                sign_factor *= curr_sign
+                # \bar{S}_{p,q} = (-1)^{p > m ? 1 : 0} * (-1)^{q > m ? 1 : 0} * S_{pk, qk}
+                # sign = (-1)^( (p>m) + (q>m) )
+                if (p <= m && q > m) || (p > m && q <= m)
+                    sign_factor *= -1
+                end
                 push!(converted_ub, (pk, qk))
             end
-            all_indices = [u; converted_ub]
-            if sign_factor != 1
-                return sign_factor * integrate_indices_symplectic(all_indices, d)
-            end
-        end
 
-        length(all_indices) % 2 != 0 ? 0 :
-        (length(all_indices) == 0 ? 1 : integrate_indices_symplectic(all_indices, d))
+            all_indices = [u; converted_ub]
+            length(all_indices) % 2 != 0 ? 0 :
+            (length(all_indices) == 0 ? 1 : sign_factor * integrate_indices_symplectic(all_indices, d))
+        else
+            # Symbolic d. Assume d is even.
+            # Convert conjugates using symbolic partner indices pk = p + d/2, qk = q + d/2.
+            # This is valid if p, q are "small" compared to d/2.
+            m = d / 2
+            sign_factor = 1
+            converted_ub = Vector{Tuple{Any,Any}}()
+
+            for (p, q) in ub
+                pk = p + m
+                qk = q + m
+                push!(converted_ub, (pk, qk))
+            end
+
+            all_indices = [u; converted_ub]
+            length(all_indices) % 2 != 0 ? 0 :
+            (length(all_indices) == 0 ? 1 : sign_factor * integrate_indices_symplectic(all_indices, d))
+        end
     end
 
 INTEGRATION_RULES[:GUE] =
@@ -1893,11 +1904,6 @@ end
 
 function symplectic_form(i, j, dim)
     # J matrix: J_{ij} = δ(j, i+m) - δ(j, i-m), m = dim/2
-
-    if !(i isa Integer) || !(j isa Integer)
-        # Symbolic indices not fully supported yet for contraction
-        return 0
-    end
 
     u_dim = Symbolics.unwrap(dim)
     m = u_dim / 2

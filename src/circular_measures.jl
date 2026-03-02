@@ -15,6 +15,12 @@ COEMeasure(dim) = COEMeasure(dim, nothing)
 struct CSEMeasure{D,M} <: AbstractMeasure
     dim::D
     matcher::M
+    function CSEMeasure(dim::D, matcher::M) where {D,M}
+        if dim isa Integer && isodd(dim)
+            throw(ArgumentError("Dimension dim must be even for CSEMeasure, got $dim."))
+        end
+        new{D,M}(dim, matcher)
+    end
 end
 CSEMeasure(dim) = CSEMeasure(dim, nothing)
 

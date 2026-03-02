@@ -75,6 +75,10 @@ using Test
 
         val_cross = integrate(S_cse[1, 2] * conj(S_cse[2, 1]), mc)
         @test sym_iszero(val_cross + val_12)
+
+        # Invalid dimension
+        @test_throws ArgumentError dCSE(5)
+        @test_throws ArgumentError IntU.CSEMeasure(5, nothing)
     end
 
     # 3. CUE

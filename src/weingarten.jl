@@ -532,17 +532,25 @@ end
 
 function from_vec(v, var)
     isempty(v) && return Num(0)
-    res = Num(v[1])
+    
+    function _safe_c(c::BigInt)
+        if typemin(Int64) <= c <= typemax(Int64)
+            return Int64(c)
+        end
+        return c
+    end
+
+    res = Num(_safe_c(v[1]))
     length(v) == 1 && return res
     
     # Build polynomial terms without simplify in the loop
     if v[2] != 0
-        res += v[2] * var
+        res += _safe_c(v[2]) * var
     end
     for i = 3:length(v)
         vi = v[i]
         if vi != 0
-            res += vi * var^(i-1)
+            res += _safe_c(vi) * var^(i-1)
         end
     end
     return res
@@ -929,19 +937,19 @@ end
 """
     weingarten_symplectic_val(pi, sigma, d)
 
-Returns the **Symplectic Weingarten function** value \\\\text{Wg}^{Sp}(\\\\pi, \\\\sigma, d).
+Returns the **Symplectic Weingarten function** value \\text{Wg}^{Sp}(\\pi, \\sigma, d).
 Uses the duality relation:
 ```math
-\\\\text{Wg}^{Sp}(\\\\pi, \\\\sigma, d) = (-1)^k \\\\text{Wg}^{O}(\\\\pi, \\\\sigma, -d)
+\\text{Wg}^{Sp}(\\pi, \\sigma, d) = (-1)^{\\text{loops}(\\pi, \\sigma)} \\text{Wg}^{O}(\\pi, \\sigma, -d)
 ```
-where k is the number of pairs.
+where loops is the number of cycles in the union of the two pair partitions.
 
 Reference:
 - Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups.
 """
 @memoize function weingarten_symplectic_val(pi, sigma, d)
     k = length(pi)
-    # Wg^Sp(d) = (-1)^(k + loops) * Wg^O(-d)
+    # Wg^Sp(d) = (-1)^loops * Wg^O(-d)
     # We can get Wg^O(-d) from the reduced system directly
     w, type_to_idx, _ = get_weingarten_reduced_data(k, -d)
 

@@ -316,9 +316,9 @@ form $J$. For detailed closure relations on these groups, see Matsuki
 
 \texttt{IntU.jl} leverages the fundamental duality between the orthogonal and
 symplectic Weingarten functions:
-\begin{equation}
-\mathrm{Wg}^{Sp}(p, q, d) = (-1)^{k + \mathrm{loops}(p, q)} \mathrm{Wg}^O(p, q, -d),
-\end{equation}
+    \begin{equation}
+    \mathrm{Wg}^{Sp}(p, q, d) = (-1)^{\mathrm{loops}(p, q)} \mathrm{Wg}^O(p, q, -d).
+    \end{equation}
 where $\mathrm{loops}(p, q)$ is the number of loops in the graph formed by the
 union of the two pair partitions $p$ and $q$. This relation allows the package
 to unify the codebase, computing symplectic integrals by reusing the optimized
@@ -738,7 +738,7 @@ combinatorial problems and studying centered permutation ensembles.
 For the group of diagonal unitary matrices, integration reduces to independent
 phase averaging.
 \begin{lstlisting}[language=Julia]
-# Average of |V_11|^2
+# Average of |D_11|^2
 @integrate abs(D[1, 1])^2 dDiagUnitary(d)
 # Output: 1
 \end{lstlisting}
@@ -821,7 +821,7 @@ mathematical structures while sharing the top-level dispatch mechanism:
     simplification can fail, the engine employs a custom exact rational summation logic.
     Integration over the symplectic group reuse this optimized engine via duality:
     \begin{equation}
-    \mathrm{Wg}^{Sp}(p, q, d) = (-1)^{k + \mathrm{loops}(p, q)} \mathrm{Wg}^O(p, q, -d).
+    \mathrm{Wg}^{Sp}(p, q, d) = (-1)^{\mathrm{loops}(p, q)} \mathrm{Wg}^O(p, q, -d).
     \end{equation}
     \item \textbf{Gaussian and Ginibre Ensembles}: Integration over Gaussian
     ensembles is performed via Wick contractions. The engine decomposes the
@@ -830,7 +830,7 @@ mathematical structures while sharing the top-level dispatch mechanism:
     \item \textbf{Diagonal unitary matrices}: For the torus group $T^d$, the
     integration is performed by verifying that the integrand is composed of
     diagonal elements and checking the multiset correspondence of indices
-    between $V$ and $\bar{V}$ factors. This specialized engine avoids Weingarten
+    between $D$ and $\bar{D}$ factors. This specialized engine avoids Weingarten
     functions entirely, providing significant performance gains for
     phase-averaging tasks.
     \item \textbf{Memoization}: All computed characters, dimensions, and
@@ -963,9 +963,9 @@ Orthogonal & $O_{11}^8$ & $d=20$ & 0.4 \\
 Orthogonal & $O_{11}^{10}$ & $d=20$ & 0.4 \\
 Orthogonal & $O_{11}^{10}$ & $d=50$ & 0.4 \\
 \hline
-Symplectic & $|S_{11}|^8$ & $d=10$ & 4.5 \\
-Symplectic & $|S_{11}|^{10}$ & $d=10$ & 72.8 \\
-Symplectic & $|S_{11}|^{10}$ & $d=20$ & 74.3 \\
+Symplectic & $|Sp_{11}|^8$ & $d=10$ & 4.5 \\
+Symplectic & $|Sp_{11}|^{10}$ & $d=10$ & 72.8 \\
+Symplectic & $|Sp_{11}|^{10}$ & $d=20$ & 74.3 \\
 \hline
 GinUE & $\mathrm{tr}(GG^\dagger)$ & Symbolic & 0.01 \\
 GinUE & $\mathrm{tr}(GG^\dagger)$ & $d=4$ & $<$ 0.01 \\
@@ -973,9 +973,9 @@ GinUE & $\mathrm{tr}(GG^\dagger)$ & $d=4$ & $<$ 0.01 \\
 Circ. Orthogonal & $|S_{11}|^2$ & Symbolic & 3.1 \\
 Circ. Orthogonal & $|S_{11}|^4$ & Symbolic & 6.8 \\
 Circ. Orthogonal & $|S_{11}|^6$ & Symbolic & 43.3 \\
-Circ. Symplectic & $|V_{11}|^2$ & Symbolic & 1.8 \\
-Circ. Symplectic & $|V_{11}|^4$ & Symbolic & 7.2 \\
-Circ. Symplectic & $|V_{11}|^6$ & Symbolic & 111.0 \\
+Circ. Symplectic & $|S_{11}|^2$ & Symbolic & 1.8 \\
+Circ. Symplectic & $|S_{11}|^4$ & Symbolic & 7.2 \\
+Circ. Symplectic & $|S_{11}|^6$ & Symbolic & 111.0 \\
 \hline
 Permutation & $P_{11}^{10}$ & $d=100$ & 0.4 \\
 Permutation & $\mathrm{tr}(PA)^2$ & $d=4$ & 12.3 \\
@@ -995,7 +995,7 @@ ensembles (COE/CSE) maintain excellent performance. For highly symmetric
 integrands, such as powers of a single matrix entry, the integration engine
 utilizes an optimized grouped-summation technique that significantly reduces
 symbolic overhead by collecting terms with identical cycle types. Consequently,
-high-degree moments such as $|S_{11}|^6$ are computed in under 1 ms.
+high-degree moments such as $|O_{11}|^6$ are computed in under 1 ms.
 Simultaneously, the symbolic engine proves capable of handling high-degree
 moments that are intractable by hand. The caching mechanism ensures that
 subsequent calls with the same parameters are virtually instantaneous.

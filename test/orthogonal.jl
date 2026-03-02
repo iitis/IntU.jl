@@ -80,6 +80,10 @@ using LinearAlgebra
         # |S[1,1]|^2 -> 0.5
         res3 = integrate(abs(S[1, 1])^2, mS)
         @test to_numeric(real(res3)) ≈ 0.5
+
+        # Invalid dimension
+        @test_throws ArgumentError dSp(3)
+        @test_throws ArgumentError IntU.SymplecticMeasure(3)
     end
 
     @testset "Matrix Integration Checks" begin
