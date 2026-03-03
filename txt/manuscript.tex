@@ -308,10 +308,11 @@ partitions $P_{2k}$ of $\{1, \dots, 2k\}$. For $O(d)$, the integral is:
 Similarly, for the symplectic group $Sp(d)$ (where $d$ must be even), the
 formula is:
 \begin{equation}
-\int_{Sp(d)} S_{i_1 j_1} \dots S_{i_{2k} j_{2k}} dS = \sum_{p, q \in P_{2k}} (-1)^{\ell(p) + \ell(q)} \delta_p(\vec{i}) \delta_q(\vec{j}) \mathrm{Wg}^{Sp}(p, q, d),
+\int_{Sp(d)} S_{i_1 j_1} \dots S_{i_{2k} j_{2k}} dS = \sum_{p, q \in P_{2k}} \Delta^J_p(\vec{i})\, \Delta^J_q(\vec{j})\, \mathrm{Wg}^{Sp}(p, q, d),
 \end{equation}
-where the signs depend on the contraction structure relative to the symplectic
-form $J$. For detailed closure relations on these groups, see Matsuki
+where $\Delta^J_p(\vec{i}) = \prod_{(a,b) \in p} J_{i_a i_b}$ contracts each
+pair through the symplectic form $J$, introducing signs $\pm 1$. For detailed
+closure relations on these groups, see Collins and \'{S}niady
 \cite{collins2006integration}.
 
 \texttt{IntU.jl} leverages the fundamental duality between the orthogonal and
