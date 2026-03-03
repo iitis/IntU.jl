@@ -528,7 +528,38 @@ function integrate_indices_symplectic(indices::AbstractVector, dim)
         return 0
     end
 
-    w, type_to_idx, _ = get_weingarten_reduced_data(k, -dim)
+    w, type_to_idx, _ = get_weingarten_reduced_data(k, -dim, return_rationals = !(dim isa Integer))
+
+    if !(dim isa Integer)
+        # Use exact rational polynomial arithmetic to avoid Symbolics.simplify bugs
+        local_total_rat = nothing
+        for (c_pi, val_pi) in pi_contractions
+            for (c_sigma, val_sigma) in sigma_contractions
+                ct = get_full_cycle_type(c_pi, c_sigma)
+                loops = length(ct)
+                sign = ((-1)^loops)
+                # val_pi * val_sigma * sign is an integer coefficient
+                # val_pi, val_sigma are Num wrapping ±1 from symplectic_form
+                vp = Symbolics.unwrap(val_pi)
+                vs = Symbolics.unwrap(val_sigma)
+                vp_int = vp isa Number ? Int(vp) : Int(Symbolics.value(vp))
+                vs_int = vs isa Number ? Int(vs) : Int(Symbolics.value(vs))
+                int_coeff = BigInt(vp_int * vs_int * sign)
+                term = _rational_mul(w[type_to_idx[ct]], int_coeff)
+                if local_total_rat === nothing
+                    local_total_rat = term
+                else
+                    local_total_rat = _rational_add(local_total_rat, term)
+                end
+            end
+        end
+
+        if local_total_rat === nothing
+            return Num(0)
+        end
+        return from_rational(local_total_rat)
+    end
+
     T = eltype(w)
     total = zero(T)
 
@@ -556,9 +587,6 @@ function integrate_indices_symplectic(indices::AbstractVector, dim)
         end
     end
 
-    if !(dim isa Integer)
-        return Symbolics.simplify(Symbolics.wrap(total))
-    end
     return total
 end
 

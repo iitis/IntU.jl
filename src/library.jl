@@ -5,20 +5,12 @@
 Check if the integral of `expr` over `measure` is available in the pre-computed library.
 Returns the symbolic result if found, otherwise `nothing`.
 """
-function check_library(expr, measure)
-    if measure isa HaarMeasure
-        return check_haar_library(expr, measure)
-    elseif measure isa GUEMeasure
-        return check_gaussian_library(expr, measure, :GUE)
-    elseif measure isa GOEMeasure
-        return check_gaussian_library(expr, measure, :GOE)
-    elseif measure isa GSEMeasure
-        return check_gaussian_library(expr, measure, :GSE)
-    elseif measure isa PureStateMeasure
-        return check_pure_library(expr, measure)
-    end
-    return nothing
-end
+check_library(expr, measure) = nothing
+check_library(expr, measure::HaarMeasure) = check_haar_library(expr, measure)
+check_library(expr, measure::GUEMeasure) = check_gaussian_library(expr, measure, :GUE)
+check_library(expr, measure::GOEMeasure) = check_gaussian_library(expr, measure, :GOE)
+check_library(expr, measure::GSEMeasure) = check_gaussian_library(expr, measure, :GSE)
+check_library(expr, measure::PureStateMeasure) = check_pure_library(expr, measure)
 
 # --- Haar Unitary Library ---
 
