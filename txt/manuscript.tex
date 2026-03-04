@@ -868,11 +868,12 @@ The integration strategy for these structures is twofold:
 \label{sec:performance}
 We evaluated the performance of \texttt{IntU.jl} using a suite of stress tests
 involving high-degree polynomial integrals over the unitary, orthogonal, and
-symplectic groups. The benchmarks were run on a standard workstation (Julia 1.12.3).
-Specifically, we evaluated the computation time for the moments of single matrix entries,
-such as $\int |U_{11}|^{2k} dU$, for high degrees $2k \geq 8$. These integrals represent
-a standard stress test for Weingarten implementations due to their maximal combinatorial
-complexity.
+symplectic groups. The benchmarks were run on a workstation equipped with an
+Intel Core i7-12700KF processor (12 cores, 20 threads) and 64 GB of RAM (Julia
+1.12.3). Specifically, we evaluated the computation time for the moments of
+single matrix entries, such as $\int |U_{11}|^{2k} dU$, for high degrees $2k
+\geq 8$. These integrals represent a standard stress test for Weingarten
+implementations due to their maximal combinatorial complexity.
 
 All benchmarks were performed using the \texttt{BenchmarkTools.jl} package.
 Reported execution times represent the \textbf{median} of $N=30$ runs.
@@ -964,9 +965,9 @@ Orthogonal & $O_{11}^8$ & $d=20$ & 0.4 \\
 Orthogonal & $O_{11}^{10}$ & $d=20$ & 0.4 \\
 Orthogonal & $O_{11}^{10}$ & $d=50$ & 0.4 \\
 \hline
-Symplectic & $|Sp_{11}|^8$ & $d=10$ & 4.5 \\
-Symplectic & $|Sp_{11}|^{10}$ & $d=10$ & 72.8 \\
-Symplectic & $|Sp_{11}|^{10}$ & $d=20$ & 74.3 \\
+Symplectic & $|S_{11}|^8$ & $d=10$ & 4.5 \\
+Symplectic & $|S_{11}|^{10}$ & $d=10$ & 72.8 \\
+Symplectic & $|S_{11}|^{10}$ & $d=20$ & 74.3 \\
 \hline
 GinUE & $\mathrm{tr}(GG^\dagger)$ & Symbolic & 0.01 \\
 GinUE & $\mathrm{tr}(GG^\dagger)$ & $d=4$ & $<$ 0.01 \\
