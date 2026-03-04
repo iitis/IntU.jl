@@ -11,6 +11,7 @@ struct COEMeasure{D,M} <: AbstractMeasure
     matcher::M
 end
 COEMeasure(dim) = COEMeasure(dim, nothing)
+IntU._measure_tag(::COEMeasure) = :COE
 
 struct CSEMeasure{D,M} <: AbstractMeasure
     dim::D
@@ -23,6 +24,7 @@ struct CSEMeasure{D,M} <: AbstractMeasure
     end
 end
 CSEMeasure(dim) = CSEMeasure(dim, nothing)
+IntU._measure_tag(::CSEMeasure) = :CSE
 
 @doc raw"""
     dCOE(dim)
@@ -39,10 +41,6 @@ Defines the Circular Symplectic Ensemble (CSE) measure on U(2N).
 Integration engine identifies variables via metadata tag `:CSE`.
 """
 dCSE(dim) = CSEMeasure(dim)
-
-
-IntU._measure_tag(::COEMeasure) = :COE
-IntU._measure_tag(::CSEMeasure) = :CSE
 
 
 

@@ -60,20 +60,14 @@ IntU._reconstruct_symbolic(::HaarMeasure, d_asymp) = dU(d_asymp)
 
 # Integrate a product of traces of matrices over the Haar measure.
 # Uses the graphical Weingarten calculus.
+# Note: _extract_trace_data, _build_wires, _evaluate_constant_cycles are in trace_helpers.jl
+
 function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
     dim = measure.dim
     constant_part = t.prefactor
 
     # Identify ALL cycles and factors
-    total_factors = 0
-    cycle_ranges = UnitRange{Int}[]
-    all_factors = Any[]
-    for cycle in t.cycles
-        start_idx = total_factors + 1
-        append!(all_factors, cycle)
-        total_factors += length(cycle)
-        push!(cycle_ranges, start_idx:total_factors)
-    end
+    total_factors, cycle_ranges, all_factors = _extract_trace_data(t)
 
     matcher = measure.matcher === nothing ? MetadataMatcher(:U) : measure.matcher
     U_type = (matcher isa MetadataMatcher) ? matcher.type_tag : :U
@@ -212,62 +206,6 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
     end
 
     return constant_part * total_val
-end
-
-function _build_wires(U_indices, U_bar_indices, cycle_ranges, all_factors)
-    wires = Dict{Int,Any}()
-    reverse_wires = Dict{Int,Any}()
-    all_slots = sort([U_indices; U_bar_indices])
-
-    for slot in all_slots
-        # Determine which cycle this slot belongs to
-        cid = findfirst(rng -> slot in rng, cycle_ranges)
-        rng = cycle_ranges[cid]
-
-        # Forward wire from index 2 to next index 1
-        curr = slot
-        consts = Any[]
-        while true
-            curr = curr == last(rng) ? first(rng) : curr + 1
-            if curr in all_slots
-                wires[slot] = (curr, isempty(consts) ? nothing : consts)
-                break
-            end
-            push!(consts, all_factors[curr])
-        end
-
-        # Backward wire from index 1 to previous index 2
-        curr = slot
-        consts_rev = Any[]
-        while true
-            curr = curr == first(rng) ? last(rng) : curr - 1
-            if curr in all_slots
-                reverse_wires[slot] = (curr, isempty(consts_rev) ? nothing : consts_rev)
-                break
-            end
-            push!(consts_rev, transpose(all_factors[curr]))
-        end
-    end
-    return wires, reverse_wires
-end
-
-function _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
-    res = t.prefactor
-    slot_set = Set{Int}(all_slots)
-    for (cid, rng) in enumerate(cycle_ranges)
-        # Check if any slot in rng is in all_slots (O(1) set lookup)
-        has_U = any(idx -> idx in slot_set, rng)
-
-        if !has_U
-            cycle = t.cycles[cid]
-            if isempty(cycle)
-                res *= dim
-            else
-                res *= tr_val(cycle)
-            end
-        end
-    end
-    return res
 end
 
 function _traverse_trace_cycle_fast(

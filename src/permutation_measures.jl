@@ -1,17 +1,19 @@
 # Permutation Group measures
 
-# Dummy types to represent the measures
-struct PermutationMeasure{D,M} <: AbstractMeasure
-    dim::D
-    matcher::M
+# --- Unified struct + tag registration ---
+for (T, tag) in [
+    (:PermutationMeasure, :Perm),
+    (:CenteredPermutationMeasure, :CPerm),
+]
+    @eval begin
+        struct $T{D,M} <: AbstractMeasure
+            dim::D
+            matcher::M
+        end
+        $T(dim) = $T(dim, nothing)
+        IntU._measure_tag(::$T) = $(QuoteNode(tag))
+    end
 end
-PermutationMeasure(dim) = PermutationMeasure(dim, nothing)
-
-struct CenteredPermutationMeasure{D,M} <: AbstractMeasure
-    dim::D
-    matcher::M
-end
-CenteredPermutationMeasure(dim) = CenteredPermutationMeasure(dim, nothing)
 
 @doc raw"""
     dPerm(dim)
@@ -28,9 +30,6 @@ dPerm(dim) = PermutationMeasure(dim)
 Defines the measure for Centered Permutation matrices $Y = P - J/d$ where $P \in S_d$.
 """
 dCPerm(dim) = CenteredPermutationMeasure(dim)
-
-IntU._measure_tag(::PermutationMeasure) = :Perm
-IntU._measure_tag(::CenteredPermutationMeasure) = :CPerm
 
 function fallback_integrate(t::LazyTrace, measure::PermutationMeasure)
     # E[tr(PA)] = sum(A) / d for one P.

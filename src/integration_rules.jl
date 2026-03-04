@@ -1,8 +1,31 @@
+# --- Dispatch helpers for common integration rule patterns ---
+
+"""
+    _dispatch_paired(u, ub, d, integrate_fn)
+
+Helper for rules where U and Ū indices must pair up (|u| == |ub|).
+Used by :U, :COE, :GinUE, etc.
+"""
+function _dispatch_paired(u, ub, d, integrate_fn)
+    d = _ensure_symbolic_dim(d)
+    length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_fn(u, ub, d))
+end
+
+"""
+    _dispatch_merged(u, ub, d, integrate_fn)
+
+Helper for rules where U and Ū indices are merged into one list
+and the total count must be even. Used by :O, :GUE, :GOE, :GSE, etc.
+"""
+function _dispatch_merged(u, ub, d, integrate_fn)
+    d = _ensure_symbolic_dim(d)
+    all_indices = [u; ub]
+    length(all_indices) % 2 != 0 ? 0 :
+    (length(all_indices) == 0 ? 1 : integrate_fn(all_indices, d))
+end
+
 INTEGRATION_RULES[:U] =
-    (u, ub, d, mt) -> begin
-        d = _ensure_symbolic_dim(d)
-        length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices(u, ub, d))
-    end
+    (u, ub, d, mt) -> _dispatch_paired(u, ub, d, integrate_indices)
 
 # Stiefel V_k(C^d) and pure state integration are same as Haar U(d) for entries
 INTEGRATION_RULES[:V] =
@@ -42,12 +65,7 @@ INTEGRATION_RULES[:psi] =
     end
 
 INTEGRATION_RULES[:O] =
-    (u, ub, d, mt) -> begin
-        d = _ensure_symbolic_dim(d)
-        all_indices = [u; ub]
-        length(all_indices) % 2 != 0 ? 0 :
-        (length(all_indices) == 0 ? 1 : integrate_indices_orthogonal(all_indices, d))
-    end
+    (u, ub, d, mt) -> _dispatch_merged(u, ub, d, integrate_indices_orthogonal)
 
 INTEGRATION_RULES[:Sp] =
     (u, ub, d, mt) -> begin
@@ -101,34 +119,16 @@ INTEGRATION_RULES[:Sp] =
     end
 
 INTEGRATION_RULES[:GUE] =
-    (u, ub, d, mt) -> begin
-        d = _ensure_symbolic_dim(d)
-        all_indices = [u; ub]
-        length(all_indices) % 2 != 0 ? 0 :
-        (length(all_indices) == 0 ? 1 : integrate_indices_gue(all_indices, d))
-    end
+    (u, ub, d, mt) -> _dispatch_merged(u, ub, d, integrate_indices_gue)
 
 INTEGRATION_RULES[:GOE] =
-    (u, ub, d, mt) -> begin
-        d = _ensure_symbolic_dim(d)
-        all_indices = [u; ub]
-        length(all_indices) % 2 != 0 ? 0 :
-        (length(all_indices) == 0 ? 1 : integrate_indices_goe(all_indices, d))
-    end
+    (u, ub, d, mt) -> _dispatch_merged(u, ub, d, integrate_indices_goe)
 
 INTEGRATION_RULES[:GSE] =
-    (u, ub, d, mt) -> begin
-        d = _ensure_symbolic_dim(d)
-        all_indices = [u; ub]
-        length(all_indices) % 2 != 0 ? 0 :
-        (length(all_indices) == 0 ? 1 : integrate_indices_gse(all_indices, d))
-    end
+    (u, ub, d, mt) -> _dispatch_merged(u, ub, d, integrate_indices_gse)
 
 INTEGRATION_RULES[:COE] =
-    (u, ub, d, mt) -> begin
-        d = _ensure_symbolic_dim(d)
-        length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices_coe(u, ub, d))
-    end
+    (u, ub, d, mt) -> _dispatch_paired(u, ub, d, integrate_indices_coe)
 
 INTEGRATION_RULES[:CSE] =
     (u, ub, d, mt) -> begin
@@ -177,23 +177,13 @@ INTEGRATION_RULES[:DiagUnitary] =
     end
 
 INTEGRATION_RULES[:GinUE] =
-    (u, ub, d, mt) -> begin
-        length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices_ginue(u, ub, d))
-    end
+    (u, ub, d, mt) -> _dispatch_paired(u, ub, d, integrate_indices_ginue)
 
 INTEGRATION_RULES[:GinOE] =
-    (u, ub, d, mt) -> begin
-        all_indices = [u; ub]
-        length(all_indices) % 2 != 0 ? 0 :
-        (length(all_indices) == 0 ? 1 : integrate_indices_ginoe(all_indices, d))
-    end
+    (u, ub, d, mt) -> _dispatch_merged(u, ub, d, integrate_indices_ginoe)
 
 INTEGRATION_RULES[:GinSE] =
-    (u, ub, d, mt) -> begin
-        all_indices = [u; ub]
-        length(all_indices) % 2 != 0 ? 0 :
-        (length(all_indices) == 0 ? 1 : integrate_indices_ginse(all_indices, d))
-    end
+    (u, ub, d, mt) -> _dispatch_merged(u, ub, d, integrate_indices_ginse)
 
 
 """
@@ -364,6 +354,21 @@ Low-level integration function using Orthogonal Weingarten calculus.
 Indices are a list of (i, j) for O_{ij}.
 Formula: sum_{pi, sigma in PairPartitions} delta_pi(i) * delta_sigma(j) * Wg(pi, sigma)
 """
+
+"""
+    _orthogonal_row_sum_denom(dim, k)
+
+Compute `prod_{j=0}^{k-1} (dim + 2j)`, the denominator for the orthogonal
+row-sum shortcut when all row or column indices are uniform.
+"""
+function _orthogonal_row_sum_denom(dim, k)
+    denom = one(Rational{BigInt})
+    for j = 0:(k-1)
+        denom *= (dim + 2*j)
+    end
+    return denom
+end
+
 function integrate_indices_orthogonal(indices::AbstractVector, dim)
     n = length(indices) # This is 2k
     if n % 2 != 0
@@ -381,30 +386,19 @@ function integrate_indices_orthogonal(indices::AbstractVector, dim)
     if is_I_uniform || is_J_uniform
         # Row sum of Wg matrix is 1 / prod_{j=0}^{k-1} (dim + 2j)
         # Total sum = count_valid_partitions * row_sum
+        denom = _orthogonal_row_sum_denom(dim, k)
         if is_I_uniform && is_J_uniform
-            # Both uniform: result is N_total / prod
+            # Both uniform: result is N_total / denom
             num = 1
             for i = 1:k
                 num *= (2*i-1)
             end
-            denom = one(Rational{BigInt})
-            for j = 0:(k-1)
-                denom *= (dim + 2*j)
-            end
             return num / denom
         elseif is_I_uniform
             valid_sigma = get_matching_pair_partitions_filtered(J)
-            denom = one(Rational{BigInt})
-            for j = 0:(k-1)
-                denom *= (dim + 2*j)
-            end
             return length(valid_sigma) / denom
         else # is_J_uniform
             valid_pi = get_matching_pair_partitions_filtered(I)
-            denom = one(Rational{BigInt})
-            for j = 0:(k-1)
-                denom *= (dim + 2*j)
-            end
             return length(valid_pi) / denom
         end
     end
@@ -663,29 +657,9 @@ function integrate_indices_gue(indices::AbstractVector, dim)
     return total
 end
 
+# Vector{Any} delegate — the AbstractVector method above handles the actual work
 function integrate_indices_gue(indices::Vector{Any}, dim)
     return integrate_indices_gue(Vector{Tuple{Any,Any}}(indices), dim)
-end
-
-function integrate_indices_gue(indices::Vector{Tuple{Any,Any}}, dim)
-    n = length(indices)
-    partitions = get_pair_partitions(n)
-    total = 0 // 1
-    for pi in partitions
-        possible = true
-        for (u, v) in pi
-            (i_u, j_u) = indices[u]
-            (i_v, j_v) = indices[v]
-            if !_symbolic_isequal(i_u, j_v) || !_symbolic_isequal(j_u, i_v)
-                possible = false;
-                break;
-            end
-        end
-        if possible
-            total += 1
-        end
-    end
-    return total
 end
 
 """

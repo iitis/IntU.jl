@@ -1,40 +1,33 @@
-# Gaussian Random Matrix measures (GUE, GOE, GSE)
+# Gaussian Random Matrix measures (GUE, GOE, GSE) and Ginibre Ensembles
 
-struct GUEMeasure{D,M} <: AbstractMeasure
-    dim::D
-    matcher::M
-end
-GUEMeasure(dim) = GUEMeasure(dim, nothing)
+# --- Unified struct + measure_info registration ---
+for (T, tag, ctor) in [
+    (:GUEMeasure,  :GUE,   :dGUE),
+    (:GOEMeasure,  :GOE,   :dGOE),
+    (:GSEMeasure,  :GSE,   :dGSE),
+    (:GinUEMeasure, :GinUE, :dGinUE),
+    (:GinOEMeasure, :GinOE, :dGinOE),
+    (:GinSEMeasure, :GinSE, :dGinSE),
+]
+    @eval begin
+        struct $T{D,M} <: AbstractMeasure
+            dim::D
+            matcher::M
+        end
+        $T(dim) = $T(dim, nothing)
 
-struct GOEMeasure{D,M} <: AbstractMeasure
-    dim::D
-    matcher::M
-end
-GOEMeasure(dim) = GOEMeasure(dim, nothing)
+        function IntU.measure_info(measure::$T)
+            subs_dict = Dict{Any,Any}()
+            matcher = measure.matcher === nothing ? MetadataMatcher($(QuoteNode(tag))) : measure.matcher
+            dim = measure.dim isa SymbolicMatrix ? measure.dim.dim : measure.dim
+            return (subs_dict, matcher, dim, $(QuoteNode(tag)))
+        end
 
-struct GSEMeasure{D,M} <: AbstractMeasure
-    dim::D
-    matcher::M
+        IntU._reconstruct_symbolic(::$T, d_asymp) = $ctor(d_asymp)
+    end
 end
-GSEMeasure(dim) = GSEMeasure(dim, nothing)
 
-struct GinUEMeasure{D,M} <: AbstractMeasure
-    dim::D
-    matcher::M
-end
-GinUEMeasure(dim) = GinUEMeasure(dim, nothing)
-
-struct GinOEMeasure{D,M} <: AbstractMeasure
-    dim::D
-    matcher::M
-end
-GinOEMeasure(dim) = GinOEMeasure(dim, nothing)
-
-struct GinSEMeasure{D,M} <: AbstractMeasure
-    dim::D
-    matcher::M
-end
-GinSEMeasure(dim) = GinSEMeasure(dim, nothing)
+# --- Convenience constructors (with validation for even-dim ensembles) ---
 
 """
     dGUE(dim)
@@ -90,43 +83,7 @@ function dGinSE(dim)
     return GinSEMeasure(dim)
 end
 
-# Integration rules for each ensemble
-
-# Generate measure_info methods for all Gaussian measure types
-for (T_measure, tag) in [
-    (GUEMeasure, :GUE), (GOEMeasure, :GOE), (GSEMeasure, :GSE),
-    (GinUEMeasure, :GinUE), (GinOEMeasure, :GinOE), (GinSEMeasure, :GinSE),
-]
-    @eval function IntU.measure_info(measure::$T_measure)
-        subs_dict = Dict{Any,Any}()
-        matcher = measure.matcher === nothing ? MetadataMatcher($(QuoteNode(tag))) : measure.matcher
-        dim = measure.dim isa SymbolicMatrix ? measure.dim.dim : measure.dim
-        return (subs_dict, matcher, dim, $(QuoteNode(tag)))
-    end
-end
-
-# ==============================================================================
-# Shared Helpers for Gaussian Wick Integration
-# ==============================================================================
-
-"""
-    _extract_trace_data(t::LazyTrace)
-
-Extract cycle ranges and all factors from a `LazyTrace`.
-Returns `(total_factors, cycle_ranges, all_factors)`.
-"""
-function _extract_trace_data(t::LazyTrace)
-    total_factors = 0
-    cycle_ranges = UnitRange{Int}[]
-    all_factors = Any[]
-    for cycle in t.cycles
-        start_idx = total_factors + 1
-        append!(all_factors, cycle)
-        total_factors += length(cycle)
-        push!(cycle_ranges, start_idx:total_factors)
-    end
-    return (total_factors, cycle_ranges, all_factors)
-end
+# Shared trace-graph helpers are in trace_helpers.jl
 
 """
     _find_tagged_indices(all_factors, tag; separate_adj=false)
@@ -286,23 +243,33 @@ function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
     return _wick_hermitian_integrate(t, measure.dim, :GOE, matcher; symmetric=true)
 end
 
-function fallback_integrate(t::LazyTrace, measure::GSEMeasure)
-    # GSE-GOE duality: <Tr(H^k)>_GSE(d) = (-1)^(k/2+1) <Tr(H^k)>_GOE(-d)
-    all_factors = vcat(t.cycles...)
-    H_type = :GSE
-    n_H = count(f -> f isa SymbolicMatrix && f.special_type == H_type, all_factors)
+"""
+    _duality_integrate(t, measure, partner_ctor, tag)
 
-    if isodd(n_H)
+Shared duality pattern for GSE↔GOE and GinSE↔GinOE:
+  1. Count tagged matrices
+  2. Integrate via partner measure with MetadataMatcher
+  3. Substitute dim → -dim and apply sign (-1)^(n/2+1)
+"""
+function _duality_integrate(t::LazyTrace, measure, partner_ctor, tag::Symbol)
+    all_factors = vcat(t.cycles...)
+    n = count(f -> f isa SymbolicMatrix && f.special_type == tag, all_factors)
+
+    if isodd(n)
         return 0
     end
 
-    goe_m = GOEMeasure(measure.dim, MetadataMatcher(H_type))
-    goe_res = integrate(t, goe_m)
+    partner_m = partner_ctor(measure.dim, MetadataMatcher(tag))
+    partner_res = integrate(t, partner_m)
 
     dim = measure.dim
-    res_subbed = Symbolics.substitute(goe_res, Dict(dim => -dim))
-    final_sign = ((-1)^(n_H ÷ 2 + 1))
+    res_subbed = Symbolics.substitute(partner_res, Dict(dim => -dim))
+    final_sign = ((-1)^(n ÷ 2 + 1))
     return final_sign * res_subbed
+end
+
+function fallback_integrate(t::LazyTrace, measure::GSEMeasure)
+    return _duality_integrate(t, measure, GOEMeasure, :GSE)
 end
 
 function fallback_integrate(t::LazyTrace, measure::GinUEMeasure)
@@ -492,26 +459,7 @@ function fallback_integrate(t::LazyTrace, measure::GinOEMeasure)
 end
 
 function fallback_integrate(t::LazyTrace, measure::GinSEMeasure)
-    G_type = :GinSE
-    all_factors = vcat(t.cycles...)
-    n_G = count(f -> f isa SymbolicMatrix && f.special_type == G_type, all_factors)
-
-    if isodd(n_G)
-        return 0
-    end
-
-    ginoe_m = GinOEMeasure(measure.dim, MetadataMatcher(G_type))
-    ginoe_res = integrate(t, ginoe_m)
-    dim = measure.dim
-    res_subbed = Symbolics.substitute(ginoe_res, Dict(dim => -dim))
-    final_sign = ((-1)^(n_G ÷ 2 + 1))
-    return final_sign * res_subbed
+    return _duality_integrate(t, measure, GinOEMeasure, :GinSE)
 end
 
-# Reconstruction traits for asymptotic expansion
-for (T_measure, d_ctor) in [
-    (GUEMeasure, dGUE), (GOEMeasure, dGOE), (GSEMeasure, dGSE),
-    (GinUEMeasure, dGinUE), (GinOEMeasure, dGinOE), (GinSEMeasure, dGinSE),
-]
-    @eval IntU._reconstruct_symbolic(::$T_measure, d_asymp) = $d_ctor(d_asymp)
-end
+

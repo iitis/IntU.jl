@@ -17,6 +17,9 @@ include("weingarten.jl")
 include("symbolic_trace.jl")
 include("centered_perm_impl.jl")
 
+# Shared trace-graph helpers (used by Haar, Gaussian, Ginibre measures)
+include("trace_helpers.jl")
+
 # Symbolic utilities and index matching
 include("symbolic_utils.jl")
 

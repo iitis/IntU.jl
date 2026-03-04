@@ -1,0 +1,90 @@
+# Shared trace-graph helpers used by Haar, Gaussian, and Ginibre integration.
+# These functions operate on the cycle/factor structure of LazyTrace objects.
+
+"""
+    _extract_trace_data(t::LazyTrace)
+
+Extract cycle ranges and all factors from a `LazyTrace`.
+Returns `(total_factors, cycle_ranges, all_factors)`.
+"""
+function _extract_trace_data(t::LazyTrace)
+    total_factors = 0
+    cycle_ranges = UnitRange{Int}[]
+    all_factors = Any[]
+    for cycle in t.cycles
+        start_idx = total_factors + 1
+        append!(all_factors, cycle)
+        total_factors += length(cycle)
+        push!(cycle_ranges, start_idx:total_factors)
+    end
+    return (total_factors, cycle_ranges, all_factors)
+end
+
+"""
+    _build_wires(U_indices, U_bar_indices, cycle_ranges, all_factors)
+
+Build forward and backward wire connectivity maps for graphical integration.
+Returns `(wires, reverse_wires)` where each maps a slot index to
+`(next_slot, constant_matrices_between)`.
+"""
+function _build_wires(U_indices, U_bar_indices, cycle_ranges, all_factors)
+    wires = Dict{Int,Any}()
+    reverse_wires = Dict{Int,Any}()
+    all_slots = sort([U_indices; U_bar_indices])
+
+    for slot in all_slots
+        # Determine which cycle this slot belongs to
+        cid = findfirst(rng -> slot in rng, cycle_ranges)
+        rng = cycle_ranges[cid]
+
+        # Forward wire from index 2 to next index 1
+        curr = slot
+        consts = Any[]
+        while true
+            curr = curr == last(rng) ? first(rng) : curr + 1
+            if curr in all_slots
+                wires[slot] = (curr, isempty(consts) ? nothing : consts)
+                break
+            end
+            push!(consts, all_factors[curr])
+        end
+
+        # Backward wire from index 1 to previous index 2
+        curr = slot
+        consts_rev = Any[]
+        while true
+            curr = curr == first(rng) ? last(rng) : curr - 1
+            if curr in all_slots
+                reverse_wires[slot] = (curr, isempty(consts_rev) ? nothing : consts_rev)
+                break
+            end
+            push!(consts_rev, transpose(all_factors[curr]))
+        end
+    end
+    return wires, reverse_wires
+end
+
+"""
+    _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
+
+Evaluate trace cycles that contain no integration variables (constant cycles).
+Returns the product of the prefactor and all constant cycle traces.
+"""
+function _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
+    res = t.prefactor
+    slot_set = Set{Int}(all_slots)
+    for (cid, rng) in enumerate(cycle_ranges)
+        # Check if any slot in rng is in all_slots (O(1) set lookup)
+        has_U = any(idx -> idx in slot_set, rng)
+
+        if !has_U
+            cycle = t.cycles[cid]
+            if isempty(cycle)
+                res *= dim
+            else
+                res *= tr_val(cycle)
+            end
+        end
+    end
+    return res
+end
