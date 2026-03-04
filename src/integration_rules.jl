@@ -20,12 +20,14 @@ INTEGRATION_RULES[:Sp] =
     (u, ub, d, mt) -> begin
         d = _ensure_symbolic_dim(d)
         d_un = Symbolics.unwrap(d)
-        if d_un isa Integer
-            if isodd(d_un)
+        if d_un isa Number && isinteger(d_un)
+            # Numeric path for integer or integer-valued Float64
+            d_int = Int(d_un)
+            if isodd(d_int)
                 # Sp(d) only exists for even d
                 return 0
             end
-            m = div(d_un, 2)
+            m = div(d_int, 2)
             sign_factor = 1
             converted_ub = Vector{Tuple{Any,Any}}()
 
@@ -43,6 +45,8 @@ INTEGRATION_RULES[:Sp] =
             all_indices = [u; converted_ub]
             length(all_indices) % 2 != 0 ? 0 :
             (length(all_indices) == 0 ? 1 : sign_factor * integrate_indices_symplectic(all_indices, d))
+        elseif d_un isa Number
+            throw(ArgumentError("Symplectic integration requires integer dimension d, got $d_un"))
         else
             # Symbolic d. Assume d is even.
             # Convert conjugates using symbolic partner indices pk = p + d/2, qk = q + d/2.
@@ -401,7 +405,7 @@ function integrate_indices_orthogonal(indices::AbstractVector, dim)
         end
     end
 
-    if !(dim isa Integer)
+    if !(Symbolics.unwrap(dim) isa Number)
         w, type_to_idx, _ = get_weingarten_reduced_data(k, dim, return_rationals=true)
         
         # Exact rational summation to bypass Symbolics.simplify bugs
@@ -530,7 +534,7 @@ function integrate_indices_symplectic(indices::AbstractVector, dim)
 
     w, type_to_idx, _ = get_weingarten_reduced_data(k, -dim, return_rationals = !(dim isa Integer))
 
-    if !(dim isa Integer)
+    if !(Symbolics.unwrap(dim) isa Number)
         # Use exact rational polynomial arithmetic to avoid Symbolics.simplify bugs
         local_total_rat = nothing
         for (c_pi, val_pi) in pi_contractions
