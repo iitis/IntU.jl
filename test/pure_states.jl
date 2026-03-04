@@ -5,15 +5,15 @@ using LinearAlgebra
 
 @testset verbose=true "Pure States Integration" begin
     @variables d
-    psi = SymbolicMatrix(:psi, :psi, d)
+    psi = SymbolicMatrix(:psi, :psi, (d, 1))
 
     @testset "Diagonal Term" begin
-        res = integrate(psi[1, 1] * conj(psi[1, 1]), dPsi(d))
+        res = @integrate psi[1, 1] * conj(psi[1, 1]) dPsi(d)
         @test is_really_zero(res - 1/d)
     end
 
     @testset "Off-Diagonal Term" begin
-        res = integrate(psi[1, 1] * conj(psi[2, 1]), dPsi(d))
+        res = @integrate psi[1, 1] * conj(psi[2, 1]) dPsi(d)
         @test is_really_zero(res)
     end
 
@@ -22,12 +22,27 @@ using LinearAlgebra
         @variables r[1:2] i[1:2]
         phi = [r[1] + im*i[1], r[2] + im*i[2]]
 
-        inner_prod = conj(psi[1, 1])*phi[1] + conj(psi[2, 1])*phi[2]
-        expr = inner_prod * conj(inner_prod)
-        res = integrate(expr, dPsi(d))
+        expr = (conj(psi[1, 1])*phi[1] + conj(psi[2, 1])*phi[2]) * 
+               (psi[1, 1]*conj(phi[1]) + psi[2, 1]*conj(phi[2]))
+        res = @integrate expr dPsi(d)
 
         # Expected: sum_j |phi_j|^2 / d
         expected = (phi[1]*conj(phi[1]) + phi[2]*conj(phi[2])) / d
         @test is_really_zero(res - expected)
+    end
+
+    @testset "Dimension Enforcement" begin
+        # psi should be (d, 1)
+        # Accessing psi[1, 2] should throw BoundsError
+        @test_throws BoundsError begin
+            @integrate psi[1, 2] dPsi(d)
+        end
+        
+        # Test that integrate with invalid indices returns 0
+        # We can construct SymbolicMatrix manually with a larger dimension to bypass bounds check 
+        # normally enforced by (d, 1), but let's test the rule itself.
+        psi_sq = SymbolicMatrix(:psi, :psi, d)
+        res = integrate(psi_sq[1, 2], dPsi(d))
+        @test is_really_zero(res)
     end
 end

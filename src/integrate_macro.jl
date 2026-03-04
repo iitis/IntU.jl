@@ -113,7 +113,8 @@ macro integrate(expr, measure)
                        !($s isa SymbolicMatrix) ||
                        $s.special_type !== $(QuoteNode(tag)) ||
                        !isequal($s.dim, $m_dim)
-                        ;$s = SymbolicMatrix($(QuoteNode(s)), $(QuoteNode(tag)), $m_dim);
+                        dim = $(QuoteNode(tag)) === :psi ? ($m_dim, 1) : $m_dim
+                        $s = SymbolicMatrix($(QuoteNode(s)), $(QuoteNode(tag)), dim);
                     end
                 ),
             )

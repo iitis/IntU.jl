@@ -129,6 +129,7 @@ state vector $|\psi\rangle$ of dimension $d$.
 
 ```julia
 # Average of |ψ_1|^2
+# The @integrate macro treats 'psi' as a (d, 1) column vector
 @integrate abs(psi[1, 1])^2 dPsi(d)
 # Output: 1 / d
 ```

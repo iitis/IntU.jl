@@ -42,7 +42,7 @@ println("Expected (1/d): 1/d")
 # Convenience dPsi shorthand:
 println("\ndPsi(d) can also be used for purely vector-based integration.")
 println("Integrating with dPsi...")
-psi = SymbolicMatrix(:psi, :psi, d)
+psi = SymbolicMatrix(:psi, :psi, (d, 1))
 res_psi = integrate(abs(psi[1, 1])^2, dPsi(d))
 println("Integration done.")
 println("Result using dPsi(d): ", res_psi)

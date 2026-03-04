@@ -2,7 +2,6 @@
 
 @doc raw"""
     dStiefel(dim, k)
-    dStiefel(V::SymbolicMatrix, k)
 
 Defines the measure for integration over the Stiefel manifold $V_k(\mathbb{C}^d)$.
 This manifold represents the set of $d \times k$ matrices with orthonormal columns.

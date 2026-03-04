@@ -6,7 +6,14 @@ INTEGRATION_RULES[:U] =
 
 # Stiefel V_k(C^d) and pure state integration are same as Haar U(d) for entries
 INTEGRATION_RULES[:V] = INTEGRATION_RULES[:U]
-INTEGRATION_RULES[:psi] = INTEGRATION_RULES[:U]
+INTEGRATION_RULES[:psi] =
+    (u, ub, d, mt) -> begin
+        if any(x -> x[2] != 1, u) || any(x -> x[2] != 1, ub)
+            return 0
+        end
+        d = _ensure_symbolic_dim(d)
+        length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices(u, ub, d))
+    end
 
 INTEGRATION_RULES[:O] =
     (u, ub, d, mt) -> begin

@@ -39,10 +39,11 @@ using IntU, Symbolics
 using IntU, Symbolics
 
 @variables d
-# Use SymbolicMatrix for the state vector
-psi = SymbolicMatrix(:psi, :psi)
+# Use SymbolicMatrix for the state vector with (d, 1) dimension
+psi = SymbolicMatrix(:psi, :psi, (d, 1))
 
 # 1. Average of |psi_1|^2
+# Since psi is (d, 1), we use psi[1, 1]
 res = integrate(abs(psi[1, 1])^2, dPsi(d))
 println(res)
 # Output: 1/d
@@ -54,7 +55,7 @@ integrate(abs(psi[1, 1] * conj(psi[2, 1]))^2, dPsi(d))
 
 ## Pitfalls
 
-- **Indexing**: `psi` behaves like a vector, but since it is a `SymbolicMatrix`, it requires two indices: `psi[i, 1]`. Internally `psi[i, 1]` corresponds to `U[i, 1]`.
+- **Indexing**: `psi` behaves like a column vector. Since it is technically a `SymbolicMatrix` with dimensions `(d, 1)`, it is typically indexed as `psi[i, 1]`. Internally `psi[i, 1]` corresponds to the $i$-th entry of the state vector.
 - **Normalization**: The standard measure assumes $\langle \psi | \psi \rangle = 1$.
   The integral volume is normalized to 1.
   $\int d\psi = 1$.
