@@ -4,7 +4,7 @@ using Test
 
 @testset "SymbolicMatrix Bounds Checking" begin
     # 1. Integer dimensions
-    U10 = SymbolicMatrix(:U, :Haar, 10)
+    U10 = SymbolicMatrix(:U, :U, 10)
     @test_throws BoundsError U10[11, 1]
     @test_throws BoundsError U10[1, 11]
     @test_throws BoundsError U10[0, 1]
@@ -13,7 +13,7 @@ using Test
     
     # 2. Symbolic dimensions
     @variables d
-    Ud = SymbolicMatrix(:U, :Haar, d)
+    Ud = SymbolicMatrix(:U, :U, d)
     
     # Ud[d+1, 1] should throw BoundsError because (d+1) - d = 1 > 0
     @test_throws BoundsError Ud[d+1, 1]

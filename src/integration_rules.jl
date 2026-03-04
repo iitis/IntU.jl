@@ -740,19 +740,7 @@ end
 # Removed helper methods that are no longer needed with relaxed signatures
 
 function _get_J(i, j, d)
-    # J = [0 I; -I 0], d even, n = d/2
-    # J_{ij} = δ(i, j-n) - δ(i-n, j)
-    if !(d isa Integer)
-        return 0
-    end
-    n = d ÷ 2
-    if i <= n && j > n && j == i + n
-        return 1
-    elseif i > n && j <= n && i == j + n
-        return -1
-    else
-        return 0
-    end
+    return symplectic_form(i, j, d)
 end
 
 function integrate_indices_gse(indices::AbstractVector, dim)
@@ -794,7 +782,7 @@ function integrate_indices_gse(indices::AbstractVector, dim)
             end
 
             if possible
-                total += term_val
+                total += ((-1)^n_type2) * term_val
             end
         end
     end
@@ -825,13 +813,10 @@ end
 
 function symplectic_form(i, j, dim)
     # J matrix: J_{ij} = δ(j, i+m) - δ(j, i-m), m = dim/2
-
-    u_dim = Symbolics.unwrap(dim)
-    m = u_dim / 2
-
-    if _symbolic_isequal(j, i + m)
+    m = dim / 2
+    if _iszero(j - (i + m))
         return 1
-    elseif _symbolic_isequal(j, i - m)
+    elseif _iszero(j - (i - m))
         return -1
     else
         return 0
