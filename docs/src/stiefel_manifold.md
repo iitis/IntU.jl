@@ -46,7 +46,7 @@ using IntU, Symbolics
 using IntU, Symbolics
 
 @variables d
-V = SymbolicMatrix(:V, :U)
+V = SymbolicMatrix(:V, :V)
 # Integration over V_2(C^d)
 integrate(abs(V[1, 1])^2, dStiefel(d, 2))
 ```
@@ -61,7 +61,7 @@ Large-$d$ expansions are fully supported:
 ```@example stiefel
 using IntU, Symbolics
 @variables d
-V = SymbolicMatrix(:V, :U)
+V = SymbolicMatrix(:V, :V)
 measure = dStiefel(d, 2)
 expr = abs(V[1, 1])^2 * abs(V[1, 2])^2
 asymptotic(expr, measure, 2)

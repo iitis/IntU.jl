@@ -7,7 +7,7 @@ Defines the measure for integration over the Stiefel manifold $V_k(\mathbb{C}^d)
 This manifold represents the set of $d \times k$ matrices with orthonormal columns.
 
 The integration is performed by mapping $V$ to the first $k$ columns of a Haar-random unitary matrix $U(d)$.
-If called with `dim`, it integrates entries tagged with `:U` via `SymbolicMatrix(:V, :U)`.
+If called with `dim`, it integrates entries tagged with `:V` via `SymbolicMatrix(:V, :V)`.
 
 Reference:
 - Edelman, A., Arias, T. A., & Smith, S. T. (1998). The geometry of algorithms with orthogonality constraints.
