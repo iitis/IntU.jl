@@ -14,7 +14,8 @@ end
 
 Defines the Haar measure for the Special Unitary group $SU(d)$.
 
-Integration engine identifies variables via metadata tag `:U` (coincides with $U(d)$ in stable range).
+Integration for $SU(d)$ is performed via the $U(d)$ measure. For balanced 
+polynomials, the integrals over $SU(d)$ and $U(d)$ coincide.
 """
 dSU(dim) = SpecialUnitary(dim)
 

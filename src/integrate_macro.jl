@@ -70,7 +70,7 @@ macro integrate(expr, measure)
     elseif m_name == :dDiagUnitary
         :D, :DiagUnitary
     elseif m_name == :dStiefel
-        :V, :U
+        :V, :V
     elseif m_name == :dGUE || m_name == :dGOE || m_name == :dGSE
         :H, Symbol(string(m_name)[2:end])
     elseif m_name == :dGinUE || m_name == :dGinOE || m_name == :dGinSE
@@ -95,12 +95,14 @@ macro integrate(expr, measure)
     decls = []
 
     # Handle dimension
-    if m_dim isa Symbol
-        push!(decls, :(
-            if !@isdefined($m_dim)
-                @variables $m_dim
-            end
-        ))
+    for arg in measure.args[2:end]
+        if arg isa Symbol
+            push!(decls, :(
+                if !@isdefined($arg)
+                    @variables $arg
+                end
+            ))
+        end
     end
 
     # Handle integrand symbols
@@ -113,7 +115,14 @@ macro integrate(expr, measure)
                        !($s isa SymbolicMatrix) ||
                        $s.special_type !== $(QuoteNode(tag)) ||
                        !isequal($s.dim, $m_dim)
-                        dim = $(QuoteNode(tag)) === :psi ? ($m_dim, 1) : $m_dim
+                        dim = if $(QuoteNode(tag)) === :psi
+                            (IntU._ensure_symbolic_dim($m_dim), 1)
+                        elseif $(QuoteNode(tag)) === :V
+                            m_args = $(measure.args)
+                            (IntU._ensure_symbolic_dim(m_args[2]), IntU._ensure_symbolic_dim(m_args[3]))
+                        else
+                            IntU._ensure_symbolic_dim($m_dim)
+                        end
                         $s = SymbolicMatrix($(QuoteNode(s)), $(QuoteNode(tag)), dim);
                     end
                 ),

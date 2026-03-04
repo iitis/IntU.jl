@@ -28,8 +28,19 @@ struct StiefelMeasure{D,K,M} <: AbstractMeasure
 end
 StiefelMeasure(dim, k) = StiefelMeasure(dim, k, nothing)
 
-# Integration uses :U logic (mapping V -> U P, where P is projection)
-IntU._measure_tag(::StiefelMeasure) = :U
+# Integration uses :V logic
+IntU._measure_tag(::StiefelMeasure) = :V
+
+function IntU.measure_info(measure::StiefelMeasure)
+    subs_dict = Dict{Any,Any}()
+    tag = IntU._measure_tag(measure)
+    matcher = measure.matcher === nothing ? MetadataMatcher(tag) : measure.matcher
+    dim = measure.dim
+    if dim isa SymbolicMatrix
+        dim = dim.dim
+    end
+    return (subs_dict, matcher, dim, (tag, measure.k))
+end
 
 function integrate(P::SymbolicMatrixProduct, measure::StiefelMeasure)
     if isempty(P.factors)

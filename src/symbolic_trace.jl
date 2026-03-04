@@ -56,6 +56,11 @@ function Base.size(A::SymbolicMatrix)
     end
 end
 
+function Base.axes(A::SymbolicMatrix)
+    sz = size(A)
+    return map(s -> s isa Integer ? (Base.OneTo(s)) : (1:1), sz)
+end
+
 function _getindex_scalar(A::SymbolicMatrix, i, j)
     # Bounds checking
     if A.dim !== nothing

@@ -5,10 +5,36 @@ INTEGRATION_RULES[:U] =
     end
 
 # Stiefel V_k(C^d) and pure state integration are same as Haar U(d) for entries
-INTEGRATION_RULES[:V] = INTEGRATION_RULES[:U]
+INTEGRATION_RULES[:V] =
+    (u, ub, d, mt) -> begin
+        k = mt isa Tuple ? mt[2] : d
+        
+        function is_out(idx)
+            j = idx[2]
+            j === nothing && return false
+            ju = Symbolics.unwrap(j)
+            ku = Symbolics.unwrap(k)
+            if ju isa Integer && ku isa Integer
+                return ju > ku
+            end
+            # Try symbolic difference
+            diff = Symbolics.simplify(ju - ku)
+            diff_u = Symbolics.unwrap(diff)
+            if diff_u isa Number && real(diff_u) > 0
+                return true
+            end
+            return false
+        end
+
+        if any(is_out, u) || any(is_out, ub)
+            return 0
+        end
+        d = _ensure_symbolic_dim(d)
+        length(u) != length(ub) ? 0 : (length(u) == 0 ? 1 : integrate_indices(u, ub, d))
+    end
 INTEGRATION_RULES[:psi] =
     (u, ub, d, mt) -> begin
-        if any(x -> x[2] != 1, u) || any(x -> x[2] != 1, ub)
+        if any(x -> !_symbolic_isequal(x[2], 1), u) || any(x -> !_symbolic_isequal(x[2], 1), ub)
             return 0
         end
         d = _ensure_symbolic_dim(d)
