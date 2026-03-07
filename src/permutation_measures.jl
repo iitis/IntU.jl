@@ -80,9 +80,9 @@ function fallback_integrate(t::LazyTrace, measure::PermutationMeasure)
         end
 
         if d_val == 0
-            error(
+            throw(ArgumentError(
                 "Cannot expand LazyTrace for Permutations: dimension is not concrete and term is not linear.",
-            )
+            ))
         end
 
         # Manual expansion of tr(C1 * C2 * ... * Cn)

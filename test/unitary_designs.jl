@@ -33,7 +33,7 @@ using Symbolics
     @testset verbose=true "Degree > t (t=2, degree=3)" begin
         # Degree 3 integral (should fail)
         expr3 = abs(U[1, 1])^6 # |u|^6 -> u^3 * conj(u)^3 -> degree 3
-        @test_throws ErrorException integrate(expr3, design2)
+        @test_throws ArgumentError integrate(expr3, design2)
     end
 
     # Define a 1-design
@@ -47,6 +47,6 @@ using Symbolics
 
         # Degree 2 fails
         expr2 = abs(U[1, 1])^4 # degree 2
-        @test_throws ErrorException integrate(expr2, design1)
+        @test_throws ArgumentError integrate(expr2, design1)
     end
 end

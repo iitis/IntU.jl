@@ -66,9 +66,9 @@ function integrate(A::SymbolicMatrix, measure::AbstractMeasure)
         end
         return res
     end
-    error(
+    throw(ArgumentError(
         "Direct integration of SymbolicMatrix requires a numeric dimension in the measure.",
-    )
+    ))
 end
 
 _get_integration_tag(m::MetadataMatcher) = m.type_tag
@@ -154,9 +154,9 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
             cur_c = Symbolics.unwrap(inner_dims[i+1])
 
             if !(cur_r isa Integer && cur_c isa Integer)
-                error(
-                    "Factor $f has non-numeric size ($cur_r, $cur_c). cannot expand product for matrix-valued integration. Use tr() for scalar results with symbolic dimensions.",
-                )
+                throw(ArgumentError(
+                    "Factor $f has non-numeric size ($cur_r, $cur_c). Cannot expand product for matrix-valued integration. Use tr() for scalar results with symbolic dimensions.",
+                ))
             end
 
             push!(mats, [f[r, c] for r = 1:Int(cur_r), c = 1:Int(cur_c)])
@@ -175,7 +175,7 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
         end
         return res
     end
-    error("Direct matrix-valued integration of SymbolicMatrixProduct requires numeric result dimensions (got $nr x $nc). Use tr() for scalar results.")
+    throw(ArgumentError("Direct matrix-valued integration of SymbolicMatrixProduct requires numeric result dimensions (got $nr x $nc). Use tr() for scalar results."))
 end
 
 """

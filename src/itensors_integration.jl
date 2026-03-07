@@ -71,7 +71,7 @@ function _integrate_graphical_unitary(constants, unitaries, dim; design_t = noth
     end
 
     if design_t !== nothing && n_u > design_t
-        error("Integrand degree ($n_u, $n_u) exceeds design order t=$design_t")
+        throw(ArgumentError("Integrand degree ($n_u, $n_u) exceeds design order t=$design_t"))
     end
 
 

@@ -163,7 +163,7 @@ INTEGRATION_RULES[:Design] =
         _, t_val = mt
         if length(u) != length(ub) || length(u) > t_val
             length(u) != length(ub) ? 0 :
-            error("Integrand degree ($(length(u))) exceeds design order t=$t_val")
+            throw(ArgumentError("Integrand degree ($(length(u))) exceeds design order t=$t_val"))
         end
         length(u) == 0 ? 1 : integrate_indices(u, ub, d)
     end

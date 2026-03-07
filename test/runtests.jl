@@ -48,7 +48,7 @@ function is_really_zero(x)
     end
 
     for i = 1:3
-        subs = Dict(v => rand() + 0.1 for v in vars)
+        subs = Dict(v => 0.1 + 0.3 * i + 0.17 * j for (j, v) in enumerate(vars))
         val_sub = Symbolics.substitute(x, subs)
         v = to_numeric(val_sub)
         if v isa Number

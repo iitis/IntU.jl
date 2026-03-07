@@ -116,8 +116,6 @@ function integrate_indices_coe(
 
     is_full_group = length(valid_sigmas) == n_fact
 
-    permutations_n = collect(permutations(1:n))
-
     total = 0 // 1
 
     if is_full_group
@@ -142,7 +140,7 @@ function integrate_indices_coe(
         end
 
         loop_counts = Dict{Int,Int}()
-        for tau in permutations_n
+        for tau in permutations(1:n)
             uf = IntDisjointSets(2 * m)
             for r = 1:n
                 u = div(r - 1, 2) + 1
@@ -164,7 +162,7 @@ function integrate_indices_coe(
     else
         wg_coeffs = Dict{Vector{Int},Any}()
 
-        for tau in permutations_n
+        for tau in permutations(1:n)
             uf = IntDisjointSets(2 * m)
             for r = 1:n
                 u = div(r - 1, 2) + 1
@@ -285,12 +283,11 @@ function integrate_indices_cse(
         return 0
     end
 
-    permutations_n = collect(permutations(1:n))
     total_val = 0 // 1
 
     wg_coeffs = Dict{Vector{Int},Any}()
 
-    for tau in permutations_n
+    for tau in permutations(1:n)
         possible = true
         uf = ParityUnionFind(2 * m)
 

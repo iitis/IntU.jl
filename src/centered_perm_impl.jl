@@ -7,6 +7,9 @@ function integrate_indices_centered_permutation(
     # (-1/d)^(k - |S|) * E[prod_{u in S} P_u]
 
     k = length(all_indices)
+    if k >= 8 * sizeof(UInt)
+        throw(ArgumentError("Centered permutation integration for k=$k indices is infeasible (2^$k subsets)"))
+    end
     total = 0
 
     # Pre-allocate to avoid repeated allocations in the loop

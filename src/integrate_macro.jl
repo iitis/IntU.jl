@@ -44,7 +44,7 @@ macro integrate(expr, measure)
     # 1. Parse measure to get dimension and type
     # measure is something like dU(d) or dO(2)
     if !Meta.isexpr(measure, :call)
-        error("Measure must be a function call, e.g., dU(d)")
+        throw(ArgumentError("Measure must be a function call, e.g., dU(d)"))
     end
 
     m_name = measure.args[1]

@@ -339,7 +339,7 @@ function Base.getindex(K::SymbolicKron, i::Integer, j::Integer)
     
     if rowsB === nothing || colsB === nothing
         # Throw a helpful error instead of MethodError in divrem
-        error("Cannot index into SymbolicKron with unknown dimensions in factor $(K.B). Specify dimensions or use tr() for scalar results.")
+        throw(ArgumentError("Cannot index into SymbolicKron with unknown dimensions in factor $(K.B). Specify dimensions or use tr() for scalar results."))
     end
 
     iA, iB = divrem(i - 1, rowsB) .+ 1

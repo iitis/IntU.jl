@@ -31,6 +31,7 @@ function _build_wires(U_indices, U_bar_indices, cycle_ranges, all_factors)
     wires = Dict{Int,Any}()
     reverse_wires = Dict{Int,Any}()
     all_slots = sort([U_indices; U_bar_indices])
+    all_slots_set = Set{Int}(all_slots)
 
     for slot in all_slots
         # Determine which cycle this slot belongs to
@@ -42,7 +43,7 @@ function _build_wires(U_indices, U_bar_indices, cycle_ranges, all_factors)
         consts = Any[]
         while true
             curr = curr == last(rng) ? first(rng) : curr + 1
-            if curr in all_slots
+            if curr in all_slots_set
                 wires[slot] = (curr, isempty(consts) ? nothing : consts)
                 break
             end
@@ -54,7 +55,7 @@ function _build_wires(U_indices, U_bar_indices, cycle_ranges, all_factors)
         consts_rev = Any[]
         while true
             curr = curr == first(rng) ? last(rng) : curr - 1
-            if curr in all_slots
+            if curr in all_slots_set
                 reverse_wires[slot] = (curr, isempty(consts_rev) ? nothing : consts_rev)
                 break
             end

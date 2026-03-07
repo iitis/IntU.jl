@@ -155,21 +155,19 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
     P = Vector{Int}(undef, n_U)
     U_idx_vec = collect(U_indices)
     Ub_idx_vec = collect(U_bar_indices)
+    curr_factors_buf = Any[]
 
     for (i, sigma) in enumerate(perms)
         inv_sigma = inv_perms[i]
         for (j, tau) in enumerate(perms)
             inv_tau = inv_perms[j]
-            # Use bitmask for visited if total_factors <= 32
-            # 2 ports * total_factors
-            visited = UInt64(0)
+            visited = falses(2 * total_factors)
             term_prod = is_numeric_dim ? one(Rational{BigInt}) : Num(1)
 
             for start_slot in all_slots
                 for start_port = 1:2
-                    # bit index: (port-1)*total_factors + slot
                     bit_idx = (start_port - 1) * total_factors + start_slot
-                    if (visited & (UInt64(1) << (bit_idx - 1))) == 0
+                    if !visited[bit_idx]
                         # Traverse cycle
                         val, visited = _traverse_trace_cycle_fast(
                             start_slot,
@@ -189,7 +187,8 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
                             Ub_idx_vec,
                             total_factors,
                             dim,
-                            visited
+                            visited,
+                            curr_factors_buf
                         )
                         term_prod *= val
                     end
@@ -226,16 +225,17 @@ function _traverse_trace_cycle_fast(
     Ub_idx_vec,
     total_factors,
     dim,
-    visited
-)
+    visited,
     curr_factors = Any[]
+)
+    empty!(curr_factors)
 
     while true
         bit_idx = (p - 1) * total_factors + s
-        if (visited & (UInt64(1) << (bit_idx - 1))) != 0
+        if visited[bit_idx]
             break
         end
-        visited |= (UInt64(1) << (bit_idx - 1))
+        visited[bit_idx] = true
 
         # 1. Weingarten Matching
         u_m = u_map_vec[s]
@@ -265,7 +265,7 @@ function _traverse_trace_cycle_fast(
         
         # Mark the other port of the newly reached factor as visited too
         bit_idx_other = (p - 1) * total_factors + s
-        visited |= (UInt64(1) << (bit_idx_other - 1))
+        visited[bit_idx_other] = true
 
         # 2. Wire Traversal
         if p == 2

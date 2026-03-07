@@ -48,9 +48,9 @@ function hciz(A::SymbolicMatrix, B::SymbolicMatrix)
     if A.dim !== nothing
         return hciz(A, B, A.dim)
     else
-        error(
+        throw(ArgumentError(
             "Must provide dimension d for symbolic HCIZ if matrices have symbolic dimension.",
-        )
+        ))
     end
 end
 
@@ -86,21 +86,23 @@ function _get_eigenvalues(M::AbstractMatrix)
         ]
     end
 
-    error(
+    throw(ArgumentError(
         "Cannot extract eigenvalues symbolically for d > 2 and non-diagonal matrix. Please provide eigenvalues directly.",
-    )
+    ))
 end
 
 function hciz(a::AbstractVector, b::AbstractVector)
-    length(a) == length(b) || error("A and B must have the same dimension")
+    length(a) == length(b) || throw(DimensionMismatch("A and B must have the same dimension, got $(length(a)) and $(length(b))"))
     d = length(a)
     d == 0 && return 1.0
 
     # Check for degeneracies
     if _has_degeneracies(a) || _has_degeneracies(b)
         if eltype(a) <: Number && eltype(b) <: Number
-            a = [a[i] + i * 1e-10 for i = 1:d]
-            b = [b[i] + i * 1e-10 for i = 1:d]
+            eps_a = max(maximum(abs, a), 1.0) * 1e-12
+            eps_b = max(maximum(abs, b), 1.0) * 1e-12
+            a = [a[i] + i * eps_a for i = 1:d]
+            b = [b[i] + i * eps_b for i = 1:d]
         else
             # For symbolic, this is harder. 
             # In some cases L'Hopital's rule or character expansions are needed.
