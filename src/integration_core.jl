@@ -230,7 +230,7 @@ function fallback_integrate(expr, measure)
 end
 
 function _manual_fallback(expr, measure)
-    error("Fallback integrate not implemented for this measure: $(typeof(measure))")
+    throw(ArgumentError("Fallback integrate not implemented for this measure: $(typeof(measure))"))
 end
 
 """

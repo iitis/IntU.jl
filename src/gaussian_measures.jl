@@ -323,7 +323,7 @@ function fallback_integrate(t::LazyTrace, measure::GinUEMeasure)
                     elseif haskey(reverse_wires, curr_factor_idx)
                         dest_factor_idx, mat_segment = reverse_wires[curr_factor_idx]
                     else
-                        error("Connectivity error in GinUE integration")
+                        throw(ErrorException("Connectivity error in GinUE integration"))
                     end
 
                     if mat_segment !== nothing

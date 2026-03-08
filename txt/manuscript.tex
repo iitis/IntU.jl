@@ -217,8 +217,7 @@ group integration domain. A primary distinction lies in \texttt{IntU.jl}'s deep
 integration with the Julia \texttt{Symbolics.jl} ecosystem, treating dimensions
 $d$ as native symbolic rational functions rather than requiring separate
 symbolic algebra backends or manual substitutions.
-
-diverse ensemble support, combined with specialized utilities for partial traces of symbolic subsystems, makes \texttt{IntU.jl} a versatile
+This diverse ensemble support, combined with specialized utilities for partial traces of symbolic subsystems, makes \texttt{IntU.jl} a versatile
 environment for both theoretical derivations and complex numerical experiments.
 
 \texttt{IntU.jl} offers a pure Julia implementation of the Weingarten calculus
@@ -820,7 +819,7 @@ mathematical structures while sharing the top-level dispatch mechanism:
     solver based on the \textbf{Bareiss algorithm} with exact \texttt{BigInt} arithmetic.
     Furthermore, to ensure stability for high-degree Weingarten sums where traditional
     simplification can fail, the engine employs a custom exact rational summation logic.
-    Integration over the symplectic group reuse this optimized engine via duality:
+    Integration over the symplectic group reuses this optimized engine via duality:
     \begin{equation}
     \mathrm{Wg}^{Sp}(p, q, d) = (-1)^{\mathrm{loops}(p, q)} \mathrm{Wg}^O(p, q, -d).
     \end{equation}
@@ -837,7 +836,7 @@ mathematical structures while sharing the top-level dispatch mechanism:
     \item \textbf{Memoization}: All computed characters, dimensions, and
     Weingarten values are cached using the \texttt{Memoization.jl} package.
     Memoization occurs at the granular level of individual character and
-    call, ensuring maximum reuse across different partition
+    Weingarten function call, ensuring maximum reuse across different partition
     structures and integration orders.
 \end{itemize}
 
@@ -883,7 +882,7 @@ observed during production use. The code for these specific stress tests is
 located in \texttt{benchmarks/09\_stress\_test\_2.jl}, which can be executed via
 the reproduction script described in Section \ref{sec:availability}. Additional
 benchmarks for lower-degree moments and application examples are available in
-\texttt{benchmarks/08\_stess\_test\_1.jl}.
+\texttt{benchmarks/08\_stress\_test\_1.jl}.
 
 
 
@@ -1091,7 +1090,7 @@ The source code for \texttt{IntU.jl} is available on GitHub under the Apache Lic
     \item \textbf{Repository URL}: \url{https://github.com/iitis/IntU.jl}
     \item \textbf{License}: Apache License 2.0
     \item \textbf{Version}: The results in this paper were generated using
-    version v0.9.0.
+    version v1.0.0.
     \item \textbf{Benchmarks}: To reproduce the benchmarks presented in Section
     \ref{sec:performance}, execute the provided script from the repository root:
     \begin{lstlisting}[language=bash]

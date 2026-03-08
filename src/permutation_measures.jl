@@ -109,9 +109,9 @@ function fallback_integrate(t::LazyTrace, measure::CenteredPermutationMeasure)
     if length(t.cycles) == 1 && length(t.cycles[1]) == 2
         return 0
     end
-    error(
+    throw(ArgumentError(
         "Graphical integration for Centered Permutations only supported for tr(YA) currently.",
-    )
+    ))
 end
 
 """

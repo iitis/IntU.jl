@@ -43,7 +43,7 @@ Returns a sum of terms, where each term is a product of `constants` and deltas.
 """
 function integrate_graphical(constants, unitaries, measure::AbstractMeasure)
     # Default fallback or error
-    error("Graphical integration not implemented for measure $(typeof(measure))")
+    throw(ArgumentError("Graphical integration not implemented for measure $(typeof(measure))"))
 end
 
 integrate_graphical(constants, unitaries, measure::HaarMeasure) =

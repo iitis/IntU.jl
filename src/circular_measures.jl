@@ -154,7 +154,7 @@ function integrate_indices_coe(
 
         sum_loops = 0 // 1
         for (loops, count) in loop_counts
-            sum_loops += count * (dim isa Integer ? dim : dim)^loops
+            sum_loops += count * dim^loops
         end
 
         return sum_wg * sum_loops
@@ -171,7 +171,7 @@ function integrate_indices_coe(
                 union!(uf, u, m + v)
             end
             loops = num_groups(uf)
-            weight = (dim isa Integer ? dim : dim)^loops
+            weight = dim^loops
 
             if _symbolic_isequal(weight, 0)
                 continue

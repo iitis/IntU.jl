@@ -53,7 +53,7 @@ IntU._measure_tag(::HaarMeasure) = :U
 
 function _manual_fallback(expr, measure::HaarMeasure)
     # LazyTrace expressions are handled by fallback_integrate dispatch, not here.
-    error("HaarMeasure integration failed for: $(typeof(expr))")
+    throw(ArgumentError("HaarMeasure integration failed for: $(typeof(expr))"))
 end
 
 IntU._reconstruct_symbolic(::HaarMeasure, d_asymp) = dU(d_asymp)

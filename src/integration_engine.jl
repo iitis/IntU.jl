@@ -454,9 +454,9 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
     if term isa LazyTrace
         # If it leaked here, it means it's not specialized for this measure.
         # Try a very basic expansion? No, let's error gracefully if not handled.
-        error(
+        throw(ArgumentError(
             "Graphical integration (LazyTrace) not implemented for measure type $measure_type. Try expanding traces element-wise.",
-        )
+        ))
     end
 
     if Symbolics.iscall(term)
@@ -574,6 +574,6 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
         end
         return coeff * val
     else
-        error("Unknown measure type: $measure_type")
+        throw(ArgumentError("Unknown measure type: $measure_type"))
     end
 end

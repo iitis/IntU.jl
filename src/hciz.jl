@@ -110,9 +110,9 @@ function hciz(a::AbstractVector, b::AbstractVector)
         end
     end
 
-    prefactor = one(eltype(a))
+    prefactor = one(BigInt)
     for p = 1:(d-1)
-        prefactor *= factorial(p)
+        prefactor *= factorial(big(p))
     end
 
     delta_a = vandermonde_det(a)
