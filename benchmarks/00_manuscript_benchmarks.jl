@@ -8,7 +8,7 @@ import ITensors
 # Helper to run benchmark and return (median time in ms, memory in MiB)
 function measure_median_func(f)
     # Benchmark the function call. We interpolate f to avoid overhead of finding it.
-    b = @benchmark $f() samples=10 seconds=1
+    b = @benchmark $f() samples=30 seconds=120
     m = median(b)
     return m.time / 1e6, m.memory / (1024 * 1024)
 end

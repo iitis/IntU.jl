@@ -488,7 +488,7 @@ randomized benchmarking schemes rely only on the $t$-moment properties of the
 sampling distribution.
 
 \subsection{Quantum information utilities}
-The package includes a suite of helper functions tailored for quantum information
+The package includes a helper function tailored for quantum information
 tasks, designed to work seamlessly with symbolic expressions:
 \begin{itemize}
     \item \textbf{Partial Trace}: The \texttt{partial\_trace(M, dims, system)}
@@ -499,9 +499,8 @@ tasks, designed to work seamlessly with symbolic expressions:
     of entanglement metrics like purity by integrating the trace of the squared
     reduced density matrix.
 \end{itemize}
-These utilities reduce the boilerplate code required for setting up common
-calculations in quantum information theory, such as entanglement quantification
-and randomized benchmarking.
+This utility reduces the boilerplate code required for setting up common
+calculations in quantum information theory, such as entanglement quantification.
 
 \subsection{Symbolic dimensions and asymptotics}
 A standout feature of \texttt{IntU.jl} is its deep support for symbolic dimensions $d$.
@@ -694,6 +693,24 @@ asymp_res = asymptotic(expr, dU(d), 4)
 # Output: 2/d^2 - 2/d^3 + 2/d^4
 \end{lstlisting}
 
+This facility is particularly valuable for extracting universal scaling laws
+from combinatorially complex exact expressions. For instance, the large-$d$
+expansion of trace moments reveals the Gaussian universality of
+$\mathrm{tr}(U)$:
+
+\begin{lstlisting}[language=Julia]
+# E[|tr(U)|^6]: exact result is a rational function of d
+asymp_tr6 = asymptotic(abs(tr(U))^6, dU(d), 3)
+# Leading term: 6 = 3!, confirming that tr(U) behaves as
+# a standard complex Gaussian as d -> infinity
+\end{lstlisting}
+
+The leading-order coefficient $k! = 6$ matches the $2k$-th moment of a standard
+complex Gaussian, while the subleading corrections encode finite-size deviations.
+Such expansions automate the derivation of scaling laws relevant to quantum
+scrambling and the Page curve \cite{page1993average}, where manual simplification
+of the underlying Weingarten sums would be prohibitive.
+
 \subsection{Tensor network integration}
 Finally, we demonstrate the integration of a tensor network using the
 \texttt{ITensors.jl} interface. This approach is particularly useful for Haar
@@ -875,13 +892,14 @@ single matrix entries, such as $\int |U_{11}|^{2k} dU$, for high degrees $2k
 implementations due to their maximal combinatorial complexity.
 
 All benchmarks were performed using the \texttt{BenchmarkTools.jl} package.
-Reported execution times represent the \textbf{median} of $N=30$ runs.
+Reported execution times represent the \textbf{median} of $N=30$ samples.
 Crucially, these results \textbf{exclude} the initial JIT compilation and
 warm-up time, reflecting the true steady-state performance of the library
-observed during production use. The code for these specific stress tests is
-located in \texttt{benchmarks/09\_stress\_test\_2.jl}, which can be executed via
-the reproduction script described in Section \ref{sec:availability}. Additional
-benchmarks for lower-degree moments and application examples are available in
+observed during production use. The reproduction script
+\texttt{benchmarks/00\_manuscript\_benchmarks.jl} generates all tables
+presented below and can be executed via the runner described in Section
+\ref{sec:availability}. Additional stress tests and correctness checks are
+available in \texttt{benchmarks/09\_stress\_test\_2.jl} and
 \texttt{benchmarks/08\_stress\_test\_1.jl}.
 
 
@@ -943,7 +961,7 @@ Key observations include:
 
 \begin{table}[ht]
 \centering
-\caption{Benchmark results for symbolic vs. numeric integration. Times are median values over 30 samples (except for long-running symbolic cases).}
+\caption{Benchmark results for symbolic vs. numeric integration. Times are median values over 30 samples. Sub-millisecond entries (GinUE) are at the measurement resolution floor of \texttt{BenchmarkTools.jl}.}
 \label{tab:benchmarks}
 \begin{tabular}{llcc}
 \hline
@@ -964,12 +982,12 @@ Orthogonal & $O_{11}^8$ & $d=20$ & 0.38 \\
 Orthogonal & $O_{11}^{10}$ & $d=20$ & 0.37 \\
 Orthogonal & $O_{11}^{10}$ & $d=50$ & 0.37 \\
 \hline
-Symplectic & $|S_{11}|^8$ & $d=10$ & 4.89 \\
-Symplectic & $|S_{11}|^{10}$ & $d=10$ & 76.98 \\
-Symplectic & $|S_{11}|^{10}$ & $d=20$ & 76.59 \\
+Symplectic & $|Sp_{11}|^8$ & $d=10$ & 4.89 \\
+Symplectic & $|Sp_{11}|^{10}$ & $d=10$ & 76.98 \\
+Symplectic & $|Sp_{11}|^{10}$ & $d=20$ & 76.59 \\
 \hline
 GinUE & $\mathrm{tr}(GG^\dagger)$ & Symbolic & 0.01 \\
-GinUE & $\mathrm{tr}(GG^\dagger)$ & $d=4$ & 0.00 \\
+GinUE & $\mathrm{tr}(GG^\dagger)$ & $d=4$ & $<$0.01 \\
 \hline
 Circ. Orthogonal & $|S_{11}|^2$ & Symbolic & 3.52 \\
 Circ. Orthogonal & $|S_{11}|^4$ & Symbolic & 8.64 \\
@@ -1008,7 +1026,7 @@ showing scaling with degree $k$ and dimension $d$.}
 \label{tab:itensor_benchmarks}
 \begin{tabular}{lccc}
 \hline
-Scaling Type & Degree $k$ & Dimension $d$ & Time (ms) \\
+Scaling type & Degree $k$ & Dimension $d$ & Time (ms) \\
 \hline
 Degree $k$ (U) & 1 & 2 & 0.03 \\
 Degree $k$ (U) & 2 & 2 & 0.16 \\
@@ -1048,7 +1066,7 @@ matrix of expressions.}
 \label{tab:matrix_bench}
 \begin{tabular}{ccc}
 \toprule
-Matrix Size ($N$) & Mean Time (ms) & Allocations (MiB) \\
+Matrix size ($N$) & Median time (ms) & Allocations (MiB) \\
 \midrule
 $2 \times 2$ & 2.61 & 0.89 \\
 $3 \times 3$ & 6.37 & 2.39 \\
