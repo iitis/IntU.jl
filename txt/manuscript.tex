@@ -117,23 +117,17 @@
 Symbolic integration over the Haar measure of compact groups is a computational
 cornerstone in quantum information science and random matrix theory. We present
 \texttt{IntU.jl}, a comprehensive Julia package for computing exact expectations
-of polynomial functions over the unitary $U(d)$, special unitary $SU(d)$,
-orthogonal $O(d)$, symplectic $Sp(d)$, permutation group $S_d$, circular
-ensembles (CUE, COE, CSE), Ginibre ensembles (GinUE, GinOE, GinSE), and Gaussian
-ensembles (GUE, GOE, GSE), as well as random pure quantum states, diagonal
-unitary matrices, and unitary $t$-designs. Unlike existing tools that often rely
-on proprietary engines or lack support for symbolic parameters, \texttt{IntU.jl}
-provides a fully open-source, performant implementation of the Weingarten
-calculus and Wick contractions. Key features include the native handling of
-symbolic dimensions $d$ as rational functions, direct integration of
-matrix-valued expressions, allowing for the automatic derivation of asymptotic
-expansions, a high-level symbolic trace interface that reconstructs Weingarten
-graphs directly from index-free expressions, and a native bridge to
-\texttt{ITensors.jl} for integrating complex tensor networks. We discuss the
+of polynomial functions over a wide range of compact groups ($U(d)$, $SU(d)$,
+$O(d)$, $Sp(d)$), circular and Gaussian ensembles, Ginibre ensembles,
+permutation groups, random pure states, and unitary $t$-designs. The package
+provides a fully open-source implementation of the Weingarten calculus and Wick
+contractions with native support for symbolic dimensions $d$ as rational
+functions, automatic asymptotic expansions, a high-level symbolic trace
+interface that reconstructs Weingarten graphs from index-free expressions, and
+a bridge to \texttt{ITensors.jl} for tensor network averaging. We discuss the
 underlying algorithms—including the Murnaghan-Nakayama rule and
 symplectic-orthogonal duality—and demonstrate that the package efficiently
-handles high-degree moments and complex quantum information metrics,
-significantly outperforming manual derivations.
+handles high-degree moments and quantum information metrics.
 \end{abstract}
 
 %%
@@ -588,17 +582,11 @@ result = @integrate abs(U[1,1])^2 dU(d)
 res_tr = @integrate abs(tr(U))^4 dU(d)
 # Output: 2
 
-# High-degree moments (Example A: different rows/cols)
-res_a = @integrate abs(U[1, 1])^2 * abs(U[2, 2])^4 * abs(U[1, 3])^6 dU(d)
-
-# High-degree moments (Example B: same row, Dirichlet behavior)
-res_b = @integrate abs(U[1, 1])^2 * abs(U[1, 2])^4 * abs(U[1, 3])^6 dU(d)
-
-# Example C: "2-design style" correlator identity
+# Cross-correlator vanishes for off-diagonal index pairings
 res_c = @integrate U[1, 1] * conj(U[1, 2]) * U[2, 2] * conj(U[2, 1]) dU(d)
+# Output: -1/(d*(d^2 - 1))
 
-# Special Unitary group (stable range)
-# Balanced moment: E[|U_11|^2] matches U(d)
+# Special Unitary group (stable range): matches U(d) for balanced moments
 @integrate abs(U[1, 1])^2 dSU(d)
 # Output: 1/d
 \end{lstlisting}
@@ -621,26 +609,16 @@ diagonal entry for the symmetric (COE) and self-dual (CSE) cases:
 @integrate abs(S[1, 1])^2 dCSE(d)
 # Output: 1/(d-1)
 
-# Example for the real orthogonal group O(d)
-# E[O_11^2]
+# Orthogonal group O(d): real matrix entries
 @integrate O[1, 1]^2 dO(d)
 # Output: 1/d
 
-# E[O_11^4]
 @integrate O[1, 1]^4 dO(d)
 # Output: 3 / (d*(d+2))
 
-# Example O1: high powers, single row
-@integrate O[1,1]^2 * O[1,2]^4 * O[1,3]^6 dO(d)
-
-# Example O2: mixed rows/cols
-@integrate O[1,1]^2 * O[2,2]^4 * O[1,3]^6 dO(d)
-
-# Example S1: Symplectic mixed moments
+# Symplectic group Sp(d): mixed moments
 @integrate abs(Sp[1,1])^2 * abs(Sp[1,2])^2 dSp(d)
-
-# Example Sp1: high powers, single row
-@integrate abs(Sp[1,1])^2 * abs(Sp[1,2])^4 * abs(Sp[1,3])^6 dSp(d)
+# Output: rational function of d with poles at d = 0, -1, -3
 \end{lstlisting}
 
 These results contrast with the Haar unitary value of $1/d$, reflecting the
@@ -867,7 +845,7 @@ The integration strategy for these structures is twofold:
 \begin{enumerate}
     \item \textbf{Library Lookup}: Common patterns, such as the single-channel
     overlap $\mathrm{tr}(U A U^\dagger B)$, are detected via pattern matching
-    mechanisms (implemented in `check\_library`). These matches trigger optimized
+    mechanisms (implemented in \texttt{check\_library}). These matches trigger optimized
     fast-paths that return pre-computed results directly (e.g.,
     $\frac{1}{d}\mathrm{tr}(A)\mathrm{tr}(B)$) without invoking the full Weingarten engine.
     This effectively reduces the complexity for these common cases from $O((k!)^2)$ to $O(1)$.
@@ -879,6 +857,17 @@ The integration strategy for these structures is twofold:
     contraction graph required by the Weingarten formula calculation, thereby
     avoiding the combinatorial explosion associated with eager index expansion.
 \end{enumerate}
+
+\paragraph{Input validation}
+\texttt{IntU.jl} validates user inputs at the API boundary to provide clear
+error messages. The package checks that Stiefel manifold parameters satisfy
+$k \le d$, that partial trace subsystem indices are within range, and that
+$t$-design integrals do not exceed the design order $t$. For the symplectic
+group, dimensions must be even. When the integration engine encounters an
+expression whose polynomial structure is incompatible with the chosen measure
+(e.g., an unbalanced monomial for $U(d)$), it raises an
+\texttt{ArgumentError} with a descriptive message rather than returning an
+incorrect result.
 
 \section{Performance and benchmarks}
 \label{sec:performance}
@@ -910,8 +899,30 @@ summation over the symmetric group $S_k$ (for the unitary case) or the set of
 pair partitions $M_{2k}$ (for orthogonal/symplectic cases). The size of these
 sets grows factorially: $|S_k| = k!$ and $|M_{2k}| = (2k-1)!!$. Consequently,
 the runtime scales exponentially with the degree of the polynomial.
+
+For the \textbf{unitary group}, the dominant cost is the double sum over $S_k$
+in the Weingarten formula, giving $\mathcal{O}((k!)^2)$ per integral.
+Individual Weingarten function evaluations require summing over partitions
+$\lambda \vdash k$, each involving a character computation via the
+Murnaghan-Nakayama rule in $\mathcal{O}(k^2)$ time per partition, and a
+Hook-Content dimension evaluation in $\mathcal{O}(k)$ time. These values are
+memoized, so repeated queries are $\mathcal{O}(1)$.
+
+For the \textbf{orthogonal and symplectic groups}, the cost is dominated by
+the construction and inversion of the $(2k-1)!! \times (2k-1)!!$ Weingarten
+matrix. When $d$ is symbolic, this inversion is performed using the Bareiss
+algorithm with exact \texttt{BigInt} arithmetic, at a cost of
+$\mathcal{O}(((2k-1)!!)^3)$ operations. When $d$ is numeric, standard
+floating-point linear algebra reduces this substantially. In both cases, the
+result is cached: each Weingarten matrix is inverted only once per degree $k$,
+and subsequent queries retrieve cached values in $\mathcal{O}(1)$. The
+per-integral contraction cost remains $\mathcal{O}(((2k-1)!!)^2)$ from
+summing over all pairs of pair partitions. Symplectic integrals reuse the
+orthogonal engine via the duality $d \to -d$, incurring no additional
+asymptotic cost.
+
 Empirically, we find that exact symbolic integration is feasible for degrees up
-to $2k \approx 10-12$ on standard hardware. Beyond this regime, the number of
+to $2k \approx 10\text{-}12$ on standard hardware. Beyond this regime, the number of
 terms (e.g., $10! \approx 3.6 \times 10^6$) becomes prohibitive for real-time
 symbolic manipulation, although numerical evaluation remains tractable for
 slightly higher degrees.
@@ -1095,8 +1106,10 @@ this symbolic abstraction does not come at the cost of performance, enabling the
 evaluation of high-degree moments that were previously intractable.
 
 Future development of \texttt{IntU.jl} will focus on expanding support to
-exceptional Lie groups, integrating finite-$d$ corrections for $SU(d)$ beyond
-the stable range, and further optimizing the asymptotic expansion engine for
+exceptional Lie groups (particularly $G_2$, which arises in holonomy
+classification and string-theoretic compactifications), integrating finite-$d$
+corrections for $SU(d)$ beyond the stable range via $\epsilon$-tensor
+contractions, and further optimizing the asymptotic expansion engine for
 extremely large-scale problems. We believe \texttt{IntU.jl} will become an
 essential utility in the toolkit of theoretical physicists and quantum
 information scientists.
