@@ -19,13 +19,24 @@ d = Symbol("d")
 
 N_WARMUP = 2
 N_SAMPLES = 30
+# If a single call takes longer than this, reduce to fewer samples
+SLOW_THRESHOLD_S = 1.0
+SLOW_SAMPLES = 5
 
 
 def benchmark(func, n_warmup=N_WARMUP, n_samples=N_SAMPLES):
     """Benchmark a function, returning median time in seconds."""
-    # Warmup
+    # Warmup and detect slow benchmarks
     for _ in range(n_warmup):
         func()
+
+    # Probe: time one call to decide sample count
+    start = time.perf_counter()
+    func()
+    probe_time = time.perf_counter() - start
+
+    if probe_time > SLOW_THRESHOLD_S:
+        n_samples = SLOW_SAMPLES
 
     times = []
     for _ in range(n_samples):
@@ -63,7 +74,8 @@ def run_and_report(name, func):
         res = func()
         stats = benchmark(func)
         ms = stats["median_s"] * 1000
-        print(f"{ms:.2f} ms  (result: {res})")
+        n = stats["samples"]
+        print(f"{ms:.2f} ms  (N={n}, result: {res})")
         results[name] = {**stats, "median_ms": ms, "result": str(res)}
     except Exception as e:
         print(f"FAILED: {e}")
