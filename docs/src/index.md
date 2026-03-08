@@ -4,7 +4,7 @@ Welcome to the documentation for **IntU.jl**, a generic symbolic integration eng
 
 ## Getting Started
 
-INTU.jl is designed to make "back-of-the-envelope" calculations in Random Matrix Theory and Quantum Information exact and automated.
+IntU.jl is designed to make "back-of-the-envelope" calculations in Random Matrix Theory and Quantum Information exact and automated.
 
 ### Installation
 
@@ -44,6 +44,7 @@ integrate(expr, measure)
 - [Circular Ensembles](circular_ensembles.md): COE, CUE, and CSE.
 - [Permutation Groups](permutation_integration.md): Symmetric and centered permutations.
 - [Pure States](pure_states.md): Integration over random vectors.
+- [Stiefel Manifolds](stiefel_manifold.md): Integration over Stiefel manifolds $V_k(\mathbb{C}^d)$.
 - [Symbolic Trace Logic](symbolic_trace.md): Index-free matrix integration.
 - [Asymptotic Expansions](asymptotic.md): Large-$d$ limit analysis.
 - [Integral Library](integral_library.md): Pre-computed standard results.

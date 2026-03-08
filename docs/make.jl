@@ -28,6 +28,7 @@ makedocs(;
             "Stiefel Manifolds" => "stiefel_manifold.md",
             "Symbolic Traces" => "symbolic_trace.md",
             "Asymptotics" => "asymptotic.md",
+            "Integral Library" => "integral_library.md",
             "QI Helpers" => "qi_helpers.md",
             "ITensors Integration" => "itensors.md",
         ],

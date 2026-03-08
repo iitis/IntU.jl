@@ -24,6 +24,7 @@ IntU.measure_info
 ### Unitary Group
 ```@docs
 dU
+dSU
 ```
 
 ### Orthogonal & Symplectic
@@ -31,6 +32,10 @@ dU
 dO
 dSp
 ```
+
+### Circular Ensembles
+
+See [Circular Ensembles](circular_ensembles.md) for `dCOE`, `dCSE`, `dCUE`.
 
 ### Gaussian Ensembles
 ```@docs
@@ -46,6 +51,8 @@ dGinSE
 ```@docs
 dPsi
 ```
+
+See [Stiefel Manifolds](stiefel_manifold.md) for `dStiefel`.
 
 ### Permutation Groups
 ```@docs
@@ -69,10 +76,6 @@ tr
 ## Quantum Information Utilities
 
 ```@docs
-purity
-average_purity
-fidelity
-average_fidelity
 partial_trace
 ```
 
@@ -84,7 +87,6 @@ These functions are part of the internal machinery but documented for developmen
 
 ```@docs
 integrate_indices
-IntU.integrate_indices_orthogonal
 IntU.integrate_indices_symplectic
 IntU.integrate_indices_permutation
 IntU.integrate_indices_diagonal

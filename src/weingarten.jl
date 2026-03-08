@@ -193,7 +193,7 @@ where f^\\lambda is the dimension of the S_n irrep, \\chi^\\lambda(\\sigma) is t
 character, and s_\\lambda(1^d) is the dimension of the U(d) irrep.
 
 Reference:
-- Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitay, orthogonal and symplectic groups. *Communications in Mathematical Physics*.
+- Collins, B., & Śniady, P. (2006). Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups. *Communications in Mathematical Physics*.
 """
 @memoize function weingarten(partition_type::Vector{Int}, d)
     wnum, wden = weingarten_raw(partition_type, d)

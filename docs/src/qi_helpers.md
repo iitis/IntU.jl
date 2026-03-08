@@ -34,9 +34,9 @@ rho_A = partial_trace(rho, (d_A, d_B), 2)
 
 # Calculate Haar-average purity manually
 # purity(rho_A) = tr(rho_A^2)
-avg_pury = integrate(tr(rho_A * rho_A), dU(d))
+avg_purity = integrate(tr(rho_A * rho_A), dU(d))
 
-println(avg_pury)
+println(avg_purity)
 # Output: 4//5 (matches (2+2)/(4+1))
 ```
 
