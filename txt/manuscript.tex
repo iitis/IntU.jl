@@ -118,9 +118,10 @@
 Symbolic integration over the Haar measure of compact groups is a computational
 cornerstone in quantum information science and random matrix theory. We present
 \texttt{IntU.jl}, a comprehensive Julia package for computing exact expectations
-of polynomial functions over a wide range of compact groups ($U(d)$, $SU(d)$,
-$O(d)$, $Sp(d)$), circular and Gaussian ensembles, Ginibre ensembles,
-permutation groups, random pure states, and unitary $t$-designs. The package
+of polynomial functions over a wide range of compact groups ($U(d)$,
+$O(d)$, $Sp(d)$, and $SU(d)$ for balanced polynomials), circular and Gaussian
+ensembles, Ginibre ensembles, permutation groups, random pure states, and
+unitary $t$-designs. The package
 provides a fully open-source implementation of the Weingarten calculus and Wick
 contractions with native support for symbolic dimensions $d$ as rational
 functions, automatic asymptotic expansions, a high-level symbolic trace
@@ -401,8 +402,14 @@ matrices $A$ and $B$, automatically extracting their eigenvalues. For symbolic
 matrices, the package supports automatic eigenvalue extraction for diagonal
 forms of any dimension and general $2 \times 2$ matrices via the quadratic
 formula. For larger non-diagonal symbolic matrices, users can provide the
-eigenvalues manually. The implementation also includes a robust perturbation
-mechanism to handle numerical degeneracies in the spectrum as smooth limits.
+eigenvalues manually. When degenerate eigenvalues are detected in numeric
+input, the implementation applies a perturbation $a_i \to a_i + i\,\epsilon$,
+where $\epsilon = \max(\|a\|_\infty,\, 1) \cdot 10^{-12}$ scales with the
+eigenvalue magnitude to maintain relative accuracy. This breaks exact
+degeneracies in the Vandermonde denominators while introducing errors of order
+$\mathcal{O}(\epsilon)$ in the result, which is negligible for
+double-precision arithmetic. For symbolic eigenvalues, degenerate cases must
+be resolved analytically by the user (e.g., via L'H\^{o}pital's rule).
 
 \subsection{Gaussian random matrix ensembles}
 In addition to compact groups, \texttt{IntU.jl} supports integration over the
@@ -558,6 +565,28 @@ of deterministically contracted ITensors, each weighted by the appropriate
 Weingarten function. This graphical Weingarten engine is significant for its
 automatic handling of large, sparse networks where manual index expansion would
 be computationally prohibitive.
+
+\subsection{Limitations and scope}
+\label{sec:limitations}
+The current implementation has several known limitations:
+\begin{itemize}
+    \item \textbf{$SU(d)$ scope}: Integration over $SU(d)$ is currently
+    supported only for \emph{balanced} polynomial expressions, i.e., those
+    containing equal numbers of $U$ and $\bar{U}$ factors. For such
+    expressions, $SU(d)$ and $U(d)$ integrals coincide. Non-balanced
+    integrals, which require $\epsilon$-tensor contractions and exhibit
+    dimension-dependent behavior specific to small $d$, are not yet supported.
+    \item \textbf{HCIZ degeneracies}: The Harish-Chandra-Itzykson-Zuber
+    integral formula involves Vandermonde determinants in the denominator,
+    which vanish when eigenvalues coincide. For numeric inputs with degenerate
+    spectra, the package applies a small perturbation (see Section
+    \ref{sec:features}); for symbolic inputs, degenerate cases currently
+    require manual handling via L'H\^{o}pital's rule or limiting procedures.
+    \item \textbf{Polynomial degree}: Due to the factorial growth of the
+    symmetric group ($|S_k| = k!$) and pair partitions ($|M_{2k}| =
+    (2k{-}1)!!$), exact symbolic integration is practically limited to
+    polynomial degrees $2k \lesssim 12$ on standard hardware.
+\end{itemize}
 
 \section{Usage examples}
 \label{sec:examples}
@@ -940,6 +969,23 @@ to $2k \approx 10\text{-}12$ on standard hardware. Beyond this regime, the numbe
 terms (e.g., $10! \approx 3.6 \times 10^6$) becomes prohibitive for real-time
 symbolic manipulation, although numerical evaluation remains tractable for
 slightly higher degrees.
+
+\paragraph{Memory scaling}
+Memory consumption is governed by two factors: the size of the intermediate
+symbolic expressions and the memoization cache. For the \textbf{unitary group},
+the number of partitions $\lambda \vdash k$ grows sub-exponentially (the
+partition function $p(k)$), and each cached Weingarten value is a single
+rational function of $d$, so the cache remains modest (under 1~MiB for $k \le
+6$). For the \textbf{orthogonal group}, the Weingarten matrix has
+$(2k{-}1)!! \times (2k{-}1)!!$ entries; at $k=5$ this is $945 \times 945$,
+requiring approximately 7~MiB with \texttt{BigInt} entries for symbolic
+inversion. At $k=6$ ($10395 \times 10395$), the matrix alone exceeds 800~MiB,
+which sets the practical memory ceiling for symbolic orthogonal integration.
+The dominant memory cost of the intermediate symbolic expansion scales as
+$\mathcal{O}((k!)^2)$ terms for the unitary group, each carrying a rational
+coefficient and index tuple. Once memoized, however, subsequent integrations at
+the same degree $k$ incur negligible additional memory, as Weingarten values are
+retrieved from cache rather than recomputed.
 
 \subsection{Benchmark results}
 Table \ref{tab:benchmarks} summarizes the execution times for selected integrals.
