@@ -36,6 +36,7 @@
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{graphicx}
+\usepackage{multirow}
 
 \lstdefinelanguage{Julia}{
   morekeywords={abstract,break,case,catch,const,continue,do,else,elseif,end,export,false,for,function,immutable,import,importall,if,in,macro,module,quote,return,switch,true,try,type,typealias,using,while},
@@ -200,7 +201,8 @@ have been developed to automate these calculations. Notable examples include
 functionality but relies on the proprietary Wolfram engine, and \texttt{Haarpy}
 \cite{cardin2024haarpy}, a Python library that provides accessible symbolic
 integration. Earlier work by Puchała and Miszczak \cite{puchala2017symbolic}
-also explored symbolic integration algorithms.
+also explored symbolic integration algorithms. A detailed feature comparison
+is provided in Table~\ref{tab:comparison}.
 
 However, existing tools often face limitations in extensibility, performance, or
 the ability to handle symbolic dimensions $d$ natively as rational functions.
@@ -565,6 +567,78 @@ of deterministically contracted ITensors, each weighted by the appropriate
 Weingarten function. This graphical Weingarten engine is significant for its
 automatic handling of large, sparse networks where manual index expansion would
 be computationally prohibitive.
+
+\subsection{Comparison with existing tools}
+\label{sec:comparison}
+Table~\ref{tab:comparison} provides a detailed feature comparison of
+\texttt{IntU.jl} with the two most closely related packages: \texttt{RTNI}
+\cite{fukuda2019rtni}, a Mathematica package for integrating Haar-random tensor
+networks, and \texttt{Haarpy} \cite{cardin2024haarpy}, a Python library for
+Weingarten calculus over classical compact groups. The comparison highlights
+three key distinctions:
+\begin{enumerate}
+    \item \textbf{Ensemble breadth}: \texttt{IntU.jl} is the only package to
+    support Gaussian, Ginibre, and circular ensembles alongside compact groups,
+    as well as discrete structures such as permutation groups, unitary
+    $t$-designs, Stiefel manifolds, and diagonal unitaries.
+    \item \textbf{Symbolic abstractions}: Neither \texttt{RTNI} nor
+    \texttt{Haarpy} provides asymptotic $1/d$ expansions, symbolic trace logic,
+    or matrix-valued integration. These features significantly reduce the manual
+    effort required for common calculations.
+    \item \textbf{Platform}: \texttt{RTNI} requires the proprietary Mathematica
+    engine (though a Python port exists), while \texttt{Haarpy} and
+    \texttt{IntU.jl} are fully open-source. \texttt{IntU.jl}'s Julia
+    implementation offers JIT compilation and native type specialization,
+    providing performance advantages for large-scale symbolic computations.
+\end{enumerate}
+
+\begin{table*}[t]
+\centering
+\caption{Feature comparison of symbolic Haar integration packages.
+$\checkmark$ = fully supported, $\sim$ = partial support\textsuperscript{a},
+-- = not supported.}
+\label{tab:comparison}
+\begin{tabular}{llccc}
+\hline
+Category & Feature & \texttt{IntU.jl} & \texttt{RTNI} & \texttt{Haarpy} \\
+\hline
+\multirow{4}{*}{Groups}
+  & $U(d)$             & $\checkmark$ & $\checkmark$ & $\checkmark$ \\
+  & $SU(d)$ (balanced)  & $\checkmark$ & --           & --           \\
+  & $O(d)$             & $\checkmark$ & --           & $\checkmark$ \\
+  & $Sp(d)$            & $\checkmark$ & --           & $\sim$       \\
+\hline
+\multirow{3}{*}{Ensembles}
+  & Circular (COE/CSE) & $\checkmark$ & --           & $\sim$       \\
+  & Gaussian (GUE/GOE/GSE) & $\checkmark$ & --       & --           \\
+  & Ginibre (GinUE/GinOE/GinSE) & $\checkmark$ & --  & --           \\
+\hline
+\multirow{4}{*}{Discrete/other}
+  & Permutation groups  & $\checkmark$ & --           & $\checkmark$ \\
+  & Unitary $t$-designs & $\checkmark$ & --           & --           \\
+  & Stiefel manifolds   & $\checkmark$ & --           & --           \\
+  & Diagonal unitaries  & $\checkmark$ & --           & --           \\
+  & Random pure states  & $\checkmark$ & --           & --           \\
+\hline
+\multirow{3}{*}{Symbolic}
+  & Symbolic dimension $d$ & $\checkmark$ & $\checkmark$ & $\checkmark$ \\
+  & Asymptotic $1/d$ expansions & $\checkmark$ & --   & --           \\
+  & Symbolic trace logic & $\checkmark$ & --           & --           \\
+\hline
+\multirow{3}{*}{Interfaces}
+  & Tensor network integration & $\checkmark$ & $\checkmark$ & --   \\
+  & Matrix-valued integration  & $\checkmark$ & --           & --   \\
+  & HCIZ integrals             & $\checkmark$ & --           & --   \\
+\hline
+\multirow{3}{*}{Platform}
+  & Language            & Julia        & Mathematica/Python & Python \\
+  & Open-source runtime & $\checkmark$ & --           & $\checkmark$ \\
+  & License             & Apache 2.0   & GPL v3.0     & Apache 2.0   \\
+\hline
+\end{tabular}
+\\[4pt]
+{\footnotesize \textsuperscript{a}Haarpy: Weingarten functions available but full integration not yet implemented (Sp($d$), CSE).}
+\end{table*}
 
 \subsection{Limitations and scope}
 \label{sec:limitations}
