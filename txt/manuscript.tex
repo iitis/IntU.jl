@@ -1263,6 +1263,32 @@ The source code for \texttt{IntU.jl} is available on GitHub under the Apache Lic
     \end{lstlisting}
 \end{itemize}
 
+% LaTeX table (paste into manuscript)
+\begin{table}
+  \centering
+  \caption{Performance comparison: IntU.jl vs.\ Haarpy (median of 30 runs).}
+  \label{tab:haarpy_comparison}
+  \begin{tabular}{llrrr}
+    \hline
+    Group & Integrand & IntU.jl (ms) & Haarpy (ms) & Speedup \\
+    \hline
+    U(d) & |U₁₁|⁶, symbolic d & 1.52 & 10.79 & 7.1$\times$ \\
+    U(d) & |U₁₁|⁸, symbolic d & 3.28 & 22.04 & 6.7$\times$ \\
+    U(d) & |U₁₁|¹⁰, symbolic d & 8.19 & 75.41 & 9.2$\times$ \\
+    U(d) & |U₁₁|¹⁰, d=10 & 4.50 & 46.58 & 10.3$\times$ \\
+    U(d) & |U₁₁|¹⁰, d=50 & 4.44 & 46.08 & 10.4$\times$ \\
+    O(d) & O₁₁², symbolic d & 0.37 & 0.71 & 1.9$\times$ \\
+    O(d) & O₁₁⁴, symbolic d & 0.37 & 3.64 & 9.7$\times$ \\
+    O(d) & O₁₁⁶, d=10 & 0.34 & 0.93 & 2.7$\times$ \\
+    O(d) & O₁₁⁸, d=20 & 0.35 & 60.96 & 173.6$\times$ \\
+    O(d) & O₁₁¹⁰, d=20 & 0.35 & 9294.73 & 26824.9$\times$ \\
+    O(d) & O₁₁¹⁰, d=50 & 0.35 & 9274.55 & 26244.9$\times$ \\
+    COE & |S₁₁|², symbolic d & 3.99 & 2.27 & 0.6$\times$ \\
+    COE & |S₁₁|⁴, symbolic d & 6.87 & 4.59 & 0.7$\times$ \\
+    COE & |S₁₁|⁶, symbolic d & 24.72 & 18.92 & 0.8$\times$ \\
+    Perm & P₁₁¹⁰, d=100 & 0.36 & 0.00 & 0.0$\times$ \\
+    \hline
+\end{tabular}
 
 \begin{acks}
 LP and ZP acknowledge financial support from the National Science Center,

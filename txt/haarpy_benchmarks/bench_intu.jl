@@ -28,6 +28,7 @@ function run_and_report(name, f)
     print("  Running: $name ...")
     # Verify it works
     res = f()
+    res = simplify(res)
     b = @benchmark $f()
     ms = median_ms(b)
     @printf(" %.2f ms  (result: %s)\n", ms, string(res))
