@@ -1,0 +1,106 @@
+\documentclass[tikz,border=5pt]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, shapes.geometric, fit, backgrounds}
+\usepackage{amsmath,amssymb}
+
+\begin{document}
+\begin{tikzpicture}[
+    >=Stealth,
+    node distance=0.6cm and 0.5cm,
+    % Styles
+    input/.style={
+        rectangle, rounded corners=3pt, draw=black!70, fill=blue!8,
+        minimum width=2.8cm, minimum height=0.7cm, align=center,
+        font=\small\bfseries
+    },
+    pipeline/.style={
+        rectangle, rounded corners=2pt, draw=black!60, fill=gray!10,
+        minimum width=2.4cm, minimum height=0.55cm, align=center,
+        font=\small
+    },
+    engine/.style={
+        rectangle, rounded corners=2pt, draw=black!60, fill=orange!12,
+        minimum width=2.2cm, minimum height=0.85cm, align=center,
+        font=\footnotesize
+    },
+    cache/.style={
+        rectangle, rounded corners=2pt, draw=black!50, fill=green!8,
+        minimum width=1.8cm, minimum height=0.55cm, align=center,
+        font=\small, dashed
+    },
+    output/.style={
+        rectangle, rounded corners=3pt, draw=black!70, fill=blue!8,
+        minimum width=2.8cm, minimum height=0.7cm, align=center,
+        font=\small\bfseries
+    },
+    arr/.style={->, thick, black!70},
+    darr/.style={->, thick, black!40, dashed},
+]
+
+% --- Entry points ---
+\node[input] (scalar) {Scalar expression\\[-1pt]\footnotesize\texttt{abs(U[1,1])\^{}2}};
+\node[input, right=1.8cm of scalar] (trace) {Trace expression\\[-1pt]\footnotesize\texttt{tr(U*A*U'*B)}};
+
+% --- Trace logic (right path) ---
+\node[pipeline, below=0.5cm of trace] (trlogic) {Symbolic Trace Logic};
+\node[pipeline, below=0.35cm of trlogic, font=\footnotesize] (graph) {Graph Reconstruction};
+
+% --- Pipeline (left/center path) ---
+\node[pipeline, below=0.5cm of scalar] (norm) {Normalization};
+\node[pipeline, below=0.35cm of norm] (subs) {Substitution};
+\node[pipeline, below=0.35cm of subs] (expand) {Expansion};
+\node[pipeline, below=0.35cm of expand] (dispatch) {Dispatch};
+
+% --- Library lookup ---
+\node[engine, right=1.2cm of dispatch, fill=yellow!15] (library) {Library\\Lookup\\[-1pt]\footnotesize $\mathcal{O}(1)$ fast-path};
+
+% --- Integration engines ---
+\node[engine, below=0.8cm of dispatch, xshift=-2.7cm] (wg_u) {Unitary\\Weingarten\\[-1pt]\footnotesize MN rule,\\[-1pt]\footnotesize Hook-Content};
+\node[engine, right=0.3cm of wg_u] (wg_o) {O/Sp\\Weingarten\\[-1pt]\footnotesize Pair partitions,\\[-1pt]\footnotesize Bareiss solver};
+\node[engine, right=0.3cm of wg_o] (wick) {Wick\\Contractions\\[-1pt]\footnotesize GUE, GOE, GSE,\\[-1pt]\footnotesize Ginibre};
+\node[engine, right=0.3cm of wick] (comb) {Combinatorial\\[-1pt]\footnotesize Permutation,\\[-1pt]\footnotesize Diagonal,\\[-1pt]\footnotesize $t$-Design};
+
+% --- Cache ---
+\node[cache, below=0.7cm of wg_o, xshift=0.5cm] (memo) {Memoization Cache};
+
+% --- Result ---
+\node[output, below=0.7cm of memo] (result) {Result: $f(d) = N(d)/D(d)$};
+
+% --- Arrows: entry points ---
+\draw[arr] (scalar) -- (norm);
+\draw[arr] (trace) -- (trlogic);
+\draw[arr] (trlogic) -- (graph);
+
+% --- Trace logic feeds into dispatch ---
+\draw[arr] (graph.south) -- ++(0,-0.25) -| (dispatch.east);
+
+% --- Pipeline flow ---
+\draw[arr] (norm) -- (subs);
+\draw[arr] (subs) -- (expand);
+\draw[arr] (expand) -- (dispatch);
+
+% --- Dispatch to library ---
+\draw[arr] (dispatch) -- (library);
+
+% --- Library to result (bypass) ---
+\draw[arr] (library.south) |- (result.east);
+
+% --- Dispatch to engines ---
+\draw[arr] (dispatch.south) -- ++(0,-0.3) -| (wg_u.north);
+\draw[arr] (dispatch.south) -- ++(0,-0.3) -| (wg_o.north);
+\draw[arr] (dispatch.south) -- ++(0,-0.3) -| (wick.north);
+\draw[arr] (dispatch.south) -- ++(0,-0.3) -| (comb.north);
+
+% --- Engines to cache / result ---
+\draw[darr] (wg_u.south) |- (memo.west);
+\draw[darr] (wg_o.south) |- (memo);
+\draw[darr] (wick.south) |- (memo);
+\draw[darr] (comb.south) |- (memo.east);
+
+\draw[arr] (memo) -- (result);
+
+% --- O/Sp duality annotation ---
+\draw[darr, <->] ([yshift=-2pt]wg_u.south) -- node[below, font=\scriptsize, text=black!60] {$d\!\leftrightarrow\!{-}d$} ([yshift=-2pt]wg_o.south);
+
+\end{tikzpicture}
+\end{document}

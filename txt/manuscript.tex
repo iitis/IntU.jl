@@ -35,6 +35,7 @@
 %%
 \usepackage{listings}
 \usepackage{xcolor}
+\usepackage{graphicx}
 
 \lstdefinelanguage{Julia}{
   morekeywords={abstract,break,case,catch,const,continue,do,else,elseif,end,export,false,for,function,immutable,import,importall,if,in,macro,module,quote,return,switch,true,try,type,typealias,using,while},
@@ -766,7 +767,20 @@ G^\dagger) \rangle$:
 the language's multiple dispatch and metaprogramming features to build a highly
 modular and extensible system. The core architecture consists of three main
 components: the integration pipeline, the Weingarten engine, and the symbolic
-trace logic.
+trace logic. Figure~\ref{fig:architecture} provides an overview of the data
+flow.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/architecture.pdf}
+\caption{Architecture of \texttt{IntU.jl}. Scalar expressions follow the
+left path through normalization, substitution, expansion, and dispatch to
+specialized engines. Trace expressions are first analyzed by the symbolic
+trace logic, which reconstructs the Weingarten graph before entering the
+dispatch stage. Common patterns are intercepted by the library lookup for
+$\mathcal{O}(1)$ evaluation. All engine results are memoized.}
+\label{fig:architecture}
+\end{figure*}
 
 \subsection{Integration pipeline}
 The integration process follows a systematic pipeline designed to normalize and
