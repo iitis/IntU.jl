@@ -12,13 +12,9 @@ returns the reduced density matrix of the first subsystem.
 """
 function partial_trace(M, dims, subsystem)
     n = length(dims)
-    # Total dimension should match size(M, 1)
-    # We'll implement this using Symbolics-friendly indexing.
-    # We can represent M[i1, i2, ..., in; j1, j2, ..., jn]
-    # And sum over ik == jk for k == subsystem.
-
-    # For now, let's implement bipartite specifically as it's the most common case,
-    # or a generic one if possible.
+    if subsystem < 1 || subsystem > n
+        throw(ArgumentError("subsystem index $subsystem out of range 1:$n"))
+    end
 
     target_subs = filter(i -> i != subsystem, 1:n)
     target_dims = dims[target_subs]

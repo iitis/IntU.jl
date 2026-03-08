@@ -25,6 +25,12 @@ struct StiefelMeasure{D,K,M} <: AbstractMeasure
     dim::D
     k::K
     matcher::M
+    function StiefelMeasure(dim::D, k::K, matcher::M) where {D,K,M}
+        if dim isa Integer && k isa Integer && k > dim
+            throw(ArgumentError("Stiefel manifold V_k(C^d) requires k <= d, got k=$k, d=$dim"))
+        end
+        new{D,K,M}(dim, k, matcher)
+    end
 end
 StiefelMeasure(dim, k) = StiefelMeasure(dim, k, nothing)
 
