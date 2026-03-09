@@ -210,7 +210,83 @@ run_and_report(
 )
 
 
-# --- Section 6: Permutation P_11^k ---
+# --- Section 6: Off-diagonal integrals ---
+
+# Unitary off-diagonal
+print("\n=== Off-diagonal: Unitary, symbolic d ===")
+
+# |U_11|^2 |U_12|^2: rows=(1,1), cols=(1,2), conj_rows=(1,1), conj_cols=(1,2)
+run_and_report(
+    "U_offdiag_4_sym",
+    lambda: haarpy.haar_integral_unitary(
+        ((1, 1), (1, 2), (1, 1), (1, 2)), d
+    ),
+)
+
+# |U_11|^4 |U_12|^4: 4 U_11's and 4 U_12's
+run_and_report(
+    "U_offdiag_8_sym",
+    lambda: haarpy.haar_integral_unitary(
+        ((1, 1, 1, 1), (1, 1, 2, 2), (1, 1, 1, 1), (1, 1, 2, 2)), d
+    ),
+)
+
+# |U_11|^2 |U_22|^2: rows=(1,2), cols=(1,2), conj_rows=(1,2), conj_cols=(1,2)
+run_and_report(
+    "U_cross_4_sym",
+    lambda: haarpy.haar_integral_unitary(
+        ((1, 2), (1, 2), (1, 2), (1, 2)), d
+    ),
+)
+
+# Orthogonal off-diagonal
+print("\n=== Off-diagonal: Orthogonal, symbolic d ===")
+
+# O_11^2 O_12^2: rows=(1,1,1,1), cols=(1,1,2,2)
+run_and_report(
+    "O_offdiag_4_sym",
+    lambda: haarpy.haar_integral_orthogonal(
+        ((1, 1, 1, 1), (1, 1, 2, 2)), d
+    ),
+)
+
+# O_11 O_12 O_21 O_22: rows=(1,1,2,2), cols=(1,2,1,2)
+run_and_report(
+    "O_cross_4_sym",
+    lambda: haarpy.haar_integral_orthogonal(
+        ((1, 1, 2, 2), (1, 2, 1, 2)), d
+    ),
+)
+
+# COE off-diagonal
+print("\n=== Off-diagonal: COE, symbolic d ===")
+
+# |S_12|^2: rows=(1,1), cols=(2,2)
+run_and_report(
+    "COE_offdiag_2_sym",
+    lambda: haarpy.haar_integral_circular_orthogonal(
+        ((1, 1), (2, 2)), d
+    ),
+)
+
+# |S_12|^4: rows=(1,1,1,1), cols=(2,2,2,2)
+run_and_report(
+    "COE_offdiag_4_sym",
+    lambda: haarpy.haar_integral_circular_orthogonal(
+        ((1, 1, 1, 1), (2, 2, 2, 2)), d
+    ),
+)
+
+# |S_11|^2 |S_12|^2: rows=(1,1,1,1), cols=(1,1,2,2)
+run_and_report(
+    "COE_mixed_4_sym",
+    lambda: haarpy.haar_integral_circular_orthogonal(
+        ((1, 1, 1, 1), (1, 1, 2, 2)), d
+    ),
+)
+
+
+# --- Section 7: Permutation P_11^k ---
 print("\n=== Permutation: P_11^k ===")
 
 run_and_report(

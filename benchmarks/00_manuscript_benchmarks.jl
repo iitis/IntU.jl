@@ -2,13 +2,14 @@ using IntU
 using Symbolics
 using LinearAlgebra
 using BenchmarkTools
+using Memoization
 using Printf
 import ITensors
 
 # Helper to run benchmark and return (median time in ms, memory in MiB)
 function measure_median_func(f)
     # Benchmark the function call. We interpolate f to avoid overhead of finding it.
-    b = @benchmark $f() samples=30 seconds=120
+    b = @benchmark $f() evals=1 samples=30 seconds=120 setup=(Memoization.empty_all_caches!())
     m = median(b)
     return m.time / 1e6, m.memory / (1024 * 1024)
 end
@@ -174,13 +175,13 @@ println("-----------------------------------------------------------------------
 
 # Permutation
 mP100 = dPerm(100)
-P100 = SymbolicMatrix(:P, :P, 100) # Permutation matrices are real
+P100 = SymbolicMatrix(:P, :Perm, 100) # Permutation matrices are real
 t, _ = measure_median_func(() -> integrate(P100[1, 1]^10, mP100))
 @printf("%-18s %-25s %-15s %10.2f\n", "Permutation", "P_11^10", "d=100", t)
 
 # tr(PA)^2, d=4
 mP4 = dPerm(4)
-P4 = SymbolicMatrix(:P, :P, 4)
+P4 = SymbolicMatrix(:P, :Perm, 4)
 A = SymbolicMatrix(:A, :Constant, 4)
 t_trpa, _ = measure_median_func(() -> integrate(tr_lazy(P4*A)^2, mP4))
 @printf("%-18s %-25s %-15s %10.2f\n", "Permutation", "tr(PA)^2", "d=4", t_trpa)

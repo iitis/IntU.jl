@@ -1228,57 +1228,75 @@ $4 \times 4$ & 12.77 & 5.24 \\
 To provide a direct quantitative comparison with existing tools, we benchmarked
 \texttt{IntU.jl} against \texttt{Haarpy} \cite{cardin2024haarpy}, the most
 closely comparable open-source package. Both packages were evaluated on the same
-machine using identical integrands: powers of single matrix entries
-$|U_{11}|^{2k}$ for the unitary group ($k = 3, 4, 5$), $O_{11}^{2k}$ for the
-orthogonal group, and $|S_{11}|^{2k}$ for the COE. Each measurement reports the
-median of 30 runs, excluding JIT warm-up for \texttt{IntU.jl} and import
-overhead for \texttt{Haarpy}. The comparison scripts are available in
+machine using identical integrands. We tested both \emph{diagonal} moments
+($|M_{11}|^{2k}$), which admit closed-form shortcuts, and \emph{off-diagonal}
+products (e.g., $|U_{11}|^2|U_{12}|^2$), which exercise the general Weingarten
+summation path. Each measurement reports the median of 30 cold-cache samples,
+excluding JIT warm-up for \texttt{IntU.jl} and import overhead for
+\texttt{Haarpy}. Memoization caches were cleared before each sample in both
+packages to ensure a fair comparison. The comparison scripts are available in
 \texttt{benchmarks/haarpy\_benchmarks/}.
 
-Table~\ref{tab:haarpy_comparison} summarizes the results. For unitary
-integrals, \texttt{IntU.jl} achieves a consistent $7$--$10\times$ speedup
-across all tested degrees and dimensions, with the advantage growing for higher
-degrees. The orthogonal group results reveal a more dramatic separation: while
+Table~\ref{tab:haarpy_comparison} summarizes the results. For \textbf{unitary}
+integrals, \texttt{IntU.jl} achieves a consistent $6$--$16\times$ speedup for
+diagonal moments ($|U_{11}|^{2k}$, $k = 3, 4, 5$), with the advantage growing
+for higher degrees and numeric dimensions. Off-diagonal integrals remain
+$2$--$5\times$ faster.
+
+The \textbf{orthogonal} group results reveal a more dramatic separation: while
 both packages perform comparably at low degree ($O_{11}^2$, $1.9\times$),
 \texttt{IntU.jl}'s optimized univariate Weingarten solver delivers speedups
 exceeding $10^4\times$ at degree 10. This disparity arises because
 \texttt{Haarpy} constructs and inverts the full $(2k{-}1)!! \times (2k{-}1)!!$
 Weingarten matrix even when a single entry suffices, whereas \texttt{IntU.jl}
 exploits the structure of univariate integrands to bypass this cost entirely.
+Off-diagonal orthogonal integrals show a $5$--$7\times$ advantage.
 
-For the circular orthogonal ensemble (COE), \texttt{Haarpy} is moderately faster
-($0.6$--$0.8\times$), reflecting its purpose-built implementation for this
-ensemble type. Overall, \texttt{IntU.jl} demonstrates a substantial performance
-advantage for the core compact group integrals that constitute the primary use
-case of both packages, while \texttt{Haarpy} retains a modest edge for circular
-ensembles.
+For the \textbf{circular orthogonal ensemble} (COE), \texttt{IntU.jl} uses a
+closed-form expression for diagonal moments, yielding $3$--$23\times$ speedups
+that grow with the degree. We note that \texttt{Haarpy} returned incorrect
+results (zero) for the off-diagonal COE integrals tested ($|S_{12}|^{2k}$,
+$|S_{11}|^2|S_{12}|^2$), which \texttt{IntU.jl} evaluates correctly; these
+cases are therefore excluded from the table.
+
+Overall, \texttt{IntU.jl} demonstrates a substantial and consistent performance
+advantage across all tested groups, degrees, and index configurations.
 
 \begin{table}[ht]
   \centering
   \caption{Performance comparison: \texttt{IntU.jl} vs.\ \texttt{Haarpy}
-  (median of 30 runs). Both packages were run on the same hardware; timings
-  exclude JIT/import overhead.}
+  (median of 30 cold-cache runs). Both packages were run on the same hardware;
+  timings exclude JIT/import overhead.}
   \label{tab:haarpy_comparison}
   \begin{tabular}{llrrr}
     \hline
     Group & Integrand & IntU.jl (ms) & Haarpy (ms) & Speedup \\
     \hline
-    U($d$) & $|U_{11}|^6$, symbolic $d$ & 1.52 & 10.79 & 7.1$\times$ \\
-    U($d$) & $|U_{11}|^8$, symbolic $d$ & 3.28 & 22.04 & 6.7$\times$ \\
-    U($d$) & $|U_{11}|^{10}$, symbolic $d$ & 8.19 & 75.41 & 9.2$\times$ \\
-    U($d$) & $|U_{11}|^{10}$, $d=10$ & 4.50 & 46.58 & 10.3$\times$ \\
-    U($d$) & $|U_{11}|^{10}$, $d=50$ & 4.44 & 46.08 & 10.4$\times$ \\
+    \multicolumn{5}{l}{\emph{Diagonal moments}} \\
+    U($d$) & $|U_{11}|^6$, symbolic $d$ & 1.55 & 10.90 & 7.1$\times$ \\
+    U($d$) & $|U_{11}|^8$, symbolic $d$ & 3.49 & 22.26 & 6.4$\times$ \\
+    U($d$) & $|U_{11}|^{10}$, symbolic $d$ & 8.43 & 74.33 & 8.8$\times$ \\
+    U($d$) & $|U_{11}|^{10}$, $d=10$ & 3.05 & 45.09 & 14.8$\times$ \\
+    U($d$) & $|U_{11}|^{10}$, $d=50$ & 2.83 & 45.12 & 15.9$\times$ \\
     \hline
-    O($d$) & $O_{11}^2$, symbolic $d$ & 0.37 & 0.71 & 1.9$\times$ \\
-    O($d$) & $O_{11}^4$, symbolic $d$ & 0.37 & 3.64 & 9.7$\times$ \\
-    O($d$) & $O_{11}^6$, $d=10$ & 0.34 & 0.93 & 2.7$\times$ \\
-    O($d$) & $O_{11}^8$, $d=20$ & 0.35 & 60.96 & 173.6$\times$ \\
-    O($d$) & $O_{11}^{10}$, $d=20$ & 0.35 & 9294.73 & $2.7 \times 10^4$ \\
-    O($d$) & $O_{11}^{10}$, $d=50$ & 0.35 & 9274.55 & $2.6 \times 10^4$ \\
+    O($d$) & $O_{11}^2$, symbolic $d$ & 0.38 & 0.72 & 1.9$\times$ \\
+    O($d$) & $O_{11}^4$, symbolic $d$ & 0.40 & 3.71 & 9.3$\times$ \\
+    O($d$) & $O_{11}^6$, $d=10$ & 0.34 & 0.92 & 2.7$\times$ \\
+    O($d$) & $O_{11}^8$, $d=20$ & 0.34 & 60.46 & 178.5$\times$ \\
+    O($d$) & $O_{11}^{10}$, $d=20$ & 0.34 & 9259.80 & $2.7 \times 10^4$ \\
+    O($d$) & $O_{11}^{10}$, $d=50$ & 0.34 & 9051.21 & $2.7 \times 10^4$ \\
     \hline
-    COE & $|S_{11}|^2$, symbolic $d$ & 3.99 & 2.27 & 0.6$\times$ \\
-    COE & $|S_{11}|^4$, symbolic $d$ & 6.87 & 4.59 & 0.7$\times$ \\
-    COE & $|S_{11}|^6$, symbolic $d$ & 24.72 & 18.92 & 0.8$\times$ \\
+    COE & $|S_{11}|^2$, symbolic $d$ & 0.79 & 2.30 & 2.9$\times$ \\
+    COE & $|S_{11}|^4$, symbolic $d$ & 0.88 & 4.63 & 5.3$\times$ \\
+    COE & $|S_{11}|^6$, symbolic $d$ & 0.82 & 19.03 & 23.1$\times$ \\
+    \hline
+    \multicolumn{5}{l}{\emph{Off-diagonal products}} \\
+    U($d$) & $|U_{11}|^2|U_{12}|^2$, symbolic $d$ & 1.62 & 5.84 & 3.6$\times$ \\
+    U($d$) & $|U_{11}|^4|U_{12}|^4$, symbolic $d$ & 3.90 & 20.23 & 5.2$\times$ \\
+    U($d$) & $|U_{11}|^2|U_{22}|^2$, symbolic $d$ & 1.48 & 2.92 & 2.0$\times$ \\
+    \hline
+    O($d$) & $O_{11}^2 O_{12}^2$, symbolic $d$ & 0.47 & 3.35 & 7.1$\times$ \\
+    O($d$) & $O_{11}O_{12}O_{21}O_{22}$, sym.\ $d$ & 0.87 & 4.61 & 5.3$\times$ \\
     \hline
 \end{tabular}
 \end{table}

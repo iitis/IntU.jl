@@ -9,13 +9,13 @@ Usage:
 using IntU
 using Symbolics
 using BenchmarkTools
+using Memoization
 using Printf
 
 @variables d
 
-# Match Haarpy benchmark settings
+# Match Haarpy benchmark settings (30 samples, cold-cache via evals=1)
 BenchmarkTools.DEFAULT_PARAMETERS.samples = 30
-BenchmarkTools.DEFAULT_PARAMETERS.seconds = 120
 
 function median_ms(b)
     m = median(b)
@@ -29,7 +29,7 @@ function run_and_report(name, f)
     # Verify it works
     res = f()
     res = simplify(res)
-    b = @benchmark $f()
+    b = @benchmark $f() evals=1 samples=30 setup=(Memoization.empty_all_caches!())
     ms = median_ms(b)
     @printf(" %.2f ms  (result: %s)\n", ms, string(res))
     results[name] = Dict("median_ms" => ms, "result" => string(res), "samples" => length(b.times))
@@ -101,11 +101,39 @@ run_and_report("COE_|S11|^4_sym", () -> integrate(abs(S_coe[1,1])^4, mCOE))
 run_and_report("COE_|S11|^6_sym", () -> integrate(abs(S_coe[1,1])^6, mCOE))
 
 # ============================================================================
-# Section 6: Permutation P_11^k
+# Section 6: Off-diagonal integrals (general Weingarten paths)
+# ============================================================================
+println("\n=== Off-diagonal: Unitary, symbolic d ===")
+
+run_and_report("U_offdiag_4_sym",
+    () -> integrate(abs(U[1,1])^2 * abs(U[1,2])^2, measure_sym))
+run_and_report("U_offdiag_8_sym",
+    () -> integrate(abs(U[1,1])^4 * abs(U[1,2])^4, measure_sym))
+run_and_report("U_cross_4_sym",
+    () -> integrate(abs(U[1,1])^2 * abs(U[2,2])^2, measure_sym))
+
+println("\n=== Off-diagonal: Orthogonal, symbolic d ===")
+
+run_and_report("O_offdiag_4_sym",
+    () -> integrate(O[1,1]^2 * O[1,2]^2, mO_sym))
+run_and_report("O_cross_4_sym",
+    () -> integrate(O[1,1] * O[1,2] * O[2,1] * O[2,2], mO_sym))
+
+println("\n=== Off-diagonal: COE, symbolic d ===")
+
+run_and_report("COE_offdiag_2_sym",
+    () -> integrate(abs(S_coe[1,2])^2, mCOE))
+run_and_report("COE_offdiag_4_sym",
+    () -> integrate(abs(S_coe[1,2])^4, mCOE))
+run_and_report("COE_mixed_4_sym",
+    () -> integrate(abs(S_coe[1,1])^2 * abs(S_coe[1,2])^2, mCOE))
+
+# ============================================================================
+# Section 7: Permutation P_11^k
 # ============================================================================
 println("\n=== Permutation: P_11^k ===")
 
-P100 = SymbolicMatrix(:P, :P, 100)
+P100 = SymbolicMatrix(:P, :Perm, 100)
 mP100 = dPerm(100)
 run_and_report("Perm_P11^10_d=100", () -> integrate(P100[1,1]^10, mP100))
 

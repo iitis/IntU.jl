@@ -31,6 +31,17 @@ BENCHMARKS = [
     ("COE_|S11|^2_sym", "COE, |S₁₁|², symbolic d"),
     ("COE_|S11|^4_sym", "COE, |S₁₁|⁴, symbolic d"),
     ("COE_|S11|^6_sym", "COE, |S₁₁|⁶, symbolic d"),
+    # Off-diagonal: Unitary
+    ("U_offdiag_4_sym", "U(d), |U₁₁|²|U₁₂|², symbolic d"),
+    ("U_offdiag_8_sym", "U(d), |U₁₁|⁴|U₁₂|⁴, symbolic d"),
+    ("U_cross_4_sym", "U(d), |U₁₁|²|U₂₂|², symbolic d"),
+    # Off-diagonal: Orthogonal
+    ("O_offdiag_4_sym", "O(d), O₁₁²O₁₂², symbolic d"),
+    ("O_cross_4_sym", "O(d), O₁₁O₁₂O₂₁O₂₂, symbolic d"),
+    # Off-diagonal: COE
+    ("COE_offdiag_2_sym", "COE, |S₁₂|², symbolic d"),
+    ("COE_offdiag_4_sym", "COE, |S₁₂|⁴, symbolic d"),
+    ("COE_mixed_4_sym", "COE, |S₁₁|²|S₁₂|², symbolic d"),
     # Permutation
     ("Perm_P11^10_d=100", "Perm, P₁₁¹⁰, d=100"),
 ]

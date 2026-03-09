@@ -77,6 +77,21 @@ of connected components in a bipartite graph:
 
 The loop count is computed via union-find on these ``2m`` variable nodes.
 """
+# Closed-form result for ∫ |S_{ii}|^{2m} dS over COE(d):
+# (2^m · m!) / prod_{j=0}^{m-1}(d + 2j + 1).
+# Analogous to the orthogonal row-sum shortcut _orthogonal_row_sum_denom.
+function _coe_diagonal_moment(m, dim)
+    num = one(Rational{BigInt})
+    for j = 1:m
+        num *= 2 * j
+    end
+    denom = one(Rational{BigInt})
+    for j = 0:(m-1)
+        denom *= (dim + 2 * j + 1)
+    end
+    return num / denom
+end
+
 function integrate_indices_coe(
     indices::AbstractVector,
     U_bar_indices::AbstractVector,
@@ -91,6 +106,34 @@ function integrate_indices_coe(
     end
 
     m = n_s
+
+    # Shortcut: uniform diagonal case |S_{ii}|^{2m}.
+    # When all S and S̄ indices are the same diagonal entry (a,a),
+    # the result is (2^m · m!) / prod_{j=0}^{m-1}(d + 2j + 1).
+    if m > 0
+        a, b = indices[1]
+        if a == b
+            all_same = true
+            for k = 2:m
+                if indices[k] != indices[1]
+                    all_same = false
+                    break
+                end
+            end
+            if all_same
+                for k = 1:m
+                    if U_bar_indices[k] != indices[1]
+                        all_same = false
+                        break
+                    end
+                end
+            end
+            if all_same
+                return _coe_diagonal_moment(m, dim)
+            end
+        end
+    end
+
     n = 2 * m
 
     U_rows = Vector{Any}(undef, n)
