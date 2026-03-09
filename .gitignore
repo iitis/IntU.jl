@@ -34,3 +34,6 @@ test/tmp/
 *.synctex.gz
 *.pdf
 comment.cut
+
+*.json
+__pycache__
