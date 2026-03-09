@@ -236,8 +236,8 @@ symmetric group $S_d$. Key features distinguishing our approach include:
     \item \textbf{Tensor network integration}: A native integration with
     \texttt{ITensors.jl} \cite{fishman2022itensor}, enabling the symbolic
     averaging of large-scale random tensor networks.
-    \item \textbf{Quantum information utilities}: Specialized functions for
-    computing partial traces of symbolic subsystems.
+    \item \textbf{Partial trace}: A built-in function for computing partial
+    traces of symbolic subsystems.
     \item \textbf{Performance}: Leveraging Julia's just-in-time compilation and
     efficient caching strategies to handle high-degree moments.
 \end{itemize}
@@ -492,20 +492,15 @@ This feature allows researchers to verify whether specific quantum protocols or
 randomized benchmarking schemes rely only on the $t$-moment properties of the
 sampling distribution.
 
-\subsection{Quantum information utilities}
-The package includes a helper function tailored for quantum information
-tasks, designed to work seamlessly with symbolic expressions:
-\begin{itemize}
-    \item \textbf{Partial Trace}: The \texttt{partial\_trace(M, dims, system)}
-    function computes the partial trace of a symbolic matrix $M$ over a specified
-    subsystem. It handles composite dimensions $d = d_A d_B$ symbolically, ensuring
-    that the resulting reduced density matrix retains the correct symbolic
-    dependencies for further integration. This allows for the exact calculation
-    of entanglement metrics like purity by integrating the trace of the squared
-    reduced density matrix.
-\end{itemize}
-This utility reduces the boilerplate code required for setting up common
-calculations in quantum information theory, such as entanglement quantification.
+\subsection{Partial trace}
+The package includes a \texttt{partial\_trace(M, dims, system)} function
+for quantum information tasks. It computes the partial trace of a symbolic
+matrix $M$ over a specified subsystem, handling composite dimensions
+$d = d_A d_B$ symbolically so that the resulting reduced density matrix
+retains the correct symbolic dependencies for further integration. This
+enables the exact calculation of entanglement metrics such as purity by
+integrating the trace of the squared reduced density matrix, as
+demonstrated in Section~\ref{sec:performance}.
 
 \subsection{Symbolic dimensions and asymptotics}
 A standout feature of \texttt{IntU.jl} is its deep support for symbolic dimensions $d$.
@@ -792,9 +787,29 @@ asymp_tr6 = asymptotic(abs(tr(U))^6, dU(d), 3)
 
 The leading-order coefficient $k! = 6$ matches the $2k$-th moment of a standard
 complex Gaussian, while the subleading corrections encode finite-size deviations.
-Such expansions automate the derivation of scaling laws relevant to quantum
-scrambling and the Page curve \cite{page1993average}, where manual simplification
-of the underlying Weingarten sums would be prohibitive.
+
+As a physically grounded application, consider Page's result on the average
+entanglement of random bipartite states \cite{page1993average}. For a random
+pure state on $\mathbb{C}^n \otimes \mathbb{C}^n$, the average purity of
+either subsystem is $\mathbb{E}[\mathrm{tr}(\rho_A^2)] = 2n/(n^2+1)$.
+The \texttt{asymptotic} function accepts any rational expression, so we can
+immediately extract the large-$n$ behavior:
+
+\begin{lstlisting}[language=Julia]
+using IntU, Symbolics
+@variables n
+page_purity = 2n / (n^2 + 1)
+asymptotic(page_purity, n, 5)
+# Output: 2/n - 2/n^3 + 2/n^5
+\end{lstlisting}
+
+The leading term $2/n$ shows that the subsystem approaches the maximally mixed
+state (purity $1/n$) as the dimension grows, which is the core of Page's
+theorem: a random subsystem is nearly maximally entangled. The subleading
+corrections $-2/n^3 + \cdots$ quantify the finite-size deviations from
+maximal entanglement. Such expansions automate the derivation of scaling laws
+where manual simplification of the underlying Weingarten sums would be
+prohibitive.
 
 \subsection{Tensor network integration}
 Finally, we demonstrate the integration of a tensor network using the
@@ -836,14 +851,24 @@ combinatorial problems and studying centered permutation ensembles.
 # Output: (d - 1) / d^2
 \end{lstlisting}
 
+The first result, $1/(d(d-1))$, is the probability that a uniformly random
+permutation maps both 1 and 2 to themselves, reflecting the well-known
+inclusion--exclusion counting of derangements. The second result shows
+that centring the permutation matrix removes the $1/d$ mean, leaving a
+variance that converges to $1/d$ for large $d$.
+
 \subsection{Diagonal unitary matrices}
-For the group of diagonal unitary matrices, integration reduces to independent
-phase averaging.
+For the group of diagonal unitary matrices (the torus $T^d$), integration
+reduces to independent phase averaging. This arises naturally in the
+dephasing channel and in studies of quantum coherence.
 \begin{lstlisting}[language=Julia]
 # Average of |D_11|^2
 @integrate abs(D[1, 1])^2 dDiagUnitary(d)
 # Output: 1
 \end{lstlisting}
+
+The result $1$ reflects the fact that each diagonal entry $D_{ii} = e^{i\theta_i}$
+has unit modulus, so $|D_{11}|^2 = 1$ deterministically.
  
 \subsection{Stiefel manifolds}
 Integration over the Stiefel manifold $V_k(\mathbb{C}^d)$ is supported,
@@ -857,6 +882,10 @@ variational quantum algorithms and tensor network optimization
 # Output: 1 / d
 \end{lstlisting}
 
+The result $1/d$ coincides with the unitary case because a random element of
+$V_2(\mathbb{C}^d)$ is simply the first two columns of a Haar-random $U(d)$
+matrix, so entries share the same second-moment structure.
+
 \subsection{Ginibre ensembles}
 Integration over Ginibre ensembles is useful for studying non-Hermitian random
 matrix properties. We compute the second moment $\langle \mathrm{tr}(G
@@ -866,6 +895,10 @@ G^\dagger) \rangle$:
 @integrate tr(G * G') dGinUE(d)
 # Output: d^2
 \end{lstlisting}
+
+The result $d^2$ follows from the fact that each entry of a complex Ginibre
+matrix is an independent standard complex Gaussian, so $\mathbb{E}[|G_{ij}|^2] = 1$
+and $\mathbb{E}[\mathrm{tr}(GG^\dagger)] = \sum_{i,j} \mathbb{E}[|G_{ij}|^2] = d^2$.
 
 \section{Implementation details}
 \label{sec:implementation}
@@ -1078,7 +1111,7 @@ Key observations include:
     lower-degree polynomials (e.g., $2k=6$), the package is extremely fast. The
     symbolic integration of $|U_{11}|^6$ completes in approximately 1.76 ms. For
     the orthogonal group, our optimized solver allows computing high-degree 
-    moments like $O_{11}^{10}$ in under 0.37 ms, representing near-constant 
+    moments like $O_{11}^{10}$ in under 0.37 ms, representing near-constant
     time overhead relative to low-degree cases.
     \item \textbf{Group differences}: Orthogonal and symplectic integrals are
     now comparable to unitary ones even for symbolic dimensions. For higher
@@ -1095,7 +1128,7 @@ Key observations include:
     \item \textbf{Tensor network scaling}: The graphical engine scales
     efficiently with both the degree $k$ and dimension $d$. As shown in Table
     \ref{tab:itensor_benchmarks}, for a loop network of Haar unitaries, the
-    median time increases from 30 $\mu\text{s}$ at $k=1$ to 88.5 ms at $k=4$ for
+    median time increases from 0.03 ms at $k=1$ to 88.5 ms at $k=4$ for
     fixed $d=2$. Dimension scaling for $k=2$ remains sub-second up to $d=50$,
     reaching 0.94 s at $d=100$. For higher degrees like $k=3$, the overhead
     increases more rapidly with $d$, with $d=30$ taking 16.3 s, reflecting the
@@ -1109,7 +1142,8 @@ Key observations include:
 
 \begin{table}[ht]
 \centering
-\caption{Benchmark results for symbolic vs. numeric integration. Times are median values over 30 samples. Sub-millisecond entries (GinUE) are at the measurement resolution floor of \texttt{BenchmarkTools.jl}.}
+\caption{Benchmark results for symbolic vs.\ numeric integration. Times are
+median values over 30 samples.}
 \label{tab:benchmarks}
 \begin{tabular}{llcc}
 \hline
