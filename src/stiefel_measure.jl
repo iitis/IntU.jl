@@ -27,7 +27,11 @@ struct StiefelMeasure{D,K,M} <: AbstractMeasure
     matcher::M
     function StiefelMeasure(dim::D, k::K, matcher::M) where {D,K,M}
         if dim isa Integer && k isa Integer && k > dim
-            throw(ArgumentError("Stiefel manifold V_k(C^d) requires k <= d, got k=$k, d=$dim"))
+            throw(
+                ArgumentError(
+                    "Stiefel manifold V_k(C^d) requires k <= d, got k=$k, d=$dim",
+                ),
+            )
         end
         new{D,K,M}(dim, k, matcher)
     end
@@ -130,7 +134,11 @@ function integrate(P::SymbolicMatrixProduct, measure::StiefelMeasure)
     end
 
     # Fallback to standard symbolic integration if dimensions are not concrete integers
-    throw(ArgumentError("Direct integration of SymbolicMatrixProduct for Stiefel requires concrete dimensions. Try integrating individual elements instead."))
+    throw(
+        ArgumentError(
+            "Direct integration of SymbolicMatrixProduct for Stiefel requires concrete dimensions. Try integrating individual elements instead.",
+        ),
+    )
 end
 
 IntU._reconstruct_symbolic(m::StiefelMeasure, d_asymp) = dStiefel(d_asymp, m.k)

@@ -24,14 +24,13 @@ function _dispatch_merged(u, ub, d, integrate_fn)
     (length(all_indices) == 0 ? 1 : integrate_fn(all_indices, d))
 end
 
-INTEGRATION_RULES[:U] =
-    (u, ub, d, mt) -> _dispatch_paired(u, ub, d, integrate_indices)
+INTEGRATION_RULES[:U] = (u, ub, d, mt) -> _dispatch_paired(u, ub, d, integrate_indices)
 
 # Stiefel V_k(C^d) and pure state integration are same as Haar U(d) for entries
 INTEGRATION_RULES[:V] =
     (u, ub, d, mt) -> begin
         k = mt isa Tuple ? mt[2] : d
-        
+
         function is_out(idx)
             j = idx[2]
             j === nothing && return false
@@ -95,9 +94,16 @@ INTEGRATION_RULES[:Sp] =
 
             all_indices = [u; converted_ub]
             length(all_indices) % 2 != 0 ? 0 :
-            (length(all_indices) == 0 ? 1 : sign_factor * integrate_indices_symplectic(all_indices, d))
+            (
+                length(all_indices) == 0 ? 1 :
+                sign_factor * integrate_indices_symplectic(all_indices, d)
+            )
         elseif d_un isa Number
-            throw(ArgumentError("Symplectic integration requires integer dimension d, got $d_un"))
+            throw(
+                ArgumentError(
+                    "Symplectic integration requires integer dimension d, got $d_un",
+                ),
+            )
         else
             # Symbolic d. Assume d is even.
             # Convert conjugates using symbolic partner indices pk = p + d/2, qk = q + d/2.
@@ -114,7 +120,10 @@ INTEGRATION_RULES[:Sp] =
 
             all_indices = [u; converted_ub]
             length(all_indices) % 2 != 0 ? 0 :
-            (length(all_indices) == 0 ? 1 : sign_factor * integrate_indices_symplectic(all_indices, d))
+            (
+                length(all_indices) == 0 ? 1 :
+                sign_factor * integrate_indices_symplectic(all_indices, d)
+            )
         end
     end
 
@@ -163,7 +172,11 @@ INTEGRATION_RULES[:Design] =
         _, t_val = mt
         if length(u) != length(ub) || length(u) > t_val
             length(u) != length(ub) ? 0 :
-            throw(ArgumentError("Integrand degree ($(length(u))) exceeds design order t=$t_val"))
+            throw(
+                ArgumentError(
+                    "Integrand degree ($(length(u))) exceeds design order t=$t_val",
+                ),
+            )
         end
         length(u) == 0 ? 1 : integrate_indices(u, ub, d)
     end
@@ -210,7 +223,7 @@ function integrate_indices(U_idxs::Vector{<:Tuple}, U_bar_idxs::Vector{<:Tuple},
     n_v = length(valid)
     n_vt = length(valid_taus)
     if n_v * n_vt > 100 # Only if there are enough terms to justify overhead
-        p = Progress(n_v * n_vt; dt=10.0, desc="Calculating cycle types... ")
+        p = Progress(n_v * n_vt; dt = 10.0, desc = "Calculating cycle types... ")
         for sigma in valid
             for tau in valid_taus
                 inv_tau = invperm(tau)
@@ -424,17 +437,18 @@ function integrate_indices_orthogonal(indices::AbstractVector, dim)
     end
 
     # Pre-aggregate counts by cycle type to minimize symbolic additions
-    type_counts = Dict{Vector{Int}, BigInt}()
+    type_counts = Dict{Vector{Int},BigInt}()
     for (c_pi, count_pi) in pi_counts
         for (c_sigma, count_sigma) in sigma_counts
             ct = get_full_cycle_type(c_pi, c_sigma)
-            type_counts[ct] = get(type_counts, ct, zero(BigInt)) + BigInt(count_pi) * BigInt(count_sigma)
+            type_counts[ct] =
+                get(type_counts, ct, zero(BigInt)) + BigInt(count_pi) * BigInt(count_sigma)
         end
     end
 
     if !(Symbolics.unwrap(dim) isa Number)
-        w, type_to_idx, _ = get_weingarten_reduced_data(k, dim, return_rationals=true)
-        
+        w, type_to_idx, _ = get_weingarten_reduced_data(k, dim, return_rationals = true)
+
         # Exact rational summation to bypass Symbolics.simplify bugs
         local_total_rat = nothing
         for (ct, count) in type_counts
@@ -445,13 +459,13 @@ function integrate_indices_orthogonal(indices::AbstractVector, dim)
                 local_total_rat = _rational_add(local_total_rat, term)
             end
         end
-        
+
         if local_total_rat === nothing
             return Num(0)
         end
         return from_rational(local_total_rat)
     end
-    
+
     # Numeric case
     w, type_to_idx, _ = get_weingarten_reduced_data(k, dim)
     T_val = eltype(w)
@@ -559,7 +573,8 @@ function integrate_indices_symplectic(indices::AbstractVector, dim)
         return 0
     end
 
-    w, type_to_idx, _ = get_weingarten_reduced_data(k, -dim, return_rationals = !(dim isa Integer))
+    w, type_to_idx, _ =
+        get_weingarten_reduced_data(k, -dim, return_rationals = !(dim isa Integer))
 
     if !(Symbolics.unwrap(dim) isa Number)
         # Use exact rational polynomial arithmetic to avoid Symbolics.simplify bugs
@@ -597,7 +612,11 @@ function integrate_indices_symplectic(indices::AbstractVector, dim)
     n_pi = length(pi_contractions)
     n_sigma = length(sigma_contractions)
     if n_pi * n_sigma > 100
-        p = Progress(n_pi * n_sigma; dt=10.0, desc="Calculating symplectic integrals... ")
+        p = Progress(
+            n_pi * n_sigma;
+            dt = 10.0,
+            desc = "Calculating symplectic integrals... ",
+        )
         for (c_pi, val_pi) in pi_contractions
             for (c_sigma, val_sigma) in sigma_contractions
                 ct = get_full_cycle_type(c_pi, c_sigma)
@@ -803,11 +822,7 @@ end
 Low-level integration for Complex Ginibre Ensemble.
 Formula: sum_{sigma in S_n} prod_m delta(i_m, ib_sigma(m)) * delta(j_m, jb_sigma(m))
 """
-function integrate_indices_ginue(
-    u_indices::AbstractVector,
-    ub_indices::AbstractVector,
-    dim,
-)
+function integrate_indices_ginue(u_indices::AbstractVector, ub_indices::AbstractVector, dim)
     n = length(u_indices)
     if n != length(ub_indices)
         return 0
@@ -888,11 +903,7 @@ The integral is non-zero (equal to 1) only if the multisets of indices
 of U and U_bar are identical.
 Indices are already checked to be diagonal (i == j) in process_term.
 """
-function integrate_indices_diagonal(
-    U_idxs::AbstractVector,
-    U_bar_idxs::AbstractVector,
-    dim,
-)
+function integrate_indices_diagonal(U_idxs::AbstractVector, U_bar_idxs::AbstractVector, dim)
     n = length(U_idxs)
     if n != length(U_bar_idxs)
         return 0

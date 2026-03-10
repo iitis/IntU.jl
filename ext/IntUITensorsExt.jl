@@ -20,13 +20,18 @@ end
 function integrate(tensors::AbstractVector, measure::IntU.AbstractMeasure)
     # Guard: only treat as a tensor network if it contains ITensors or ITensorUnitary
     is_tensor_network = any(t -> t isa ITensor || t isa ITensorUnitary, tensors)
-    
+
     if is_tensor_network
         return _integrate_tensor_network(tensors, measure)
     else
         # Fallback to standard element-wise integration from IntU
         # we use invoke to call the more general AbstractArray method from IntU
-        return invoke(integrate, Tuple{AbstractArray, IntU.AbstractMeasure}, tensors, measure)
+        return invoke(
+            integrate,
+            Tuple{AbstractArray,IntU.AbstractMeasure},
+            tensors,
+            measure,
+        )
     end
 end
 

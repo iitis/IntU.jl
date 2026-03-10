@@ -9,7 +9,11 @@ struct SymplecticMeasure{D} <: AbstractMeasure
     dim::D
     function SymplecticMeasure(dim::D) where {D}
         if dim isa Integer && isodd(dim)
-            throw(ArgumentError("Dimension dim must be even for SymplecticMeasure, got $dim."))
+            throw(
+                ArgumentError(
+                    "Dimension dim must be even for SymplecticMeasure, got $dim.",
+                ),
+            )
         end
         new{D}(dim)
     end

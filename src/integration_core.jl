@@ -14,7 +14,7 @@ abstract type AbstractMeasure end
 function integrate(expr::LazySum, measure::AbstractMeasure)
     n_terms = length(expr.terms)
     if n_terms > 1
-        p = Progress(n_terms; dt=10.0, desc="Integrating lazy terms... ")
+        p = Progress(n_terms; dt = 10.0, desc = "Integrating lazy terms... ")
         res = zero(Num)
         for t in expr.terms
             res += integrate(t, measure)
@@ -32,7 +32,11 @@ function integrate(lp::LazyPower, measure::AbstractMeasure)
     elseif e isa Number && isinteger(e)
         return integrate(lp.base^Int(e), measure)
     end
-    throw(IntegrationError("Non-integer power of trace integration not supported yet: ($(lp.base))^$(lp.exponent)"))
+    throw(
+        IntegrationError(
+            "Non-integer power of trace integration not supported yet: ($(lp.base))^$(lp.exponent)",
+        ),
+    )
 end
 
 function _get_measure_dim(measure)
@@ -57,7 +61,7 @@ function integrate(A::SymbolicMatrix, measure::AbstractMeasure)
     if dim isa Integer
         res = Matrix{Any}(undef, dim, dim)
         fill!(res, 0)
-        p = Progress(dim*dim; dt=10.0, desc="Integrating matrix elements... ")
+        p = Progress(dim*dim; dt = 10.0, desc = "Integrating matrix elements... ")
         for i = 1:dim
             for j = 1:dim
                 res[i, j] = integrate(A[i, j], measure)
@@ -66,9 +70,11 @@ function integrate(A::SymbolicMatrix, measure::AbstractMeasure)
         end
         return res
     end
-    throw(ArgumentError(
-        "Direct integration of SymbolicMatrix requires a numeric dimension in the measure.",
-    ))
+    throw(
+        ArgumentError(
+            "Direct integration of SymbolicMatrix requires a numeric dimension in the measure.",
+        ),
+    )
 end
 
 _get_integration_tag(m::MetadataMatcher) = m.type_tag
@@ -77,7 +83,8 @@ function _has_integration_variable(expr, tag::Symbol)
     if expr isa SymbolicMatrix
         return expr.special_type === tag
     elseif expr isa SymbolicKron
-        return _has_integration_variable(expr.A, tag) || _has_integration_variable(expr.B, tag)
+        return _has_integration_variable(expr.A, tag) ||
+               _has_integration_variable(expr.B, tag)
     elseif expr isa SymbolicMatrixProduct
         return any(f -> _has_integration_variable(f, tag), expr.factors)
     else
@@ -100,9 +107,12 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
     # Fast path: if the product does not contain the integration variable at all,
     # it acts as a constant, so the integral is just the product itself.
     _, matcher, _, _ = measure_info(measure)
-    
+
     # We define a helper to safely extract the tag from different matchers
-    if matcher isa MetadataMatcher || (isdefined(Main, :SymbolicMatcher) && matcher isa Main.SymbolicMatcher) || hasproperty(matcher, :tag) || hasproperty(matcher, :type_tag)
+    if matcher isa MetadataMatcher ||
+       (isdefined(Main, :SymbolicMatcher) && matcher isa Main.SymbolicMatcher) ||
+       hasproperty(matcher, :tag) ||
+       hasproperty(matcher, :type_tag)
         tag = hasproperty(matcher, :type_tag) ? matcher.type_tag : matcher.tag
         if !_has_integration_variable(P, tag)
             return P
@@ -111,17 +121,17 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
 
     dim_measure = _get_measure_dim(measure)
     n_factors = length(P.factors)
-    
+
     # inner_dims[i] is the shared dimension between factor i-1 and factor i
     # inner_dims[1] is number of rows, inner_dims[n+1] is number of columns
     inner_dims = Vector{Any}(fill(nothing, n_factors + 1))
-    
+
     # Pass 1: Collect known dimensions
     for (i, f) in enumerate(P.factors)
         fr, fc = size(f)
         fr_un = Symbolics.unwrap(fr)
         fc_un = Symbolics.unwrap(fc)
-        
+
         if fr_un isa Integer && fr_un != typemax(Int)
             inner_dims[i] = fr_un
         end
@@ -129,9 +139,9 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
             inner_dims[i+1] = fc_un
         end
     end
-    
+
     # Pass 2: Fallback to measure dimension for any remaining unknowns
-    for i in 1:(n_factors + 1)
+    for i = 1:(n_factors+1)
         if inner_dims[i] === nothing
             inner_dims[i] = dim_measure
         end
@@ -139,7 +149,7 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
 
     nr = inner_dims[1]
     nc = inner_dims[end]
-    
+
     nr_un = Symbolics.unwrap(nr)
     nc_un = Symbolics.unwrap(nc)
 
@@ -154,9 +164,11 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
             cur_c = Symbolics.unwrap(inner_dims[i+1])
 
             if !(cur_r isa Integer && cur_c isa Integer)
-                throw(ArgumentError(
-                    "Factor $f has non-numeric size ($cur_r, $cur_c). Cannot expand product for matrix-valued integration. Use tr() for scalar results with symbolic dimensions.",
-                ))
+                throw(
+                    ArgumentError(
+                        "Factor $f has non-numeric size ($cur_r, $cur_c). Cannot expand product for matrix-valued integration. Use tr() for scalar results with symbolic dimensions.",
+                    ),
+                )
             end
 
             push!(mats, [f[r, c] for r = 1:Int(cur_r), c = 1:Int(cur_c)])
@@ -166,7 +178,7 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
 
         res = Matrix{Any}(undef, nr, nc)
         fill!(res, 0)
-        p = Progress(nr*nc; dt=10.0, desc="Integrating matrix product elements... ")
+        p = Progress(nr*nc; dt = 10.0, desc = "Integrating matrix product elements... ")
         for i = 1:nr
             for j = 1:nc
                 res[i, j] = integrate(res_mat[i, j], measure)
@@ -175,7 +187,11 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
         end
         return res
     end
-    throw(ArgumentError("Direct matrix-valued integration of SymbolicMatrixProduct requires numeric result dimensions (got $nr x $nc). Use tr() for scalar results."))
+    throw(
+        ArgumentError(
+            "Direct matrix-valued integration of SymbolicMatrixProduct requires numeric result dimensions (got $nr x $nc). Use tr() for scalar results.",
+        ),
+    )
 end
 
 """
@@ -230,7 +246,11 @@ function fallback_integrate(expr, measure)
 end
 
 function _manual_fallback(expr, measure)
-    throw(ArgumentError("Fallback integrate not implemented for this measure: $(typeof(measure))"))
+    throw(
+        ArgumentError(
+            "Fallback integrate not implemented for this measure: $(typeof(measure))",
+        ),
+    )
 end
 
 """
@@ -278,4 +298,3 @@ function measure_info(measure::AbstractMeasure)
     end
     return (subs_dict, matcher, dim, tag)
 end
-

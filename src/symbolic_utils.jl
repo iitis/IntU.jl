@@ -317,4 +317,3 @@ end
 
 _is_real_sq(term) = _is_fn_sq(term, real, Base.real)
 _is_imag_sq(term) = _is_fn_sq(term, imag, Base.imag)
-

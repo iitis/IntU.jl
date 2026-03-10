@@ -48,9 +48,11 @@ function hciz(A::SymbolicMatrix, B::SymbolicMatrix)
     if A.dim !== nothing
         return hciz(A, B, A.dim)
     else
-        throw(ArgumentError(
-            "Must provide dimension d for symbolic HCIZ if matrices have symbolic dimension.",
-        ))
+        throw(
+            ArgumentError(
+                "Must provide dimension d for symbolic HCIZ if matrices have symbolic dimension.",
+            ),
+        )
     end
 end
 
@@ -86,13 +88,19 @@ function _get_eigenvalues(M::AbstractMatrix)
         ]
     end
 
-    throw(ArgumentError(
-        "Cannot extract eigenvalues symbolically for d > 2 and non-diagonal matrix. Please provide eigenvalues directly.",
-    ))
+    throw(
+        ArgumentError(
+            "Cannot extract eigenvalues symbolically for d > 2 and non-diagonal matrix. Please provide eigenvalues directly.",
+        ),
+    )
 end
 
 function hciz(a::AbstractVector, b::AbstractVector)
-    length(a) == length(b) || throw(DimensionMismatch("A and B must have the same dimension, got $(length(a)) and $(length(b))"))
+    length(a) == length(b) || throw(
+        DimensionMismatch(
+            "A and B must have the same dimension, got $(length(a)) and $(length(b))",
+        ),
+    )
     d = length(a)
     d == 0 && return 1.0
 

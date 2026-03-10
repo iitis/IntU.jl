@@ -43,7 +43,11 @@ Returns a sum of terms, where each term is a product of `constants` and deltas.
 """
 function integrate_graphical(constants, unitaries, measure::AbstractMeasure)
     # Default fallback or error
-    throw(ArgumentError("Graphical integration not implemented for measure $(typeof(measure))"))
+    throw(
+        ArgumentError(
+            "Graphical integration not implemented for measure $(typeof(measure))",
+        ),
+    )
 end
 
 integrate_graphical(constants, unitaries, measure::HaarMeasure) =
@@ -71,7 +75,9 @@ function _integrate_graphical_unitary(constants, unitaries, dim; design_t = noth
     end
 
     if design_t !== nothing && n_u > design_t
-        throw(ArgumentError("Integrand degree ($n_u, $n_u) exceeds design order t=$design_t"))
+        throw(
+            ArgumentError("Integrand degree ($n_u, $n_u) exceeds design order t=$design_t"),
+        )
     end
 
 

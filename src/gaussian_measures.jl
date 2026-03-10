@@ -2,9 +2,9 @@
 
 # --- Unified struct + measure_info registration ---
 for (T, tag, ctor) in [
-    (:GUEMeasure,  :GUE,   :dGUE),
-    (:GOEMeasure,  :GOE,   :dGOE),
-    (:GSEMeasure,  :GSE,   :dGSE),
+    (:GUEMeasure, :GUE, :dGUE),
+    (:GOEMeasure, :GOE, :dGOE),
+    (:GSEMeasure, :GSE, :dGSE),
     (:GinUEMeasure, :GinUE, :dGinUE),
     (:GinOEMeasure, :GinOE, :dGinOE),
     (:GinSEMeasure, :GinSE, :dGinSE),
@@ -18,7 +18,9 @@ for (T, tag, ctor) in [
 
         function IntU.measure_info(measure::$T)
             subs_dict = Dict{Any,Any}()
-            matcher = measure.matcher === nothing ? MetadataMatcher($(QuoteNode(tag))) : measure.matcher
+            matcher =
+                measure.matcher === nothing ? MetadataMatcher($(QuoteNode(tag))) :
+                measure.matcher
             dim = measure.dim isa SymbolicMatrix ? measure.dim.dim : measure.dim
             return (subs_dict, matcher, dim, $(QuoteNode(tag)))
         end
@@ -94,7 +96,7 @@ If `separate_adj=false`, returns a single `Vector{Int}` of all matching indices.
 If `separate_adj=true`, returns `(indices, bar_indices)` separating non-adjoint
 and adjoint entries.
 """
-function _find_tagged_indices(all_factors, tag; separate_adj=false)
+function _find_tagged_indices(all_factors, tag; separate_adj = false)
     if separate_adj
         indices = Int[]
         bar_indices = Int[]
@@ -123,7 +125,7 @@ Unified Wick contraction for Hermitian-type (GUE, GOE) ensembles.
 - `symmetric=false` (GUE): E[H_ij H_kl] = δ_il δ_jk — single contraction per pair
 - `symmetric=true`  (GOE): E[H_ij H_kl] = δ_il δ_jk + δ_ik δ_jl — two contractions per pair
 """
-function _wick_hermitian_integrate(t::LazyTrace, dim, tag, matcher; symmetric=false)
+function _wick_hermitian_integrate(t::LazyTrace, dim, tag, matcher; symmetric = false)
     if isempty(t.cycles)
         return t.prefactor
     end
@@ -166,7 +168,7 @@ function _wick_hermitian_integrate(t::LazyTrace, dim, tag, matcher; symmetric=fa
         end
 
         for choices in choice_combos
-            pair_choices = Dict{Int, Int}()
+            pair_choices = Dict{Int,Int}()
             for (p_idx, (u, v)) in enumerate(pi)
                 pair_choices[u] = choices[p_idx]
                 pair_choices[v] = choices[p_idx]
@@ -222,7 +224,8 @@ function _wick_hermitian_integrate(t::LazyTrace, dim, tag, matcher; symmetric=fa
                 end
             end
 
-            total_val += isempty(current_partition_traces) ? 1 : prod(current_partition_traces)
+            total_val +=
+                isempty(current_partition_traces) ? 1 : prod(current_partition_traces)
         end
     end
 
@@ -235,12 +238,12 @@ end
 
 function fallback_integrate(t::LazyTrace, measure::GUEMeasure)
     matcher = measure.matcher === nothing ? MetadataMatcher(:GUE) : measure.matcher
-    return _wick_hermitian_integrate(t, measure.dim, :GUE, matcher; symmetric=false)
+    return _wick_hermitian_integrate(t, measure.dim, :GUE, matcher; symmetric = false)
 end
 
 function fallback_integrate(t::LazyTrace, measure::GOEMeasure)
     matcher = measure.matcher === nothing ? MetadataMatcher(:GOE) : measure.matcher
-    return _wick_hermitian_integrate(t, measure.dim, :GOE, matcher; symmetric=true)
+    return _wick_hermitian_integrate(t, measure.dim, :GOE, matcher; symmetric = true)
 end
 
 """
@@ -282,7 +285,8 @@ function fallback_integrate(t::LazyTrace, measure::GinUEMeasure)
     G_type = (matcher isa MetadataMatcher) ? matcher.type_tag : :GinUE
 
     total_factors, cycle_ranges, all_factors = _extract_trace_data(t)
-    G_indices, G_bar_indices = _find_tagged_indices(all_factors, G_type; separate_adj=true)
+    G_indices, G_bar_indices =
+        _find_tagged_indices(all_factors, G_type; separate_adj = true)
 
     n_G = length(G_indices)
     n_G_bar = length(G_bar_indices)
@@ -461,5 +465,3 @@ end
 function fallback_integrate(t::LazyTrace, measure::GinSEMeasure)
     return _duality_integrate(t, measure, GinOEMeasure, :GinSE)
 end
-
-

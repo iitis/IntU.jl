@@ -1,14 +1,15 @@
-function integrate_indices_centered_permutation(
-    all_indices::AbstractVector,
-    dim,
-)
+function integrate_indices_centered_permutation(all_indices::AbstractVector, dim)
     # Expand prod(P_u - 1/d)
     # Sum over subsets S of indices:
     # (-1/d)^(k - |S|) * E[prod_{u in S} P_u]
 
     k = length(all_indices)
     if k >= 8 * sizeof(UInt)
-        throw(ArgumentError("Centered permutation integration for k=$k indices is infeasible (2^$k subsets)"))
+        throw(
+            ArgumentError(
+                "Centered permutation integration for k=$k indices is infeasible (2^$k subsets)",
+            ),
+        )
     end
     total = 0
 

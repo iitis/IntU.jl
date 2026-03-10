@@ -1,10 +1,7 @@
 # Permutation Group measures
 
 # --- Unified struct + tag registration ---
-for (T, tag) in [
-    (:PermutationMeasure, :Perm),
-    (:CenteredPermutationMeasure, :CPerm),
-]
+for (T, tag) in [(:PermutationMeasure, :Perm), (:CenteredPermutationMeasure, :CPerm)]
     @eval begin
         struct $T{D,M} <: AbstractMeasure
             dim::D
@@ -80,9 +77,11 @@ function fallback_integrate(t::LazyTrace, measure::PermutationMeasure)
         end
 
         if d_val == 0
-            throw(ArgumentError(
-                "Cannot expand LazyTrace for Permutations: dimension is not concrete and term is not linear.",
-            ))
+            throw(
+                ArgumentError(
+                    "Cannot expand LazyTrace for Permutations: dimension is not concrete and term is not linear.",
+                ),
+            )
         end
 
         # Manual expansion of tr(C1 * C2 * ... * Cn)
@@ -109,9 +108,11 @@ function fallback_integrate(t::LazyTrace, measure::CenteredPermutationMeasure)
     if length(t.cycles) == 1 && length(t.cycles[1]) == 2
         return 0
     end
-    throw(ArgumentError(
-        "Graphical integration for Centered Permutations only supported for tr(YA) currently.",
-    ))
+    throw(
+        ArgumentError(
+            "Graphical integration for Centered Permutations only supported for tr(YA) currently.",
+        ),
+    )
 end
 
 """

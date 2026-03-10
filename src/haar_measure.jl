@@ -101,14 +101,20 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
 
     u_map = Dict(idx => m for (m, idx) in enumerate(U_indices))
     ub_map = Dict(idx => m for (m, idx) in enumerate(U_bar_indices))
-    
+
     # NEW: Convert maps to speed up inner loop. Max slot index is total_factors.
     # total_factors = n_U + n_U_bar (usually 2*n_U)
     u_map_vec = fill(0, total_factors)
-    for (idx, m) in u_map; u_map_vec[idx] = m; end
+    for (idx, m) in u_map
+        ;
+        u_map_vec[idx] = m;
+    end
     ub_map_vec = fill(0, total_factors)
-    for (idx, m) in ub_map; ub_map_vec[idx] = m; end
-    
+    for (idx, m) in ub_map
+        ;
+        ub_map_vec[idx] = m;
+    end
+
     # Convert wires to vectors
     wires_s = fill(0, total_factors)
     wires_m = Vector{Any}(nothing, total_factors)
@@ -116,9 +122,11 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
     rev_wires_m = Vector{Any}(nothing, total_factors)
     for s in all_slots
         ws, wm = wires[s]
-        wires_s[s] = ws; wires_m[s] = wm
+        wires_s[s] = ws;
+        wires_m[s] = wm
         rs, rm = reverse_wires[s]
-        rev_wires_s[s] = rs; rev_wires_m[s] = rm
+        rev_wires_s[s] = rs;
+        rev_wires_m[s] = rm
     end
 
     is_trans_vec = [f.is_trans for f in all_factors]
@@ -132,10 +140,11 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
 
     # Detect "pure trace" case: no constant matrices
     is_pure_trace = all(m -> m === nothing, wires_m) && all(m -> m === nothing, rev_wires_m)
-    
+
     if is_pure_trace
         total_val_pi = is_numeric_dim ? zero(Rational{BigInt}) : Num(0)
-        p_fast = Progress(n_perms; dt=0.5, desc="Integrating Haar (n=$n_U, fast path)... ")
+        p_fast =
+            Progress(n_perms; dt = 0.5, desc = "Integrating Haar (n=$n_U, fast path)... ")
         for Pi in perms
             ct = get_cycle_type(Pi)
             n_cycles = length(ct)
@@ -149,7 +158,7 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
 
     total_iters = n_perms * n_perms
     desc = "Integrating Haar (n=$n_U)... "
-    p = Progress(total_iters; dt=0.5, desc=desc)
+    p = Progress(total_iters; dt = 0.5, desc = desc)
 
     total_val = is_numeric_dim ? zero(Rational{BigInt}) : Num(0)
     P = Vector{Int}(undef, n_U)
@@ -188,7 +197,7 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
                             total_factors,
                             dim,
                             visited,
-                            curr_factors_buf
+                            curr_factors_buf,
                         )
                         term_prod *= val
                     end
@@ -226,7 +235,7 @@ function _traverse_trace_cycle_fast(
     total_factors,
     dim,
     visited,
-    curr_factors = Any[]
+    curr_factors = Any[],
 )
     empty!(curr_factors)
 
@@ -262,7 +271,7 @@ function _traverse_trace_cycle_fast(
                 p = 2
             end
         end
-        
+
         # Mark the other port of the newly reached factor as visited too
         bit_idx_other = (p - 1) * total_factors + s
         visited[bit_idx_other] = true

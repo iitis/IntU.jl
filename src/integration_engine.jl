@@ -21,9 +21,7 @@ function robust_substitute(ex, dict)
             return unwrapped_dict[u]
         end
         return x
-    end)(
-        Symbolics.unwrap(ex),
-    )
+    end)(Symbolics.unwrap(ex))
 
     return Symbolics.wrap(p_res)
 end
@@ -366,7 +364,7 @@ function _integrate_core(
                 terms = Symbolics.arguments(ex_un)
                 n_terms = length(terms)
                 if n_terms > 1
-                    p = Progress(n_terms; dt=10.0, desc="Integrating terms... ")
+                    p = Progress(n_terms; dt = 10.0, desc = "Integrating terms... ")
                     res = zero(Num)
                     for t in terms
                         res += process_term_wrapped(t)
@@ -454,9 +452,11 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
     if term isa LazyTrace
         # If it leaked here, it means it's not specialized for this measure.
         # Try a very basic expansion? No, let's error gracefully if not handled.
-        throw(ArgumentError(
-            "Graphical integration (LazyTrace) not implemented for measure type $measure_type. Try expanding traces element-wise.",
-        ))
+        throw(
+            ArgumentError(
+                "Graphical integration (LazyTrace) not implemented for measure type $measure_type. Try expanding traces element-wise.",
+            ),
+        )
     end
 
     if Symbolics.iscall(term)
@@ -511,7 +511,7 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
                     traverse(arg, conjugated)
                 end
                 return
-            # Power: repeat base p times
+                # Power: repeat base p times
             elseif op == (^)
                 base = args[1]
                 p_val = Symbolics.unwrap(args[2])
@@ -524,29 +524,29 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
                 end
                 traverse(base, conjugated)
                 return
-            # Division: traverse numerator, divide coefficient
+                # Division: traverse numerator, divide coefficient
             elseif op == (/)
                 traverse(args[1], conjugated)
                 coeff /= args[2]
                 return
-            # Conjugation: flip conjugated flag
+                # Conjugation: flip conjugated flag
             elseif op == conj || op == Base.conj
                 traverse(args[1], !conjugated)
                 return
-            # real(x) = (x + conj(x)) / 2
+                # real(x) = (x + conj(x)) / 2
             elseif op == real || op == Base.real
                 coeff *= 1 // 2
                 traverse(args[1], conjugated)
                 traverse(args[1], !conjugated)
                 return
-            # imag(x) = (x - conj(x)) / (2im)
+                # imag(x) = (x - conj(x)) / (2im)
             elseif op == imag || op == Base.imag
                 coeff *= 1 // (2im)
                 traverse(args[1], conjugated)
                 coeff *= -1
                 traverse(args[1], !conjugated)
                 return
-            # Distributive: complex, +, -
+                # Distributive: complex, +, -
             elseif op == complex || op == Base.complex || op == (+) || op == (-)
                 for arg in args
                     traverse(arg, conjugated)

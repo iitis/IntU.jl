@@ -135,7 +135,9 @@ function _asymptotic_series_dict(ex_un, d_un, order)
                 end
             end
             res = new_res
-            if isempty(res) break end
+            if isempty(res)
+                break
+            end
         end
         return res
     end

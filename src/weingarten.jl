@@ -411,19 +411,34 @@ end
 function _poly_add(a::Vector{BigInt}, b::Vector{BigInt})
     n = max(length(a), length(b))
     res = zeros(BigInt, n)
-    for i = 1:length(a); res[i] += a[i]; end
-    for i = 1:length(b); res[i] += b[i]; end
+    for i = 1:length(a)
+        ;
+        res[i] += a[i];
+    end
+    for i = 1:length(b)
+        ;
+        res[i] += b[i];
+    end
     return res
 end
 function _poly_sub(a::Vector{BigInt}, b::Vector{BigInt})
     n = max(length(a), length(b))
     res = zeros(BigInt, n)
-    for i = 1:length(a); res[i] += a[i]; end
-    for i = 1:length(b); res[i] -= b[i]; end
+    for i = 1:length(a)
+        ;
+        res[i] += a[i];
+    end
+    for i = 1:length(b)
+        ;
+        res[i] -= b[i];
+    end
     return res
 end
 function _poly_mul(a::Vector{BigInt}, b::Vector{BigInt})
-    if isempty(a) || (length(a) == 1 && a[1] == 0) || isempty(b) || (length(b) == 1 && b[1] == 0)
+    if isempty(a) ||
+       (length(a) == 1 && a[1] == 0) ||
+       isempty(b) ||
+       (length(b) == 1 && b[1] == 0)
         return BigInt[0]
     end
     res = zeros(BigInt, length(a) + length(b) - 1)
@@ -438,14 +453,20 @@ function _poly_mul(a::Vector{BigInt}, b::Vector{BigInt})
 end
 function _poly_div_exact(a::Vector{BigInt}, b::Vector{BigInt})
     # Bareiss algorithm guarantees exact division in the polynomial ring
-    if (length(b) == 1 && b[1] == 1) return a end
-    if isempty(a) || (length(a) == 1 && a[1] == 0) return BigInt[0] end
-    
+    if (length(b) == 1 && b[1] == 1)
+        return a
+    end
+    if isempty(a) || (length(a) == 1 && a[1] == 0)
+        return BigInt[0]
+    end
+
     n = length(a)
     m = length(b)
     q_len = n - m + 1
-    if q_len <= 0 return [div(a[1], b[1])] end 
-    
+    if q_len <= 0
+        return [div(a[1], b[1])]
+    end
+
     q = zeros(BigInt, q_len)
     rem = copy(a)
     b_lead = b[end]
@@ -460,35 +481,50 @@ function _poly_div_exact(a::Vector{BigInt}, b::Vector{BigInt})
     end
     # Trim
     last = length(q)
-    while last > 1 && q[last] == 0; last -= 1; end
+    while last > 1 && q[last] == 0
+        ;
+        last -= 1;
+    end
     return q[1:last]
 end
 
 function _poly_pseudo_rem(a::Vector{BigInt}, b::Vector{BigInt})
     n = length(a)
     m = length(b)
-    if n < m return a end
+    if n < m
+        return a
+    end
     r = copy(a)
     b_lead = b[end]
-    for i = n-m+1:-1:1
+    for i = (n-m+1):-1:1
         idx = i + m - 1
         mult_val = r[idx]
         # Multiply by b_lead to ensure exact division in the next step
         # Pseudo-remainder: r = b_lead * r - r[idx] * b shifted
-        for j = 1:length(r); r[j] *= b_lead; end
+        for j = 1:length(r)
+            ;
+            r[j] *= b_lead;
+        end
         for j = 1:m
             r[i+j-1] -= mult_val * b[j]
         end
     end
     # Trim
     last = length(r)
-    while last > 1 && r[last] == 0; last -= 1; end
+    while last > 1 && r[last] == 0
+        ;
+        last -= 1;
+    end
     return r[1:last]
 end
 
 function _poly_gcd(a::Vector{BigInt}, b::Vector{BigInt})
-    if (length(a) == 1 && a[1] == 0) return b end
-    if (length(b) == 1 && b[1] == 0) return a end
+    if (length(a) == 1 && a[1] == 0)
+        return b
+    end
+    if (length(b) == 1 && b[1] == 0)
+        return a
+    end
     A = copy(a)
     B = copy(b)
     while length(B) > 1 || (length(B) == 1 && B[1] != 0)
@@ -496,9 +532,18 @@ function _poly_gcd(a::Vector{BigInt}, b::Vector{BigInt})
     end
     # Primitive part: divide by GCD of coefficients
     c = zero(BigInt)
-    for x in A; c = (c == 0 ? abs(x) : gcd(c, abs(x))); end
-    if c > 1; A = [x ÷ c for x in A]; end
-    if !isempty(A) && A[end] < 0; A = .-A; end # Canonical sign
+    for x in A
+        ;
+        c = (c == 0 ? abs(x) : gcd(c, abs(x)));
+    end
+    if c > 1
+        ;
+        A = [x ÷ c for x in A];
+    end
+    if !isempty(A) && A[end] < 0
+        ;
+        A = .-A;
+    end # Canonical sign
     return A
 end
 
@@ -521,9 +566,14 @@ function _rational_add(a::UnivariateRational, b::UnivariateRational)
 end
 
 function _rational_mul(a::UnivariateRational, b::BigInt)
-    if b == 0 return UnivariateRational([BigInt(0)], [BigInt(1)], a.var) end
+    if b == 0
+        return UnivariateRational([BigInt(0)], [BigInt(1)], a.var)
+    end
     num = copy(a.num)
-    for i=1:length(num); num[i] *= b; end
+    for i = 1:length(num)
+        ;
+        num[i] *= b;
+    end
     # Simplify
     # Since b is constant, we don't need full GCD unless we want to be very clean
     # For now just keep it
@@ -532,7 +582,7 @@ end
 
 function from_vec(v, var)
     isempty(v) && return Num(0)
-    
+
     function _safe_c(c::BigInt)
         if typemin(Int64) <= c <= typemax(Int64)
             return Int64(c)
@@ -542,7 +592,7 @@ function from_vec(v, var)
 
     res = Num(_safe_c(v[1]))
     length(v) == 1 && return res
-    
+
     # Build polynomial terms without simplify in the loop
     if v[2] != 0
         res += _safe_c(v[2]) * var
@@ -563,9 +613,14 @@ function from_rational(r::UnivariateRational)
     return Num(Symbolics.simplify(quick_cancel(unwrapped)))
 end
 
-function _univariate_poly_solve(M::AbstractMatrix{Num}, rhs::AbstractVector{Num}, var::SymbolicUtils.BasicSymbolic; return_rationals=false)
+function _univariate_poly_solve(
+    M::AbstractMatrix{Num},
+    rhs::AbstractVector{Num},
+    var::SymbolicUtils.BasicSymbolic;
+    return_rationals = false,
+)
     n = size(M, 1)
-    
+
     function to_vec(ex)
         v = zeros(BigInt, 128)
         d, _ = Symbolics.polynomial_coeffs(ex, [var])
@@ -583,10 +638,12 @@ function _univariate_poly_solve(M::AbstractMatrix{Num}, rhs::AbstractVector{Num}
                     deg = raw_deg isa Number ? Int(raw_deg) : Int(Symbolics.value(raw_deg))
                 end
             end
-            
+
             c_unwrapped = Symbolics.unwrap(coeff)
-            c = c_unwrapped isa Number ? BigInt(c_unwrapped) : BigInt(Symbolics.value(c_unwrapped))
-            
+            c =
+                c_unwrapped isa Number ? BigInt(c_unwrapped) :
+                BigInt(Symbolics.value(c_unwrapped))
+
             if deg + 1 > length(v)
                 new_v = zeros(BigInt, deg + 64)
                 new_v[1:length(v)] .= v
@@ -595,7 +652,7 @@ function _univariate_poly_solve(M::AbstractMatrix{Num}, rhs::AbstractVector{Num}
             v[deg+1] = c
             max_d = max(max_d, deg)
         end
-        return v[1:max_d+1]
+        return v[1:(max_d+1)]
     end
 
     M_poly = [to_vec(x) for x in M]
@@ -603,7 +660,7 @@ function _univariate_poly_solve(M::AbstractMatrix{Num}, rhs::AbstractVector{Num}
     # Use hcat to build augmented matrix of vectors
     aug = hcat(M_poly, rhs_poly)
     n_aug = n + 1
-    
+
     prev_pivot = BigInt[1]
     for k = 1:n
         pivot_idx = k
@@ -618,12 +675,13 @@ function _univariate_poly_solve(M::AbstractMatrix{Num}, rhs::AbstractVector{Num}
             aug[k, :] = aug[pivot_idx, :]
             aug[pivot_idx, :] = row_k
         end
-        
+
         pivot = aug[k, k]
         for i = 1:n
             i == k && continue
-            for j = k+1:n_aug
-                term = _poly_sub(_poly_mul(pivot, aug[i, j]), _poly_mul(aug[i, k], aug[k, j]))
+            for j = (k+1):n_aug
+                term =
+                    _poly_sub(_poly_mul(pivot, aug[i, j]), _poly_mul(aug[i, k], aug[k, j]))
                 aug[i, j] = _poly_div_exact(term, prev_pivot)
             end
             aug[i, k] = BigInt[0]
@@ -633,7 +691,7 @@ function _univariate_poly_solve(M::AbstractMatrix{Num}, rhs::AbstractVector{Num}
 
     final_det = aug[n, n]
     if return_rationals
-        return [UnivariateRational(aug[i, n_aug], final_det, var) for i=1:n]
+        return [UnivariateRational(aug[i, n_aug], final_det, var) for i = 1:n]
     end
 
     x = Vector{Num}(undef, n)
@@ -641,12 +699,14 @@ function _univariate_poly_solve(M::AbstractMatrix{Num}, rhs::AbstractVector{Num}
         num_vec = aug[i, n_aug]
         den_vec = final_det
         g = _poly_gcd(num_vec, den_vec)
-        
+
         num = from_vec(num_vec, var)
         den = from_vec(den_vec, var)
         com = from_vec(g, var)
-        
-        unwrapped = (Symbolics.unwrap(num) / Symbolics.unwrap(com)) / (Symbolics.unwrap(den) / Symbolics.unwrap(com))
+
+        unwrapped =
+            (Symbolics.unwrap(num) / Symbolics.unwrap(com)) /
+            (Symbolics.unwrap(den) / Symbolics.unwrap(com))
         x[i] = Num(quick_cancel(unwrapped))
     end
     return x
@@ -658,13 +718,22 @@ end
 Specialized Gaussian elimination for small symbolic matrices.
 Faster than general Symbolics.jl solver for the reduced Weingarten system.
 """
-function _symbolic_solve(M::AbstractMatrix{Num}, rhs::AbstractVector{Num}; return_rationals=false)
+function _symbolic_solve(
+    M::AbstractMatrix{Num},
+    rhs::AbstractVector{Num};
+    return_rationals = false,
+)
     vars = Symbolics.get_variables(M)
     if length(vars) == 1
         v = first(vars)
         if v isa SymbolicUtils.BasicSymbolic
             try
-                return _univariate_poly_solve(M, rhs, v, return_rationals=return_rationals)
+                return _univariate_poly_solve(
+                    M,
+                    rhs,
+                    v,
+                    return_rationals = return_rationals,
+                )
             catch e
                 @warn "Univariate polynomial solve failed, falling back to symbolic Bareiss solver. Error: $e"
             end
@@ -681,7 +750,7 @@ function _bareiss_symbolic_solve(M::AbstractMatrix{Num}, rhs::AbstractVector{Num
     # Augment M with rhs to solve M x = rhs
     aug = [copy(M) copy(rhs)]
     n_aug = n + 1
-    
+
     prev_pivot = Num(1)
     for k = 1:n
         # 1. Pivot selection
@@ -698,28 +767,29 @@ function _bareiss_symbolic_solve(M::AbstractMatrix{Num}, rhs::AbstractVector{Num
             aug[k, :] = aug[pivot_idx, :]
             aug[pivot_idx, :] = row_k
         end
-        
+
         pivot = aug[k, k]
         # In symbolic systems d^loops, the reduced Gram matrix is non-singular
         # unless d is a specific root. For symbolic d, it's safe.
         if isequal(pivot, 0)
-             continue
+            continue
         end
 
         # 2. Bareiss reduction step
         for i = 1:n
             i == k && continue
-            for j = k+1:n_aug
+            for j = (k+1):n_aug
                 # Division by prev_pivot is guaranteed to be exact in the polynomial ring
                 term = Symbolics.expand(pivot * aug[i, j] - aug[i, k] * aug[k, j])
                 # We use quick_cancel to perform the exact division safely
-                aug[i, j] = Num(quick_cancel(Symbolics.unwrap(term) / Symbolics.unwrap(prev_pivot)))
+                aug[i, j] =
+                    Num(quick_cancel(Symbolics.unwrap(term) / Symbolics.unwrap(prev_pivot)))
             end
             aug[i, k] = Num(0)
         end
         prev_pivot = pivot
     end
-    
+
     # 3. Final normalization
     final_det = aug[n, n]
     x = Vector{Num}(undef, n)
@@ -738,10 +808,10 @@ Solves `M \\ rhs` but falls back to the Moore-Penrose pseudoinverse `pinv` if `M
 Used to compute Weingarten function for small dimensions where the Gram matrix is singular 
 (e.g., dSp(2) integration yielding d = -2).
 """
-function _safe_solve(M::AbstractMatrix{T}, rhs; return_rationals=false) where {T}
+function _safe_solve(M::AbstractMatrix{T}, rhs; return_rationals = false) where {T}
     # For symbolic systems, use specialized solver
     if T <: Num || T <: SymbolicUtils.BasicSymbolic
-        return _symbolic_solve(M, rhs; return_rationals=return_rationals)
+        return _symbolic_solve(M, rhs; return_rationals = return_rationals)
     end
 
     try
@@ -761,7 +831,7 @@ function _safe_solve(M::AbstractMatrix{T}, rhs; return_rationals=false) where {T
             if T <: Rational
                 M_bf = BigFloat.(M)
                 rhs_bf = BigFloat.(rhs)
-                
+
                 # Use a very high precision for the pseudoinverse
                 return setprecision(BigFloat, 1024) do
                     # Add a tiny diagonal perturbation to M to push it off the pole
@@ -771,12 +841,12 @@ function _safe_solve(M::AbstractMatrix{T}, rhs; return_rationals=false) where {T
                     for i = 1:n
                         M_bf[i, i] += eps_val
                     end
-                    
+
                     w_bf = M_bf \ rhs_bf
-                    
+
                     IntType = T.parameters[1]
                     # We use a tolerance that is small but larger than epsilon effect
-                    return rationalize.(IntType, w_bf, tol=1//BigInt(10)^30)
+                    return rationalize.(IntType, w_bf, tol = 1//BigInt(10)^30)
                 end
             else
                 # Non-rational, use pinv
@@ -797,7 +867,7 @@ The matrix \$G\$ is a Gram matrix of size \$(2k-1)!! \\times (2k-1)!!\$ where
 \$G_{\\pi, \\sigma} = d^{\\ell(\\pi, \\sigma)}\$.
 The Weingarten matrix is the inverse of \$G\$.
 """
-@memoize function get_weingarten_reduced_data(k::Int, d; return_rationals=false)
+@memoize function get_weingarten_reduced_data(k::Int, d; return_rationals = false)
     parts = get_pair_partitions(2*k)
     N = length(parts)
     pi_id = parts[1]
@@ -816,7 +886,7 @@ The Weingarten matrix is the inverse of \$G\$.
 
     # Determine numeric type
     T = (d isa Integer) ? Rational{BigInt} : typeof(d^1)
-    
+
     M = zeros(T, n_types, n_types)
     for i = 1:n_types
         pi_lambda = parts[type_to_parts[cts[i]][1]]
@@ -827,7 +897,7 @@ The Weingarten matrix is the inverse of \$G\$.
                 l = count_loops(pi_lambda, parts[sigma_idx])
                 loop_counts[l] = get(loop_counts, l, 0) + 1
             end
-            
+
             val = zero(T)
             for (l, count) in loop_counts
                 if count != 0
@@ -843,7 +913,7 @@ The Weingarten matrix is the inverse of \$G\$.
     rhs = zeros(T, n_types)
     rhs[id_idx] = one(T)
 
-    w = _safe_solve(M, rhs, return_rationals=return_rationals)
+    w = _safe_solve(M, rhs, return_rationals = return_rationals)
 
     return w, type_to_idx, type_to_parts
 end

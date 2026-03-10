@@ -119,7 +119,10 @@ macro integrate(expr, measure)
                             (IntU._ensure_symbolic_dim($m_dim), 1)
                         elseif $(QuoteNode(tag)) === :V
                             m_args = $(measure.args)
-                            (IntU._ensure_symbolic_dim(m_args[2]), IntU._ensure_symbolic_dim(m_args[3]))
+                            (
+                                IntU._ensure_symbolic_dim(m_args[2]),
+                                IntU._ensure_symbolic_dim(m_args[3]),
+                            )
                         else
                             IntU._ensure_symbolic_dim($m_dim)
                         end
@@ -128,11 +131,15 @@ macro integrate(expr, measure)
                 ),
             )
         else
-            push!(decls, :(
-                if !@isdefined($s) || ($s isa SymbolicMatrix && $s.special_type !== :Constant)
-                    ;$s = SymbolicMatrix($(QuoteNode(s)), :Constant, nothing);
-                end
-            ))
+            push!(
+                decls,
+                :(
+                    if !@isdefined($s) ||
+                       ($s isa SymbolicMatrix && $s.special_type !== :Constant)
+                        ;$s = SymbolicMatrix($(QuoteNode(s)), :Constant, nothing);
+                    end
+                ),
+            )
         end
     end
 

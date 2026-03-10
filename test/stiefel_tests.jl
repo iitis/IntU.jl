@@ -44,7 +44,10 @@ using LinearAlgebra
         # E[|V_11|^2 * |V_12|^2] = 1/(d(d+1)) for complex
         # Note: Stiefel integration logic currently maps to unitary
         res1112 = integrate(abs2(V[1, 1]) * abs2(V[1, 2]), measure)
-        @test IntU._symbolic_isequal(Symbolics.simplify(res1112 - 1/(d_sym * (d_sym + 1))), 0)
+        @test IntU._symbolic_isequal(
+            Symbolics.simplify(res1112 - 1/(d_sym * (d_sym + 1))),
+            0,
+        )
 
         # 2. Verify that direct SymbolicMatrixProduct integration with symbolic d throws ArgumentError
         # (It requires expansion which fails for non-numeric matrix sizes)
@@ -72,13 +75,13 @@ using LinearAlgebra
 
     @testset "Bounds Enforcement" begin
         @variables d k
-        
+
         # V should be (d, k)
         # Accessing V[1, k+1] should throw BoundsError
         @test_throws BoundsError begin
             @integrate V[1, k+1] dStiefel(d, k)
         end
-        
+
         # Test that integrate with invalid indices returns 0 (manual bypass of bounds check)
         V_large = SymbolicMatrix(:V, :V, (d, k+1))
         res = integrate(V_large[1, k+1], dStiefel(d, k))

@@ -15,7 +15,13 @@ struct SymbolicMatrix <: AbstractMatrix{Any}
     special_type::Symbol
     dim::Union{Nothing,Integer,Num,Tuple{Union{Integer,Num},Union{Integer,Num}},Any}
 
-    function SymbolicMatrix(name::Symbol, is_adj::Bool, is_trans::Bool, special_type::Symbol, dim::Any)
+    function SymbolicMatrix(
+        name::Symbol,
+        is_adj::Bool,
+        is_trans::Bool,
+        special_type::Symbol,
+        dim::Any,
+    )
         new(name, is_adj, is_trans, special_type, dim)
     end
 end
@@ -74,13 +80,17 @@ function _getindex_scalar(A::SymbolicMatrix, i, j)
             # Symbolic check for i < 1 or i > rows
             # We use subtraction because simplify(d+1 > d) doesn't always return true
             si = Symbolics.simplify(i)
-            if isequal(si, 0) || isequal(si, -1) || isequal(Symbolics.simplify(si < 1), true)
+            if isequal(si, 0) ||
+               isequal(si, -1) ||
+               isequal(Symbolics.simplify(si < 1), true)
                 throw(BoundsError(A, (i, j)))
             end
-            
+
             # Check if i - rows is a positive constant
             sir = Symbolics.simplify(i - rows)
-            if isequal(sir, 1) || isequal(sir, 2) || (sir isa Real && !(sir isa Num) && sir > 0)
+            if isequal(sir, 1) ||
+               isequal(sir, 2) ||
+               (sir isa Real && !(sir isa Num) && sir > 0)
                 throw(BoundsError(A, (i, j)))
             end
         end
@@ -92,12 +102,16 @@ function _getindex_scalar(A::SymbolicMatrix, i, j)
         else
             # Symbolic check for j < 1 or j > cols
             sj = Symbolics.simplify(j)
-            if isequal(sj, 0) || isequal(sj, -1) || isequal(Symbolics.simplify(sj < 1), true)
+            if isequal(sj, 0) ||
+               isequal(sj, -1) ||
+               isequal(Symbolics.simplify(sj < 1), true)
                 throw(BoundsError(A, (i, j)))
             end
-            
+
             sjr = Symbolics.simplify(j - cols)
-            if isequal(sjr, 1) || isequal(sjr, 2) || (sjr isa Real && !(sjr isa Num) && sjr > 0)
+            if isequal(sjr, 1) ||
+               isequal(sjr, 2) ||
+               (sjr isa Real && !(sjr isa Num) && sjr > 0)
                 throw(BoundsError(A, (i, j)))
             end
         end
@@ -297,15 +311,19 @@ function Base.getindex(P::SymbolicMatrixProduct, i::Integer, j::Integer)
     end
     A = factors[1]
     B = length(factors) == 2 ? factors[2] : SymbolicMatrixProduct(factors[2:end])
-    
+
     # Resolve inner dimension
     dimA = size(A, 2)
     dimB = size(B, 1)
-    
+
     dim = nothing
     if dimA isa Integer && dimB isa Integer
         if dimA != dimB
-            throw(DimensionMismatch("matrix A has dimensions $(size(A)), matrix B has dimensions $(size(B))"))
+            throw(
+                DimensionMismatch(
+                    "matrix A has dimensions $(size(A)), matrix B has dimensions $(size(B))",
+                ),
+            )
         end
         dim = dimA
     elseif dimA isa Integer
@@ -325,10 +343,10 @@ end
 function Base.size(K::SymbolicKron)
     szA = size(K.A)
     szB = size(K.B)
-    
+
     # helper to multiply sizes part by part
     mul_dim(a, b) = (a === nothing || b === nothing) ? nothing : a * b
-    
+
     return (mul_dim(szA[1], szB[1]), mul_dim(szA[2], szB[2]))
 end
 
@@ -336,10 +354,14 @@ function Base.getindex(K::SymbolicKron, i::Integer, j::Integer)
     szB = size(K.B)
     rowsB = szB[1]
     colsB = szB[2]
-    
+
     if rowsB === nothing || colsB === nothing
         # Throw a helpful error instead of MethodError in divrem
-        throw(ArgumentError("Cannot index into SymbolicKron with unknown dimensions in factor $(K.B). Specify dimensions or use tr() for scalar results."))
+        throw(
+            ArgumentError(
+                "Cannot index into SymbolicKron with unknown dimensions in factor $(K.B). Specify dimensions or use tr() for scalar results.",
+            ),
+        )
     end
 
     iA, iB = divrem(i - 1, rowsB) .+ 1
@@ -515,27 +537,30 @@ end
 
 function _is_identity(A)
     if A isa AbstractMatrix && !(A isa IntU.SymbolicAny)
-        return A == I || (size(A,1) == size(A,2) && A == I(size(A,1)))
+        return A == I || (size(A, 1) == size(A, 2) && A == I(size(A, 1)))
     end
     return false
 end
 
 function _are_inverses(A, B)
     if A isa IntU.SymbolicMatrix && B isa IntU.SymbolicMatrix
-        if A.name === B.name && A.special_type === B.special_type && 
-           isequal(A.dim, B.dim) && A.is_adj != B.is_adj
-            if A.special_type in (:U, :O, :Sp, :CUE, :COE, :CSE, :Perm, :CPerm, :DiagUnitary)
+        if A.name === B.name &&
+           A.special_type === B.special_type &&
+           isequal(A.dim, B.dim) &&
+           A.is_adj != B.is_adj
+            if A.special_type in
+               (:U, :O, :Sp, :CUE, :COE, :CSE, :Perm, :CPerm, :DiagUnitary)
                 return true
             end
         end
     end
-    
+
     if A isa IntU.SymbolicKron && B isa IntU.SymbolicKron
         cancel1 = _are_inverses(A.A, B.A) || (_is_identity(A.A) && _is_identity(B.A))
         cancel2 = _are_inverses(A.B, B.B) || (_is_identity(A.B) && _is_identity(B.B))
         return cancel1 && cancel2
     end
-    
+
     return false
 end
 
@@ -543,21 +568,21 @@ function _simplify_cycle(factors::AbstractVector)
     if isempty(factors)
         return factors
     end
-    
+
     changed = true
     current_factors = copy(factors)
-    
+
     while changed && length(current_factors) >= 2
         changed = false
         n = length(current_factors)
-        
-        for i in 1:n
+
+        for i = 1:n
             j = (i % n) + 1
             f1 = current_factors[i]
             f2 = current_factors[j]
-            
+
             cancels = _are_inverses(f1, f2) || _are_inverses(f2, f1)
-            
+
             if cancels
                 if i < j
                     deleteat!(current_factors, j)
@@ -730,7 +755,11 @@ function tr_val(factors::AbstractVector)
     # Try to evaluate if all factors are concrete matrices
     # Check if any factor is symbolic
     is_symbolic = any(
-        f -> f isa SymbolicMatrix || f isa SymbolicMatrixProduct || f isa LazyTrace || f isa SymbolicKron,
+        f ->
+            f isa SymbolicMatrix ||
+            f isa SymbolicMatrixProduct ||
+            f isa LazyTrace ||
+            f isa SymbolicKron,
         factors,
     )
 

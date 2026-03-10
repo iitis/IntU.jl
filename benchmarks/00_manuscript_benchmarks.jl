@@ -9,7 +9,8 @@ import ITensors
 # Helper to run benchmark and return (median time in ms, memory in MiB)
 function measure_median_func(f)
     # Benchmark the function call. We interpolate f to avoid overhead of finding it.
-    b = @benchmark $f() evals=1 samples=30 seconds=120 setup=(Memoization.empty_all_caches!())
+    b =
+        @benchmark $f() evals=1 samples=30 seconds=120 setup=(Memoization.empty_all_caches!())
     m = median(b)
     return m.time / 1e6, m.memory / (1024 * 1024)
 end
@@ -145,7 +146,7 @@ println("-----------------------------------------------------------------------
 
 # Circular Ensembles
 # Symmetric S (COE)
-S_coe = SymbolicMatrix(:S, :COE) 
+S_coe = SymbolicMatrix(:S, :COE)
 mCOE = dCOE(d)
 
 t, _ = measure_median_func(() -> integrate(abs(S_coe[1, 1])^2, mCOE))

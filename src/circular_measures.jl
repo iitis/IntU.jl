@@ -92,11 +92,7 @@ function _coe_diagonal_moment(m, dim)
     return num / denom
 end
 
-function integrate_indices_coe(
-    indices::AbstractVector,
-    U_bar_indices::AbstractVector,
-    dim,
-)
+function integrate_indices_coe(indices::AbstractVector, U_bar_indices::AbstractVector, dim)
 
     n_s = length(indices)
     n_s_bar = length(U_bar_indices)

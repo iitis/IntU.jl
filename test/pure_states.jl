@@ -22,8 +22,9 @@ using LinearAlgebra
         @variables r[1:2] i[1:2]
         phi = [r[1] + im*i[1], r[2] + im*i[2]]
 
-        expr = (conj(psi[1, 1])*phi[1] + conj(psi[2, 1])*phi[2]) * 
-               (psi[1, 1]*conj(phi[1]) + psi[2, 1]*conj(phi[2]))
+        expr =
+            (conj(psi[1, 1])*phi[1] + conj(psi[2, 1])*phi[2]) *
+            (psi[1, 1]*conj(phi[1]) + psi[2, 1]*conj(phi[2]))
         res = @integrate expr dPsi(d)
 
         # Expected: sum_j |phi_j|^2 / d
@@ -37,7 +38,7 @@ using LinearAlgebra
         @test_throws BoundsError begin
             @integrate psi[1, 2] dPsi(d)
         end
-        
+
         # Test that integrate with invalid indices returns 0
         # We can construct SymbolicMatrix manually with a larger dimension to bypass bounds check 
         # normally enforced by (d, 1), but let's test the rule itself.
