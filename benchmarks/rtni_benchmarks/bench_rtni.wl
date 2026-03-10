@@ -10,12 +10,21 @@
 *)
 
 (* --- Setup --- *)
+(* When running as a script (math -script), NotebookDirectory[] is unavailable.
+   RTNI.wl internally uses NotebookDirectory[] to locate precomputedWG/.
+   We override it so RTNI can find its files. *)
 If[$InputFileName =!= "",
-  SetDirectory[DirectoryName[$InputFileName]],
-  SetDirectory[NotebookDirectory[]]
+  scriptDir = DirectoryName[$InputFileName],
+  scriptDir = NotebookDirectory[]
 ];
+SetDirectory[scriptDir];
 
-Needs["RTNI`"];
+(* Override NotebookDirectory so RTNI can find precomputedWG/ *)
+Unprotect[NotebookDirectory];
+NotebookDirectory[] := scriptDir;
+Protect[NotebookDirectory];
+
+Get["RTNI.wl"];
 
 nWarmup = 2;
 nSamples = 10;
