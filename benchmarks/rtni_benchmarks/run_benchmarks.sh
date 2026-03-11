@@ -15,15 +15,13 @@
 #        math -script bench_rtni.wl
 #   2. Copy results_rtni.json to this directory
 #   3. Run bench_intu.jl on the Julia machine:
-#        julia --project=../.. bench_intu.jl
+#        julia --project=.. bench_intu.jl
 #   4. Compare:
 #        python compare_results.py
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-INTU_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-
 BENCH_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 echo "=== Running IntU.jl benchmarks (Julia) ==="
