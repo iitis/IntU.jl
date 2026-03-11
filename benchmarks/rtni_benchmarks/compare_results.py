@@ -10,25 +10,38 @@ Reads results_intu.json and results_rtni.json produced by the benchmark scripts.
 import json
 import sys
 
-# Ordered list of (key, display_name) for the comparison table
+# Ordered list of benchmark rows.
+# Each row can map an IntU key to a different RTNI key when comparing
+# alternative IntU implementations of the same integral.
 BENCHMARKS = [
-    # Easy: diagonal symbolic
-    ("U_|U11|^2_sym",    "U(d), |U₁₁|², symbolic d"),
-    ("U_|U11|^4_sym",    "U(d), |U₁₁|⁴, symbolic d"),
-    ("U_|U11|^6_sym",    "U(d), |U₁₁|⁶, symbolic d"),
-    # Harder: diagonal symbolic
-    ("U_|U11|^8_sym",    "U(d), |U₁₁|⁸, symbolic d"),
-    ("U_|U11|^10_sym",   "U(d), |U₁₁|¹⁰, symbolic d"),
-    # Harder: numeric
-    ("U_|U11|^10_d=10",  "U(d), |U₁₁|¹⁰, d=10"),
-    ("U_|U11|^10_d=50",  "U(d), |U₁₁|¹⁰, d=50"),
+    # Element API: diagonal moments
+    {"intu_key": "U_|U11|^2_sym", "rtni_key": "U_|U11|^2_sym", "label": "U(d) (Element API), |U₁₁|², symbolic d"},
+    {"intu_key": "U_|U11|^4_sym", "rtni_key": "U_|U11|^4_sym", "label": "U(d) (Element API), |U₁₁|⁴, symbolic d"},
+    {"intu_key": "U_|U11|^6_sym", "rtni_key": "U_|U11|^6_sym", "label": "U(d) (Element API), |U₁₁|⁶, symbolic d"},
+    {"intu_key": "U_|U11|^8_sym", "rtni_key": "U_|U11|^8_sym", "label": "U(d) (Element API), |U₁₁|⁸, symbolic d"},
+    {"intu_key": "U_|U11|^10_sym", "rtni_key": "U_|U11|^10_sym", "label": "U(d) (Element API), |U₁₁|¹⁰, symbolic d"},
+    {"intu_key": "U_|U11|^10_d=10", "rtni_key": "U_|U11|^10_d=10", "label": "U(d) (Element API), |U₁₁|¹⁰, d=10"},
+    {"intu_key": "U_|U11|^10_d=50", "rtni_key": "U_|U11|^10_d=50", "label": "U(d) (Element API), |U₁₁|¹⁰, d=50"},
+    # ITensors graphical engine: same integrals as above
+    {"intu_key": "U_|U11|^2_sym_itensor", "rtni_key": "U_|U11|^2_sym", "label": "U(d) (ITensors), |U₁₁|², symbolic d"},
+    {"intu_key": "U_|U11|^4_sym_itensor", "rtni_key": "U_|U11|^4_sym", "label": "U(d) (ITensors), |U₁₁|⁴, symbolic d"},
+    {"intu_key": "U_|U11|^6_sym_itensor", "rtni_key": "U_|U11|^6_sym", "label": "U(d) (ITensors), |U₁₁|⁶, symbolic d"},
+    {"intu_key": "U_|U11|^8_sym_itensor", "rtni_key": "U_|U11|^8_sym", "label": "U(d) (ITensors), |U₁₁|⁸, symbolic d"},
+    {"intu_key": "U_|U11|^10_sym_itensor", "rtni_key": "U_|U11|^10_sym", "label": "U(d) (ITensors), |U₁₁|¹⁰, symbolic d"},
+    {"intu_key": "U_|U11|^10_d=10_itensor", "rtni_key": "U_|U11|^10_d=10", "label": "U(d) (ITensors), |U₁₁|¹⁰, d=10"},
+    {"intu_key": "U_|U11|^10_d=50_itensor", "rtni_key": "U_|U11|^10_d=50", "label": "U(d) (ITensors), |U₁₁|¹⁰, d=50"},
     # Trace moments
-    ("U_|trU|^4_sym",    "U(d), |tr(U)|⁴, symbolic d"),
-    ("U_|trU|^6_sym",    "U(d), |tr(U)|⁶, symbolic d"),
-    ("U_|trU|^8_sym",    "U(d), |tr(U)|⁸, symbolic d"),
+    {"intu_key": "U_|trU|^4_sym", "rtni_key": "U_|trU|^4_sym", "label": "U(d), |tr(U)|⁴, symbolic d"},
+    {"intu_key": "U_|trU|^6_sym", "rtni_key": "U_|trU|^6_sym", "label": "U(d), |tr(U)|⁶, symbolic d"},
+    {"intu_key": "U_|trU|^8_sym", "rtni_key": "U_|trU|^8_sym", "label": "U(d), |tr(U)|⁸, symbolic d"},
+    {"intu_key": "U_|trU|^4_sym_itensor", "rtni_key": None, "label": "U(d) (ITensors), |tr(U)|⁴, symbolic d"},
+    {"intu_key": "U_|trU|^6_sym_itensor", "rtni_key": None, "label": "U(d) (ITensors), |tr(U)|⁶, symbolic d"},
+    {"intu_key": "U_|trU|^8_sym_itensor", "rtni_key": None, "label": "U(d) (ITensors), |tr(U)|⁸, symbolic d"},
     # Trace polynomials
-    ("U_trUAUdB_sym",    "U(d), tr(UAU*B), symbolic d"),
-    ("U_tr(UAUdB)^2_sym","U(d), tr((UAU*B)²), symbolic d"),
+    {"intu_key": "U_trUAUdB_sym", "rtni_key": "U_trUAUdB_sym", "label": "U(d), tr(UAU*B), symbolic d"},
+    {"intu_key": "U_tr(UAUdB)^2_sym", "rtni_key": "U_tr(UAUdB)^2_sym", "label": "U(d), tr((UAU*B)²), symbolic d"},
+    {"intu_key": "U_trUAUdB_sym_itensor", "rtni_key": None, "label": "U(d) (ITensors), tr(UAU*B), symbolic d"},
+    {"intu_key": "U_tr(UAUdB)^2_sym_itensor", "rtni_key": None, "label": "U(d) (ITensors), tr((UAU*B)²), symbolic d"},
 ]
 
 
@@ -54,9 +67,11 @@ def main():
     print(header)
     print(sep)
 
-    for key, label in BENCHMARKS:
-        i_data = intu.get(key, {})
-        r_data = rtni.get(key, {})
+    for row in BENCHMARKS:
+        i_data = intu.get(row["intu_key"], {})
+        rtni_key = row.get("rtni_key")
+        r_data = rtni.get(rtni_key, {}) if rtni_key else {}
+        label = row["label"]
 
         i_ms = i_data.get("median_ms")
         r_ms = r_data.get("median_ms")
@@ -80,16 +95,18 @@ def main():
     print(r"\begin{table}")
     print(r"  \centering")
     print(r"  \caption{Performance comparison: \texttt{IntU.jl} vs.\ \texttt{RTNI}")
-    print(r"  (Mathematica). Median of cold-cache runs.}")
+    print(r"  (Mathematica). Median runtime over repeated runs.}")
     print(r"  \label{tab:rtni_comparison}")
     print(r"  \begin{tabular}{llrrr}")
     print(r"    \hline")
     print(r"    Group & Integrand & IntU.jl (ms) & RTNI (ms) & Speedup \\")
     print(r"    \hline")
 
-    for key, label in BENCHMARKS:
-        i_data = intu.get(key, {})
-        r_data = rtni.get(key, {})
+    for row in BENCHMARKS:
+        i_data = intu.get(row["intu_key"], {})
+        rtni_key = row.get("rtni_key")
+        r_data = rtni.get(rtni_key, {}) if rtni_key else {}
+        label = row["label"]
         i_ms = i_data.get("median_ms")
         r_ms = r_data.get("median_ms")
 

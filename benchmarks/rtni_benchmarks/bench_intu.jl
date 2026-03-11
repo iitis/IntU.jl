@@ -12,11 +12,19 @@ using Symbolics
 using BenchmarkTools
 using Memoization
 using Printf
+using ITensors
 
 @variables d
 
 # Match RTNI benchmark settings
-BenchmarkTools.DEFAULT_PARAMETERS.samples = 30
+BenchmarkTools.DEFAULT_PARAMETERS.samples = 10
+const FAST_SAMPLES = 10
+const SLOW_SAMPLES = 3
+const SLOW_THRESHOLD_S = 2.0
+
+# High-order symbolic ITensor contractions can trigger large-order warnings;
+# disable warning spam so benchmark output remains readable.
+ITensors.disable_warn_order()
 
 function median_ms(b)
     m = median(b)
@@ -25,16 +33,162 @@ end
 
 results = Dict{String,Any}()
 
+function canonicalize_result(res)
+    # ITensors graphical integration returns rank-0 ITensor for scalar diagrams.
+    if res isa ITensor
+        if length(inds(res)) == 0
+            return simplify(ITensors.scalar(res))
+        end
+        return res
+    end
+    return simplify(res)
+end
+
+function projector_e11(idx_left::Index, idx_right::Index)
+    t = ITensor(idx_left, idx_right)
+    t[idx_left => 1, idx_right => 1] = 1
+    return t
+end
+
+function u11_moment_itensor_network(k::Int, idx_dim::Int)
+    tensors = Any[]
+    for n in 1:k
+        out_idx = Index(idx_dim, "u_out,$n")
+        in_idx = Index(idx_dim, "u_in,$n")
+        out_idx_adj = Index(idx_dim, "uadj_out,$n")
+        in_idx_adj = Index(idx_dim, "uadj_in,$n")
+
+        U = ITensorUnitary(out_indices = [out_idx], in_indices = [in_idx], is_adj = false)
+        U_dag = ITensorUnitary(
+            out_indices = [out_idx_adj],
+            in_indices = [in_idx_adj],
+            is_adj = true,
+        )
+
+        # |U_11|^(2k): each U/U† pair is pinned by rank-1 projectors E11 on input and output legs.
+        push!(tensors, U, projector_e11(in_idx, out_idx_adj), U_dag, projector_e11(in_idx_adj, out_idx))
+    end
+    return tensors
+end
+
+function integrate_u11_itensor(k::Int, measure::IntU.AbstractMeasure; idx_dim::Int)
+    tensors = u11_moment_itensor_network(k, idx_dim)
+    return integrate(tensors, measure)
+end
+
+function matrix_constant_tensor(vals::AbstractMatrix{<:Real}, idx_left::Index, idx_right::Index)
+    t = ITensor(idx_left, idx_right)
+    for a in 1:size(vals, 1), b in 1:size(vals, 2)
+        t[idx_left => a, idx_right => b] = vals[a, b]
+    end
+    return t
+end
+
+function trace_moment_itensor_network(k::Int, idx_dim::Int)
+    tensors = Any[]
+    for n in 1:k
+        out_idx = Index(idx_dim, "trU_out,$n")
+        in_idx = Index(idx_dim, "trU_in,$n")
+        out_idx_adj = Index(idx_dim, "trUb_out,$n")
+        in_idx_adj = Index(idx_dim, "trUb_in,$n")
+
+        U = ITensorUnitary(out_indices = [out_idx], in_indices = [in_idx], is_adj = false)
+        U_dag = ITensorUnitary(
+            out_indices = [out_idx_adj],
+            in_indices = [in_idx_adj],
+            is_adj = true,
+        )
+
+        # Close each U and U† into a trace loop.
+        push!(tensors, U, delta(out_idx, in_idx), U_dag, delta(out_idx_adj, in_idx_adj))
+    end
+    return tensors
+end
+
+function integrate_trace_moment_itensor(k::Int, measure::IntU.AbstractMeasure; idx_dim::Int)
+    tensors = trace_moment_itensor_network(k, idx_dim)
+    return integrate(tensors, measure)
+end
+
+function tr_uau_db_itensor_network(idx_dim::Int, avals::AbstractMatrix{<:Real}, bvals::AbstractMatrix{<:Real})
+    i = Index(idx_dim, "u_out,1")
+    j = Index(idx_dim, "u_in,1")
+    i2 = Index(idx_dim, "ud_in,1")
+    j2 = Index(idx_dim, "ud_out,1")
+    U = ITensorUnitary(out_indices = [i], in_indices = [j], is_adj = false)
+    U_dag = ITensorUnitary(out_indices = [j2], in_indices = [i2], is_adj = true)
+    A = matrix_constant_tensor(avals, j, j2)
+    B = matrix_constant_tensor(bvals, i2, i)
+    return Any[U, A, U_dag, B]
+end
+
+function tr_uau_db_sq_itensor_network(
+    idx_dim::Int,
+    avals::AbstractMatrix{<:Real},
+    bvals::AbstractMatrix{<:Real},
+)
+    i1 = Index(idx_dim, "u1_out")
+    j1 = Index(idx_dim, "u1_in")
+    j2 = Index(idx_dim, "ud1_out")
+    i2 = Index(idx_dim, "ud1_in")
+    i3 = Index(idx_dim, "u2_out")
+    j3 = Index(idx_dim, "u2_in")
+    j4 = Index(idx_dim, "ud2_out")
+    i4 = Index(idx_dim, "ud2_in")
+
+    U1 = ITensorUnitary(out_indices = [i1], in_indices = [j1], is_adj = false)
+    U1_dag = ITensorUnitary(out_indices = [j2], in_indices = [i2], is_adj = true)
+    U2 = ITensorUnitary(out_indices = [i3], in_indices = [j3], is_adj = false)
+    U2_dag = ITensorUnitary(out_indices = [j4], in_indices = [i4], is_adj = true)
+
+    A1 = matrix_constant_tensor(avals, j1, j2)
+    B1 = matrix_constant_tensor(bvals, i2, i3)
+    A2 = matrix_constant_tensor(avals, j3, j4)
+    B2 = matrix_constant_tensor(bvals, i4, i1)
+
+    return Any[U1, A1, U1_dag, B1, U2, A2, U2_dag, B2]
+end
+
+function integrate_tr_uau_db_itensor(
+    measure::IntU.AbstractMeasure;
+    idx_dim::Int,
+    avals::AbstractMatrix{<:Real},
+    bvals::AbstractMatrix{<:Real},
+)
+    return integrate(tr_uau_db_itensor_network(idx_dim, avals, bvals), measure)
+end
+
+function integrate_tr_uau_db_sq_itensor(
+    measure::IntU.AbstractMeasure;
+    idx_dim::Int,
+    avals::AbstractMatrix{<:Real},
+    bvals::AbstractMatrix{<:Real},
+)
+    return integrate(tr_uau_db_sq_itensor_network(idx_dim, avals, bvals), measure)
+end
+
+function choose_samples(f)
+    # Probe once with cache reset to mimic cold-ish run behavior and
+    # dynamically reduce samples for very slow benchmarks.
+    Memoization.empty_all_caches!()
+    probe_s = @elapsed f()
+    return probe_s > SLOW_THRESHOLD_S ? SLOW_SAMPLES : FAST_SAMPLES
+end
+
 function run_and_report(name, f)
     print("  Running: $name ...")
     # Verify it works
     res = f()
-    res = simplify(res)
-    b = @benchmark $f() evals=1 samples=30 setup=(Memoization.empty_all_caches!())
+    res = canonicalize_result(res)
+    nsamp = choose_samples(f)
+    b = @benchmark $f() evals=1 samples=nsamp setup=(Memoization.empty_all_caches!())
     ms = median_ms(b)
-    @printf(" %.2f ms  (result: %s)\n", ms, string(res))
-    results[name] =
-        Dict("median_ms" => ms, "result" => string(res), "samples" => length(b.times))
+    @printf(" %.2f ms  (N=%d, result: %s)\n", ms, length(b.times), string(res))
+    results[name] = Dict(
+        "median_ms" => ms,
+        "result" => string(res),
+        "samples" => length(b.times),
+    )
     return ms
 end
 
@@ -55,8 +209,22 @@ run_and_report("U_|U11|^6_sym", () -> integrate(abs(U[1, 1])^6, measure_sym))
 # ============================================================================
 println("\n=== Harder: Unitary |U_11|^{2k}, symbolic d ===")
 
-run_and_report("U_|U11|^8_sym", () -> integrate(abs(U[1, 1])^8, measure_sym))
-run_and_report("U_|U11|^10_sym", () -> integrate(abs(U[1, 1])^10, measure_sym))
+run_and_report("U_|U11|^8_sym", () -> integrate(abs(U[1,1])^8, measure_sym))
+run_and_report("U_|U11|^10_sym", () -> integrate(abs(U[1,1])^10, measure_sym))
+
+# ============================================================================
+# Section 2b: Same moments via ITensors graphical engine
+# ============================================================================
+println("\n=== Harder: Unitary |U_11|^{2k}, symbolic d (ITensors engine) ===")
+println("    (all benchmarked k; uses rank-1 projector network)")
+
+const ITENSOR_U11_IDX_DIM = 1
+
+run_and_report("U_|U11|^2_sym_itensor", () -> integrate_u11_itensor(1, measure_sym; idx_dim = ITENSOR_U11_IDX_DIM))
+run_and_report("U_|U11|^4_sym_itensor", () -> integrate_u11_itensor(2, measure_sym; idx_dim = ITENSOR_U11_IDX_DIM))
+run_and_report("U_|U11|^6_sym_itensor", () -> integrate_u11_itensor(3, measure_sym; idx_dim = ITENSOR_U11_IDX_DIM))
+run_and_report("U_|U11|^8_sym_itensor", () -> integrate_u11_itensor(4, measure_sym; idx_dim = ITENSOR_U11_IDX_DIM))
+run_and_report("U_|U11|^10_sym_itensor", () -> integrate_u11_itensor(5, measure_sym; idx_dim = ITENSOR_U11_IDX_DIM))
 
 # ============================================================================
 # Section 3: Harder - Unitary |U_11|^{10}, numeric d
@@ -66,7 +234,8 @@ println("\n=== Harder: Unitary |U_11|^{2k}, numeric d ===")
 for d_val in [10, 50]
     U_n = SymbolicMatrix(:U, :U, d_val)
     m_n = dU(d_val)
-    run_and_report("U_|U11|^10_d=$d_val", () -> integrate(abs(U_n[1, 1])^10, m_n))
+    run_and_report("U_|U11|^10_d=$d_val", () -> integrate(abs(U_n[1,1])^10, m_n))
+    run_and_report("U_|U11|^10_d=$(d_val)_itensor", () -> integrate_u11_itensor(5, m_n; idx_dim = ITENSOR_U11_IDX_DIM))
 end
 
 # ============================================================================
@@ -78,6 +247,14 @@ run_and_report("U_|trU|^4_sym", () -> integrate(abs(tr(U))^4, measure_sym))
 run_and_report("U_|trU|^6_sym", () -> integrate(abs(tr(U))^6, measure_sym))
 run_and_report("U_|trU|^8_sym", () -> integrate(abs(tr(U))^8, measure_sym))
 
+println("\n=== Trace moments: |tr(U)|^{2k}, symbolic d (ITensors engine) ===")
+println("    (fixed concrete trace-loop dimension for ITensor constants)")
+
+const ITENSOR_TRACE_IDX_DIM = 2
+run_and_report("U_|trU|^4_sym_itensor", () -> integrate_trace_moment_itensor(2, measure_sym; idx_dim = ITENSOR_TRACE_IDX_DIM))
+run_and_report("U_|trU|^6_sym_itensor", () -> integrate_trace_moment_itensor(3, measure_sym; idx_dim = ITENSOR_TRACE_IDX_DIM))
+run_and_report("U_|trU|^8_sym_itensor", () -> integrate_trace_moment_itensor(4, measure_sym; idx_dim = ITENSOR_TRACE_IDX_DIM))
+
 # ============================================================================
 # Section 5: Trace polynomial - tr(U A U^* B)
 # ============================================================================
@@ -88,10 +265,20 @@ B = SymbolicMatrix(:B, :Constant)
 
 run_and_report("U_trUAUdB_sym", () -> integrate(tr(U * A * U' * B), measure_sym))
 
-run_and_report(
-    "U_tr(UAUdB)^2_sym",
-    () -> integrate(tr(U * A * U' * B * U * A * U' * B), measure_sym),
-)
+run_and_report("U_tr(UAUdB)^2_sym",
+    () -> integrate(tr(U * A * U' * B * U * A * U' * B), measure_sym))
+
+println("\n=== Trace polynomials: symbolic d (ITensors engine, concrete A/B) ===")
+
+const ITENSOR_POLY_IDX_DIM = 2
+const A_IT = [1 2; 3 4]
+const B_IT = [2 1; 0 1]
+
+run_and_report("U_trUAUdB_sym_itensor",
+    () -> integrate_tr_uau_db_itensor(measure_sym; idx_dim = ITENSOR_POLY_IDX_DIM, avals = A_IT, bvals = B_IT))
+
+run_and_report("U_tr(UAUdB)^2_sym_itensor",
+    () -> integrate_tr_uau_db_sq_itensor(measure_sym; idx_dim = ITENSOR_POLY_IDX_DIM, avals = A_IT, bvals = B_IT))
 
 # ============================================================================
 # Save results

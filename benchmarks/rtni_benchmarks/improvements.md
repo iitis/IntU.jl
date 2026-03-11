@@ -49,3 +49,15 @@ In a tensor network setting, $|U_{11}|^{2k}$ is represented as a **closed networ
 3.  **Result**: Because the network has no open indices, the integration result is a rank-0 tensor—a **scalar number**.
 
 RTNI's output for $|U_{11}|^2$ appears matrix-like only because it leaves the projector $E_{11}$ symbolic (represented by the variable `x`).
+
+---
+
+## 4. Practical Benchmarking Notes (Implemented)
+
+- The benchmark suite now includes **both** implementations across all benchmark families:  
+  Element API (`integrate(expr, measure)`) and ITensors graphical engine (`ITensorUnitary` + explicit tensor networks).
+- For $|U_{11}|^{2k}$ ITensor benchmarks, a rank-1 projector network is used, which keeps contractions tractable while preserving the intended integral.
+- ITensor order warnings are disabled during these runs to avoid log flooding on high-order contractions.
+- Runtime sampling is adaptive (10 samples for fast cases, 3 for slow ones) to match RTNI-style timing policy.
+- Comparison table wording was adjusted to "median runtime over repeated runs" (instead of "cold-cache runs").
+- ITensor trace-moment and trace-polynomial benchmarks are reported in dedicated rows; where the RTNI baseline is not strictly like-for-like, those rows are shown without RTNI speedup (`N/A`).
