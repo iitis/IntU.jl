@@ -53,7 +53,7 @@
     (library) {Library\\Lookup\\[-1pt]\footnotesize $\mathcal{O}(1)$ fast-path};
 
 % Engine row
-\coordinate (engine_row_anchor) at ($(dispatch.south)+(0,-2.1cm)$);
+\coordinate (engine_row_anchor) at ($(dispatch.south)+(0,-2.2cm)$);
 \node[engine, anchor=north] (wg_u) at ($(engine_row_anchor)+(-4.65cm,0)$)
     {Unitary\\Weingarten\\[-1pt]\footnotesize MN rule,\\[-1pt]\footnotesize Hook-Content};
 \node[engine, anchor=north] (wg_o) at ($(engine_row_anchor)+(-1.55cm,0)$)
@@ -68,10 +68,17 @@
 \node[output, below=1.0cm of memo] (result) {Result: $f(d)=N(d)/D(d)$};
 
 % Dedicated routing lanes
-\coordinate (trace_lane) at ($(dispatch.east)+(1.25cm,0)$);
 \coordinate (fanout_hub) at ($(dispatch.south)+(0,-0.5cm)$);
-\coordinate (outer_lane_top) at ($(library.east)+(1.1cm,0)$);
+\coordinate (outer_lane_top) at ($(library.east)+(1.05cm,0)$);
 \coordinate (outer_lane_bot) at ($(outer_lane_top |- result.east)$);
+\coordinate (trace_lane_x) at ($(library.east)+(2.05cm,0)$);
+\coordinate (trace_lane_top) at ($(trace_lane_x |- graph.south east)$);
+\coordinate (trace_lane_low) at ($(trace_lane_x |- dispatch.south)+(0,-0.75cm)$);
+\coordinate (trace_join) at ($(dispatch.east |- trace_lane_low)+(0.55cm,0)$);
+\coordinate (wg_u_in) at ($(wg_u.north)+(0,0.45cm)$);
+\coordinate (wg_o_in) at ($(wg_o.north)+(0,0.45cm)$);
+\coordinate (wick_in) at ($(wick.north)+(0,0.45cm)$);
+\coordinate (comb_in) at ($(comb.north)+(0,0.45cm)$);
 
 % Entry arrows
 \draw[arr] (scalar) -- (norm);
@@ -83,8 +90,8 @@
 \draw[arr] (subs) -- (expand);
 \draw[arr] (expand) -- (dispatch);
 
-% Trace merge to dispatch via dedicated right-side lane
-\draw[arr] (graph.south) |- (trace_lane) |- (dispatch.east);
+% Trace merge to dispatch via dedicated outer lane and underpass
+\draw[arr] (graph.south east) -- (trace_lane_top) -- (trace_lane_low) -- (trace_join) |- (dispatch.east);
 
 % Dispatch to library
 \draw[arr] (dispatch.east) -- (library.west);
@@ -94,12 +101,16 @@
 \draw[arr] (outer_lane_top) -- (outer_lane_bot);
 \draw[arr] (outer_lane_bot) -- (result.east);
 
-% Dispatch fan-out through shared manifold
+% Dispatch fan-out through shared manifold and branch stubs above boxes
 \draw[arr] (dispatch.south) -- (fanout_hub);
-\draw[arr] (fanout_hub) |- (wg_u.north);
-\draw[arr] (fanout_hub) |- (wg_o.north);
-\draw[arr] (fanout_hub) |- (wick.north);
-\draw[arr] (fanout_hub) |- (comb.north);
+\draw[arr] (fanout_hub) |- (wg_u_in);
+\draw[arr] (fanout_hub) |- (wg_o_in);
+\draw[arr] (fanout_hub) |- (wick_in);
+\draw[arr] (fanout_hub) |- (comb_in);
+\draw[arr] (wg_u_in) -- (wg_u.north);
+\draw[arr] (wg_o_in) -- (wg_o.north);
+\draw[arr] (wick_in) -- (wick.north);
+\draw[arr] (comb_in) -- (comb.north);
 
 % Engines to cache using separated cache targets
 \coordinate (memo_in1) at ($(memo.north west)!0.12!(memo.north east)$);
