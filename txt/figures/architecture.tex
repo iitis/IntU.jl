@@ -1,106 +1,124 @@
 \documentclass[tikz,border=5pt]{standalone}
 \usepackage{tikz}
-\usetikzlibrary{positioning, arrows.meta, shapes.geometric, fit, backgrounds}
+\usetikzlibrary{positioning, arrows.meta, calc}
 \usepackage{amsmath,amssymb}
 
 \begin{document}
 \begin{tikzpicture}[
     >=Stealth,
-    node distance=0.6cm and 0.5cm,
-    % Styles
+    node distance=0.65cm and 1.05cm,
     input/.style={
         rectangle, rounded corners=3pt, draw=black!70, fill=blue!8,
-        minimum width=2.8cm, minimum height=0.7cm, align=center,
+        minimum width=3.35cm, minimum height=0.92cm, align=center,
         font=\small\bfseries
     },
     pipeline/.style={
         rectangle, rounded corners=2pt, draw=black!60, fill=gray!10,
-        minimum width=2.4cm, minimum height=0.55cm, align=center,
+        minimum width=3.0cm, minimum height=0.75cm, align=center,
         font=\small
     },
     engine/.style={
         rectangle, rounded corners=2pt, draw=black!60, fill=orange!12,
-        minimum width=2.2cm, minimum height=0.85cm, align=center,
+        minimum width=2.75cm, minimum height=1.95cm, align=center,
         font=\footnotesize
     },
     cache/.style={
         rectangle, rounded corners=2pt, draw=black!50, fill=green!8,
-        minimum width=1.8cm, minimum height=0.55cm, align=center,
+        minimum width=3.15cm, minimum height=0.72cm, align=center,
         font=\small, dashed
     },
     output/.style={
         rectangle, rounded corners=3pt, draw=black!70, fill=blue!8,
-        minimum width=2.8cm, minimum height=0.7cm, align=center,
+        minimum width=4.75cm, minimum height=0.92cm, align=center,
         font=\small\bfseries
     },
     arr/.style={->, thick, black!70},
-    darr/.style={->, thick, black!40, dashed},
+    darr/.style={->, thick, black!45, dashed},
 ]
 
-% --- Entry points ---
+% Top row: entry points
 \node[input] (scalar) {Scalar expression\\[-1pt]\footnotesize\texttt{abs(U[1,1])\^{}2}};
-\node[input, right=1.8cm of scalar] (trace) {Trace expression\\[-1pt]\footnotesize\texttt{tr(U*A*U'*B)}};
+\node[input, right=4.15cm of scalar] (trace) {Trace expression\\[-1pt]\footnotesize\texttt{tr(U*A*U'*B)}};
 
-% --- Trace logic (right path) ---
-\node[pipeline, below=0.5cm of trace] (trlogic) {Symbolic Trace Logic};
-\node[pipeline, below=0.35cm of trlogic, font=\footnotesize] (graph) {Graph Reconstruction};
+% Middle layers
+\node[pipeline, below=0.65cm of scalar] (norm) {Normalization};
+\node[pipeline, below=0.45cm of norm] (subs) {Substitution};
+\node[pipeline, below=0.45cm of subs] (expand) {Expansion};
+\node[pipeline, below=0.45cm of expand] (dispatch) {Dispatch};
 
-% --- Pipeline (left/center path) ---
-\node[pipeline, below=0.5cm of scalar] (norm) {Normalization};
-\node[pipeline, below=0.35cm of norm] (subs) {Substitution};
-\node[pipeline, below=0.35cm of subs] (expand) {Expansion};
-\node[pipeline, below=0.35cm of expand] (dispatch) {Dispatch};
+\node[pipeline, below=0.65cm of trace] (trlogic) {Symbolic Trace Logic};
+\node[pipeline, below=0.45cm of trlogic, font=\footnotesize] (graph) {Graph Reconstruction};
 
-% --- Library lookup ---
-\node[engine, right=1.2cm of dispatch, fill=yellow!15] (library) {Library\\Lookup\\[-1pt]\footnotesize $\mathcal{O}(1)$ fast-path};
+\node[engine, fill=yellow!15, minimum width=2.9cm, minimum height=1.4cm, right=2.0cm of dispatch]
+    (library) {Library\\Lookup\\[-1pt]\footnotesize $\mathcal{O}(1)$ fast-path};
 
-% --- Integration engines ---
-\node[engine, below=0.8cm of dispatch, xshift=-2.7cm] (wg_u) {Unitary\\Weingarten\\[-1pt]\footnotesize MN rule,\\[-1pt]\footnotesize Hook-Content};
-\node[engine, right=0.3cm of wg_u] (wg_o) {O/Sp\\Weingarten\\[-1pt]\footnotesize Pair partitions,\\[-1pt]\footnotesize Bareiss solver};
-\node[engine, right=0.3cm of wg_o] (wick) {Wick\\Contractions\\[-1pt]\footnotesize GUE, GOE, GSE,\\[-1pt]\footnotesize Ginibre};
-\node[engine, right=0.3cm of wick] (comb) {Combinatorial\\[-1pt]\footnotesize Permutation,\\[-1pt]\footnotesize Diagonal,\\[-1pt]\footnotesize $t$-Design};
+% Engine row
+\coordinate (engine_row_anchor) at ($(dispatch.south)+(0,-2.1cm)$);
+\node[engine, anchor=north] (wg_u) at ($(engine_row_anchor)+(-4.65cm,0)$)
+    {Unitary\\Weingarten\\[-1pt]\footnotesize MN rule,\\[-1pt]\footnotesize Hook-Content};
+\node[engine, anchor=north] (wg_o) at ($(engine_row_anchor)+(-1.55cm,0)$)
+    {O/Sp\\Weingarten\\[-1pt]\footnotesize Pair partitions,\\[-1pt]\footnotesize Bareiss solver};
+\node[engine, anchor=north] (wick) at ($(engine_row_anchor)+(1.55cm,0)$)
+    {Wick\\Contractions\\[-1pt]\footnotesize GUE, GOE, GSE,\\[-1pt]\footnotesize Ginibre};
+\node[engine, anchor=north] (comb) at ($(engine_row_anchor)+(4.65cm,0)$)
+    {Combinatorial\\[-1pt]\footnotesize Permutation,\\[-1pt]\footnotesize Diagonal,\\[-1pt]\footnotesize $t$-Design};
 
-% --- Cache ---
-\node[cache, below=0.7cm of wg_o, xshift=0.5cm] (memo) {Memoization Cache};
+% Cache + result rows
+\node[cache, below=1.0cm of wg_o.south, xshift=1.55cm] (memo) {Memoization Cache};
+\node[output, below=1.0cm of memo] (result) {Result: $f(d)=N(d)/D(d)$};
 
-% --- Result ---
-\node[output, below=0.7cm of memo] (result) {Result: $f(d) = N(d)/D(d)$};
+% Dedicated routing lanes
+\coordinate (trace_lane) at ($(dispatch.east)+(1.25cm,0)$);
+\coordinate (fanout_hub) at ($(dispatch.south)+(0,-0.5cm)$);
+\coordinate (outer_lane_top) at ($(library.east)+(1.1cm,0)$);
+\coordinate (outer_lane_bot) at ($(outer_lane_top |- result.east)$);
 
-% --- Arrows: entry points ---
+% Entry arrows
 \draw[arr] (scalar) -- (norm);
 \draw[arr] (trace) -- (trlogic);
 \draw[arr] (trlogic) -- (graph);
 
-% --- Trace logic feeds into dispatch ---
-\draw[arr] (graph.south) -- ++(0,-0.25) -| (dispatch.east);
-
-% --- Pipeline flow ---
+% Scalar pipeline
 \draw[arr] (norm) -- (subs);
 \draw[arr] (subs) -- (expand);
 \draw[arr] (expand) -- (dispatch);
 
-% --- Dispatch to library ---
-\draw[arr] (dispatch) -- (library);
+% Trace merge to dispatch via dedicated right-side lane
+\draw[arr] (graph.south) |- (trace_lane) |- (dispatch.east);
 
-% --- Library to result (bypass) ---
-\draw[arr] (library.south) |- (result.east);
+% Dispatch to library
+\draw[arr] (dispatch.east) -- (library.west);
 
-% --- Dispatch to engines ---
-\draw[arr] (dispatch.south) -- ++(0,-0.3) -| (wg_u.north);
-\draw[arr] (dispatch.south) -- ++(0,-0.3) -| (wg_o.north);
-\draw[arr] (dispatch.south) -- ++(0,-0.3) -| (wick.north);
-\draw[arr] (dispatch.south) -- ++(0,-0.3) -| (comb.north);
+% Library bypass to result via outer lane (avoids lower boxes)
+\draw[arr] (library.east) -- (outer_lane_top);
+\draw[arr] (outer_lane_top) -- (outer_lane_bot);
+\draw[arr] (outer_lane_bot) -- (result.east);
 
-% --- Engines to cache / result ---
-\draw[darr] (wg_u.south) |- (memo.west);
-\draw[darr] (wg_o.south) |- (memo);
-\draw[darr] (wick.south) |- (memo);
-\draw[darr] (comb.south) |- (memo.east);
+% Dispatch fan-out through shared manifold
+\draw[arr] (dispatch.south) -- (fanout_hub);
+\draw[arr] (fanout_hub) |- (wg_u.north);
+\draw[arr] (fanout_hub) |- (wg_o.north);
+\draw[arr] (fanout_hub) |- (wick.north);
+\draw[arr] (fanout_hub) |- (comb.north);
 
-\draw[arr] (memo) -- (result);
+% Engines to cache using separated cache targets
+\coordinate (memo_in1) at ($(memo.north west)!0.12!(memo.north east)$);
+\coordinate (memo_in2) at ($(memo.north west)!0.37!(memo.north east)$);
+\coordinate (memo_in3) at ($(memo.north west)!0.63!(memo.north east)$);
+\coordinate (memo_in4) at ($(memo.north west)!0.88!(memo.north east)$);
 
-% --- O/Sp duality annotation ---
-\draw[darr, <->] ([yshift=-2pt]wg_u.south) -- node[below, font=\scriptsize, text=black!60] {$d\!\leftrightarrow\!{-}d$} ([yshift=-2pt]wg_o.south);
+\draw[darr] (wg_u.south) |- (memo_in1);
+\draw[darr] (wg_o.south) |- (memo_in2);
+\draw[darr] (wick.south) |- (memo_in3);
+\draw[darr] (comb.south) |- (memo_in4);
+
+% Cache to result
+\draw[arr] (memo.south) -- (result.north);
+
+% O/Sp duality annotation in the gap between boxes
+\draw[darr, <->] ([yshift=-0.15cm]wg_u.east) --
+    node[below, font=\scriptsize, text=black!60] {$d\!\leftrightarrow\!-d$}
+    ([yshift=-0.15cm]wg_o.west);
 
 \end{tikzpicture}
 \end{document}
