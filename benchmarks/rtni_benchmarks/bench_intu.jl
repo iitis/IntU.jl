@@ -21,6 +21,9 @@ BenchmarkTools.DEFAULT_PARAMETERS.samples = 10
 const FAST_SAMPLES = 10
 const SLOW_SAMPLES = 3
 const SLOW_THRESHOLD_S = 2.0
+const RATIONAL_TOL_ABS = BigFloat("1e-70")
+const RATIONAL_TOL_REL = BigFloat("1e-60")
+const RATIONAL_DEN_MAX = big(10)^12
 
 # High-order symbolic ITensor contractions can trigger large-order warnings;
 # disable warning spam so benchmark output remains readable.
@@ -42,6 +45,53 @@ function canonicalize_result(res)
         return res
     end
     return simplify(res)
+end
+
+function maybe_rationalize_numeric(x::BigFloat)
+    tol = max(RATIONAL_TOL_ABS, abs(x) * RATIONAL_TOL_REL)
+    q = rationalize(BigInt, x; tol = tol)
+    if denominator(q) > RATIONAL_DEN_MAX
+        return nothing
+    end
+    if abs(x - BigFloat(q)) <= tol
+        return q
+    end
+    return nothing
+end
+
+function numeric_result_string(x::BigFloat, fallback::String)
+    q = maybe_rationalize_numeric(x)
+    if q === nothing
+        return fallback
+    end
+    if denominator(q) == 1
+        return string(numerator(q))
+    end
+    return string(q)
+end
+
+function format_result_string(res)
+    if res isa Union{Integer,Rational}
+        return string(res)
+    end
+
+    if res isa AbstractFloat
+        s = string(res)
+        return numeric_result_string(BigFloat(res), s)
+    end
+
+    # Keep symbolic expressions untouched; only parse plain numeric strings.
+    s = string(res)
+    x = try
+        parse(BigFloat, s)
+    catch
+        nothing
+    end
+    if x === nothing
+        return s
+    end
+
+    return numeric_result_string(x, s)
 end
 
 function projector_e11(idx_left::Index, idx_right::Index)
@@ -180,13 +230,14 @@ function run_and_report(name, f)
     # Verify it works
     res = f()
     res = canonicalize_result(res)
+    res_str = format_result_string(res)
     nsamp = choose_samples(f)
     b = @benchmark $f() evals=1 samples=nsamp setup=(Memoization.empty_all_caches!())
     ms = median_ms(b)
-    @printf(" %.2f ms  (N=%d, result: %s)\n", ms, length(b.times), string(res))
+    @printf(" %.2f ms  (N=%d, result: %s)\n", ms, length(b.times), res_str)
     results[name] = Dict(
         "median_ms" => ms,
-        "result" => string(res),
+        "result" => res_str,
         "samples" => length(b.times),
     )
     return ms
