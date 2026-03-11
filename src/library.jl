@@ -14,16 +14,66 @@ check_library(expr, measure::PureStateMeasure) = check_pure_library(expr, measur
 
 # --- Haar Unitary Library ---
 
+function _haar_trace_moment_value(k::Int, d::Integer)
+    total = zero(Rational{BigInt})
+    for part in partitions(k)
+        if length(part) <= d
+            f_lambda = character_at_id(part)
+            total += f_lambda^2
+        end
+    end
+    return total
+end
+
+function _match_haar_pure_trace_moment(expr::LazyTrace, measure::HaarMeasure)
+    u_names = Set{Symbol}()
+    n_u = 0
+    n_u_dag = 0
+
+    for cycle in expr.cycles
+        for f in cycle
+            if !(f isa SymbolicMatrix) || f.special_type != :U
+                return nothing
+            end
+            if !isequal(f.dim, measure.dim)
+                return nothing
+            end
+            push!(u_names, f.name)
+            if f.is_adj
+                n_u_dag += 1
+            else
+                n_u += 1
+            end
+        end
+    end
+
+    if length(u_names) != 1 || n_u == 0 || n_u != n_u_dag
+        return nothing
+    end
+
+    return n_u
+end
+
 function check_haar_library(expr, measure)
     # Check for tr(U A U' B) where U is the integration variable
     # This matches LazyTrace of [U, A, U', B]
     if expr isa LazyTrace
+        prefactor = expr.prefactor
+
+        # Fast path for pure trace moments |tr(U)|^(2k) represented as LazyTrace
+        # with only U/U† factors and equal U/U† counts.
+        k = _match_haar_pure_trace_moment(expr, measure)
+        if k !== nothing
+            d = measure.dim
+            moment = d isa Integer ? _haar_trace_moment_value(k, d) : factorial(k)
+            return prefactor * moment
+        end
+
         if length(expr.cycles) != 1
             return nothing
         end
 
         factors = expr.cycles[1]
-        prefactor = expr.prefactor
 
         if length(factors) == 4
             # Normalize cycle

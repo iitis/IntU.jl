@@ -61,3 +61,5 @@ RTNI's output for $|U_{11}|^2$ appears matrix-like only because it leaves the pr
 - Runtime sampling is adaptive (10 samples for fast cases, 3 for slow ones) to match RTNI-style timing policy.
 - Comparison table wording was adjusted to "median runtime over repeated runs" (instead of "cold-cache runs").
 - ITensor trace-moment and trace-polynomial benchmarks are reported in dedicated rows; where the RTNI baseline is not strictly like-for-like, those rows are shown without RTNI speedup (`N/A`).
+- Element-API trace moments (`|tr(U)|^{2k}`) use a dedicated Haar closed-form library path:
+  exact finite-`d` for integer dimensions, and generic symbolic convention (`k!`) for symbolic `d`.

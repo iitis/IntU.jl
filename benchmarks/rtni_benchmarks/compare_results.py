@@ -44,6 +44,12 @@ BENCHMARKS = [
     {"intu_key": "U_tr(UAUdB)^2_sym_itensor", "rtni_key": None, "label": "U(d) (ITensors), tr((UAU*B)²), symbolic d"},
 ]
 
+TRACE_SCALAR_ROWS = {
+    "U_|trU|^4_sym",
+    "U_|trU|^6_sym",
+    "U_|trU|^8_sym",
+}
+
 
 def load_json(path):
     try:
@@ -52,6 +58,19 @@ def load_json(path):
     except FileNotFoundError:
         print(f"Error: {path} not found. Run the benchmark script first.")
         sys.exit(1)
+
+def rtni_row_is_scalarized(rtni_key, r_data):
+    if not rtni_key:
+        return False
+    if rtni_key not in TRACE_SCALAR_ROWS:
+        return True
+    if not r_data:
+        return False
+    raw = str(r_data.get("result", "")).strip()
+    # RTNI graph placeholder in our existing outputs for trace moments.
+    if raw == "{}" or raw == "":
+        return False
+    return True
 
 
 def main():
@@ -74,7 +93,7 @@ def main():
         label = row["label"]
 
         i_ms = i_data.get("median_ms")
-        r_ms = r_data.get("median_ms")
+        r_ms = r_data.get("median_ms") if rtni_row_is_scalarized(rtni_key, r_data) else None
 
         i_str = f"{i_ms:.2f}" if i_ms is not None else "N/A"
         r_str = f"{r_ms:.2f}" if r_ms is not None else "N/A"
@@ -108,7 +127,7 @@ def main():
         r_data = rtni.get(rtni_key, {}) if rtni_key else {}
         label = row["label"]
         i_ms = i_data.get("median_ms")
-        r_ms = r_data.get("median_ms")
+        r_ms = r_data.get("median_ms") if rtni_row_is_scalarized(rtni_key, r_data) else None
 
         i_str = f"{i_ms:.2f}" if i_ms is not None else "---"
         r_str = f"{r_ms:.2f}" if r_ms is not None else "---"
