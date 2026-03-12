@@ -33,6 +33,7 @@ rtniHash = If[
   "missing"
 ];
 scriptPath = If[$InputFileName =!= "", ExpandFileName[$InputFileName], "interactive"];
+outputPath = FileNameJoin[{scriptDir, "results_rtni.json"}];
 timestampUTC = DateString[
   TimeZoneConvert[Now, 0],
   {"Year", "-", "Month", "-", "Day", "T", "Hour", ":", "Minute", ":", "Second", "Z"}
@@ -341,5 +342,5 @@ Do[
   {name, Keys[results]}
 ];
 
-Export["results_rtni.json", Normal[results]];
-Print["\nResults saved to results_rtni.json"];
+Export[outputPath, Normal[results]];
+Print["\nResults saved to ", outputPath];

@@ -210,6 +210,7 @@ run_and_report("Perm_P11^10_d=100", () -> integrate(P100[1, 1]^10, mP100))
 # Save results
 # ============================================================================
 results["_meta"] = benchmark_meta()
+output_path = joinpath(@__DIR__, "results_intu.json")
 
 println("\n" * "="^72)
 println("Summary (median times in ms)")
@@ -224,7 +225,7 @@ for (name, data) in sort(collect(results), by = x->x[1])
 end
 
 # Write JSON manually (avoids JSON3 dependency)
-open("results_intu.json", "w") do io
+open(output_path, "w") do io
     println(io, "{")
     entries = sort(collect(results), by = x->x[1])
     for (idx, (name, data)) in enumerate(entries)
@@ -243,4 +244,4 @@ open("results_intu.json", "w") do io
     end
     println(io, "}")
 end
-println("\nResults saved to results_intu.json")
+println("\nResults saved to $(output_path)")

@@ -41,11 +41,23 @@ Defines the Circular Symplectic Ensemble (CSE) measure on U(2N).
 Integration engine identifies variables via metadata tag `:CSE`.
 """
 dCSE(dim) = CSEMeasure(dim)
-
-
+# Closed-form result for ∫ |S_{ii}|^{2m} dS over COE(d):
+# (2^m · m!) / prod_{j=0}^{m-1}(d + 2j + 1).
+# Analogous to the orthogonal row-sum shortcut _orthogonal_row_sum_denom.
+function _coe_diagonal_moment(m, dim)
+    num = one(Rational{BigInt})
+    for j = 1:m
+        num *= 2 * j
+    end
+    denom = one(Rational{BigInt})
+    for j = 0:(m-1)
+        denom *= (dim + 2 * j + 1)
+    end
+    return num / denom
+end
 
 @doc raw"""
-    integrate_indices_coe(all_indices, dim)
+    integrate_indices_coe(indices, U_bar_indices, dim)
 
 Integration of COE terms by reducing to Haar integration.
 
@@ -77,21 +89,6 @@ of connected components in a bipartite graph:
 
 The loop count is computed via union-find on these ``2m`` variable nodes.
 """
-# Closed-form result for ∫ |S_{ii}|^{2m} dS over COE(d):
-# (2^m · m!) / prod_{j=0}^{m-1}(d + 2j + 1).
-# Analogous to the orthogonal row-sum shortcut _orthogonal_row_sum_denom.
-function _coe_diagonal_moment(m, dim)
-    num = one(Rational{BigInt})
-    for j = 1:m
-        num *= 2 * j
-    end
-    denom = one(Rational{BigInt})
-    for j = 0:(m-1)
-        denom *= (dim + 2 * j + 1)
-    end
-    return num / denom
-end
-
 function integrate_indices_coe(indices::AbstractVector, U_bar_indices::AbstractVector, dim)
 
     n_s = length(indices)

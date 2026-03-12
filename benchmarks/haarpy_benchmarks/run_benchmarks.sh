@@ -6,7 +6,7 @@
 #   Julia with IntU.jl and JSON3 available
 #
 # Usage:
-#   cd txt/haarpy_benchmarks
+#   cd benchmarks/haarpy_benchmarks
 #   bash run_benchmarks.sh
 
 set -e

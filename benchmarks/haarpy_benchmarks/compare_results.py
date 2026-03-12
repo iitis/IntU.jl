@@ -97,26 +97,56 @@ def print_meta(label, meta):
     print(f"  script: {script}")
 
 
+def warn_missing_meta_field(meta, path, label, side):
+    if nested_get(meta, path) is None:
+        print(f"Warning: metadata missing {label} in {side} result.")
+
+
+def warn_mismatch_field(left_meta, right_meta, path, label, left_side, right_side):
+    left_val = nested_get(left_meta, path)
+    right_val = nested_get(right_meta, path)
+    if left_val is None or right_val is None:
+        return
+    if left_val != right_val:
+        print(
+            f"Warning: metadata mismatch for {label}: "
+            f"{left_side}={left_val!r}, {right_side}={right_val!r}."
+        )
+
+
 def warn_meta_consistency(intu_meta, haarpy_meta):
     if not intu_meta or not haarpy_meta:
         print("Warning: metadata consistency check skipped because one or both _meta blocks are missing.")
         return
 
-    checks = [
+    for path, label in [
         (("host", "hostname"), "host.hostname"),
         (("host", "os"), "host.os"),
         (("host", "arch"), "host.arch"),
-    ]
-    for path, label in checks:
-        a = nested_get(intu_meta, path)
-        b = nested_get(haarpy_meta, path)
-        if a is None or b is None:
-            continue
-        if a != b:
-            print(
-                f"Warning: metadata mismatch for {label}: "
-                f"IntU={a!r}, Haarpy={b!r}."
-            )
+    ]:
+        warn_mismatch_field(intu_meta, haarpy_meta, path, label, "IntU", "Haarpy")
+
+    for path, label, side in [
+        (("runtime", "name"), "runtime.name", "IntU"),
+        (("runtime", "version"), "runtime.version", "IntU"),
+        (("packages", "IntU"), "packages.IntU", "IntU"),
+    ]:
+        warn_missing_meta_field(intu_meta, path, label, side)
+
+    for path, label, side in [
+        (("runtime", "name"), "runtime.name", "Haarpy"),
+        (("runtime", "version"), "runtime.version", "Haarpy"),
+        (("packages", "haarpy"), "packages.haarpy", "Haarpy"),
+    ]:
+        warn_missing_meta_field(haarpy_meta, path, label, side)
+
+    intu_runtime = nested_get(intu_meta, ("runtime", "name"))
+    if intu_runtime is not None and intu_runtime != "Julia":
+        print(f"Warning: unexpected IntU runtime.name={intu_runtime!r} (expected 'Julia').")
+
+    haarpy_runtime = nested_get(haarpy_meta, ("runtime", "name"))
+    if haarpy_runtime is not None and haarpy_runtime != "Python":
+        print(f"Warning: unexpected Haarpy runtime.name={haarpy_runtime!r} (expected 'Python').")
 
 
 def main():

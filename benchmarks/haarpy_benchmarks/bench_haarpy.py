@@ -325,6 +325,7 @@ run_and_report(
 # Save results
 # ============================================================================
 results["_meta"] = benchmark_meta()
+output_path = Path(__file__).resolve().parent / "results_haarpy.json"
 
 print("\n" + "=" * 72)
 print("Summary (median times in ms)")
@@ -339,6 +340,6 @@ for name, data in results.items():
     else:
         print(f"{name:<30s} {data['median_ms']:12.2f}")
 
-with open("results_haarpy.json", "w") as f:
+with output_path.open("w", encoding="utf-8") as f:
     json.dump(results, f, indent=2)
-print(f"\nResults saved to results_haarpy.json")
+print(f"\nResults saved to {output_path}")
