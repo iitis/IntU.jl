@@ -579,9 +579,12 @@ three key distinctions:
     as well as discrete structures such as permutation groups, unitary
     $t$-designs, Stiefel manifolds, and diagonal unitaries.
     \item \textbf{Symbolic abstractions}: Neither \texttt{RTNI} nor
-    \texttt{Haarpy} provides asymptotic $1/d$ expansions, symbolic trace logic,
-    or matrix-valued integration. These features significantly reduce the manual
-    effort required for common calculations.
+    \texttt{Haarpy} provides asymptotic $1/d$ expansions or
+    \texttt{IntU.jl}-style symbolic trace logic. \texttt{Haarpy} does not
+    provide matrix-valued integration, while \texttt{RTNI} exposes graph/tensor
+    outputs that typically require additional trace or scalarization
+    post-processing for like-for-like scalar comparisons. These features
+    significantly reduce the manual effort required for common calculations.
     \item \textbf{Platform}: \texttt{RTNI} requires the proprietary Mathematica
     engine (though a Python port exists), while \texttt{Haarpy} and
     \texttt{IntU.jl} are fully open-source. \texttt{IntU.jl}'s Julia
@@ -595,7 +598,7 @@ three key distinctions:
 \begin{table*}[t]
 \centering
 \caption{Feature comparison of symbolic Haar integration packages.
-$\checkmark$ = fully supported, $\sim$ = partial support\textsuperscript{a},
+$\checkmark$ = fully supported, $\sim$ = partial support\textsuperscript{a,b},
 -- = not supported.}
 \label{tab:comparison}
 \begin{tabular}{llccc}
@@ -627,7 +630,7 @@ Category & Feature & \texttt{IntU.jl} & \texttt{RTNI} & \texttt{Haarpy} \\
 \hline
 \multirow{3}{*}{Interfaces}
   & Tensor network integration & $\checkmark$ & $\checkmark$ & --   \\
-  & Matrix-valued integration  & $\checkmark$ & --           & --   \\
+  & Matrix-valued integration  & $\checkmark$ & $\sim$       & --   \\
   & HCIZ integrals             & $\checkmark$ & --           & --   \\
 \hline
 \multirow{3}{*}{Platform}
@@ -637,7 +640,8 @@ Category & Feature & \texttt{IntU.jl} & \texttt{RTNI} & \texttt{Haarpy} \\
 \hline
 \end{tabular}
 \\[4pt]
-{\footnotesize \textsuperscript{a}Haarpy: Weingarten functions available but full integration not yet implemented (Sp($d$), CSE).}
+{\footnotesize \textsuperscript{a}Haarpy: Weingarten functions available but full integration not yet implemented (Sp($d$), CSE).\\
+\textsuperscript{b}RTNI: graph/tensor-network outputs are available, but direct scalar value comparison typically requires extra trace/scalarization post-processing.}
 \end{table*}
 
 \subsection{Limitations and scope}
@@ -922,6 +926,7 @@ specialized engines. Trace expressions are first analyzed by the symbolic
 trace logic, which reconstructs the Weingarten graph before entering the
 dispatch stage. Common patterns are intercepted by the library lookup for
 $\mathcal{O}(1)$ evaluation. All engine results are memoized.}
+\Description{Architecture diagram of IntU.jl showing two flows: scalar expressions go through normalization, substitution, expansion, and dispatch to specialized engines; trace expressions first pass symbolic trace logic and graph reconstruction before dispatch. A library lookup path handles common patterns in constant time, and all engine outputs are memoized.}
 \label{fig:architecture}
 \end{figure*}
 
@@ -1276,11 +1281,13 @@ closely comparable open-source package. Both packages were evaluated on the same
 machine using identical integrands. We tested both \emph{diagonal} moments
 ($|M_{11}|^{2k}$), which admit closed-form shortcuts, and \emph{off-diagonal}
 products (e.g., $|U_{11}|^2|U_{12}|^2$), which exercise the general Weingarten
-summation path. Each measurement reports the median of up to 30 cold-cache
-samples; for slow cases, the sample count is reduced to 5 after a probe run.
+summation path. On the \texttt{IntU.jl} side, each row reports the median over
+fixed $N=30$ cold-cache samples, with memoization caches cleared before every
+sample. On the \texttt{Haarpy} side, each row reports the median with default
+$N=30$ samples, adaptively reduced to $N=5$ for slow cases after a probe run.
 Timings exclude JIT warm-up for \texttt{IntU.jl} and import overhead for
-\texttt{Haarpy}. Memoization caches were cleared before each sample in both
-packages to ensure a fair comparison. The comparison scripts are available in
+\texttt{Haarpy}. Speedups are computed from these per-row medians. The
+comparison scripts are available in
 \texttt{benchmarks/haarpy\_benchmarks/}.
 
 Table~\ref{tab:haarpy_comparison} summarizes the results. For \textbf{unitary}
@@ -1314,8 +1321,9 @@ orthogonal and unitary diagonal moments.
 \begin{table}[ht]
   \centering
   \caption{Performance comparison: \texttt{IntU.jl} vs.\ \texttt{Haarpy}
-  (median of up to 30 cold-cache runs, adaptively reduced to 5 for slow
-  cases). Both packages were run on the same hardware; timings exclude
+  (IntU.jl: fixed $N=30$ cold-cache samples; Haarpy: default $N=30$ adaptively
+  reduced to $N=5$ for slow rows; speedup $=$ Haarpy / IntU.jl from row
+  medians). Both packages were run on the same hardware; timings exclude
   JIT/import overhead.}
   \label{tab:haarpy_comparison}
   \begin{tabular}{llrrr}
@@ -1457,6 +1465,10 @@ The source code for \texttt{IntU.jl} is available on GitHub under the Apache Lic
     \end{lstlisting}
     The Haarpy and RTNI comparison scripts require external runtimes
     (Python+\texttt{haarpy} and Mathematica/RTNI, respectively).
+    Each generated comparison result file includes an optional
+    \texttt{\_meta} block (runtime/package versions, timestamp, host/OS
+    details, and source identifiers) to document the exact run context across
+    machines.
     \item \textbf{Manuscript build}: Build the paper from the \texttt{txt/}
     directory so relative figure/table paths resolve correctly:
     \begin{lstlisting}[language=bash]

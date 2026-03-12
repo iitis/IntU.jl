@@ -26,6 +26,18 @@ Protect[NotebookDirectory];
 
 Get["RTNI.wl"];
 
+rtniPath = ExpandFileName["RTNI.wl"];
+rtniHash = If[
+  FileExistsQ[rtniPath],
+  IntegerString[FileHash[rtniPath, "SHA256"], 16, 64],
+  "missing"
+];
+scriptPath = If[$InputFileName =!= "", ExpandFileName[$InputFileName], "interactive"];
+timestampUTC = DateString[
+  TimeZoneConvert[Now, 0],
+  {"Year", "-", "Month", "-", "Day", "T", "Hour", ":", "Minute", ":", "Second", "Z"}
+];
+
 nWarmup = 2;
 nSamples = 10;
 slowThreshold = 2.0;
@@ -289,6 +301,25 @@ runAndReport[
     ]
   ]
 ];
+
+results["_meta"] = <|
+  "timestamp_utc" -> timestampUTC,
+  "host" -> <|
+    "hostname" -> $MachineName,
+    "os" -> $OperatingSystem,
+    "arch" -> $SystemID,
+    "machine" -> $MachineName
+  |>,
+  "runtime" -> <|"name" -> "Mathematica", "version" -> $Version|>,
+  "packages" -> <|"RTNI" -> "unknown"|>,
+  "sources" -> <|
+    "RTNI.wl" -> <|
+      "path" -> rtniPath,
+      "sha256" -> rtniHash
+    |>
+  |>,
+  "script" -> scriptPath
+|>;
 
 (* ============================================================================ *)
 (* Save results                                                                  *)

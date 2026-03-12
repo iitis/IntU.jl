@@ -9,6 +9,10 @@ Reads results_intu.json and results_haarpy.json produced by the benchmark script
 
 import json
 import sys
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+
 
 # Ordered list of (key, display_name) for the comparison table
 BENCHMARKS = [
@@ -48,17 +52,82 @@ BENCHMARKS = [
 
 
 def load_json(path):
+    path_obj = SCRIPT_DIR / path
     try:
-        with open(path) as f:
+        with path_obj.open(encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
-        print(f"Error: {path} not found. Run the benchmark script first.")
+        print(f"Error: {path_obj} not found. Run the benchmark script first.")
         sys.exit(1)
+
+
+def get_meta(blob):
+    raw = blob.get("_meta")
+    return raw if isinstance(raw, dict) else None
+
+
+def nested_get(dct, keys):
+    cur = dct
+    for key in keys:
+        if not isinstance(cur, dict):
+            return None
+        cur = cur.get(key)
+    return cur
+
+
+def print_meta(label, meta):
+    print(f"\n{label} metadata")
+    if not meta:
+        print("  warning: missing _meta block")
+        return
+
+    ts = meta.get("timestamp_utc", "unknown")
+    runtime_name = nested_get(meta, ("runtime", "name")) or "unknown"
+    runtime_ver = nested_get(meta, ("runtime", "version")) or "unknown"
+    host = nested_get(meta, ("host", "hostname")) or "unknown"
+    os_name = nested_get(meta, ("host", "os")) or "unknown"
+    arch = nested_get(meta, ("host", "arch")) or "unknown"
+    packages = meta.get("packages", {})
+    script = meta.get("script", "unknown")
+
+    print(f"  timestamp_utc: {ts}")
+    print(f"  runtime: {runtime_name} {runtime_ver}")
+    print(f"  host: {host} ({os_name}, {arch})")
+    print(f"  packages: {packages if isinstance(packages, dict) else 'unknown'}")
+    print(f"  script: {script}")
+
+
+def warn_meta_consistency(intu_meta, haarpy_meta):
+    if not intu_meta or not haarpy_meta:
+        print("Warning: metadata consistency check skipped because one or both _meta blocks are missing.")
+        return
+
+    checks = [
+        (("host", "hostname"), "host.hostname"),
+        (("host", "os"), "host.os"),
+        (("host", "arch"), "host.arch"),
+    ]
+    for path, label in checks:
+        a = nested_get(intu_meta, path)
+        b = nested_get(haarpy_meta, path)
+        if a is None or b is None:
+            continue
+        if a != b:
+            print(
+                f"Warning: metadata mismatch for {label}: "
+                f"IntU={a!r}, Haarpy={b!r}."
+            )
 
 
 def main():
     intu = load_json("results_intu.json")
     haarpy = load_json("results_haarpy.json")
+    intu_meta = get_meta(intu)
+    haarpy_meta = get_meta(haarpy)
+
+    print_meta("IntU.jl", intu_meta)
+    print_meta("Haarpy", haarpy_meta)
+    warn_meta_consistency(intu_meta, haarpy_meta)
 
     header = f"{'Integral':<35s} {'IntU.jl (ms)':>14s} {'Haarpy (ms)':>14s} {'Speedup':>10s}"
     sep = "-" * len(header)
@@ -88,13 +157,17 @@ def main():
         print(f"{label:<35s} {i_str:>14s} {h_str:>14s} {sp_str:>10s}")
 
     print(sep)
-    print(f"N = {N_SAMPLES} samples, median reported. Speedup = Haarpy / IntU.jl.")
+    print("IntU.jl rows: fixed N=30 cold-cache samples (median reported).")
+    print("Haarpy rows: default N=30, adaptively reduced to N=5 for slow cases (median reported).")
+    print("Speedup = Haarpy / IntU.jl.")
 
     # Also produce a LaTeX-ready table
     print("\n\n% LaTeX table (paste into manuscript)")
     print(r"\begin{table}")
     print(r"  \centering")
-    print(r"  \caption{Performance comparison: IntU.jl vs.\ Haarpy (median of 30 runs).}")
+    print(
+        r"  \caption{Performance comparison: IntU.jl vs.\ Haarpy (IntU.jl: fixed $N=30$ cold-cache samples; Haarpy: default $N=30$ adaptively reduced to $N=5$ for slow rows).}"
+    )
     print(r"  \label{tab:haarpy_comparison}")
     print(r"  \begin{tabular}{llrrr}")
     print(r"    \hline")
@@ -127,8 +200,6 @@ def main():
     print(r"  \end{tabular}")
     print(r"\end{table}")
 
-
-N_SAMPLES = 30
 
 if __name__ == "__main__":
     main()

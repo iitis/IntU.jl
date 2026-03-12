@@ -12,6 +12,9 @@ import sys
 from pathlib import Path
 
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+
+
 def row(*, intu_key, rtni_key, label, group, integrand, trace_row=False):
     return {
         "intu_key": intu_key,
@@ -217,16 +220,78 @@ SUPPLEMENTARY_ROWS = [
     ),
 ]
 
-LATEX_ROWS_OUTPUT = Path("rtni_table_rows.tex")
+LATEX_ROWS_OUTPUT = SCRIPT_DIR / "rtni_table_rows.tex"
 
 
 def load_json(path):
+    path_obj = SCRIPT_DIR / path
     try:
-        with open(path, encoding="utf-8") as f:
+        with path_obj.open(encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
-        print(f"Error: {path} not found. Run the benchmark script first.")
+        print(f"Error: {path_obj} not found. Run the benchmark script first.")
         sys.exit(1)
+
+
+def get_meta(blob):
+    raw = blob.get("_meta")
+    return raw if isinstance(raw, dict) else None
+
+
+def nested_get(dct, keys):
+    cur = dct
+    for key in keys:
+        if not isinstance(cur, dict):
+            return None
+        cur = cur.get(key)
+    return cur
+
+
+def print_meta(label, meta):
+    print(f"\n{label} metadata")
+    if not meta:
+        print("  warning: missing _meta block")
+        return
+
+    ts = meta.get("timestamp_utc", "unknown")
+    runtime_name = nested_get(meta, ("runtime", "name")) or "unknown"
+    runtime_ver = nested_get(meta, ("runtime", "version")) or "unknown"
+    host = nested_get(meta, ("host", "hostname")) or "unknown"
+    os_name = nested_get(meta, ("host", "os")) or "unknown"
+    arch = nested_get(meta, ("host", "arch")) or "unknown"
+    script = meta.get("script", "unknown")
+    sources = meta.get("sources", {})
+
+    print(f"  timestamp_utc: {ts}")
+    print(f"  runtime: {runtime_name} {runtime_ver}")
+    print(f"  host: {host} ({os_name}, {arch})")
+    if isinstance(sources, dict) and sources:
+        print(f"  sources: {sources}")
+    else:
+        print("  sources: unknown")
+    print(f"  script: {script}")
+
+
+def warn_meta_consistency(intu_meta, rtni_meta):
+    if not intu_meta or not rtni_meta:
+        print("Warning: metadata consistency check skipped because one or both _meta blocks are missing.")
+        return
+
+    checks = [
+        (("host", "hostname"), "host.hostname"),
+        (("host", "os"), "host.os"),
+        (("host", "arch"), "host.arch"),
+    ]
+    for path, label in checks:
+        a = nested_get(intu_meta, path)
+        b = nested_get(rtni_meta, path)
+        if a is None or b is None:
+            continue
+        if a != b:
+            print(
+                f"Warning: metadata mismatch for {label}: "
+                f"IntU={a!r}, RTNI={b!r}."
+            )
 
 
 def get_entry(blob, key):
@@ -355,6 +420,12 @@ def write_latex_rows_file(rows, intu, rtni, out_path):
 def main():
     intu = load_json("results_intu.json")
     rtni = load_json("results_rtni.json")
+    intu_meta = get_meta(intu)
+    rtni_meta = get_meta(rtni)
+
+    print_meta("IntU.jl", intu_meta)
+    print_meta("RTNI", rtni_meta)
+    warn_meta_consistency(intu_meta, rtni_meta)
 
     render_console_table(
         MAIN_COMPARABLE_ROWS,
