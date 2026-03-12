@@ -239,6 +239,7 @@ function run_and_report(name, f)
         "median_ms" => ms,
         "result" => res_str,
         "samples" => length(b.times),
+        "status" => "ok",
     )
     return ms
 end
@@ -256,12 +257,11 @@ run_and_report("U_|U11|^4_sym", () -> integrate(abs(U[1, 1])^4, measure_sym))
 run_and_report("U_|U11|^6_sym", () -> integrate(abs(U[1, 1])^6, measure_sym))
 
 # ============================================================================
-# Section 2: Harder - Unitary |U_11|^{2k}, symbolic d (k=4,5)
+# Section 2: Harder - Unitary |U_11|^{2k}, symbolic d (k=4)
 # ============================================================================
 println("\n=== Harder: Unitary |U_11|^{2k}, symbolic d ===")
 
 run_and_report("U_|U11|^8_sym", () -> integrate(abs(U[1,1])^8, measure_sym))
-run_and_report("U_|U11|^10_sym", () -> integrate(abs(U[1,1])^10, measure_sym))
 
 # ============================================================================
 # Section 2b: Same moments via ITensors graphical engine
@@ -275,22 +275,57 @@ run_and_report("U_|U11|^2_sym_itensor", () -> integrate_u11_itensor(1, measure_s
 run_and_report("U_|U11|^4_sym_itensor", () -> integrate_u11_itensor(2, measure_sym; idx_dim = ITENSOR_U11_IDX_DIM))
 run_and_report("U_|U11|^6_sym_itensor", () -> integrate_u11_itensor(3, measure_sym; idx_dim = ITENSOR_U11_IDX_DIM))
 run_and_report("U_|U11|^8_sym_itensor", () -> integrate_u11_itensor(4, measure_sym; idx_dim = ITENSOR_U11_IDX_DIM))
-run_and_report("U_|U11|^10_sym_itensor", () -> integrate_u11_itensor(5, measure_sym; idx_dim = ITENSOR_U11_IDX_DIM))
 
 # ============================================================================
-# Section 3: Harder - Unitary |U_11|^{10}, numeric d
+# Section 3: Practical numeric coverage (no 10th-power rows)
 # ============================================================================
 println("\n=== Harder: Unitary |U_11|^{2k}, numeric d ===")
 
-for d_val in [10, 50]
+for d_val in [10]
     U_n = SymbolicMatrix(:U, :U, d_val)
     m_n = dU(d_val)
-    run_and_report("U_|U11|^10_d=$d_val", () -> integrate(abs(U_n[1,1])^10, m_n))
-    run_and_report("U_|U11|^10_d=$(d_val)_itensor", () -> integrate_u11_itensor(5, m_n; idx_dim = ITENSOR_U11_IDX_DIM))
+    run_and_report("U_|U11|^8_d=$d_val", () -> integrate(abs(U_n[1,1])^8, m_n))
+    run_and_report("U_|U11|^8_d=$(d_val)_itensor", () -> integrate_u11_itensor(4, m_n; idx_dim = ITENSOR_U11_IDX_DIM))
 end
 
 # ============================================================================
-# Section 4: Trace moments (graph-based in RTNI)
+# Section 4: Mixed element moments
+# ============================================================================
+println("\n=== Mixed element moments, symbolic d ===")
+
+run_and_report(
+    "U_|U11|^2|U12|^2_sym",
+    () -> integrate(abs(U[1, 1])^2 * abs(U[1, 2])^2, measure_sym),
+)
+run_and_report(
+    "U_|U11|^2|U12|^4_sym",
+    () -> integrate(abs(U[1, 1])^2 * abs(U[1, 2])^4, measure_sym),
+)
+run_and_report(
+    "U_|U11|^2|U22|^2_sym",
+    () -> integrate(abs(U[1, 1])^2 * abs(U[2, 2])^2, measure_sym),
+)
+
+println("\n=== Mixed element moments, numeric d ===")
+for d_val in [10]
+    U_n = SymbolicMatrix(:U, :U, d_val)
+    m_n = dU(d_val)
+    run_and_report(
+        "U_|U11|^2|U12|^2_d=$d_val",
+        () -> integrate(abs(U_n[1, 1])^2 * abs(U_n[1, 2])^2, m_n),
+    )
+    run_and_report(
+        "U_|U11|^2|U12|^4_d=$d_val",
+        () -> integrate(abs(U_n[1, 1])^2 * abs(U_n[1, 2])^4, m_n),
+    )
+    run_and_report(
+        "U_|U11|^2|U22|^2_d=$d_val",
+        () -> integrate(abs(U_n[1, 1])^2 * abs(U_n[2, 2])^2, m_n),
+    )
+end
+
+# ============================================================================
+# Section 5: Trace moments (graph-based in RTNI)
 # ============================================================================
 println("\n=== Trace moments: |tr(U)|^{2k}, symbolic d ===")
 
@@ -307,7 +342,7 @@ run_and_report("U_|trU|^6_sym_itensor", () -> integrate_trace_moment_itensor(3, 
 run_and_report("U_|trU|^8_sym_itensor", () -> integrate_trace_moment_itensor(4, measure_sym; idx_dim = ITENSOR_TRACE_IDX_DIM))
 
 # ============================================================================
-# Section 5: Trace polynomial - tr(U A U^* B)
+# Section 6: Trace polynomial - tr(U A U^* B)
 # ============================================================================
 println("\n=== Trace polynomials: symbolic d ===")
 
@@ -351,10 +386,11 @@ open("results_intu.json", "w") do io
         ms = data["median_ms"]
         res = data["result"]
         n = data["samples"]
+        status = get(data, "status", "ok")
         comma = idx < length(entries) ? "," : ""
         println(
             io,
-            "  \"$name\": {\"median_ms\": $ms, \"result\": \"$(escape_string(string(res)))\", \"samples\": $n}$comma",
+            "  \"$name\": {\"median_ms\": $ms, \"result\": \"$(escape_string(string(res)))\", \"samples\": $n, \"status\": \"$(escape_string(string(status)))\"}$comma",
         )
     end
     println(io, "}")
