@@ -62,6 +62,91 @@ integrate_graphical(constants, unitaries, measure::OrthogonalMeasure) =
 integrate_graphical(constants, unitaries, measure::SymplecticMeasure) =
     _integrate_graphical_real(constants, unitaries, measure)
 
+const _UNITARY_GRAPH_CACHE = Dict{Int,NamedTuple}()
+
+function _get_unitary_graph_cache(n_u::Int)
+    return get!(_UNITARY_GRAPH_CACHE, n_u) do
+        perms = collect(permutations(1:n_u))
+        n_perm = length(perms)
+        inv_perms = [invperm(p) for p in perms]
+
+        composed = Matrix{Vector{Int}}(undef, n_perm, n_perm)
+        cycle_ids = Matrix{Int}(undef, n_perm, n_perm)
+        cycle_types = Vector{Vector{Int}}()
+        cycle_lookup = Dict{Tuple{Vararg{Int}},Int}()
+
+        for i = 1:n_perm
+            sigma = perms[i]
+            for j = 1:n_perm
+                tau_inv = inv_perms[j]
+                comp = [sigma[tau_inv[k]] for k = 1:n_u]
+                composed[i, j] = comp
+                ct = get_cycle_type(comp)
+                key = Tuple(ct)
+                cid = get(cycle_lookup, key, 0)
+                if cid == 0
+                    push!(cycle_types, ct)
+                    cid = length(cycle_types)
+                    cycle_lookup[key] = cid
+                end
+                cycle_ids[i, j] = cid
+            end
+        end
+
+        return (
+            perms = perms,
+            composed = composed,
+            cycle_ids = cycle_ids,
+            cycle_types = cycle_types,
+        )
+    end
+end
+
+function _create_unitary_delta_pairs(u_idxs, u_bar_idxs)
+    n = length(u_idxs)
+    pairs = Matrix{Any}(undef, n, n)
+    for i = 1:n
+        for j = 1:n
+            pairs[i, j] = _create_deltas(u_idxs[i], u_bar_idxs[j])
+        end
+    end
+    return pairs
+end
+
+_delta_elem_type(constants) = Any
+
+function _new_deltas_buffer(constants, n_u::Int)
+    T = _delta_elem_type(constants)
+    deltas = T === Any ? Any[] : Vector{T}()
+    sizehint!(deltas, max(2 * n_u, 4))
+    return deltas
+end
+
+function _fill_unitary_deltas!(
+    deltas::AbstractVector,
+    out_delta_pairs,
+    in_delta_pairs,
+    sigma_p::AbstractVector{<:Integer},
+    tau_p::AbstractVector{<:Integer},
+)
+    empty!(deltas)
+    n_u = length(sigma_p)
+    for k = 1:n_u
+        append!(deltas, out_delta_pairs[k, sigma_p[k]])
+        append!(deltas, in_delta_pairs[k, tau_p[k]])
+    end
+    return deltas
+end
+
+_supports_scalar_fastpath(constants, deltas) = false
+
+function _contract_scalar_with_deltas(constants, deltas)
+    throw(ArgumentError("Scalar contraction fast path is not implemented for constants of type $(typeof(constants))"))
+end
+
+_wrap_scalar_graphical_result(constants, scalar) = scalar
+_scalar_coeff_constant_across_pairs(constants, u_out, u_in, u_dag_out, u_dag_in) = false
+
 function _integrate_graphical_unitary(constants, unitaries, dim; design_t = nothing)
     # 1. Separate U and U_dag
     u_list = filter(u -> !u.is_adj, unitaries)
@@ -92,38 +177,84 @@ function _integrate_graphical_unitary(constants, unitaries, dim; design_t = noth
     u_dag_out = [u.out_indices for u in u_dag_list]
     u_dag_in = [u.in_indices for u in u_dag_list]
 
-    perms = collect(permutations(1:n_u))
-    total_result = nothing
+    cache = _get_unitary_graph_cache(n_u)
+    perms = cache.perms
+    cycle_ids = cache.cycle_ids
+    cycle_types = cache.cycle_types
+    n_perm = length(perms)
 
-    for sigma_p in perms
-        for tau_p in perms
-            # sigma and tau are permutations of 1..n
-            # Cycle type of sigma * tau^-1
-            P = [sigma_p[invperm(tau_p)[i]] for i = 1:n_u]
-            cycle_type = get_cycle_type(P)
-            wg_val = weingarten(cycle_type, dim)
+    # Precompute Wg value for each unique cycle type once per call.
+    wg_by_cycle = Vector{Any}(undef, length(cycle_types))
+    wg_is_nonzero = Vector{Bool}(undef, length(cycle_types))
+    for cid = 1:length(cycle_types)
+        wg_val = weingarten(cycle_types[cid], dim)
+        wg_by_cycle[cid] = wg_val
+        wg_is_nonzero[cid] = !_iszero(wg_val)
+    end
 
-            if _iszero(wg_val)
-                continue
+    active_pairs = Tuple{Int,Int,Int}[]
+    for i = 1:n_perm
+        for j = 1:n_perm
+            cid = cycle_ids[i, j]
+            wg_is_nonzero[cid] || continue
+            push!(active_pairs, (i, j, cid))
+        end
+    end
+
+    isempty(active_pairs) && return 0
+
+    # Precompute delta tensors for every (U_k, U†_l) matching and reuse.
+    out_delta_pairs = _create_unitary_delta_pairs(u_out, u_dag_out)
+    in_delta_pairs = _create_unitary_delta_pairs(u_in, u_dag_in)
+
+    deltas = _new_deltas_buffer(constants, n_u)
+    first_i, first_j, _ = active_pairs[1]
+    _fill_unitary_deltas!(deltas, out_delta_pairs, in_delta_pairs, perms[first_i], perms[first_j])
+
+    # Closed-scalar networks can be accumulated on scalars and wrapped at the end.
+    if _supports_scalar_fastpath(constants, deltas)
+        coeff_by_cycle = Dict{Int,Any}()
+        if _scalar_coeff_constant_across_pairs(constants, u_out, u_in, u_dag_out, u_dag_in)
+            coeff0 = _contract_scalar_with_deltas(constants, deltas)
+            cycle_counts = Dict{Int,Int}()
+            for (_, _, cid) in active_pairs
+                cycle_counts[cid] = get(cycle_counts, cid, 0) + 1
             end
-
-            # Create deltas
-            deltas = []
-            for k = 1:n_u
-                # Out matchings
-                append!(deltas, _create_deltas(u_out[k], u_dag_out[sigma_p[k]]))
-                # In matchings
-                append!(deltas, _create_deltas(u_in[k], u_dag_in[tau_p[k]]))
+            for (cid, cnt) in cycle_counts
+                coeff_by_cycle[cid] = cnt * coeff0
             end
+        else
+            for (i, j, cid) in active_pairs
+                _fill_unitary_deltas!(deltas, out_delta_pairs, in_delta_pairs, perms[i], perms[j])
+                coeff = _contract_scalar_with_deltas(constants, deltas)
+                if haskey(coeff_by_cycle, cid)
+                    coeff_by_cycle[cid] += coeff
+                else
+                    coeff_by_cycle[cid] = coeff
+                end
+            end
+        end
 
-            # The result for this permutation pair is wg_val * constants * deltas
-            term = _contract_with_deltas(constants, deltas, wg_val)
-
-            if total_result === nothing
-                total_result = term
+        total_scalar = nothing
+        for (cid, coeff) in coeff_by_cycle
+            term = coeff * wg_by_cycle[cid]
+            if total_scalar === nothing
+                total_scalar = term
             else
-                total_result = total_result + term
+                total_scalar += term
             end
+        end
+        return _wrap_scalar_graphical_result(constants, total_scalar === nothing ? 0 : total_scalar)
+    end
+
+    total_result = nothing
+    for (i, j, cid) in active_pairs
+        _fill_unitary_deltas!(deltas, out_delta_pairs, in_delta_pairs, perms[i], perms[j])
+        term = _contract_with_deltas(constants, deltas, wg_by_cycle[cid])
+        if total_result === nothing
+            total_result = term
+        else
+            total_result = total_result + term
         end
     end
 
