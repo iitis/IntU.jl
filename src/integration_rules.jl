@@ -204,8 +204,38 @@ INTEGRATION_RULES[:GinSE] =
 
 Low-level integration function using Weingarten calculus (Unitary).
 """
+function _unitary_single_entry_moment(n::Int, dim)
+    n == 0 && return one(Num)
+
+    if dim isa Integer
+        denom = one(BigInt)
+        for j = 0:(n-1)
+            denom *= (BigInt(dim) + j)
+        end
+        return factorial(big(n)) // denom
+    end
+
+    denom = one(Num)
+    for j = 0:(n-1)
+        denom *= (dim + j)
+    end
+    return factorial(big(n)) / denom
+end
+
 function integrate_indices(U_idxs::Vector{<:Tuple}, U_bar_idxs::Vector{<:Tuple}, dim)
     n = length(U_idxs)
+
+    # Fast path: |U[i,j]|^(2n) moments.
+    # These appear frequently in benchmarks and admit a closed form:
+    # E[|U_ij|^(2n)] = n! / prod_{m=0}^{n-1} (d + m)
+    if n > 0
+        u0 = U_idxs[1]
+        ub0 = U_bar_idxs[1]
+        if all(x -> x == u0, U_idxs) && all(x -> x == ub0, U_bar_idxs)
+            return u0 == ub0 ? _unitary_single_entry_moment(n, dim) : 0
+        end
+    end
+
     I = [x[1] for x in U_idxs]
     J = [x[2] for x in U_idxs]
     I_bar = [x[1] for x in U_bar_idxs]

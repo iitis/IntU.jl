@@ -67,4 +67,19 @@ using LinearAlgebra
         res_num_2 = map(x -> Float64(to_numeric(real(x))), res_matrix_2)
         @test res_num_2 ≈ I_mat
     end
+
+    @testset verbose=true "High-Order Single-Entry Moments" begin
+        U10 = SymbolicMatrix(:U, :U, 10)
+        res20 = integrate(abs(U10[1, 1])^20, dU(10))
+        expected20 = factorial(big(10)) // prod(BigInt(10):BigInt(19))
+        @test res20 == expected20
+
+        U_sym = SymbolicMatrix(:U, :U, d)
+        res20_sym = integrate(abs(U_sym[1, 1])^20, dU(d))
+        expected20_sym = factorial(big(10)) / prod(d + k for k = 0:9)
+        @test is_really_zero(Symbolics.simplify(res20_sym - expected20_sym))
+
+        res_mismatch = integrate(U10[1, 1]^10 * conj(U10[2, 2])^10, dU(10))
+        @test res_mismatch == 0
+    end
 end
