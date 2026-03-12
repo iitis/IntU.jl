@@ -1371,8 +1371,7 @@ benchmark artifacts and are not included in this head-to-head table.
   % \footnotesize
   \caption{Performance comparison: \texttt{IntU.jl} vs.\ \texttt{RTNI}
   (Mathematica). Median runtime over repeated runs for the main
-  Element-API benchmark suite. ``---'' indicates that the RTNI value is
-  unavailable in the current benchmark snapshot. Rows marked with
+  Element-API benchmark suite. Rows marked with
   \textsuperscript{\ensuremath{\dagger}} report RTNI timing, but RTNI returned a
   non-scalar graph placeholder rather than a scalarized expression value.}
   \label{tab:rtni_comparison}
@@ -1380,22 +1379,22 @@ benchmark artifacts and are not included in this head-to-head table.
     \hline
     Group & Integrand & IntU.jl (ms) & RTNI (ms) & Speedup \\
     \hline
-    U($d$) (Element API) & $|U_{11}|^2$, symbolic $d$ & 0.97 & 0.50 & 0.5$\times$ \\
-    U($d$) (Element API) & $|U_{11}|^4$, symbolic $d$ & 1.11 & 2.49 & 2.2$\times$ \\
-    U($d$) (Element API) & $|U_{11}|^6$, symbolic $d$ & 1.01 & 37.03 & 36.6$\times$ \\
-    U($d$) (Element API) & $|U_{11}|^8$, symbolic $d$ & 1.06 & 5125.17 & 4817.9$\times$ \\
-    U($d$) (Element API) & $|U_{11}|^8$, $d=10$ & 1.06 & --- & --- \\
-    U($d$) (Element API) & $|U_{11}|^2|U_{12}|^2$, symbolic $d$ & 1.70 & --- & --- \\
-    U($d$) (Element API) & $|U_{11}|^2|U_{12}|^4$, symbolic $d$ & 1.84 & --- & --- \\
-    U($d$) (Element API) & $|U_{11}|^2|U_{22}|^2$, symbolic $d$ & 1.92 & --- & --- \\
-    U($d$) (Element API) & $|U_{11}|^2|U_{12}|^2$, $d=10$ & 1.68 & --- & --- \\
-    U($d$) (Element API) & $|U_{11}|^2|U_{12}|^4$, $d=10$ & 1.66 & --- & --- \\
-    U($d$) (Element API) & $|U_{11}|^2|U_{22}|^2$, $d=10$ & 1.77 & --- & --- \\
-    U($d$) & $|tr(U)|^4$, symbolic $d$ & 0.41 & 0.13 & 0.3$\times$\textsuperscript{\ensuremath{\dagger}} \\
-    U($d$) & $|tr(U)|^6$, symbolic $d$ & 2.00 & 0.14 & 0.1$\times$\textsuperscript{\ensuremath{\dagger}} \\
-    U($d$) & $|tr(U)|^8$, symbolic $d$ & 16.20 & 0.16 & 0.0$\times$\textsuperscript{\ensuremath{\dagger}} \\
-    U($d$) & $\mathrm{tr}(UAU^\ast B)$, symbolic $d$ & 0.08 & 0.49 & 5.9$\times$ \\
-    U($d$) & $\mathrm{tr}((UAU^\ast B)^2)$, symbolic $d$ & 0.89 & 2.45 & 2.7$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^2$, symbolic $d$ & 1.27 & 0.54 & 0.4$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^4$, symbolic $d$ & 1.31 & 2.64 & 2.0$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^6$, symbolic $d$ & 1.32 & 38.74 & 29.3$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^8$, symbolic $d$ & 1.33 & 5130.93 & 3863.3$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^8$, $d=10$ & 1.27 & 5080.77 & 4005.5$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^2|U_{12}|^2$, symbolic $d$ & 2.23 & 2.50 & 1.1$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^2|U_{12}|^4$, symbolic $d$ & 2.24 & 36.49 & 16.3$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^2|U_{22}|^2$, symbolic $d$ & 2.50 & 2.51 & 1.0$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^2|U_{12}|^2$, $d=10$ & 2.20 & 2.44 & 1.1$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^2|U_{12}|^4$, $d=10$ & 2.19 & 35.38 & 16.2$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^2|U_{22}|^2$, $d=10$ & 2.24 & 2.44 & 1.1$\times$ \\
+    U($d$) & $|tr(U)|^4$, symbolic $d$ & 0.56 & 0.14 & 0.2$\times$ \textsuperscript{\ensuremath{\dagger}} \\
+    U($d$) & $|tr(U)|^6$, symbolic $d$ & 2.71 & 0.15 & 0.1$\times$ \textsuperscript{\ensuremath{\dagger}} \\
+    U($d$) & $|tr(U)|^8$, symbolic $d$ & 21.48 & 0.17 & 0.0$\times$ \textsuperscript{\ensuremath{\dagger}} \\
+    U($d$) & $\mathrm{tr}(UAU^\ast B)$, symbolic $d$ & 0.12 & 0.50 & 4.0$\times$ \\
+    U($d$) & $\mathrm{tr}((UAU^\ast B)^2)$, symbolic $d$ & 1.27 & 2.45 & 1.9$\times$ \\
     \hline
   \end{tabular}
 \end{table*}
@@ -1404,12 +1403,13 @@ In the current snapshot, the strongest directly comparable scalarized rows
 remain the diagonal moment family and trace-polynomial rows, where
 \texttt{IntU.jl} is faster in most cases and the gap grows substantially with
 moment order. One low-order row ($|U_{11}|^2$, symbolic $d$) remains slower in
-\texttt{IntU.jl} (speedup $0.5\times$). The newly added mixed-element rows are
-included to extend benchmark difficulty and reduce emphasis on impractical
-high-order monomials; their RTNI values are currently unavailable in this
-snapshot and are marked accordingly. For trace-moment rows, RTNI runtime is
-reported, but RTNI returns non-scalar graph placeholders rather than scalarized
-values; these rows are therefore marked with
+\texttt{IntU.jl} (speedup $0.4\times$), while higher moments show large IntU
+advantages. The mixed-element rows are now timed on both sides in this
+snapshot: two mixed moments are near parity (about $1.0\times$--$1.1\times$),
+and the $|U_{11}|^2|U_{12}|^4$ rows show a larger IntU advantage
+($16.2\times$--$16.3\times$). For trace-moment rows, RTNI runtime is reported,
+but RTNI returns non-scalar graph placeholders rather than scalarized values;
+these rows are therefore marked with
 \textsuperscript{\ensuremath{\dagger}}.
 
 \section{Conclusion}
