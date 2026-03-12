@@ -82,6 +82,15 @@ The Special Unitary group $SU(d)$ consists of unitary matrices with determinant 
 # Output: 1/d
 ```
 
+For the currently supported stable-range workflow, `dSU` delegates to the same
+balanced Weingarten rules as `dU`. As a result, unbalanced monomials evaluate
+to zero:
+
+```julia
+@integrate U[1, 1] dSU(d)
+# Output: 0
+```
+
 ### Orthogonal group
 Orthogonal matrices $O$ are real matrices satisfying $O O^T = I_d$. Averages are
 computed using the `dO` measure.

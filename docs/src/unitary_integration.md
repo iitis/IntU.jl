@@ -16,7 +16,7 @@ to the Haar measure, which is the unique translation-invariant probability measu
 Lie group $U(d)$.
 
 > [!NOTE]
-> **Special Unitary Group $SU(d)$**: For all currently supported "balanced" polynomial expressions (where the number of $U$ and $\bar{U}$ factors are equal), the integration over $SU(d)$ is equivalent to $U(d)$. Non-stable-range effects involving $\epsilon$-tensors for specific small $d$ are not currently covered.
+> **Special Unitary Group $SU(d)$**: For all currently supported "balanced" polynomial expressions (where the number of $U$ and $\bar{U}$ factors are equal), the integration over $SU(d)$ is equivalent to $U(d)$. Non-stable-range effects involving $\epsilon$-tensors for specific small $d$ are not currently covered. In the current backend, non-balanced queries are evaluated with the same phase-invariance rule as $U(d)$ and therefore return `0`.
 
 The result is expressed in terms of the dimension $d$ and Kronecker deltas matching the indices.
 
