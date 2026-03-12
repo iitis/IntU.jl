@@ -222,17 +222,69 @@ function _unitary_single_entry_moment(n::Int, dim)
     return factorial(big(n)) / denom
 end
 
+function _count_values(values)
+    counts = Dict{Any,Int}()
+    for v in values
+        counts[v] = get(counts, v, 0) + 1
+    end
+    return counts
+end
+
+function _unitary_row_col_abs_moment(counts::Dict{Any,Int}, dim)
+    n = sum(values(counts))
+    n == 0 && return one(Num)
+
+    num = one(BigInt)
+    for c in values(counts)
+        num *= factorial(big(c))
+    end
+
+    if dim isa Integer
+        denom = one(BigInt)
+        for j = 0:(n-1)
+            denom *= (BigInt(dim) + j)
+        end
+        return num // denom
+    end
+
+    denom = one(Num)
+    for j = 0:(n-1)
+        denom *= (dim + j)
+    end
+    return num / denom
+end
+
 function integrate_indices(U_idxs::Vector{<:Tuple}, U_bar_idxs::Vector{<:Tuple}, dim)
     n = length(U_idxs)
 
-    # Fast path: |U[i,j]|^(2n) moments.
-    # These appear frequently in benchmarks and admit a closed form:
-    # E[|U_ij|^(2n)] = n! / prod_{m=0}^{n-1} (d + m)
+    # Fast paths for absolute moments where Eq. (12)-type formulas apply.
     if n > 0
         u0 = U_idxs[1]
         ub0 = U_bar_idxs[1]
         if all(x -> x == u0, U_idxs) && all(x -> x == ub0, U_bar_idxs)
             return u0 == ub0 ? _unitary_single_entry_moment(n, dim) : 0
+        end
+
+        I = [x[1] for x in U_idxs]
+        J = [x[2] for x in U_idxs]
+        I_bar = [x[1] for x in U_bar_idxs]
+        J_bar = [x[2] for x in U_bar_idxs]
+
+        # One-row absolute moments:
+        # E[prod_j |U[i,j]|^(2a_j)] = prod_j a_j! / prod_{m=0}^{A-1}(d+m), A=sum_j a_j.
+        if all(x -> x == I[1], I) && all(x -> x == I_bar[1], I_bar)
+            I[1] == I_bar[1] || return 0
+            J_counts = _count_values(J)
+            J_bar_counts = _count_values(J_bar)
+            return J_counts == J_bar_counts ? _unitary_row_col_abs_moment(J_counts, dim) : 0
+        end
+
+        # One-column absolute moments (symmetric case by transposition).
+        if all(x -> x == J[1], J) && all(x -> x == J_bar[1], J_bar)
+            J[1] == J_bar[1] || return 0
+            I_counts = _count_values(I)
+            I_bar_counts = _count_values(I_bar)
+            return I_counts == I_bar_counts ? _unitary_row_col_abs_moment(I_counts, dim) : 0
         end
     end
 

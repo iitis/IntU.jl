@@ -79,6 +79,14 @@ using LinearAlgebra
         expected20_sym = factorial(big(10)) / prod(d + k for k = 0:9)
         @test is_really_zero(Symbolics.simplify(res20_sym - expected20_sym))
 
+        res_mixed = integrate(abs(U10[1, 1])^2 * abs(U10[1, 2])^20, dU(10))
+        expected_mixed = factorial(big(1)) * factorial(big(10)) // prod(BigInt(10):BigInt(20))
+        @test res_mixed == expected_mixed
+
+        res_mixed_sym = integrate(abs(U_sym[1, 1])^2 * abs(U_sym[1, 2])^20, dU(d))
+        expected_mixed_sym = factorial(big(1)) * factorial(big(10)) / prod(d + k for k = 0:10)
+        @test is_really_zero(Symbolics.simplify(res_mixed_sym - expected_mixed_sym))
+
         res_mismatch = integrate(U10[1, 1]^10 * conj(U10[2, 2])^10, dU(10))
         @test res_mismatch == 0
     end
