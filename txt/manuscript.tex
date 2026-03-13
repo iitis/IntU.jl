@@ -328,8 +328,8 @@ Both $\mathrm{Wg}^O$ and $\mathrm{Wg}^{Sp}$ are rational functions of $d$, and
 their poles dictate the dimensions for which the integration formulas are valid
 (e.g., $d \ge k-1$ for $O(d)$).
 
-\texttt{IntU.jl} efficiently computes these functions using both character-based
-formulas and recursive relations, such as the Samuel-Weingarten recursion,
+\texttt{IntU.jl} efficiently computes these functions using character-based
+formulas and Gram-matrix inversion (detailed in Section~\ref{sec:implementation}),
 caching results to accelerate repeated integration tasks.
 
 \subsection{Permutation group $S_d$}
@@ -666,6 +666,12 @@ The current implementation has several known limitations:
     symmetric group ($|S_k| = k!$) and pair partitions ($|M_{2k}| =
     (2k{-}1)!!$), exact symbolic integration is practically limited to
     polynomial degrees $2k \lesssim 12$ on standard hardware.
+    \item \textbf{Graphical engine factor limit}: The bitmask-based cycle
+    traversal in the graphical (ITensor) integration engine uses a 64-bit
+    integer bitmask to track visited edges. This limits the engine to
+    expressions containing at most 32 random-matrix factors (i.e., 32 copies
+    of $U$ or $U^\dagger$); inputs exceeding this threshold will silently
+    overflow and produce incorrect results.
 \end{itemize}
 
 \section{Usage examples}
@@ -1185,7 +1191,7 @@ Symplectic & $|Sp_{11}|^{10}$ & $d=10$ & 95.87 \\
 Symplectic & $|Sp_{11}|^{10}$ & $d=20$ & 99.85 \\
 \hline
 GinUE & $\mathrm{tr}(GG^\dagger)$ & Symbolic & 0.01 \\
-GinUE & $\mathrm{tr}(GG^\dagger)$ & $d=4$ & 0.00 \\
+GinUE & $\mathrm{tr}(GG^\dagger)$ & $d=4$ & ${<}0.01$ \\
 \hline
 Circ. Orthogonal & $|S_{11}|^2$ & Symbolic & 1.32 \\
 Circ. Orthogonal & $|S_{11}|^4$ & Symbolic & 1.12 \\
@@ -1263,13 +1269,13 @@ $U(d)$. Timings are for constructing and integrating the full $N \times N$
 matrix of expressions.}
 \label{tab:matrix_bench}
 \begin{tabular}{ccc}
-\toprule
+\hline
 Matrix size ($N$) & Median time (ms) & Allocations (MiB) \\
-\midrule
+\hline
 $2 \times 2$ & 2.97 & 0.82 \\
 $3 \times 3$ & 7.22 & 2.22 \\
 $4 \times 4$ & 14.64 & 4.84 \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -1309,10 +1315,11 @@ Off-diagonal orthogonal integrals show a $5.0$--$6.0\times$ advantage.
 
 For the \textbf{circular orthogonal ensemble} (COE), \texttt{IntU.jl} uses a
 closed-form expression for diagonal moments, yielding $2.3$--$18.9\times$
-speedups that grow with the degree. We note that \texttt{Haarpy} returned incorrect
-results (zero) for the off-diagonal COE integrals tested ($|S_{12}|^{2k}$,
-$|S_{11}|^2|S_{12}|^2$), which \texttt{IntU.jl} evaluates correctly; these
-cases are therefore excluded from the table.
+speedups that grow with the degree. We note that \texttt{Haarpy} (v0.0.6, the latest release available at
+time of writing) returned incorrect results (zero) for the off-diagonal COE
+integrals tested ($|S_{12}|^{2k}$, $|S_{11}|^2|S_{12}|^2$), which
+\texttt{IntU.jl} evaluates correctly; these cases are therefore excluded
+from the table.
 
 Overall, \texttt{IntU.jl} demonstrates a substantial performance
 advantage across most tested groups, with the largest gains in high-order
@@ -1404,6 +1411,8 @@ benchmark artifacts and are not included in this head-to-head table.
     U($d$) & $\mathrm{tr}(UAU^\ast B)$, symbolic $d$ & 0.12 & 0.50 & 4.0$\times$ \\
     U($d$) & $\mathrm{tr}((UAU^\ast B)^2)$, symbolic $d$ & 1.27 & 2.45 & 1.9$\times$ \\
     \hline
+    \multicolumn{5}{l}{\footnotesize $^\dagger$RTNI returned a non-scalar graph placeholder rather than a scalarized value for these rows.} \\
+    \hline
   \end{tabular}
 \end{table*}
 
@@ -1416,9 +1425,8 @@ advantages. The mixed-element rows are now timed on both sides in this
 snapshot: two mixed moments are near parity (about $1.0\times$--$1.1\times$),
 and the $|U_{11}|^2|U_{12}|^4$ rows show a larger IntU advantage
 ($16.2\times$--$16.3\times$). For trace-moment rows, RTNI runtime is reported,
-but RTNI returns non-scalar graph placeholders rather than scalarized values;
-these rows are therefore marked with
-\textsuperscript{\ensuremath{\dagger}}.
+but RTNI returns non-scalar graph placeholders rather than scalarized values
+(marked $^\dagger$ in the table).
 
 \section{Conclusion}
 \label{sec:conclusion}
