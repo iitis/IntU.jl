@@ -121,3 +121,10 @@ res = integrate(abs(U[1, 1])^2, dCUE(d))
 > - **Small Dimensions**: For Haar-related measures (Unitary, Orthogonal, Circular), results are rational functions with poles at small $d$ (typically $d < n$ for degree $n$ moments).
 > - **Removable Singularities**: Substituting numeric values can yield $0/0$ forms (e.g., at $d=1$ or $d=2$).
 > - **Automatic Handling**: `IntU.jl`'s `evaluate` function automatically simplifies expressions to resolve removable singularities when a denominator evaluates to zero.
+
+## See Also
+
+- [Unitary Integration](unitary_integration.md) — CUE is the Haar measure on $U(d)$; Weingarten calculus background
+- [Orthogonal & Symplectic](orthogonal_integration.md) — COE arises from $O(d)$, CSE from $Sp(d)$
+- [Asymptotic Expansions](asymptotic.md) — large-$d$ limit of circular ensemble moments
+- [Integral Library](integral_library.md) — pre-computed trace moments

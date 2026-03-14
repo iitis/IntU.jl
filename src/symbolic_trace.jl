@@ -185,11 +185,89 @@ function Base.conj(A::SymbolicMatrix)
     return SymbolicMatrix(A.name, !A.is_adj, A.is_trans, A.special_type, A.dim)
 end
 
-# Factory functions for symbolic matrices
+"""
+    symbolic_unitary(name::Symbol, d) -> SymbolicMatrix
+
+Construct a `d×d` symbolic Haar-random unitary matrix named `name`.
+The returned object behaves as an `AbstractMatrix` and can be passed directly
+to `integrate` or used inside `@integrate`. `d` may be an integer or a
+`Symbolics.Num` symbolic variable for fully symbolic results.
+
+# Examples
+```julia
+using IntU, Symbolics
+@variables d
+U = symbolic_unitary(:U, d)
+integrate(abs(U[1,1])^2, dU(d))   # 1/d
+```
+"""
 symbolic_unitary(name, d) = SymbolicMatrix(name, false, :U, d)
+
+"""
+    symbolic_orthogonal(name::Symbol, d) -> SymbolicMatrix
+
+Construct a `d×d` symbolic Haar-random orthogonal matrix named `name`.
+Use with `dO(d)` for integration over the orthogonal group `O(d)`.
+`d` may be an integer or a `Symbolics.Num` symbolic variable.
+
+# Examples
+```julia
+using IntU, Symbolics
+@variables d
+O = symbolic_orthogonal(:O, d)
+integrate(O[1,1]^2, dO(d))   # 1/d
+```
+"""
 symbolic_orthogonal(name, d) = SymbolicMatrix(name, false, :O, d)
+
+"""
+    symbolic_symplectic(name::Symbol, d) -> SymbolicMatrix
+
+Construct a `d×d` symbolic Haar-random symplectic matrix named `name`.
+Use with `dSp(d)` for integration over the symplectic group `Sp(d)`.
+`d` must be even (validated at integration time).
+
+# Examples
+```julia
+using IntU, Symbolics
+Sp = symbolic_symplectic(:Sp, 4)
+integrate(abs(Sp[1,1])^2, dSp(4))   # 1/4
+```
+"""
 symbolic_symplectic(name, d) = SymbolicMatrix(name, false, :Sp, d)
+
+"""
+    symbolic_pure_state(name::Symbol, d) -> SymbolicMatrix
+
+Construct a symbolic Haar-random pure state (column vector) in `ℂ^d`, named `name`.
+The returned object has dimensions `(d, 1)` and is indexed as `psi[i, 1]`.
+Use with `dPsi(d)` for integration over the Fubini–Study measure.
+
+# Examples
+```julia
+using IntU, Symbolics
+@variables d
+psi = symbolic_pure_state(:psi, d)
+integrate(abs(psi[1,1])^2, dPsi(d))   # 1/d
+```
+"""
 symbolic_pure_state(name, d) = SymbolicMatrix(name, false, :psi, d)
+
+"""
+    symbolic_permutation(name::Symbol, d) -> SymbolicMatrix
+
+Construct a symbolic random `d×d` permutation matrix named `name`.
+Use with `dPerm(d)` for integration over the uniform measure on the
+symmetric group `S_d`.
+
+# Examples
+```julia
+using IntU, Symbolics
+@variables d
+P = symbolic_permutation(:P, d)
+integrate(P[1,1] * P[2,2], dPerm(d))   # 1/(d*(d-1))
+```
+"""
 symbolic_permutation(name, d) = SymbolicMatrix(name, false, :Perm, d)
 
 function Base.show(io::IO, A::SymbolicMatrix)
@@ -633,10 +711,31 @@ function tr(K::SymbolicKron)
 end
 
 """
-    tr_lazy(product)
+    tr_lazy(product) -> LazyTrace
 
-Creates a `LazyTrace` representing the symbolic trace of a matrix product.
-The product can be a `SymbolicMatrix`, `SymbolicMatrixProduct`, or a vector of matrices.
+Build a `LazyTrace` representing the symbolic trace of a matrix product without
+evaluating any indices. `product` may be a `SymbolicMatrix`, a
+`SymbolicMatrixProduct`, or an `AbstractVector` of matrix factors.
+
+Prefer the `tr()` overload when constructing expressions with `*` (it delegates
+here automatically). Call `tr_lazy` directly when you already hold a
+pre-assembled `Vector` of matrix factors.
+
+# Examples
+```julia
+using IntU, Symbolics
+@variables d
+U = symbolic_unitary(:U, d)
+A = SymbolicMatrix(:A)
+
+# Equivalent ways to build tr(U*A*U'):
+expr1 = tr(U * A * U')
+expr2 = tr_lazy([U, A, U'])
+
+integrate(expr1, dU(d))   # tr(A)/d
+```
+
+See also: [`tr`](@ref), [`LazyTrace`](@ref), [`symbolic_unitary`](@ref)
 """
 function tr_lazy(product::AbstractVector)
     simplified_factors = _simplify_cycle(product)

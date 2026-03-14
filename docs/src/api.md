@@ -71,6 +71,11 @@ IntU.DiagonalUnitaryMeasure
 ```@docs
 IntU.SymbolicMatrix
 tr
+symbolic_unitary
+symbolic_orthogonal
+symbolic_symplectic
+symbolic_pure_state
+symbolic_permutation
 ```
 
 ## Quantum Information Utilities

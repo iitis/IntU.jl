@@ -35,6 +35,25 @@ integrate(expr, measure)
 - **`expr`**: A symbolic expression (e.g., product of `SymbolicMatrix` elements) or an array of such expressions.
 - **`measure`**: A measure object defining the group/ensemble and its dimension (e.g., `dU(d)`, `dO(d)`, `dGUE(d)`).
 
+## Choosing a Measure
+
+| If you want to average over… | Measure | Page |
+|---|---|---|
+| Generic random unitary matrices | `dU(d)` | [Unitary Integration](unitary_integration.md) |
+| Special unitary (balanced polynomials) | `dSU(d)` | [Unitary Integration](unitary_integration.md) |
+| Real orthogonal matrices | `dO(d)` | [Orthogonal & Symplectic](orthogonal_integration.md) |
+| Symplectic matrices ($d$ even) | `dSp(d)` | [Orthogonal & Symplectic](orthogonal_integration.md) |
+| Symmetric unitary matrices (COE) | `dCOE(d)` | [Circular Ensembles](circular_ensembles.md) |
+| Self-dual unitary matrices (CSE) | `dCSE(d)` | [Circular Ensembles](circular_ensembles.md) |
+| Hermitian random matrices | `dGUE(d)` / `dGOE(d)` / `dGSE(d)` | [Gaussian Ensembles](gaussian_integration.md) |
+| Non-Hermitian random matrices | `dGinUE(d)` / `dGinOE(d)` / `dGinSE(d)` | [Gaussian Ensembles](gaussian_integration.md) |
+| Random permutation matrices | `dPerm(d)` | [Permutation Groups](permutation_integration.md) |
+| Centered permutation matrices | `dCPerm(d)` | [Permutation Groups](permutation_integration.md) |
+| Random pure states | `dPsi(d)` | [Pure States](pure_states.md) |
+| Orthonormal $k$-frames (Stiefel) | `dStiefel(d, k)` | [Stiefel Manifolds](stiefel_manifold.md) |
+| Independent diagonal phases | `dDiagUnitary(d)` | [Diagonal Unitaries](diagonal_unitary.md) |
+| Moments up to order $t$ only | `dDesign(d, t)` | [Unitary Integration](unitary_integration.md) |
+
 ## Manual
 
 - [Unitary Integration](unitary_integration.md): Core functionality for $U(d)$ and $SU(d)$.

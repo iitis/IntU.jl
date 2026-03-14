@@ -1,65 +1,136 @@
 # Asymptotic Expansions
 
-For large Hilbert space dimension $d$, exact Weingarten results can be
-complicated rational functions. IntU.jl provides utilities to expand these
-results as a Taylor series in $1/d$.
+For large Hilbert space dimension $d$, exact Weingarten results are often
+complicated rational functions of $d$. IntU.jl provides utilities to expand
+these into a Laurent series in $1/d$, extracting the physically relevant
+scaling behaviour.
 
-## Usage
+## API
 
 ```julia
-asymptotic(expr, measure, order=1)
+asymptotic(expr, measure, order=1)   # integrate then expand
+asymptotic(expr, d, order=1)         # expand a rational function directly
 ```
 
-- **expr**: The symbolic expression to integrate.
-- **measure**: The integration measure (Haar, PureState, GinUE, etc.).
-- **order**: The maximum power of $1/d$ to retain (default 1).
-- **Mechanism**: The function computes the exact symbolic integral and then performs a Taylor expansion of the result in powers of $1/d$.
+**Arguments**
 
-## Example: The "Painful" Showcase
+| Argument | Description |
+|---|---|
+| `expr` | Symbolic expression to integrate, or a rational function of `d` |
+| `measure` | Integration measure (`dU`, `dGUE`, `dO`, etc.) |
+| `d` | Symbolic variable to expand in (for the rational-function form) |
+| `order` | Maximum power of $1/d$ to retain (default: 1) |
 
-Standard Weingarten integration involves a sum over permutations that grows as $(n!)^2$ for general expressions. For high-degree moments, the exact result can be a very complicated rational function, while the asymptotic expansion remains clean and easy to interpret.
+The first form computes the exact symbolic integral first, then performs the
+Laurent expansion. The second form expands any rational expression directly,
+skipping integration.
 
-### High-Degree Trace Moment
+> [!NOTE]
+> `order` counts the *highest* negative power of $d$ retained. For example,
+> `order=3` keeps terms up to and including $1/d^3$. For most physics
+> applications `order=2` or `order=3` is sufficient.
 
-Consider the 12th moment of the trace $|\text{Tr}(U)|^{12}$ (degree $n=6$):
+## Unitary group examples
+
+### Leading-order trace moment
+
+The 12th moment $|\mathrm{tr}(U)|^{12}$ (degree 6 in $U$ and $\bar U$) has a
+combinatorially heavy exact form, but the leading asymptotic coefficient is
+simply $6! = 720$:
 
 ```julia
 using IntU, Symbolics
 @variables d
 U = SymbolicMatrix(:U, :U, d)
 
-# Integrating |tr(U)|^12 (degree 6 in U and 6 in U*)
-# Exact integration is "painful" due to the combinatorics (n=6)
-# but asymptotic provides a quick results:
-as = asymptotic(abs(tr(U))^12, dU(d), 1)
-# Output: 720.0 (matches n! for large d)
+asymptotic(abs(tr(U))^12, dU(d), 1)
+# Output: 720.0   (= 6!, confirming tr(U) → complex Gaussian as d → ∞)
 ```
 
-### Complex Rational Functions
+### Entry-wise high-degree moment
 
-For expressions that are not "pure traces", the advantage is even clearer. For example, the 10th moment of a single entry $|U_{11}|^{10}$:
+The 10th moment of a single entry has exact form
+$120 / (d(d+1)(d+2)(d+3)(d+4))$. The asymptotic expansion reveals the
+leading scaling immediately:
 
 ```julia
-res = asymptotic(abs(U[1,1])^10, dU(d), 6)
-# Output: 120/d^5 - 1200/d^6 + 7800/d^7
+asymptotic(abs(U[1,1])^10, dU(d), 6)
+# Output: 120/d^5 - 1200/d^6 + ...
 ```
 
-While the exact result is the rational function $\frac{120}{d(d+1)(d+2)(d+3)(d+4)}$, the asymptotic form highlights the leading $1/d^5$ behavior and subsequent corrections which are often sufficient for physics applications.
+The leading $1/d^5$ matches the expectation from the stable-rank estimate.
+
+## Gaussian ensemble examples
+
+For GUE the second trace moment grows as $d^2$, while the fourth moment
+has a $d^3$ leading term that is characteristic of free probability:
+
+```julia
+using IntU, Symbolics
+@variables d
+
+# Leading large-d behaviour of the GUE 4th moment
+asymptotic(abs(tr(H))^4, dGUE(d), 2)
+# Output: 2d^2 + ...
+# (subleading terms encode non-Gaussian corrections)
+```
+
+## Orthogonal group example
+
+```julia
+# E[O_{11}^4] = 3/(d*(d+2)); leading large-d behaviour:
+asymptotic(O[1,1]^4, dO(d), 3)
+# Output: 3/d^2 - 6/d^3 + ...
+```
+
+## Expanding a rational function directly
+
+The second form of `asymptotic` accepts any rational expression and expands it
+without performing any integration. This is useful when you already have an
+exact result (e.g., from the integral library or a manual calculation):
+
+```julia
+using Symbolics
+@variables d
+
+# Page's purity formula: 2n/(n^2+1) for equal subsystems of size n
+page = 2d / (d^2 + 1)
+asymptotic(page, d, 5)
+# Output: 2/d - 2/d^3 + 2/d^5
+# Leading 2/d → purity approaches 1/d (maximally mixed)
+```
+
+```julia
+# Exact Weingarten result 2/(d*(d+1)) expanded to four terms:
+asymptotic(2 / (d * (d + 1)), d, 4)
+# Output: 2/d^2 - 2/d^3 + 2/d^4 - 2/d^5
+```
 
 > [!IMPORTANT]
 > ### Symbolic (d) Pitfalls
-> - **Small Dimensions**: For Haar-related measures (Unitary, Orthogonal, Circular), results are rational functions with poles at small $d$ (typically $d < n$ for degree $n$ moments).
-> - **Removable Singularities**: Substituting numeric values can yield $0/0$ forms (e.g., at $d=1$ or $d=2$).
-> - **Automatic Handling**: `IntU.jl`'s `evaluate` function automatically simplifies expressions to resolve removable singularities when a denominator evaluates to zero.
+> - **Poles at small dimensions**: For Haar-related measures (Unitary,
+>   Orthogonal, Circular), results are rational functions with poles at small
+>   integer $d$ (typically $d < n$ for degree-$n$ moments).
+> - **Removable singularities**: substituting numeric values can yield $0/0$
+>   forms (e.g. at $d = 1$ or $d = 2$). Use `evaluate` to resolve these
+>   automatically.
 
-This approximation is useful for checking convergence properties or
-leading-order behavior in high-dimensional quantum systems.
+## See Also
+
+- [Integral Library](integral_library.md) — O(1) retrieval for common results
+- [Unitary Integration](unitary_integration.md) — exact Weingarten engine
+- [Gaussian Ensembles](gaussian_integration.md) — GUE/GOE/GSE moments
+- [QI Helpers](qi_helpers.md) — combining `asymptotic` with `partial_trace`
 
 ## References
 
-- Collins, B. (2003). Moments and Cumulants of Polynomial random variables on
-  unitary groups, the Itzykson-Zuber integral and free probability.
+- Collins, B. (2003). Moments and cumulants of polynomial random variables on
+  unitary groups, the Itzykson–Zuber integral and free probability.
   *International Mathematics Research Notices*.
 - Puchała, Z., & Miszczak, J. A. (2017). Symbolic integration with respect to
   the Haar measure on the unitary group. *Bulletin of the Polish Academy of
   Sciences: Technical Sciences*.
+- Page, D. N. (1993). Average entropy of a subsystem. *Physical Review Letters*,
+  71(9), 1291–1294.
+
+See the [API Reference](api.md) for the full `asymptotic` signature.

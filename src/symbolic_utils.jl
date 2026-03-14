@@ -200,7 +200,16 @@ end
 """
     AbstractIndexMatcher
 
-Base type for index matching strategies. Subtypes must implement `match_index`.
+Abstract base type for strategies that identify random-matrix entries inside a
+symbolic expression. Concrete subtypes must implement
+
+    match_index(m::AbstractIndexMatcher, t) -> Union{Tuple, Nothing}
+
+returning `(tag, i, j)` when `t` is a recognised random-matrix entry
+(where `tag` is a `Symbol` like `:U` or `:U_bar`, and `i`, `j` are row/column
+indices or `nothing` for metadata-only matching), or `nothing` otherwise.
+
+The built-in subtype is [`MetadataMatcher`](@ref).
 """
 abstract type AbstractIndexMatcher end
 
@@ -209,8 +218,17 @@ abstract type AbstractIndexMatcher end
 """
     MetadataMatcher(type_tag::Symbol)
 
-A matcher that identifies random matrix entries based on metadata attached to the symbols.
-The `type_tag` should match the `special_type` of a `SymbolicMatrix` (e.g., `:U`, `:O`, `:Sp`).
+An [`AbstractIndexMatcher`](@ref) that recognises random-matrix entries by the
+`special_type` metadata attached to a `SymbolicMatrix` symbol.
+
+`type_tag` must match the `special_type` field of the target matrix, e.g.:
+- `:U` for Haar-unitary matrices (`symbolic_unitary`)
+- `:O` for orthogonal matrices (`symbolic_orthogonal`)
+- `:Sp` for symplectic matrices (`symbolic_symplectic`)
+- `:psi` for pure-state vectors (`symbolic_pure_state`)
+
+Conjugate entries (`is_adj = true`) are tagged as `Symbol(type_tag, :_bar)`
+(e.g. `:U_bar`).
 """
 struct MetadataMatcher <: AbstractIndexMatcher
     type_tag::Symbol # :U, :O, :Sp, etc.
