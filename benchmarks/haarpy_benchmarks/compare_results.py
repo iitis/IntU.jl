@@ -10,7 +10,6 @@ Reads results_intu.json and results_haarpy.json produced by the benchmark script
 import json
 import sys
 
-# Ordered list of (key, display_name) for the comparison table
 BENCHMARKS = [
     # Unitary symbolic
     ("U_|U11|^6_sym", "U(d), |U₁₁|⁶, symbolic d"),
@@ -90,7 +89,6 @@ def main():
     print(sep)
     print(f"N = {N_SAMPLES} samples, median reported. Speedup = Haarpy / IntU.jl.")
 
-    # Also produce a LaTeX-ready table
     print("\n\n% LaTeX table (paste into manuscript)")
     print(r"\begin{table}")
     print(r"  \centering")
@@ -116,7 +114,6 @@ def main():
         else:
             sp_str = "---"
 
-        # Split label into group and integrand for LaTeX columns
         parts = label.split(", ", 1)
         group = parts[0]
         integrand = parts[1] if len(parts) > 1 else ""

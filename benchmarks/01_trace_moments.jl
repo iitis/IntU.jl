@@ -20,7 +20,6 @@ function benchmark_trace_moments(d_vals, k_vals)
             # Warmuo
             integrate(expr, measure)
 
-            # Benchmark
             t = @benchmark integrate($expr, $measure)
             display(t)
             println()
