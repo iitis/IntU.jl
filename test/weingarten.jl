@@ -11,8 +11,6 @@ using Test
     end
 
     @testset verbose=true "Weingarten Unit Tests" begin
-        # Access internal functions (they are now in IntU module directly via include)
-
         @testset verbose=true "conjugate_partition" begin
             @test IntU.conjugate_partition([1]) == [1]
             @test IntU.conjugate_partition([2]) == [1, 1]
@@ -71,7 +69,6 @@ using Test
         end
 
         @testset verbose=true "Weingarten Function consistency" begin
-            # Check basic property or redundancy
             # Wg([1,1], d) should be 1/(d^2-1)
             d = 3
             @test IntU.weingarten([1, 1], d) == 1//(d^2-1)

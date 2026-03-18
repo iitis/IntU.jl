@@ -18,7 +18,6 @@ using LinearAlgebra
     end
 
     @testset "Fidelity Average" begin
-        # Use real components to avoid complex variable simplification issues
         @variables r[1:2] i[1:2]
         phi = [r[1] + im*i[1], r[2] + im*i[2]]
 
@@ -34,14 +33,10 @@ using LinearAlgebra
 
     @testset "Dimension Enforcement" begin
         # psi should be (d, 1)
-        # Accessing psi[1, 2] should throw BoundsError
         @test_throws BoundsError begin
             @integrate psi[1, 2] dPsi(d)
         end
 
-        # Test that integrate with invalid indices returns 0
-        # We can construct SymbolicMatrix manually with a larger dimension to bypass bounds check 
-        # normally enforced by (d, 1), but let's test the rule itself.
         psi_sq = SymbolicMatrix(:psi, :psi, d)
         res = integrate(psi_sq[1, 2], dPsi(d))
         @test is_really_zero(res)

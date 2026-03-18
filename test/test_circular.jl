@@ -6,14 +6,11 @@ using Test
 @testset "Circular Ensembles" begin
     @variables d
 
-    # helper for symbolic zero check
     function sym_iszero(x)
-        # 1. Quick check
         if isequal(x, 0) || isequal(x, 0.0)
             return true
         end
 
-        # 2. Simplify and check
         s = simplify(expand(x))
         if isequal(s, 0) || isequal(s, 0.0)
             return true
@@ -23,7 +20,6 @@ using Test
             return true
         end
 
-        # 3. Numerical fallback
         for d_val in [3.14, 1.23, 7.89]
             val = Symbolics.substitute(s, Dict(d => d_val))
             num_val = to_numeric(val)

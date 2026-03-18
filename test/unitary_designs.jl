@@ -5,10 +5,8 @@ using Symbolics
 
 @testset verbose=true "Unitary t-Designs" begin
     d_val = 3
-    # Use SymbolicMatrix tagged as :U
     U = SymbolicMatrix(:U, :U, d_val)
 
-    # Define a 2-design
     design2 = dDesign(d_val, 2)
 
     @testset verbose=true "Degree <= t (t=2)" begin
@@ -22,7 +20,6 @@ using Symbolics
         res2 = integrate(expr2, design2)
         @test to_numeric(real(res2)) ≈ 1/8
 
-        # Unitarity Check (Degree 1 in U, 1 in U_bar -> Total degree 1 <= 2)
         sum_val = 0//1
         for k = 1:d_val
             sum_val += integrate(U[1, k] * conj(U[1, k]), design2)
@@ -32,11 +29,10 @@ using Symbolics
 
     @testset verbose=true "Degree > t (t=2, degree=3)" begin
         # Degree 3 integral (should fail)
-        expr3 = abs(U[1, 1])^6 # |u|^6 -> u^3 * conj(u)^3 -> degree 3
+        expr3 = abs(U[1, 1])^6
         @test_throws ArgumentError integrate(expr3, design2)
     end
 
-    # Define a 1-design
     design1 = dDesign(d_val, 1)
 
     @testset verbose=true "1-Design Constraints" begin
@@ -46,7 +42,7 @@ using Symbolics
         @test to_numeric(real(res1)) ≈ 1/3
 
         # Degree 2 fails
-        expr2 = abs(U[1, 1])^4 # degree 2
+        expr2 = abs(U[1, 1])^4
         @test_throws ArgumentError integrate(expr2, design1)
     end
 end

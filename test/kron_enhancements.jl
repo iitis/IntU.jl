@@ -28,11 +28,9 @@ using Test
     res = integrate(tr(prod_K), dU(d))
     @test Symbolics.value(Symbolics.simplify(res - d^2)) == 0
 
-    # 4. Unknown Dimensions Fix (no BoundsError)
     U_un = symbolic_unitary(:U_un, nothing)
     @test size(U_un) == (nothing, nothing)
     A = SymbolicMatrix(:A, :Constant, 3)
-    # This shouldn't crash with typemax
     P = U_un * A
     @test size(P) == (nothing, 3)
 
