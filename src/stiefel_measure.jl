@@ -1,4 +1,3 @@
-# Stiefel Manifold integration
 
 @doc raw"""
     dStiefel(dim, k)
@@ -38,7 +37,6 @@ struct StiefelMeasure{D,K,M} <: AbstractMeasure
 end
 StiefelMeasure(dim, k) = StiefelMeasure(dim, k, nothing)
 
-# Integration uses :V logic
 IntU._measure_tag(::StiefelMeasure) = :V
 
 function IntU.measure_info(measure::StiefelMeasure)
@@ -63,7 +61,6 @@ function integrate(P::SymbolicMatrixProduct, measure::StiefelMeasure)
     rows_sym = size(P.factors[1], 1)
     cols_sym = size(P.factors[end], 2)
 
-    # Helper to resolve dimension symbols to measure dimensions
     function resolve_dim(d_sym)
         d_un = Symbolics.unwrap(d_sym)
         if d_un isa Integer && d_un != typemax(Int)
@@ -75,9 +72,7 @@ function integrate(P::SymbolicMatrixProduct, measure::StiefelMeasure)
 
     if dim_d isa Integer && dim_k isa Integer
 
-        # We assume standard SymbolicMatrix/Adjoint wrappers
         function get_size(F)
-            # Unwrap Adjoint/Transpose
             wrapper_adj = false
             if F isa Adjoint || F isa Transpose
                 wrapper_adj = true
@@ -86,13 +81,11 @@ function integrate(P::SymbolicMatrixProduct, measure::StiefelMeasure)
 
             if F isa SymbolicMatrix
 
-                # Combine wrapper adjacency with internal adjacency
                 effective_adj = F.is_adj
                 if wrapper_adj
                     effective_adj = !effective_adj
                 end
 
-                # We treat it as d x k.
                 if effective_adj
                     return (dim_k, dim_d)
                 else
@@ -100,7 +93,6 @@ function integrate(P::SymbolicMatrixProduct, measure::StiefelMeasure)
                 end
             end
 
-            # Fallback for known matrices
             sz = size(F)
             if wrapper_adj
                 return (sz[2], sz[1])
@@ -108,7 +100,6 @@ function integrate(P::SymbolicMatrixProduct, measure::StiefelMeasure)
             return sz
         end
 
-        # 1. Expand all factors into dense Matrix{Any} of symbols
         numeric_factors = Vector{Matrix{Any}}(undef, length(P.factors))
 
         for (idx, f) in enumerate(P.factors)
@@ -122,18 +113,14 @@ function integrate(P::SymbolicMatrixProduct, measure::StiefelMeasure)
             numeric_factors[idx] = mat
         end
 
-        # 2. Multiply them using standard linear algebra
-        # This expands the sums symbolically
         total_prod = numeric_factors[1]
         for idx = 2:length(numeric_factors)
             total_prod = total_prod * numeric_factors[idx]
         end
 
-        # 3. Integrate the result element-wise
         return map(x -> integrate(x, measure), total_prod)
     end
 
-    # Fallback to standard symbolic integration if dimensions are not concrete integers
     throw(
         ArgumentError(
             "Direct integration of SymbolicMatrixProduct for Stiefel requires concrete dimensions. Try integrating individual elements instead.",

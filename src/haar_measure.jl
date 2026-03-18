@@ -1,15 +1,11 @@
-# Haar measure integration
 
-# Matcher for SymbolicMatrix
 struct SymbolicMatcher <: AbstractIndexMatcher
     tag::Symbol
     regex::Regex
 end
 
 function match_index(m::SymbolicMatcher, t)
-    # Unwrap to Sym
     s = Symbolics.unwrap(t)
-    # We check string representation of the symbol. Handle conj(U_i_j)
     is_conj = false
     if Symbolics.iscall(s) &&
        (Symbolics.operation(s) == conj || Symbolics.operation(s) == Base.conj)
@@ -31,13 +27,11 @@ function match_index(m::SymbolicMatcher, t)
 end
 
 
-# Dummy type to represent the measure
 struct HaarMeasure{D,M} <: AbstractMeasure
     dim::D
     matcher::M
 end
 
-# Constructor for backward compatibility
 HaarMeasure(dim) = HaarMeasure(dim, nothing)
 @doc raw"""
     dU(dim)
@@ -52,21 +46,16 @@ dU(dim) = HaarMeasure(dim)
 IntU._measure_tag(::HaarMeasure) = :U
 
 function _manual_fallback(expr, measure::HaarMeasure)
-    # LazyTrace expressions are handled by fallback_integrate dispatch, not here.
     throw(ArgumentError("HaarMeasure integration failed for: $(typeof(expr))"))
 end
 
 IntU._reconstruct_symbolic(::HaarMeasure, d_asymp) = dU(d_asymp)
 
-# Integrate a product of traces of matrices over the Haar measure.
-# Uses the graphical Weingarten calculus.
-# Note: _extract_trace_data, _build_wires, _evaluate_constant_cycles are in trace_helpers.jl
 
 function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
     dim = measure.dim
     constant_part = t.prefactor
 
-    # Identify ALL cycles and factors
     total_factors, cycle_ranges, all_factors = _extract_trace_data(t)
 
     matcher = measure.matcher === nothing ? MetadataMatcher(:U) : measure.matcher
@@ -94,16 +83,12 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
         return _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
     end
 
-    # Build Wires and evaluate constants in U-bearing cycles
     wires, reverse_wires = _build_wires(U_indices, U_bar_indices, cycle_ranges, all_factors)
-    # Re-evaluate constant part to include cycles that have no U
     constant_part = _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
 
     u_map = Dict(idx => m for (m, idx) in enumerate(U_indices))
     ub_map = Dict(idx => m for (m, idx) in enumerate(U_bar_indices))
 
-    # NEW: Convert maps to speed up inner loop. Max slot index is total_factors.
-    # total_factors = n_U + n_U_bar (usually 2*n_U)
     u_map_vec = fill(0, total_factors)
     for (idx, m) in u_map
         ;
@@ -115,7 +100,6 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
         ub_map_vec[idx] = m;
     end
 
-    # Convert wires to vectors
     wires_s = fill(0, total_factors)
     wires_m = Vector{Any}(nothing, total_factors)
     rev_wires_s = fill(0, total_factors)
@@ -138,7 +122,6 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
     d_un = Symbolics.unwrap(dim)
     is_numeric_dim = d_un isa Integer
 
-    # Detect "pure trace" case: no constant matrices
     is_pure_trace = all(m -> m === nothing, wires_m) && all(m -> m === nothing, rev_wires_m)
 
     if is_pure_trace
@@ -177,7 +160,6 @@ function fallback_integrate(t::LazyTrace, measure::HaarMeasure)
                 for start_port = 1:2
                     bit_idx = (start_port - 1) * total_factors + start_slot
                     if !visited[bit_idx]
-                        # Traverse cycle
                         val, visited = _traverse_trace_cycle_fast(
                             start_slot,
                             start_port,
@@ -246,19 +228,18 @@ function _traverse_trace_cycle_fast(
         end
         visited[bit_idx] = true
 
-        # 1. Weingarten Matching
         u_m = u_map_vec[s]
         if u_m != 0
-            if p == 1 # Row-port of U matches Row-port of U_bar
+            if p == 1
                 ub_k = sigma[u_m]
                 s = Ub_idx_vec[ub_k]
                 p = is_trans_vec[s] ? 2 : 1
-            else # Col-port of U matches Col-port of U_bar
+            else
                 ub_k = tau[u_m]
                 s = Ub_idx_vec[ub_k]
                 p = is_trans_vec[s] ? 1 : 2
             end
-        else # s is in U_bar
+        else
             ub_m = ub_map_vec[s]
             is_row_port = (is_trans_vec[s] && p == 2) || (!is_trans_vec[s] && p == 1)
             if is_row_port
@@ -272,11 +253,9 @@ function _traverse_trace_cycle_fast(
             end
         end
 
-        # Mark the other port of the newly reached factor as visited too
         bit_idx_other = (p - 1) * total_factors + s
         visited[bit_idx_other] = true
 
-        # 2. Wire Traversal
         if p == 2
             mat_segment = wires_m[s]
             if mat_segment !== nothing

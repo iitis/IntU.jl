@@ -1,6 +1,4 @@
-# Real and Symplectic measures
 
-# Dummy types to represent the measures
 struct OrthogonalMeasure{D} <: AbstractMeasure
     dim::D
 end

@@ -1,4 +1,3 @@
-# Diagonal Unitary Matrices (Torus group) Integration
 
 @doc raw"""
     DiagonalUnitaryMeasure{D}

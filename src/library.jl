@@ -12,7 +12,6 @@ check_library(expr, measure::GOEMeasure) = check_gaussian_library(expr, measure,
 check_library(expr, measure::GSEMeasure) = check_gaussian_library(expr, measure, :GSE)
 check_library(expr, measure::PureStateMeasure) = check_pure_library(expr, measure)
 
-# --- Haar Unitary Library ---
 
 function _haar_trace_moment_value(k::Int, d::Integer)
     total = zero(Rational{BigInt})
@@ -55,13 +54,9 @@ function _match_haar_pure_trace_moment(expr::LazyTrace, measure::HaarMeasure)
 end
 
 function check_haar_library(expr, measure)
-    # Check for tr(U A U' B) where U is the integration variable
-    # This matches LazyTrace of [U, A, U', B]
     if expr isa LazyTrace
         prefactor = expr.prefactor
 
-        # Fast path for pure trace moments |tr(U)|^(2k) represented as LazyTrace
-        # with only U/U† factors and equal U/U† counts.
         k = _match_haar_pure_trace_moment(expr, measure)
         if k !== nothing
             d = measure.dim
@@ -76,14 +71,11 @@ function check_haar_library(expr, measure)
         factors = expr.cycles[1]
 
         if length(factors) == 4
-            # Normalize cycle
-            # We want to find a cyclic shift that is [U, A, U', B]
             for i = 1:4
                 shifted = circshift(factors, -i+1)
                 U_cand = shifted[1]
                 U_dag_cand = shifted[3]
 
-                # Verify factor roles and dimensions match measure
                 if !(U_cand isa SymbolicMatrix) || U_cand.special_type != :U
                     continue
                 end
@@ -92,7 +84,6 @@ function check_haar_library(expr, measure)
                     continue
                 end
 
-                # Ensure U_dag_cand is the adjoint of U_cand
                 if !(U_dag_cand isa SymbolicMatrix) ||
                    U_dag_cand.special_type != :U ||
                    U_dag_cand.name != U_cand.name ||
@@ -115,7 +106,6 @@ function check_haar_library(expr, measure)
     return nothing
 end
 
-# --- Gaussian Ensembles Library ---
 
 function check_gaussian_library(expr, measure, type)
     if !(expr isa LazyTrace)
@@ -168,10 +158,7 @@ function check_gaussian_library(expr, measure, type)
     return nothing
 end
 
-# --- Pure States Library ---
 
 function check_pure_library(expr, measure)
-    # Most pure state integrals are on indices, but we could add matrix-level later
-    # For now, if someone does tr(|psi><psi|), it's 1.
     return nothing
 end

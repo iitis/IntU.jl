@@ -8,9 +8,6 @@ function _poly_degree(p, d)
     deg = Symbolics.degree(Symbolics.wrap(p), Symbolics.wrap(d))
     return Int(Symbolics.unwrap(deg))
 end
-
-
-
 """
     asymptotic(expr, measure::AbstractMeasure, order=1)
 
@@ -74,7 +71,6 @@ function _expand_asymptotic(ex, d, order)
         return Num(0)
     end
 
-    # Build Num from terms
     res = Num(0)
     for p in sort(collect(keys(series_dict)))
         coeff = series_dict[p]
@@ -97,7 +93,6 @@ function _asymptotic_series_dict(ex_un, d_un, order)
         return Dict(0 => Symbolics.wrap(ex_un))
     end
 
-    # Constants
     vars = Symbolics.get_variables(ex_un)
     if !any(v -> isequal(v, d_un), vars)
         return Dict(0 => Symbolics.wrap(ex_un))
@@ -145,7 +140,6 @@ function _asymptotic_series_dict(ex_un, d_un, order)
     if SymbolicUtils.ispow(ex_un)
         base, exp = SymbolicUtils.arguments(ex_un)
         if exp isa Integer && exp > 1
-            # Simple integer power expansion
             res = Dict(0 => Num(1))
             s_base = _asymptotic_series_dict(Symbolics.unwrap(base), d_un, order)
             for _ = 1:exp
@@ -250,8 +244,6 @@ function _standardize_sub(k)
     uk = Symbolics.unwrap(k)
     if uk isa LazyTrace
         if length(uk.cycles) == 1
-            # This is a bit hacky as it depends on tr_val being in scope 
-            # and implemented the way it is.
             return tr_val(uk.cycles[1])
         end
     end
@@ -292,12 +284,9 @@ function evaluate(expr, dict)
         dict
     end
 
-    # Handle removable singularities in fractions
-    # Check if any denominator is zero after substitution
     dens = _get_denominators(expr)
     should_simplify = false
     for d in dens
-        # d_val can be a Num or a Number
         d_val = Symbolics.substitute(d, new_dict)
         if _iszero(d_val)
             should_simplify = true
@@ -306,13 +295,11 @@ function evaluate(expr, dict)
     end
 
     if should_simplify
-        # Simplify first to resolve removable singularities like (x^2-1)/(x-1) -> x+1
         expr = Symbolics.simplify(expr)
     end
 
     res = Symbolics.substitute(expr, new_dict)
 
-    # Try to return a number if the result is a Num wrapping a number
     if res isa Num
         val = Symbolics.unwrap(res)
         if val isa Number
@@ -325,15 +312,12 @@ function evaluate(expr, dict)
         if SymbolicUtils.iscall(val)
             op = SymbolicUtils.operation(val)
             args = SymbolicUtils.arguments(val)
-            # Safe evaluation for basic arithmetic if all args are numeric
             if (op === (+) || op === (*) || op === (-) || op === (/)) &&
                all(x -> x isa Number, args)
                 return op(args...)
             end
         end
 
-        # Also try simplifying to see if it becomes a number
-        # Note: simplify can return a Num, so we check again
         sim_res = Symbolics.simplify(res)
         val_sim = Symbolics.unwrap(sim_res)
         if val_sim isa Number

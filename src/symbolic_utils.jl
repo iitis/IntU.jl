@@ -203,9 +203,6 @@ end
 Base type for index matching strategies. Subtypes must implement `match_index`.
 """
 abstract type AbstractIndexMatcher end
-
-
-
 """
     MetadataMatcher(type_tag::Symbol)
 
@@ -227,7 +224,6 @@ function match_index(m::MetadataMatcher, t)
         return nothing
     end
 
-    # Handle conj(U_i_j)
     is_conj = false
     if Symbolics.iscall(s) &&
        (Symbolics.operation(s) == conj || Symbolics.operation(s) == Base.conj)
@@ -244,7 +240,6 @@ function match_index(m::MetadataMatcher, t)
             indices = get(meta, :indices, nothing)
             if indices !== nothing
                 i, j = indices
-                # Combine is_conj (from call) and :is_adj (from metadata)
                 final_is_conj = is_conj || get(meta, :is_adj, false)
 
                 final_tag = final_is_conj ? Symbol(m.type_tag, :_bar) : m.type_tag
@@ -294,7 +289,6 @@ function _extract_coeff_core(term)
 end
 
 function _is_fn_sq(term, fn1, fn2)
-    # Strip potential 1 * ... wrapper
     if Symbolics.iscall(term) && Symbolics.operation(term) == (*)
         args = Symbolics.arguments(term)
         if length(args) == 2 && isequal(args[1], 1)

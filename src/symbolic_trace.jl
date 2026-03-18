@@ -1,4 +1,3 @@
-# Symbolics' Num is real-valued; we use AbstractMatrix{Any} to support complex symbols.
 """
     SymbolicMatrix(name::Symbol)
     SymbolicMatrix(name::Symbol, special_type::Symbol)
@@ -68,17 +67,13 @@ function Base.axes(A::SymbolicMatrix)
 end
 
 function _getindex_scalar(A::SymbolicMatrix, i, j)
-    # Bounds checking
     if A.dim !== nothing
         rows, cols = size(A)
-        # Check rows
         if i isa Integer
             if i < 1 || (rows isa Integer && i > rows)
                 throw(BoundsError(A, (i, j)))
             end
         else
-            # Symbolic check for i < 1 or i > rows
-            # We use subtraction because simplify(d+1 > d) doesn't always return true
             si = Symbolics.simplify(i)
             if isequal(si, 0) ||
                isequal(si, -1) ||
@@ -86,7 +81,6 @@ function _getindex_scalar(A::SymbolicMatrix, i, j)
                 throw(BoundsError(A, (i, j)))
             end
 
-            # Check if i - rows is a positive constant
             sir = Symbolics.simplify(i - rows)
             if isequal(sir, 1) ||
                isequal(sir, 2) ||
@@ -94,13 +88,11 @@ function _getindex_scalar(A::SymbolicMatrix, i, j)
                 throw(BoundsError(A, (i, j)))
             end
         end
-        # Check cols
         if j isa Integer
             if j < 1 || (cols isa Integer && j > cols)
                 throw(BoundsError(A, (i, j)))
             end
         else
-            # Symbolic check for j < 1 or j > cols
             sj = Symbolics.simplify(j)
             if isequal(sj, 0) ||
                isequal(sj, -1) ||
@@ -117,7 +109,6 @@ function _getindex_scalar(A::SymbolicMatrix, i, j)
         end
     end
 
-    # If transposed, the row index of A^T is the col index of A
     actual_i = A.is_trans ? j : i
     actual_j = A.is_trans ? i : j
 
@@ -130,7 +121,6 @@ function _getindex_scalar(A::SymbolicMatrix, i, j)
         :is_adj => A.is_adj,
     )
 
-    # Use T=Number to ensure Symbolics/SymbolicUtils does not incorrectly simplify conj(v)
     v = Symbolics.variable(s_name, T = Number)
     v_un = Symbolics.unwrap(v)
     v_meta_un = SymbolicUtils.setmetadata(v_un, MatrixMetadata, meta)
@@ -152,13 +142,11 @@ function Base.getindex(
     rows = (i isa Colon) ? (1:size(A, 1)) : i
     cols = (j isa Colon) ? (1:size(A, 2)) : j
 
-    # Handle single element access by dispatching back to (Integer, Integer)
     if rows isa Integer && cols isa Integer
         return invoke(getindex, Tuple{SymbolicMatrix,Integer,Integer}, A, rows, cols)
     end
 
     res = Any[A[r, c] for r in rows, c in cols]
-    # Return vector if single column/row was requested (standard Julia behavior)
     if length(cols) == 1 && (j isa Integer)
         return res[:, 1]
     elseif length(rows) == 1 && (i isa Integer)
@@ -172,20 +160,16 @@ function Base.adjoint(A::SymbolicMatrix)
 end
 
 function Base.transpose(A::SymbolicMatrix)
-    # Pure transpose
     return SymbolicMatrix(A.name, A.is_adj, !A.is_trans, A.special_type, A.dim)
 end
 
 function Base.conj(A::SymbolicMatrix)
-    # real special types: O, GOE, GinOE, Perm, CPerm
     if A.special_type in (:O, :GOE, :GinOE, :Perm, :CPerm)
         return A
     end
-    # Pure conjugation
     return SymbolicMatrix(A.name, !A.is_adj, A.is_trans, A.special_type, A.dim)
 end
 
-# Factory functions for symbolic matrices
 symbolic_unitary(name, d) = SymbolicMatrix(name, false, :U, d)
 symbolic_orthogonal(name, d) = SymbolicMatrix(name, false, :O, d)
 symbolic_symplectic(name, d) = SymbolicMatrix(name, false, :Sp, d)
@@ -199,7 +183,6 @@ function Base.show(io::IO, A::SymbolicMatrix)
     elseif A.is_trans
         print(io, ".'")
     elseif A.is_adj
-        print(io, "ᴴ") # Or conj... maybe just denote it somehow.
     end
 end
 
@@ -312,7 +295,6 @@ function Base.getindex(P::SymbolicMatrixProduct, i::Integer, j::Integer)
     A = factors[1]
     B = length(factors) == 2 ? factors[2] : SymbolicMatrixProduct(factors[2:end])
 
-    # Resolve inner dimension
     dimA = size(A, 2)
     dimB = size(B, 1)
 
@@ -335,7 +317,6 @@ function Base.getindex(P::SymbolicMatrixProduct, i::Integer, j::Integer)
     if dim isa Integer
         return Symbolics.wrap(sum(A[i, k] * B[k, j] for k = 1:dim))
     else
-        # Fallback to a symbolic sum variable if dimension is unknown
         return Num(Symbolics.variable(Symbol("sum_$(A)_$(B)_$(i)_$(j)"); T = Number))
     end
 end
@@ -344,7 +325,6 @@ function Base.size(K::SymbolicKron)
     szA = size(K.A)
     szB = size(K.B)
 
-    # helper to multiply sizes part by part
     mul_dim(a, b) = (a === nothing || b === nothing) ? nothing : a * b
 
     return (mul_dim(szA[1], szB[1]), mul_dim(szA[2], szB[2]))
@@ -356,7 +336,6 @@ function Base.getindex(K::SymbolicKron, i::Integer, j::Integer)
     colsB = szB[2]
 
     if rowsB === nothing || colsB === nothing
-        # Throw a helpful error instead of MethodError in divrem
         throw(
             ArgumentError(
                 "Cannot index into SymbolicKron with unknown dimensions in factor $(K.B). Specify dimensions or use tr() for scalar results.",
@@ -385,7 +364,6 @@ function Base.show(io::IO, K::SymbolicKron)
     print(io, ")")
 end
 
-# Multiplication logic
 _factors(A::SymbolicMatrix) = AbstractMatrix[A]
 _factors(P::SymbolicMatrixProduct) = P.factors
 _factors(A::SymbolicKron) = AbstractMatrix[A]
@@ -409,14 +387,12 @@ function *(A::SymbolicAny, B::SymbolicAny, Cs::SymbolicAny...)
     for C in Cs
         append!(res_factors, _factors(C))
     end
-    # Check if we can collapse all as kron
     if all(f -> f isa SymbolicKron, res_factors)
         return reduce((a, b) -> SymbolicKron(a.A * b.A, a.B * b.B), res_factors)
     end
     return SymbolicMatrixProduct(res_factors)
 end
 
-# kron overloads
 function LinearAlgebra.kron(A::SymbolicAny, B::SymbolicAny)
     return SymbolicKron(A, B)
 end
@@ -427,7 +403,6 @@ function LinearAlgebra.kron(A::AbstractMatrix, B::SymbolicAny)
     return SymbolicKron(A, B)
 end
 
-# Resolve ambiguities with LinearAlgebra and Symbolics
 using LinearAlgebra
 for T in [Adjoint, Transpose]
     @eval function *(A::$T{<:Any,<:AbstractVector}, B::SymbolicAny)
@@ -445,9 +420,7 @@ function *(A::SymbolicAny, B::Symbolics.Arr)
     return SymbolicMatrixProduct(vcat(_factors(A), Any[B]))
 end
 
-# Resolve specific ambiguities discovered during tests
 for T in [Adjoint, Transpose]
-    # 3-arg
     @eval function *(A::$T{<:Any,<:AbstractVector}, B::SymbolicAny, C::SymbolicAny)
         return (A * B) * C
     end
@@ -458,7 +431,6 @@ for T in [Adjoint, Transpose]
         return (A * B) * C
     end
 
-    # 4-arg (to prevent LinearAlgebra from catching it)
     @eval function *(
         A::$T{<:Any,<:AbstractVector},
         B::AbstractMatrix,
@@ -476,7 +448,6 @@ for T in [Adjoint, Transpose]
         return (A * B) * (C * D)
     end
 
-    # Disambiguate with internal overlaps
     @eval function *(
         A::$T{<:Any,<:AbstractVector},
         B::AbstractMatrix,
@@ -486,7 +457,6 @@ for T in [Adjoint, Transpose]
         return (A * B) * (C * D)
     end
 
-    # Disambiguate with Symbolics.Arr (3-arg)
     @eval function *(A::$T{W,<:AbstractVector}, B::Symbolics.Arr, C::SymbolicAny) where {W}
         return (A * B) * C
     end
@@ -498,7 +468,6 @@ for T in [Adjoint, Transpose]
         return (A * B) * C
     end
 
-    # Disambiguate with Symbolics.Arr (4-arg)
     for W_type in [Any, Number]
         @eval function *(
             A::$T{W,<:AbstractVector},
@@ -610,19 +579,13 @@ function tr(A::SymbolicMatrix)
     return tr_lazy(A)
 end
 function tr(A::SymbolicMatrixProduct)
-    # Check if any factor is a non-symbolic matrix (e.g. Matrix{Num} from kron)
-    # Matrix{Num} is usually the result of kron(U, U) or similar.
-    # We must expand such products to allow element-wise integration to find the unitaries.
     is_dirty = any(f -> !(f isa SymbolicAny) || f isa SymbolicKron, A.factors)
 
     if is_dirty
         rows, cols = size(A)
-        # We can only expand if dimensions are concrete integers
         if rows isa Integer && cols isa Integer && rows == cols
-            # Return a Num expression (sum of diagonals)
             return sum(i -> A[i, i], 1:rows)
         end
-        # Fallback to lazy if we can't expand, though it might fail integration
     end
 
     return tr_lazy(A.factors)
@@ -752,8 +715,6 @@ function tr_val(factors::AbstractVector)
         return 1
     end
 
-    # Try to evaluate if all factors are concrete matrices
-    # Check if any factor is symbolic
     is_symbolic = any(
         f ->
             f isa SymbolicMatrix ||
@@ -784,7 +745,6 @@ function tr_val(factors::AbstractVector)
         end
     end
 
-    # Normalize trace string for unique symbolic representation
     function get_norm_string(fs)
         n = length(fs)
         s_list = [string(f) for f in fs]
@@ -804,7 +764,6 @@ function tr_val(factors::AbstractVector)
     s2 = get_norm_string(trans_factors)
 
     name = "tr(" * (s1 < s2 ? s1 : s2) * ")"
-    # Use T=Number to preserve symbolic structure.
     return Num(Symbolics.variable(Symbol(name); T = Number))
 end
 

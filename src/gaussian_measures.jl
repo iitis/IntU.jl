@@ -1,6 +1,4 @@
-# Gaussian Random Matrix measures (GUE, GOE, GSE) and Ginibre Ensembles
 
-# --- Unified struct + measure_info registration ---
 for (T, tag, ctor) in [
     (:GUEMeasure, :GUE, :dGUE),
     (:GOEMeasure, :GOE, :dGOE),
@@ -29,7 +27,6 @@ for (T, tag, ctor) in [
     end
 end
 
-# --- Convenience constructors (with validation for even-dim ensembles) ---
 
 """
     dGUE(dim)
@@ -85,7 +82,6 @@ function dGinSE(dim)
     return GinSEMeasure(dim)
 end
 
-# Shared trace-graph helpers are in trace_helpers.jl
 
 """
     _find_tagged_indices(all_factors, tag; separate_adj=false)
@@ -159,8 +155,6 @@ function _wick_hermitian_integrate(t::LazyTrace, dim, tag, matcher; symmetric = 
             partner_map[v] = u
         end
 
-        # GUE: single contraction choice (always flip ports)
-        # GOE: 2^(n_H/2) contraction choices (flip or keep)
         if symmetric
             choice_combos = Iterators.product(fill([1, 2], n_H ÷ 2)...)
         else
@@ -186,20 +180,16 @@ function _wick_hermitian_integrate(t::LazyTrace, dim, tag, matcher; symmetric = 
                         while !visited[s, p]
                             visited[s, p] = true
 
-                            # 1. Wick Jump
                             m = h_map[s]
                             partner_m = partner_map[m]
                             choice = pair_choices[m]
 
                             s = H_indices[partner_m]
                             if choice == 1
-                                # Standard contraction: port flips (1↔2)
                                 p = (p == 1 ? 2 : 1)
                             end
-                            # choice == 2 (GOE only): port stays the same
                             visited[s, p] = true
 
-                            # 2. Wire Traversal
                             if p == 2
                                 s, mat_segment = wires[s]
                                 if mat_segment !== nothing
@@ -232,9 +222,6 @@ function _wick_hermitian_integrate(t::LazyTrace, dim, tag, matcher; symmetric = 
     return constant_part * total_val
 end
 
-# ==============================================================================
-# Delegating fallback_integrate Methods
-# ==============================================================================
 
 function fallback_integrate(t::LazyTrace, measure::GUEMeasure)
     matcher = measure.matcher === nothing ? MetadataMatcher(:GUE) : measure.matcher
@@ -334,7 +321,6 @@ function fallback_integrate(t::LazyTrace, measure::GinUEMeasure)
                         append!(curr_trace_factors, mat_segment)
                     end
 
-                    # Find partner via permutation
                     if dest_factor_idx in G_indices
                         m = findfirst(==(dest_factor_idx), G_indices)
                         partner_idx = G_bar_indices[p[m]]
@@ -405,7 +391,6 @@ function fallback_integrate(t::LazyTrace, measure::GinOEMeasure)
 
                         curr_factor_idx = G_indices[curr_m]
 
-                        # Exit current node via curr_port
                         dest_factor_idx = 0
                         mat_segment = nothing
                         if curr_port == 2
@@ -425,7 +410,6 @@ function fallback_integrate(t::LazyTrace, measure::GinOEMeasure)
 
                         visited_ports[landed_m, landed_port] = true
 
-                        # Jump to partner via Wick contraction
                         partner_m = 0
                         for (u, v) in pi
                             if u == landed_m
@@ -437,7 +421,6 @@ function fallback_integrate(t::LazyTrace, measure::GinOEMeasure)
                             end
                         end
 
-                        # Determine partner port via index matching
                         f_partner = all_factors[G_indices[partner_m]]
                         if f_landed.is_trans == f_partner.is_trans
                             partner_port = landed_port

@@ -1,7 +1,4 @@
 function integrate_indices_centered_permutation(all_indices::AbstractVector, dim)
-    # Expand prod(P_u - 1/d)
-    # Sum over subsets S of indices:
-    # (-1/d)^(k - |S|) * E[prod_{u in S} P_u]
 
     k = length(all_indices)
     if k >= 8 * sizeof(UInt)
@@ -13,14 +10,11 @@ function integrate_indices_centered_permutation(all_indices::AbstractVector, dim
     end
     total = 0
 
-    # Pre-allocate to avoid repeated allocations in the loop
     subset_indices = Vector{Tuple{Any,Any}}(undef, k)
 
     for i = 0:(UInt(2)^k-1)
-        # count_ones is a fast bitwise operation in Julia
         num_P = count_ones(i)
 
-        # Fill the pre-allocated array and use a view
         idx = 1
         for j = 1:k
             if (i >> (j-1)) & 1 == 1
@@ -29,7 +23,6 @@ function integrate_indices_centered_permutation(all_indices::AbstractVector, dim
             end
         end
 
-        # subset_indices_view is a view, so no allocation here
         subset_indices_view = @view subset_indices[1:num_P]
 
         term_val = integrate_indices_permutation(subset_indices_view, dim)

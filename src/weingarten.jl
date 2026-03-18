@@ -1,4 +1,3 @@
-# Weingarten calculus functions
 using SymbolicUtils: quick_cancel
 
 """
@@ -10,8 +9,6 @@ Mathematically, \\lambda'_i = \\text{card}\\{j : \\lambda_j \\ge i\\}.
 """
 function conjugate_partition(part::Vector{Int})
     isempty(part) && return Int[]
-    # Number of columns is the first element (largest part)
-    # The length of the i-th column is the number of parts >= i
     cols = part[1]
     [count(>=(i), part) for i = 1:cols]
 end
@@ -36,7 +33,6 @@ function character_at_id(part::Vector{Int})
     n = sum(part)
     conj_part = conjugate_partition(part)
 
-    # Hook length formula
     denom = 1
     for i = 1:length(part)
         for j = 1:part[i]
@@ -68,7 +64,6 @@ function murnaghan_nakayama(lambda::Vector{Int}, mu::Vector{Int})
     isempty(mu) && return isempty(lambda) ? 1 : 0
     isempty(lambda) && return 0
 
-    # Check if partitions have same weight
     n = sum(lambda)
     if n != sum(mu)
         return 0
@@ -118,7 +113,6 @@ Reference:
                 den *= hook_length
             end
         end
-        # Keep rational coefficient separate to avoid float pollution
         return (1 // den) * num
     end
 end
@@ -138,7 +132,6 @@ function get_binary_partition(part::Vector{Int})
     return res
 end
 
-# MN Algorithm
 function mn_inner(R::Vector{Int}, m::Vector{Int}, t::Int)
     if t > length(m)
         return 1
@@ -206,14 +199,12 @@ Reference:
     return res
 end
 
-# Internal version that returns (numerator, denominator) for symbolic d
 @memoize function weingarten_raw(partition_type::Vector{Int}, d)
     n = sum(partition_type)
     n_fact = factorial(big(n))
     parts = partitions(n)
 
     if d isa Integer
-        # ... (keep existing Integer logic if needed, but we mostly care about symbolic)
         sum_val = 0 // 1
         for lam in parts
             if length(lam) > d
@@ -276,7 +267,6 @@ end
             end
 
             coeff = (Rational{BigInt}(f_lam)^2) * chi_lam_mu
-            # Pre-expand the terms to keep total_num as a flattened polynomial
             term_num = Symbolics.expand(coeff * den_lam * D_div_poly)
             total_num += term_num
         end
@@ -285,12 +275,6 @@ end
         return total_num, common_den
     end
 end
-
-
-# ==============================================================================
-# Orthogonal and Symplectic Weingarten Calculus
-# ==============================================================================
-
 """
     get_pair_partitions(n)
 
@@ -318,7 +302,6 @@ These partitions are also known as **perfect matchings** of the complete graph `
             return
         end
 
-        # Find smallest unused index
         first = 0
         for i = 1:n
             if !used[i]
@@ -328,7 +311,6 @@ These partitions are also known as **perfect matchings** of the complete graph `
         end
         used[first] = true
 
-        # Pair `first` with each subsequent unused index
         for second = (first+1):n
             if !used[second]
                 used[second] = true
@@ -407,7 +389,6 @@ function canonicalize_pair_partition(p::Vector{Tuple{Int,Int}})
     return sorted_pairs
 end
 
-# --- Internal Polynomial Arithmetic Helpers ---
 function _poly_add(a::Vector{BigInt}, b::Vector{BigInt})
     n = max(length(a), length(b))
     res = zeros(BigInt, n)
@@ -479,7 +460,6 @@ function _poly_div_exact(a::Vector{BigInt}, b::Vector{BigInt})
             rem[i+j-1] -= qi * b[j]
         end
     end
-    # Trim
     last = length(q)
     while last > 1 && q[last] == 0
         ;
@@ -509,7 +489,6 @@ function _poly_pseudo_rem(a::Vector{BigInt}, b::Vector{BigInt})
             r[i+j-1] -= mult_val * b[j]
         end
     end
-    # Trim
     last = length(r)
     while last > 1 && r[last] == 0
         ;
@@ -530,7 +509,6 @@ function _poly_gcd(a::Vector{BigInt}, b::Vector{BigInt})
     while length(B) > 1 || (length(B) == 1 && B[1] != 0)
         A, B = B, _poly_pseudo_rem(A, B)
     end
-    # Primitive part: divide by GCD of coefficients
     c = zero(BigInt)
     for x in A
         ;
@@ -547,7 +525,6 @@ function _poly_gcd(a::Vector{BigInt}, b::Vector{BigInt})
     return A
 end
 
-# --- Internal Rational Arithmetic Helpers ---
 struct UnivariateRational
     num::Vector{BigInt}
     den::Vector{BigInt}
@@ -555,10 +532,8 @@ struct UnivariateRational
 end
 
 function _rational_add(a::UnivariateRational, b::UnivariateRational)
-    # a.num/a.den + b.num/b.den = (a.num*b.den + b.num*a.den) / (a.den*b.den)
     num = _poly_add(_poly_mul(a.num, b.den), _poly_mul(b.num, a.den))
     den = _poly_mul(a.den, b.den)
-    # Simplify
     g = _poly_gcd(num, den)
     num = _poly_div_exact(num, g)
     den = _poly_div_exact(den, g)
@@ -574,9 +549,6 @@ function _rational_mul(a::UnivariateRational, b::BigInt)
         ;
         num[i] *= b;
     end
-    # Simplify
-    # Since b is constant, we don't need full GCD unless we want to be very clean
-    # For now just keep it
     return UnivariateRational(num, a.den, a.var)
 end
 
@@ -593,7 +565,6 @@ function from_vec(v, var)
     res = Num(_safe_c(v[1]))
     length(v) == 1 && return res
 
-    # Build polynomial terms without simplify in the loop
     if v[2] != 0
         res += _safe_c(v[2]) * var
     end
@@ -657,7 +628,6 @@ function _univariate_poly_solve(
 
     M_poly = [to_vec(x) for x in M]
     rhs_poly = [to_vec(x) for x in rhs]
-    # Use hcat to build augmented matrix of vectors
     aug = hcat(M_poly, rhs_poly)
     n_aug = n + 1
 
@@ -747,13 +717,11 @@ end
 
 function _bareiss_symbolic_solve(M::AbstractMatrix{Num}, rhs::AbstractVector{Num})
     n = size(M, 1)
-    # Augment M with rhs to solve M x = rhs
     aug = [copy(M) copy(rhs)]
     n_aug = n + 1
 
     prev_pivot = Num(1)
     for k = 1:n
-        # 1. Pivot selection
         pivot_idx = k
         for i = k:n
             if !isequal(aug[i, k], 0)
@@ -762,7 +730,6 @@ function _bareiss_symbolic_solve(M::AbstractMatrix{Num}, rhs::AbstractVector{Num
             end
         end
         if pivot_idx != k
-            # Swap rows in the augmented matrix
             row_k = aug[k, :]
             aug[k, :] = aug[pivot_idx, :]
             aug[pivot_idx, :] = row_k
@@ -775,13 +742,10 @@ function _bareiss_symbolic_solve(M::AbstractMatrix{Num}, rhs::AbstractVector{Num
             continue
         end
 
-        # 2. Bareiss reduction step
         for i = 1:n
             i == k && continue
             for j = (k+1):n_aug
-                # Division by prev_pivot is guaranteed to be exact in the polynomial ring
                 term = Symbolics.expand(pivot * aug[i, j] - aug[i, k] * aug[k, j])
-                # We use quick_cancel to perform the exact division safely
                 aug[i, j] =
                     Num(quick_cancel(Symbolics.unwrap(term) / Symbolics.unwrap(prev_pivot)))
             end
@@ -790,11 +754,9 @@ function _bareiss_symbolic_solve(M::AbstractMatrix{Num}, rhs::AbstractVector{Num
         prev_pivot = pivot
     end
 
-    # 3. Final normalization
     final_det = aug[n, n]
     x = Vector{Num}(undef, n)
     for i = 1:n
-        # Final result can be simplified more aggressively
         res = Symbolics.unwrap(aug[i, n_aug]) / Symbolics.unwrap(final_det)
         x[i] = Num(Symbolics.simplify(quick_cancel(res)))
     end
@@ -809,7 +771,6 @@ Used to compute Weingarten function for small dimensions where the Gram matrix i
 (e.g., dSp(2) integration yielding d = -2).
 """
 function _safe_solve(M::AbstractMatrix{T}, rhs; return_rationals = false) where {T}
-    # For symbolic systems, use specialized solver
     if T <: Num || T <: SymbolicUtils.BasicSymbolic
         return _symbolic_solve(M, rhs; return_rationals = return_rationals)
     end
@@ -817,7 +778,6 @@ function _safe_solve(M::AbstractMatrix{T}, rhs; return_rationals = false) where 
     try
         return M \ rhs
     catch e
-        # Catch singular cases robustly
         is_singular = (e isa LinearAlgebra.SingularException)
         if !is_singular
             msg = lowercase(string(e))
@@ -827,16 +787,12 @@ function _safe_solve(M::AbstractMatrix{T}, rhs; return_rationals = false) where 
         end
 
         if is_singular
-            # 2. If it's a Rational system, it might be a pole of the Weingarten system but NOT the integral.
             if T <: Rational
                 M_bf = BigFloat.(M)
                 rhs_bf = BigFloat.(rhs)
 
-                # Use a very high precision for the pseudoinverse
                 return setprecision(BigFloat, 1024) do
-                    # Add a tiny diagonal perturbation to M to push it off the pole
                     n = size(M_bf, 1)
-                    # Use a very small epsilon relative to matrix scale
                     eps_val = BigFloat(1) / BigInt(10)^60
                     for i = 1:n
                         M_bf[i, i] += eps_val
@@ -845,11 +801,9 @@ function _safe_solve(M::AbstractMatrix{T}, rhs; return_rationals = false) where 
                     w_bf = M_bf \ rhs_bf
 
                     IntType = T.parameters[1]
-                    # We use a tolerance that is small but larger than epsilon effect
                     return rationalize.(IntType, w_bf, tol = 1//BigInt(10)^30)
                 end
             else
-                # Non-rational, use pinv
                 M_f = Float64.(M)
                 rhs_f = Float64.(rhs)
                 return pinv(M_f) * rhs_f
@@ -872,7 +826,6 @@ The Weingarten matrix is the inverse of \$G\$.
     N = length(parts)
     pi_id = parts[1]
 
-    # Group partitions by cycle type with respect to pi_id
     type_to_parts = Dict{Vector{Int},Vector{Int}}()
     for i = 1:N
         ct = get_full_cycle_type(parts[i], pi_id)
@@ -884,14 +837,12 @@ The Weingarten matrix is the inverse of \$G\$.
     n_types = length(cts)
     type_to_idx = Dict(ct => i for (i, ct) in enumerate(cts))
 
-    # Determine numeric type
     T = (d isa Integer) ? Rational{BigInt} : typeof(d^1)
 
     M = zeros(T, n_types, n_types)
     for i = 1:n_types
         pi_lambda = parts[type_to_parts[cts[i]][1]]
         for j = 1:n_types
-            # Group loops to reduce multiplications/additions
             loop_counts = Dict{Int,Int}()
             for sigma_idx in type_to_parts[cts[j]]
                 l = count_loops(pi_lambda, parts[sigma_idx])
@@ -943,13 +894,8 @@ function _safe_inv(G::AbstractMatrix)
     if n == 1
         return map(x -> 1/x, G)
     end
-    # For small symbolic matrices OR BigInt matrices, manual inverse might be safer/faster
-    # Generic inv() for Rational{BigInt} can be slow or problematic if not optimized.
-    # But usually Base.inv works fine for Rational{BigInt}.
 
-    # Check if elements are Numbers but not AbstractFloat (to avoid precision loss)
     if eltype(G) <: Number && !(eltype(G) <: AbstractFloat)
-        # For 2x2, simpler
         if n == 2
             a, b = G[1, 1], G[1, 2]
             c, d = G[2, 1], G[2, 2]
@@ -1001,9 +947,6 @@ function weingarten_orthogonal_val_canonical(c_pi, c_sigma, d)
     ct = get_full_cycle_type(c_pi, c_sigma)
     return w[type_to_idx[ct]]
 end
-
-
-
 """
     weingarten_symplectic_val(pi, sigma, d)
 

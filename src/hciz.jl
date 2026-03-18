@@ -1,4 +1,3 @@
-# Harish-Chandra-Itzykson-Zuber (HCIZ) Integrals
 
 """
     vandermonde_det(v)
@@ -57,28 +56,22 @@ function hciz(A::SymbolicMatrix, B::SymbolicMatrix)
 end
 
 function hciz(A::SymbolicMatrix, B::SymbolicMatrix, d::Int)
-    # Generate symbolic eigenvalues for matrices with only names
     a = [Symbolics.variable(Symbol(string(A.name) * "_$i"); T = Real) for i = 1:d]
     b = [Symbolics.variable(Symbol(string(B.name) * "_$i"); T = Real) for i = 1:d]
     return hciz(a, b)
 end
 
 function _get_eigenvalues(M::AbstractMatrix)
-    # Check if numeric (Float64, ComplexF64 etc.)
     if all(x -> x isa Number && !(x isa Num), M)
         return eigen(M).values
     end
 
-    # Handle Matrix{Num} or mixed types
-    # 1. Check if diagonal
     if isdiag(M)
         return [M[i, i] for i = 1:size(M, 1)]
     end
 
-    # 2. Handle 2x2 symbolic explicitly
     d = size(M, 1)
     if d == 2
-        # λ^2 - tr(M)λ + det(M) = 0
         t = tr(M)
         det_M = det(M)
         disc = Symbolics.simplify(t^2 - 4 * det_M)
@@ -104,7 +97,6 @@ function hciz(a::AbstractVector, b::AbstractVector)
     d = length(a)
     d == 0 && return 1.0
 
-    # Check for degeneracies
     if _has_degeneracies(a) || _has_degeneracies(b)
         if eltype(a) <: Number && eltype(b) <: Number
             eps_a = max(maximum(abs, a), 1.0) * 1e-12
@@ -112,9 +104,6 @@ function hciz(a::AbstractVector, b::AbstractVector)
             a = [a[i] + i * eps_a for i = 1:d]
             b = [b[i] + i * eps_b for i = 1:d]
         else
-            # For symbolic, this is harder. 
-            # In some cases L'Hopital's rule or character expansions are needed.
-            # Currently we'll throw a warning/error if it's strictly zero.
         end
     end
 
@@ -126,7 +115,6 @@ function hciz(a::AbstractVector, b::AbstractVector)
     delta_a = vandermonde_det(a)
     delta_b = vandermonde_det(b)
 
-    # Matrix M_ij = exp(a_i * b_j)
     M = [exp(a[i] * b[j]) for i = 1:d, j = 1:d]
 
     return prefactor * (det(M) / (delta_a * delta_b))
@@ -135,7 +123,6 @@ end
 function _has_degeneracies(v)
     for i = 1:length(v)
         for j = (i+1):length(v)
-            # Use isequal for robust comparison including symbolic
             if isequal(v[i], v[j])
                 return true
             end

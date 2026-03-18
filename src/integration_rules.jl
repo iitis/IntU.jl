@@ -1,4 +1,3 @@
-# --- Dispatch helpers for common integration rule patterns ---
 
 """
     _dispatch_paired(u, ub, d, integrate_fn)
@@ -26,7 +25,6 @@ end
 
 INTEGRATION_RULES[:U] = (u, ub, d, mt) -> _dispatch_paired(u, ub, d, integrate_indices)
 
-# Stiefel V_k(C^d) and pure state integration are same as Haar U(d) for entries
 INTEGRATION_RULES[:V] =
     (u, ub, d, mt) -> begin
         k = mt isa Tuple ? mt[2] : d
@@ -39,7 +37,6 @@ INTEGRATION_RULES[:V] =
             if ju isa Integer && ku isa Integer
                 return ju > ku
             end
-            # Try symbolic difference
             diff = Symbolics.simplify(ju - ku)
             diff_u = Symbolics.unwrap(diff)
             if diff_u isa Number && real(diff_u) > 0
@@ -71,10 +68,8 @@ INTEGRATION_RULES[:Sp] =
         d = _ensure_symbolic_dim(d)
         d_un = Symbolics.unwrap(d)
         if d_un isa Number && isinteger(d_un)
-            # Numeric path for integer or integer-valued Float64
             d_int = Int(d_un)
             if isodd(d_int)
-                # Sp(d) only exists for even d
                 return 0
             end
             m = div(d_int, 2)
@@ -84,8 +79,6 @@ INTEGRATION_RULES[:Sp] =
             for (p, q) in ub
                 pk = p <= m ? p + m : p - m
                 qk = q <= m ? q + m : q - m
-                # \bar{S}_{p,q} = (-1)^{p > m ? 1 : 0} * (-1)^{q > m ? 1 : 0} * S_{pk, qk}
-                # sign = (-1)^( (p>m) + (q>m) )
                 if (p <= m && q > m) || (p > m && q <= m)
                     sign_factor *= -1
                 end
@@ -105,9 +98,6 @@ INTEGRATION_RULES[:Sp] =
                 ),
             )
         else
-            # Symbolic d. Assume d is even.
-            # Convert conjugates using symbolic partner indices pk = p + d/2, qk = q + d/2.
-            # This is valid if p, q are "small" compared to d/2.
             m = d / 2
             sign_factor = 1
             converted_ub = Vector{Tuple{Any,Any}}()
@@ -257,7 +247,6 @@ end
 function integrate_indices(U_idxs::Vector{<:Tuple}, U_bar_idxs::Vector{<:Tuple}, dim)
     n = length(U_idxs)
 
-    # Fast paths for absolute moments where Eq. (12)-type formulas apply.
     if n > 0
         u0 = U_idxs[1]
         ub0 = U_bar_idxs[1]
@@ -270,8 +259,6 @@ function integrate_indices(U_idxs::Vector{<:Tuple}, U_bar_idxs::Vector{<:Tuple},
         I_bar = [x[1] for x in U_bar_idxs]
         J_bar = [x[2] for x in U_bar_idxs]
 
-        # One-row absolute moments:
-        # E[prod_j |U[i,j]|^(2a_j)] = prod_j a_j! / prod_{m=0}^{A-1}(d+m), A=sum_j a_j.
         if all(x -> x == I[1], I) && all(x -> x == I_bar[1], I_bar)
             I[1] == I_bar[1] || return 0
             J_counts = _count_values(J)
@@ -279,7 +266,6 @@ function integrate_indices(U_idxs::Vector{<:Tuple}, U_bar_idxs::Vector{<:Tuple},
             return J_counts == J_bar_counts ? _unitary_row_col_abs_moment(J_counts, dim) : 0
         end
 
-        # One-column absolute moments (symmetric case by transposition).
         if all(x -> x == J[1], J) && all(x -> x == J_bar[1], J_bar)
             J[1] == J_bar[1] || return 0
             I_counts = _count_values(I)
@@ -300,7 +286,6 @@ function integrate_indices(U_idxs::Vector{<:Tuple}, U_bar_idxs::Vector{<:Tuple},
         return 0
     end
 
-    # Group terms by cycle type
     cycle_counts = Dict{Vector{Int},Int}()
     n_v = length(valid)
     n_vt = length(valid_taus)
@@ -333,7 +318,6 @@ function integrate_indices(U_idxs::Vector{<:Tuple}, U_bar_idxs::Vector{<:Tuple},
         end
         return total
     else
-        # Symbolic dim: accumulate numerator/denominator from weingarten_raw
         total_num = zero(Num)
         total_den = one(Num)
 
@@ -474,16 +458,12 @@ function integrate_indices_orthogonal(indices::AbstractVector, dim)
     I = [x[1] for x in indices]
     J = [x[2] for x in indices]
 
-    # Shortcut: if all I are equal OR all J are equal
     is_I_uniform = all(x -> x == I[1], I)
     is_J_uniform = all(x -> x == J[1], J)
 
     if is_I_uniform || is_J_uniform
-        # Row sum of Wg matrix is 1 / prod_{j=0}^{k-1} (dim + 2j)
-        # Total sum = count_valid_partitions * row_sum
         denom = _orthogonal_row_sum_denom(dim, k)
         if is_I_uniform && is_J_uniform
-            # Both uniform: result is N_total / denom
             num = 1
             for i = 1:k
                 num *= (2*i-1)
@@ -505,7 +485,6 @@ function integrate_indices_orthogonal(indices::AbstractVector, dim)
         return 0
     end
 
-    # Group terms by canonicalized pair partitions
     pi_counts = Dict{Any,Int}()
     for pi in valid_pi
         c_pi = canonicalize_pair_partition(pi)
@@ -518,7 +497,6 @@ function integrate_indices_orthogonal(indices::AbstractVector, dim)
         sigma_counts[c_sigma] = get(sigma_counts, c_sigma, 0) + 1
     end
 
-    # Pre-aggregate counts by cycle type to minimize symbolic additions
     type_counts = Dict{Vector{Int},BigInt}()
     for (c_pi, count_pi) in pi_counts
         for (c_sigma, count_sigma) in sigma_counts
@@ -548,7 +526,6 @@ function integrate_indices_orthogonal(indices::AbstractVector, dim)
         return from_rational(local_total_rat)
     end
 
-    # Numeric case
     w, type_to_idx, _ = get_weingarten_reduced_data(k, dim)
     T_val = eltype(w)
     total = zero(T_val)
@@ -578,17 +555,12 @@ function get_matching_pair_partitions_filtered(indices::Vector{Int})
             return Vector{Vector{Tuple{Int,Int}}}()
         end
     end
-
-
-
     group_partitions = Vector{Vector{Vector{Tuple{Int,Int}}}}()
 
     for (val, pos_list) in counts
         k_local = length(pos_list)
-        # Generate partitions of 1..k_local
         local_parts_idx = get_pair_partitions(k_local)
 
-        # Map to real positions
         real_parts = Vector{Vector{Tuple{Int,Int}}}()
         for p in local_parts_idx
             mapped = [(pos_list[a], pos_list[b]) for (a, b) in p]
@@ -628,7 +600,6 @@ function integrate_indices_symplectic(indices::AbstractVector, dim)
     I = [x[1] for x in indices]
     J = [x[2] for x in indices]
 
-    # Pre-calculate and group contractions
     pi_contractions = Dict{Any,Any}()
     for pi in partitions
         val_I = compute_symplectic_contraction(pi, I, dim)
@@ -666,8 +637,6 @@ function integrate_indices_symplectic(indices::AbstractVector, dim)
                 ct = get_full_cycle_type(c_pi, c_sigma)
                 loops = length(ct)
                 sign = ((-1)^loops)
-                # val_pi * val_sigma * sign is an integer coefficient
-                # val_pi, val_sigma are Num wrapping ±1 from symplectic_form
                 vp = Symbolics.unwrap(val_pi)
                 vs = Symbolics.unwrap(val_sigma)
                 vp_int = vp isa Number ? Int(vp) : Int(Symbolics.value(vp))
@@ -742,8 +711,6 @@ function integrate_indices_gue(indices::AbstractVector, dim)
             (i_u, j_u) = indices[u]
             (i_v, j_v) = indices[v]
 
-            # Contraction < H_{i_u j_u} H_{i_v j_v} > = delta_{i_u j_v} * delta_{j_u i_v}
-            # Check equalities
             if !_symbolic_isequal(i_u, j_v) || !_symbolic_isequal(j_u, i_v)
                 possible = false
                 break
@@ -758,7 +725,6 @@ function integrate_indices_gue(indices::AbstractVector, dim)
     return total
 end
 
-# Vector{Any} delegate — the AbstractVector method above handles the actual work
 function integrate_indices_gue(indices::Vector{Any}, dim)
     return integrate_indices_gue(Vector{Tuple{Any,Any}}(indices), dim)
 end
@@ -784,7 +750,6 @@ function integrate_indices_goe(indices::AbstractVector, dim)
             (i1, j1) = indices[u]
             (i2, j2) = indices[v]
 
-            # GOE contraction: δ(i1,i2)δ(j1,j2) + δ(i1,j2)δ(j1,i2)
             val_pair = 0 // 1
 
             match1 = _symbolic_isequal(i1, i2) && _symbolic_isequal(j1, j2)
@@ -812,7 +777,6 @@ function integrate_indices_goe(indices::AbstractVector, dim)
     return total
 end
 
-# Removed helper methods that are no longer needed with relaxed signatures
 
 function _get_J(i, j, d)
     return symplectic_form(i, j, d)
@@ -824,7 +788,6 @@ function integrate_indices_gse(indices::AbstractVector, dim)
     total = 0 // 1
 
     for pi in partitions
-        # sum_{choices} (-1)^n2 * weight
         choice_combinations = collect(Iterators.product(fill([1, 2], n ÷ 2)...))
         for choices in choice_combinations
             term_val = 1 // 1
@@ -836,7 +799,6 @@ function integrate_indices_gse(indices::AbstractVector, dim)
 
                 choice = choices[p_idx]
                 if choice == 1
-                    # delta_ad delta_bc
                     if _symbolic_isequal(a, d) && _symbolic_isequal(b, c)
                         term_val *= 1
                     else
@@ -844,7 +806,6 @@ function integrate_indices_gse(indices::AbstractVector, dim)
                         break
                     end
                 else
-                    # - J_ac J_bd
                     n_type2 += 1
                     jac = _get_J(a, c, dim)
                     jbd = _get_J(b, d, dim)
@@ -887,7 +848,6 @@ function compute_symplectic_contraction(partition, indices, dim)
 end
 
 function symplectic_form(i, j, dim)
-    # J matrix: J_{ij} = δ(j, i+m) - δ(j, i-m), m = dim/2
     m = dim / 2
     if _iszero(j - (i + m))
         return 1
@@ -991,7 +951,6 @@ function integrate_indices_diagonal(U_idxs::AbstractVector, U_bar_idxs::Abstract
         return 0
     end
 
-    # Only rows matter since indices are diagonal
     rows_u = [x[1] for x in U_idxs]
     rows_ubar = [x[1] for x in U_bar_idxs]
     sort!(rows_u)

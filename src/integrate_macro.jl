@@ -1,6 +1,3 @@
-
-
-
 const EXCLUDED_MACRO_SYMS = Set{Symbol}([
     :abs,
     :abs2,
@@ -41,8 +38,6 @@ Symbolically integrate an expression over a measure, automatically declaring var
 Heuristics are used to identify which symbols represent random matrices and dimensions.
 """
 macro integrate(expr, measure)
-    # 1. Parse measure to get dimension and type
-    # measure is something like dU(d) or dO(2)
     if !Meta.isexpr(measure, :call)
         throw(ArgumentError("Measure must be a function call, e.g., dU(d)"))
     end
@@ -50,7 +45,6 @@ macro integrate(expr, measure)
     m_name = measure.args[1]
     m_dim = measure.args[2]
 
-    # 2. Identify "natural" symbol and tag based on measure name
     natural_sym, tag = if m_name == :dU || m_name == :dCUE || m_name == :dSU
         :U, :U
     elseif m_name == :dO
@@ -79,7 +73,6 @@ macro integrate(expr, measure)
         :U, :U # default
     end
 
-    # 3. Find all symbols in expr
     integrand_syms = Symbol[]
     MacroTools.postwalk(expr) do x
         if x isa Symbol
@@ -88,13 +81,10 @@ macro integrate(expr, measure)
         return x
     end
 
-    # Exclude common functions and keywords
     integrand_syms = filter(s -> !(s in EXCLUDED_MACRO_SYMS), unique(integrand_syms))
 
-    # 4. Generate declarations
     decls = []
 
-    # Handle dimension
     for arg in measure.args[2:end]
         if arg isa Symbol
             push!(decls, :(
@@ -105,7 +95,6 @@ macro integrate(expr, measure)
         end
     end
 
-    # Handle integrand symbols
     for s in unique(integrand_syms)
         if s == natural_sym
             push!(
