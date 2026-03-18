@@ -124,3 +124,10 @@ using IntU, Symbolics
 @integrate tr(P * A) dPerm(d)
 # Output: Sum(A_ij) / d
 ```
+
+## See Also
+
+- [Unitary Integration](unitary_integration.md) — Weingarten calculus for $U(d)$
+- [Diagonal Unitaries](diagonal_unitary.md) — integration over the torus (phase matrices)
+- [Asymptotic Expansions](asymptotic.md) — large-$d$ limits
+- [Symbolic Trace Logic](symbolic_trace.md) — index-free trace expressions

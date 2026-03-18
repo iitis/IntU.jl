@@ -188,12 +188,6 @@ INTEGRATION_RULES[:GinOE] =
 INTEGRATION_RULES[:GinSE] =
     (u, ub, d, mt) -> _dispatch_merged(u, ub, d, integrate_indices_ginse)
 
-
-"""
-    integrate_indices(U_idxs, U_bar_idxs, dim)
-
-Low-level integration function using Weingarten calculus (Unitary).
-"""
 function _unitary_single_entry_moment(n::Int, dim)
     n == 0 && return one(Num)
 
@@ -244,6 +238,11 @@ function _unitary_row_col_abs_moment(counts::Dict{Any,Int}, dim)
     return num / denom
 end
 
+"""
+    integrate_indices(U_idxs, U_bar_idxs, dim)
+
+Low-level integration function using Weingarten calculus (Unitary).
+"""
 function integrate_indices(U_idxs::Vector{<:Tuple}, U_bar_idxs::Vector{<:Tuple}, dim)
     n = length(U_idxs)
 

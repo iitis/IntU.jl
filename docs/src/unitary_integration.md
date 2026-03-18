@@ -235,3 +235,13 @@ See the [API Reference](api.md) for more details.
 1.  **Collins, B. (2003).** Moments and Cumulants of Polynomial random variables on unitary groups, the Itzykson-Zuber integral and free probability. *International Mathematics Research Notices*, 2003(17), 953-982.
 2.  **Collins, B., & Śniady, P. (2006).** Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups. *Communications in Mathematical Physics*, 264(3), 773-795. [arXiv:math-ph/0402073](https://arxiv.org/abs/math-ph/0402073)
 3.  **Puchala, Z., & Miszczak, J. A. (2017).** Symbolic integration with respect to the Haar measure on the unitary groups. *Bulletin of the Polish Academy of Sciences. Technical Sciences*, 65(1), 21-27.
+
+## See Also
+
+- [Symbolic Trace Logic](symbolic_trace.md) — index-free trace integration built on top of this engine
+- [Orthogonal & Symplectic](orthogonal_integration.md) — Weingarten calculus for $O(d)$ and $Sp(d)$
+- [Circular Ensembles](circular_ensembles.md) — COE, CUE, CSE using the same Haar machinery
+- [Integral Library](integral_library.md) — pre-computed results that bypass this engine
+- [Asymptotic Expansions](asymptotic.md) — large-$d$ expansions of Weingarten results
+- [Pure States](pure_states.md) — first-column Weingarten specialisation
+- [Stiefel Manifolds](stiefel_manifold.md) — first-$k$-column Weingarten specialisation

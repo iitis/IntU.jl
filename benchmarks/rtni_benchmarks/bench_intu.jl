@@ -13,6 +13,8 @@ using BenchmarkTools
 using Memoization
 using Printf
 using ITensors
+using Dates
+using SHA
 
 @variables d
 
@@ -32,6 +34,82 @@ function median_ms(b)
 end
 
 results = Dict{String,Any}()
+
+function module_version(mod)
+    try
+        v = Base.pkgversion(mod)
+        return v === nothing ? "unknown" : string(v)
+    catch
+        return "unknown"
+    end
+end
+
+function file_sha256(path::AbstractString)
+    if !isfile(path)
+        return "missing"
+    end
+    open(path, "r") do io
+        return bytes2hex(SHA.sha256(read(io)))
+    end
+end
+
+function benchmark_meta()
+    hostname = try
+        gethostname()
+    catch
+        "unknown"
+    end
+    rtni_path = abspath(joinpath(@__DIR__, "RTNI.wl"))
+    return Dict(
+        "timestamp_utc" => string(Dates.now(Dates.UTC)),
+        "host" => Dict(
+            "hostname" => hostname,
+            "os" => string(Sys.KERNEL),
+            "arch" => string(Sys.ARCH),
+            "machine" => string(Sys.MACHINE),
+        ),
+        "runtime" => Dict("name" => "Julia", "version" => string(VERSION)),
+        "packages" => Dict(
+            "IntU" => module_version(IntU),
+            "ITensors" => module_version(ITensors),
+        ),
+        "sources" => Dict(
+            "RTNI.wl" => Dict("path" => rtni_path, "sha256" => file_sha256(rtni_path)),
+        ),
+        "script" => abspath(@__FILE__),
+    )
+end
+
+function json_escape(s::AbstractString)
+    return replace(
+        s,
+        "\\" => "\\\\",
+        "\"" => "\\\"",
+        "\n" => "\\n",
+        "\r" => "\\r",
+        "\t" => "\\t",
+    )
+end
+
+function to_json(x)
+    if x isa Dict
+        parts = String[]
+        for (k, v) in sort(collect(x), by = p -> string(p[1]))
+            push!(parts, "\"" * json_escape(string(k)) * "\": " * to_json(v))
+        end
+        return "{" * join(parts, ", ") * "}"
+    elseif x isa AbstractVector
+        return "[" * join((to_json(v) for v in x), ", ") * "]"
+    elseif x isa AbstractString
+        return "\"" * json_escape(x) * "\""
+    elseif x isa Bool
+        return x ? "true" : "false"
+    elseif x === nothing
+        return "null"
+    else
+        return string(x)
+    end
+end
 
 function canonicalize_result(res)
     if res isa ITensor
@@ -359,29 +437,40 @@ run_and_report("U_tr(UAUdB)^2_sym_itensor",
 # ============================================================================
 # Save results
 # ============================================================================
+results["_meta"] = benchmark_meta()
+output_path = joinpath(@__DIR__, "results_intu.json")
+
 println("\n" * "="^72)
 println("Summary (median times in ms)")
 println("="^72)
 @printf("%-30s %12s\n", "Benchmark", "Median (ms)")
 println("-"^42)
 for (name, data) in sort(collect(results), by = x->x[1])
+    if name == "_meta"
+        continue
+    end
     @printf("%-30s %12.2f\n", name, data["median_ms"])
 end
 
-open("results_intu.json", "w") do io
+# Write JSON manually (avoids JSON3 dependency)
+open(output_path, "w") do io
     println(io, "{")
     entries = sort(collect(results), by = x->x[1])
     for (idx, (name, data)) in enumerate(entries)
-        ms = data["median_ms"]
-        res = data["result"]
-        n = data["samples"]
-        status = get(data, "status", "ok")
         comma = idx < length(entries) ? "," : ""
-        println(
-            io,
-            "  \"$name\": {\"median_ms\": $ms, \"result\": \"$(escape_string(string(res)))\", \"samples\": $n, \"status\": \"$(escape_string(string(status)))\"}$comma",
-        )
+        if name == "_meta"
+            println(io, "  \"_meta\": $(to_json(data))$comma")
+        else
+            ms = data["median_ms"]
+            res = data["result"]
+            n = data["samples"]
+            status = get(data, "status", "ok")
+            println(
+                io,
+                "  \"$name\": {\"median_ms\": $ms, \"result\": \"$(escape_string(string(res)))\", \"samples\": $n, \"status\": \"$(escape_string(string(status)))\"}$comma",
+            )
+        end
     end
     println(io, "}")
 end
-println("\nResults saved to results_intu.json")
+println("\nResults saved to $(output_path)")

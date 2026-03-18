@@ -11,6 +11,11 @@ import time
 import statistics
 import json
 import sys
+import datetime
+import platform
+import socket
+from pathlib import Path
+from importlib import metadata
 from sympy import Symbol
 
 import haarpy
@@ -62,6 +67,25 @@ def benchmark(func, n_warmup=N_WARMUP, n_samples=N_SAMPLES):
 # ============================================================================
 
 results = {}
+
+
+def benchmark_meta():
+    try:
+        haarpy_version = getattr(haarpy, "__version__", None) or metadata.version("haarpy")
+    except Exception:
+        haarpy_version = "unknown"
+    return {
+        "timestamp_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "host": {
+            "hostname": socket.gethostname(),
+            "os": platform.system(),
+            "arch": platform.machine(),
+            "machine": platform.platform(),
+        },
+        "runtime": {"name": "Python", "version": platform.python_version()},
+        "packages": {"haarpy": haarpy_version},
+        "script": str(Path(__file__).resolve()),
+    }
 
 
 def run_and_report(name, func):
@@ -293,17 +317,22 @@ run_and_report(
 # ============================================================================
 # Save results
 # ============================================================================
+results["_meta"] = benchmark_meta()
+output_path = Path(__file__).resolve().parent / "results_haarpy.json"
+
 print("\n" + "=" * 72)
 print("Summary (median times in ms)")
 print("=" * 72)
 print(f"{'Benchmark':<30s} {'Median (ms)':>12s}")
 print("-" * 42)
 for name, data in results.items():
+    if name == "_meta":
+        continue
     if "error" in data:
         print(f"{name:<30s} {'FAILED':>12s}")
     else:
         print(f"{name:<30s} {data['median_ms']:12.2f}")
 
-with open("results_haarpy.json", "w") as f:
+with output_path.open("w", encoding="utf-8") as f:
     json.dump(results, f, indent=2)
-print(f"\nResults saved to results_haarpy.json")
+print(f"\nResults saved to {output_path}")

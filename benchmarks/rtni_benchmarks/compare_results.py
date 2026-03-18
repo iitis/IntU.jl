@@ -12,6 +12,9 @@ import sys
 from pathlib import Path
 
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+
+
 def row(*, intu_key, rtni_key, label, group, integrand, trace_row=False):
     return {
         "intu_key": intu_key,
@@ -217,16 +220,120 @@ SUPPLEMENTARY_ROWS = [
     ),
 ]
 
-LATEX_ROWS_OUTPUT = Path("rtni_table_rows.tex")
+LATEX_ROWS_OUTPUT = SCRIPT_DIR / "rtni_table_rows.tex"
 
 
 def load_json(path):
+    path_obj = SCRIPT_DIR / path
     try:
-        with open(path, encoding="utf-8") as f:
+        with path_obj.open(encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
-        print(f"Error: {path} not found. Run the benchmark script first.")
+        print(f"Error: {path_obj} not found. Run the benchmark script first.")
         sys.exit(1)
+
+
+def get_meta(blob):
+    raw = blob.get("_meta")
+    return raw if isinstance(raw, dict) else None
+
+
+def nested_get(dct, keys):
+    cur = dct
+    for key in keys:
+        if not isinstance(cur, dict):
+            return None
+        cur = cur.get(key)
+    return cur
+
+
+def print_meta(label, meta):
+    print(f"\n{label} metadata")
+    if not meta:
+        print("  warning: missing _meta block")
+        return
+
+    ts = meta.get("timestamp_utc", "unknown")
+    runtime_name = nested_get(meta, ("runtime", "name")) or "unknown"
+    runtime_ver = nested_get(meta, ("runtime", "version")) or "unknown"
+    host = nested_get(meta, ("host", "hostname")) or "unknown"
+    os_name = nested_get(meta, ("host", "os")) or "unknown"
+    arch = nested_get(meta, ("host", "arch")) or "unknown"
+    script = meta.get("script", "unknown")
+    sources = meta.get("sources", {})
+
+    print(f"  timestamp_utc: {ts}")
+    print(f"  runtime: {runtime_name} {runtime_ver}")
+    print(f"  host: {host} ({os_name}, {arch})")
+    if isinstance(sources, dict) and sources:
+        print(f"  sources: {sources}")
+    else:
+        print("  sources: unknown")
+    print(f"  script: {script}")
+
+
+def warn_missing_meta_field(meta, path, label, side):
+    if nested_get(meta, path) is None:
+        print(f"Warning: metadata missing {label} in {side} result.")
+
+
+def warn_mismatch_field(left_meta, right_meta, path, label, left_side, right_side):
+    left_val = nested_get(left_meta, path)
+    right_val = nested_get(right_meta, path)
+    if left_val is None or right_val is None:
+        return
+    if left_val != right_val:
+        print(
+            f"Warning: metadata mismatch for {label}: "
+            f"{left_side}={left_val!r}, {right_side}={right_val!r}."
+        )
+
+
+def warn_meta_consistency(intu_meta, rtni_meta):
+    if not intu_meta or not rtni_meta:
+        print("Warning: metadata consistency check skipped because one or both _meta blocks are missing.")
+        return
+
+    for path, label in [
+        (("host", "hostname"), "host.hostname"),
+        (("host", "os"), "host.os"),
+        (("host", "arch"), "host.arch"),
+    ]:
+        warn_mismatch_field(intu_meta, rtni_meta, path, label, "IntU", "RTNI")
+
+    for path, label, side in [
+        (("runtime", "name"), "runtime.name", "IntU"),
+        (("runtime", "version"), "runtime.version", "IntU"),
+        (("packages", "IntU"), "packages.IntU", "IntU"),
+        (("packages", "ITensors"), "packages.ITensors", "IntU"),
+    ]:
+        warn_missing_meta_field(intu_meta, path, label, side)
+
+    for path, label, side in [
+        (("runtime", "name"), "runtime.name", "RTNI"),
+        (("runtime", "version"), "runtime.version", "RTNI"),
+        (("packages", "RTNI"), "packages.RTNI", "RTNI"),
+    ]:
+        warn_missing_meta_field(rtni_meta, path, label, side)
+
+    intu_runtime = nested_get(intu_meta, ("runtime", "name"))
+    if intu_runtime is not None and intu_runtime != "Julia":
+        print(f"Warning: unexpected IntU runtime.name={intu_runtime!r} (expected 'Julia').")
+
+    rtni_runtime = nested_get(rtni_meta, ("runtime", "name"))
+    if rtni_runtime is not None and rtni_runtime != "Mathematica":
+        print(
+            f"Warning: unexpected RTNI runtime.name={rtni_runtime!r} "
+            "(expected 'Mathematica')."
+        )
+
+    for path, label in [
+        (("sources", "RTNI.wl", "sha256"), "sources.RTNI.wl.sha256"),
+        (("sources", "RTNI.wl", "path"), "sources.RTNI.wl.path"),
+    ]:
+        warn_missing_meta_field(intu_meta, path, label, "IntU")
+        warn_missing_meta_field(rtni_meta, path, label, "RTNI")
+        warn_mismatch_field(intu_meta, rtni_meta, path, label, "IntU", "RTNI")
 
 
 def get_entry(blob, key):
@@ -355,6 +462,12 @@ def write_latex_rows_file(rows, intu, rtni, out_path):
 def main():
     intu = load_json("results_intu.json")
     rtni = load_json("results_rtni.json")
+    intu_meta = get_meta(intu)
+    rtni_meta = get_meta(rtni)
+
+    print_meta("IntU.jl", intu_meta)
+    print_meta("RTNI", rtni_meta)
+    warn_meta_consistency(intu_meta, rtni_meta)
 
     render_console_table(
         MAIN_COMPARABLE_ROWS,

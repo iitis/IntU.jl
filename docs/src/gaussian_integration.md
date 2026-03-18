@@ -165,3 +165,15 @@ IntU.jl automates the following steps:
 ## Pre-computed Moments
 
 For common moments like $\langle \text{Tr}(H^2) \rangle$, $\langle \text{Tr}(H^4) \rangle$, and $\langle \text{Tr}(H^6) \rangle$, `IntU.jl` uses a [Pre-computed Integral Library](integral_library.md) to provide results instantly.
+
+> [!TIP]
+> Low-order moments for GUE, GOE, GSE, and the Ginibre ensembles are pre-computed in the
+> [Integral Library](integral_library.md) and returned in $\mathcal{O}(1)$ — bypassing
+> the Wick contraction engine entirely.
+
+## See Also
+
+- [Integral Library](integral_library.md) — pre-computed GUE/GOE/GSE/Ginibre moments
+- [Asymptotic Expansions](asymptotic.md) — large-$d$ limit of Gaussian moments
+- [Unitary Integration](unitary_integration.md) — Weingarten calculus for $U(d)$
+- [Circular Ensembles](circular_ensembles.md) — COE, CUE, CSE
