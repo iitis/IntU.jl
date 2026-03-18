@@ -12,8 +12,7 @@ println("Matrix S is symmetric unitary: S = S^T.")
 # The macro expects variable S for dCOE
 
 # Moment: E[|O_11|^2]
-# For COE, E[|O_ij|^2] = (1 + delta_ij) / (d + 1)
-# So E[|O_11|^2] = 2/(d+1)
+# E[|O_11|^2] = 2/(d+1)
 println("Integrating |S[1,1]|^2 over COE(d)...")
 res_coe = @integrate abs(S[1, 1])^2 dCOE(d)
 println("E[|S_11|^2] = $(Symbolics.simplify(res_coe)) (Expected: 2/(d+1))")
@@ -35,7 +34,7 @@ println("Matrix S is self-dual unitary: S = J S^T J^T.")
 println("Note: CSE dimension must be even.")
 
 # Moment: E[|Sp_11|^2]
-# For CSE, E[|Sp_ii|^2] = 1/(d-1)
+# E[|Sp_ii|^2] = 1/(d-1)
 println("Integrating |S[1,1]|^2 over CSE(4)...")
 res_cse = @integrate abs(S[1, 1])^2 dCSE(4)
 println("E[|S_11|^2] = $(res_cse) (Expected: 1/(4-1) = 1/3)")

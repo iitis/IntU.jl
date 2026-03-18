@@ -24,7 +24,7 @@ println("\n--- 3. Unbalanced Moment E[D_11^10 * conj(D_11)^9] ---")
 expr3 = D[1, 1]^10 * conj(D[1, 1])^9
 @btime integrate($expr3, $measure)
 
-# Comparison with Full Haar U(d) for same indices (computationally much harder for Haar)
+# Comparison with Full Haar U(d) for same indices
 println("\n--- 4. Comparison: Order 4 Moment in Haar dU vs dDiag ---")
 U = SymbolicMatrix(:U, :U, d)
 measure_u = dU(d)

@@ -24,7 +24,6 @@ function benchmark_ginibre(N_vals, powers)
     Gs = SymbolicMatrix(:G, :GinUE, d)
     meas_s = dGinUE(d)
     for p in powers
-        # For LazyTrace, it's tr(G G')^p
         expr = tr_lazy(Gs * Gs')^p
         println("  <Tr(G G')^$p> (Symbolic d)")
         t = @benchmark integrate($expr, $meas_s)

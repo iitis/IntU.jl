@@ -10,7 +10,6 @@ println("Result: ", res1)
 println()
 
 # 2. Concrete dimension and high power
-# The Haar integration is now hyper-optimized!
 println("Example 2: @integrate abs(tr(U))^10 dU(10)")
 @time res2 = @integrate abs(tr(U))^10 dU(10)
 println("Result: ", res2)

@@ -9,7 +9,6 @@ println("=== Symbolic Dimension Integration for Real Groups ===")
 
 # --- Orthogonal Group O(d) ---
 println("\n--- Orthogonal Group O(d) ---")
-# Using SymbolicMatrix is the easiest way to work with symbolic dimensions
 O = SymbolicMatrix(:O, :O)
 
 # 1. Integrate O_11^2
@@ -32,9 +31,7 @@ println("Result: $(Symbolics.simplify(res_o3)) (Expected: (d+1) / (d*(d-1)*(d+2)
 
 # --- Symplectic Group Sp(d) ---
 println("\n--- Symplectic Group Sp(d) ---")
-# Integration over Sp(d) with symbolic d is supported but requires careful index matching.
 println("1. Integrating abstract symplectic Weingarten functions")
-# Weingarten functions for Sp(d) are available for symbolic d:
 p1 = [(1, 2)]
 p2 = [(1, 2)]
 wg_sp = weingarten_symplectic_val(p1, p2, d)

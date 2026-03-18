@@ -5,14 +5,12 @@ println("=== Pre-computed Integral Library Examples ===\n")
 
 @variables d
 # 1. Haar Unitary Trace (tr(U A U' B))
-# This is a very common integral in QI and RMT.
 println("1. Haar Unitary Trace")
 U = SymbolicMatrix(:U, :U)
 A = SymbolicMatrix(:A)
 B = SymbolicMatrix(:B)
 
 println("Integrating tr(U * A * U' * B) over dU(d)...")
-# This returns instantly because it's in the library
 res = integrate(tr(U * A * U' * B), dU(d))
 println("Result: ", res)
 println(" (Expected: (tr(A) * tr(B)) / d)\n")

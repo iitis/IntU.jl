@@ -339,7 +339,7 @@ function bench_matrix(N)
     d_val = N
     U_sym = SymbolicMatrix(:U, :U, d_val)
     m = dU(d_val)
-    expr = U_sym * U_sym' # This creates an N x N matrix of expressions if d_val is concrete
+    expr = U_sym * U_sym'
 
     t, mem = measure_median_func(() -> integrate(expr, m))
     @printf("%-15s %10.2f %20.2f\n", "$N x $N", t, mem)

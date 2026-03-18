@@ -10,16 +10,12 @@ using LinearAlgebra
 println("=== Stiefel Manifold Integration Example ===")
 
 @variables d
-# 1. Define variables
-# We deal with a d x k matrix V.
-# Let's consider k = 2
 k = 2
 
 println("\n--- Defining Variables ---")
 println("Dimension d: symbolic")
 println("Stiefel dimension k: $k")
 
-# Using SymbolicMatrix to represent the Stiefel matrix V
 V = SymbolicMatrix(:V, :V)
 
 # 2. Normalization check

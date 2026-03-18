@@ -98,13 +98,11 @@ cse_diag4 = @integrate abs(S[1, 1])^4 dCSE(d)
 println("CSE Diag 2nd: $cse_diag2")
 println("CSE Diag 4th: $cse_diag4")
 
-# Simplify results for better readability
 println("\nSimplified results:")
 println("1. $(Symbolics.simplify(res1))")
 println("2. $(Symbolics.simplify(res2))")
 println("3. $(Symbolics.simplify(res3))")
 
-# manual declaration using factory functions
 println("\nDefining another symbolic matrix V using factory function:")
 V = symbolic_unitary(:V, d)
 res_v = integrate(abs(V[1, 1])^2, dU(d))

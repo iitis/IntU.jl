@@ -16,7 +16,6 @@ using ITensors
 
 @variables d
 
-# Match RTNI benchmark settings
 BenchmarkTools.DEFAULT_PARAMETERS.samples = 10
 const FAST_SAMPLES = 10
 const SLOW_SAMPLES = 3
@@ -144,7 +143,6 @@ function trace_moment_itensor_network(k::Int, idx_dim::Int)
             is_adj = true,
         )
 
-        # Close each U and U† into a trace loop.
         push!(tensors, U, delta(out_idx, in_idx), U_dag, delta(out_idx_adj, in_idx_adj))
     end
     return tensors

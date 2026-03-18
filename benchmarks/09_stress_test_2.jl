@@ -74,10 +74,8 @@ orth_row_product(d, m::Int) = 1 / prod(d + 2i for i = 0:(m-1))
 orth_row_square_square(d) = 9 / prod(d + 2i for i = 0:3)
 
 # Sp(d): we use the same |S_11|^2-moment formulas as U(d) (complex entry magnitude-squared moments),
-# plus a known "no-conjugates" example from Collins (arXiv:2109.14890, Example 4.7). :contentReference[oaicite:3]{index=3}
 symp_abs2_moment(d, k::Int) = unitary_abs2_moment(d, k)
 
-# --- Benchmark wrapper ---------------------------------------------------------
 function bench_integrate(expr, μ; samples::Int)
     r = integrate(expr, μ)
     t = @benchmark integrate($expr, $μ) evals=1 samples=samples
@@ -91,7 +89,6 @@ function bench_integrate(expr, μ; samples::Int)
     )
 end
 
-# --- Build and run test suite --------------------------------------------------
 results = Dict{String,Any}(
     "meta" => Dict(
         "timestamp" => string(Dates.now()),

@@ -7,10 +7,7 @@ println("=== SU(d) Integration (Stable Range) ===\n")
 @variables d
 U = SymbolicMatrix(:U, :U)
 
-# Define the Special Unitary Measure
-# In the stable range (d large), SU(d) integrals coincide with U(d) for balanced moments.
 println("--- 1. Define Measure ---")
-# The new interface supports dSU(d) directly
 println("Using measure dSU(d)")
 
 # Example 1: Balanced Moment

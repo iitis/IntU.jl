@@ -7,10 +7,7 @@ println("=== Diagonal Unitary Integration (Torus Group) ===\n")
 @variables d
 D = SymbolicMatrix(:D, :DiagUnitary)
 
-# Define the Diagonal Unitary Measure
-# This measure integrates over matrices of form D = diag(exp(iθ_1), ..., exp(iθ_d))
 println("--- 1. Define Measure ---")
-# The new interface supports dDiagUnitary(d) directly
 println("Using measure dDiagUnitary(d)")
 
 # Example 1: Simple Phase Average
