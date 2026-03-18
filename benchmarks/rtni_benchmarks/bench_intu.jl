@@ -452,8 +452,7 @@ for (name, data) in sort(collect(results), by = x->x[1])
     @printf("%-30s %12.2f\n", name, data["median_ms"])
 end
 
-# Write JSON manually (avoids JSON3 dependency)
-open(output_path, "w") do io
+open("results_intu.json", "w") do io
     println(io, "{")
     entries = sort(collect(results), by = x->x[1])
     for (idx, (name, data)) in enumerate(entries)
