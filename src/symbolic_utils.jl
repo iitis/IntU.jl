@@ -212,9 +212,6 @@ indices or `nothing` for metadata-only matching), or `nothing` otherwise.
 The built-in subtype is [`MetadataMatcher`](@ref).
 """
 abstract type AbstractIndexMatcher end
-
-
-
 """
     MetadataMatcher(type_tag::Symbol)
 
@@ -231,7 +228,7 @@ Conjugate entries (`is_adj = true`) are tagged as `Symbol(type_tag, :_bar)`
 (e.g. `:U_bar`).
 """
 struct MetadataMatcher <: AbstractIndexMatcher
-    type_tag::Symbol # :U, :O, :Sp, etc.
+    type_tag::Symbol
 end
 
 function match_index(m::MetadataMatcher, t)
@@ -245,7 +242,6 @@ function match_index(m::MetadataMatcher, t)
         return nothing
     end
 
-    # Handle conj(U_i_j)
     is_conj = false
     if Symbolics.iscall(s) &&
        (Symbolics.operation(s) == conj || Symbolics.operation(s) == Base.conj)
@@ -262,7 +258,6 @@ function match_index(m::MetadataMatcher, t)
             indices = get(meta, :indices, nothing)
             if indices !== nothing
                 i, j = indices
-                # Combine is_conj (from call) and :is_adj (from metadata)
                 final_is_conj = is_conj || get(meta, :is_adj, false)
 
                 final_tag = final_is_conj ? Symbol(m.type_tag, :_bar) : m.type_tag
@@ -312,7 +307,6 @@ function _extract_coeff_core(term)
 end
 
 function _is_fn_sq(term, fn1, fn2)
-    # Strip potential 1 * ... wrapper
     if Symbolics.iscall(term) && Symbolics.operation(term) == (*)
         args = Symbolics.arguments(term)
         if length(args) == 2 && isequal(args[1], 1)

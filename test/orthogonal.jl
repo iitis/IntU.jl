@@ -4,7 +4,6 @@ using Symbolics
 using LinearAlgebra
 
 @testset "Orthogonal Group Integration" begin
-    # Helper to check if a symbolic expression is zero
     function is_like_zero(x)
         x_un = Symbolics.unwrap(x)
         if x_un isa Number
@@ -16,9 +15,7 @@ using LinearAlgebra
         return false
     end
 
-    # Define variables
     @variables d
-    # Use SymbolicMatrix tagged as :O
     O = SymbolicMatrix(:O, :O, d)
 
     # Measure
@@ -48,9 +45,6 @@ using LinearAlgebra
         end
         @test is_like_zero(Symbolics.simplify(sum_val - 1))
 
-        # Symbolic sum check
-        # We can't do symbolic sum over d directly without summation syntax, 
-        # but we can test E[O_11^2 + O_12^2 + O_13^2] = 3/d
         O_sym = SymbolicMatrix(:O, :O, d)
         m_sym = dO(d)
         sum_3 = integrate(O_sym[1, 1]^2 + O_sym[1, 2]^2 + O_sym[1, 3]^2, m_sym)
@@ -65,11 +59,10 @@ using LinearAlgebra
     end
 
     @testset "Symplectic Integration" begin
-        # Use SymbolicMatrix tagged as :Sp
         S = SymbolicMatrix(:S, :Sp, 2)
         mS = dSp(2)
 
-        # S[1,1]^2 -> 0 per debug
+        # S[1,1]^2 -> 0
         res1 = integrate(S[1, 1]^2, mS)
         @test is_like_zero(res1)
 

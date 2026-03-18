@@ -14,7 +14,6 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 
 
-# Ordered list of (key, display_name) for the comparison table
 BENCHMARKS = [
     # Unitary symbolic
     ("U_|U11|^6_sym", "U(d), |U₁₁|⁶, symbolic d"),
@@ -191,7 +190,6 @@ def main():
     print("Haarpy rows: default N=30, adaptively reduced to N=5 for slow cases (median reported).")
     print("Speedup = Haarpy / IntU.jl.")
 
-    # Also produce a LaTeX-ready table
     print("\n\n% LaTeX table (paste into manuscript)")
     print(r"\begin{table}")
     print(r"  \centering")
@@ -219,7 +217,6 @@ def main():
         else:
             sp_str = "---"
 
-        # Split label into group and integrand for LaTeX columns
         parts = label.split(", ", 1)
         group = parts[0]
         integrand = parts[1] if len(parts) > 1 else ""

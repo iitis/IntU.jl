@@ -32,7 +32,7 @@
         res2 = integrate(H[1, 2]^2, meas)
         @test to_numeric(res2) == 1
 
-        # < H_12 H_21 > = 1 (due to real symmetry)
+        # < H_12 H_21 > = 1
         res3 = integrate(H[1, 2]*H[2, 1], meas)
         @test to_numeric(res3) == 1
     end

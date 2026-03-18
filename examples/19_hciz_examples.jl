@@ -13,7 +13,7 @@ B = diagm([0.5, 1.5])
 res2 = hciz(A, B)
 println("A = diag([1.0, 2.0]), B = diag([0.5, 1.5])")
 println("hciz(A, B) = ", res2)
-println("Expected   = ", exp(3.5) - exp(2.5)) # (exp(1*0.5+2*1.5)-exp(1*1.5+2*0.5)) / (-1 * -1)
+println("Expected   = ", exp(3.5) - exp(2.5)) 
 
 # Example 2: Larger Dimension (d=5)
 println("\n2. Larger Dimension (d=5)")
@@ -23,7 +23,6 @@ B5 = diagm(reverse(collect(1.0:d_val)))
 res5 = hciz(A5, B5)
 println("d=$d_val, A=diag(1:5), B=diag(5:-1:1)")
 println("hciz(A, B) = ", res5)
-# The expected result is a combination of factorials and a 5x5 determinant
 println("Expected   = ", 2.4443344960374895e20)
 
 # Example 3: Symbolic Integration

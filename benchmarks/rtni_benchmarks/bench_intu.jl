@@ -18,7 +18,6 @@ using SHA
 
 @variables d
 
-# Match RTNI benchmark settings
 BenchmarkTools.DEFAULT_PARAMETERS.samples = 10
 const FAST_SAMPLES = 10
 const SLOW_SAMPLES = 3
@@ -27,13 +26,11 @@ const RATIONAL_TOL_ABS = BigFloat("1e-70")
 const RATIONAL_TOL_REL = BigFloat("1e-60")
 const RATIONAL_DEN_MAX = big(10)^12
 
-# High-order symbolic ITensor contractions can trigger large-order warnings;
-# disable warning spam so benchmark output remains readable.
 ITensors.disable_warn_order()
 
 function median_ms(b)
     m = median(b)
-    return m.time / 1e6  # ns -> ms
+    return m.time / 1e6
 end
 
 results = Dict{String,Any}()
@@ -115,7 +112,6 @@ function to_json(x)
 end
 
 function canonicalize_result(res)
-    # ITensors graphical integration returns rank-0 ITensor for scalar diagrams.
     if res isa ITensor
         if length(inds(res)) == 0
             return simplify(ITensors.scalar(res))
@@ -158,7 +154,6 @@ function format_result_string(res)
         return numeric_result_string(BigFloat(res), s)
     end
 
-    # Keep symbolic expressions untouched; only parse plain numeric strings.
     s = string(res)
     x = try
         parse(BigFloat, s)
@@ -193,7 +188,6 @@ function u11_moment_itensor_network(k::Int, idx_dim::Int)
             is_adj = true,
         )
 
-        # |U_11|^(2k): each U/U† pair is pinned by rank-1 projectors E11 on input and output legs.
         push!(tensors, U, projector_e11(in_idx, out_idx_adj), U_dag, projector_e11(in_idx_adj, out_idx))
     end
     return tensors
@@ -227,7 +221,6 @@ function trace_moment_itensor_network(k::Int, idx_dim::Int)
             is_adj = true,
         )
 
-        # Close each U and U† into a trace loop.
         push!(tensors, U, delta(out_idx, in_idx), U_dag, delta(out_idx_adj, in_idx_adj))
     end
     return tensors
@@ -296,8 +289,6 @@ function integrate_tr_uau_db_sq_itensor(
 end
 
 function choose_samples(f)
-    # Probe once with cache reset to mimic cold-ish run behavior and
-    # dynamically reduce samples for very slow benchmarks.
     Memoization.empty_all_caches!()
     probe_s = @elapsed f()
     return probe_s > SLOW_THRESHOLD_S ? SLOW_SAMPLES : FAST_SAMPLES
@@ -305,7 +296,6 @@ end
 
 function run_and_report(name, f)
     print("  Running: $name ...")
-    # Verify it works
     res = f()
     res = canonicalize_result(res)
     res_str = format_result_string(res)

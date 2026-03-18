@@ -1,4 +1,3 @@
-# Special Unitary Measure Integration
 
 """
     SpecialUnitary{D}
@@ -22,6 +21,5 @@ invariance rule as $U(d)$ and evaluate to zero.
 dSU(dim) = SpecialUnitary(dim)
 
 function IntU.measure_info(measure::SpecialUnitary)
-    # Delegates to HaarMeasure info
     return IntU.measure_info(dU(measure.dim))
 end

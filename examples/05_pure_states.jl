@@ -2,9 +2,6 @@ using IntU
 using Symbolics
 using LinearAlgebra
 
-# Example: Average Purity of a Haar-random pure state
-# For a pure state psi, rho = psi * psi'
-# We can represent it as the first column of a Haar-random unitary U.
 
 d1 = 2
 d2 = 2
@@ -13,7 +10,6 @@ U = SymbolicMatrix(:U, :U, d)
 
 # Subsystem 1 density matrix from the first column of U
 # rho1_ij = sum_k U_{ik} * conj(U_{jk}) where indices are mapped appropriately
-# For simplicity in this symbolic example, we use the entry-wise definition:
 println("Calculating average purity for a bipartite state of dimension d1*d2...")
 
 # Pure state |psi> = U[:, 1]. We map the single index i to (a, b)

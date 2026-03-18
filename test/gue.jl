@@ -19,7 +19,7 @@ using LinearAlgebra
     @testset "Tr(H^2)" begin
         expr = IntU.tr(H^2)
         res = integrate(expr, meas)
-        # Expected: N^2 (unscaled variance convention)
+        # Expected: N^2
         @test to_numeric(res) == N^2
     end
 

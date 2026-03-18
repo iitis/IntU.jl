@@ -31,9 +31,7 @@ res2 = integrate(expr2, dU(d))
 println("tr( (Ud ⊗ Ud) * (Ud† ⊗ Ud†) ) integrated over dU(d): ", simplify(res2))
 
 # 3. Matrix-Valued Integration with @integrate
-# This computes the integral of the matrix itself, term-by-term.
 println("\n--- 3. Matrix-Valued Integration ---")
-# Define a constant 9x9 matrix B
 B = SymbolicMatrix(:B, :Constant, 9)
 
 # @integrate handles :kron automatically

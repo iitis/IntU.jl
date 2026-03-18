@@ -25,13 +25,10 @@ using Symbolics
         # dSp
         res_sp = @integrate(Sp[1, 1]^2, dSp(d))
         @test is_really_zero(res_sp)
-        # Testing symbolic index fix: Sp[1, d+1] in 2d-dim
-        # Note: d must be even for dSp(d) to be formally correct, 2d is always even.
         res_sp2 = @integrate(Sp[1, d+1], dSp(2d))
         @test is_really_zero(res_sp2)
 
         # dCSE
-        # Just check it integrates
         res_cse = @integrate(S[1, 1]^2, dCSE(d))
         @test !isequal(res_cse, S[1, 1]^2)
     end
@@ -81,7 +78,6 @@ using Symbolics
         @test isequal(@integrate(abs(U[1, 1])^2, dU(d2)), 1/d2)
 
         # 4. Redefine a random matrix (S) back to constant matrix
-        # S was random for dCOE earlier. Now used as constant in dU.
         res_u = @integrate(S[1, 1] * abs(U[1, 1])^2, dU(d))
         @test isequal(res_u, S[1, 1] / d)
     end

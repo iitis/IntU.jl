@@ -41,9 +41,7 @@ Defines the Circular Symplectic Ensemble (CSE) measure on U(2N).
 Integration engine identifies variables via metadata tag `:CSE`.
 """
 dCSE(dim) = CSEMeasure(dim)
-# Closed-form result for ∫ |S_{ii}|^{2m} dS over COE(d):
-# (2^m · m!) / prod_{j=0}^{m-1}(d + 2j + 1).
-# Analogous to the orthogonal row-sum shortcut _orthogonal_row_sum_denom.
+  
 function _coe_diagonal_moment(m, dim)
     num = one(Rational{BigInt})
     for j = 1:m
@@ -100,9 +98,6 @@ function integrate_indices_coe(indices::AbstractVector, U_bar_indices::AbstractV
 
     m = n_s
 
-    # Shortcut: uniform diagonal case |S_{ii}|^{2m}.
-    # When all S and S̄ indices are the same diagonal entry (a,a),
-    # the result is (2^m · m!) / prod_{j=0}^{m-1}(d + 2j + 1).
     if m > 0
         a, b = indices[1]
         if a == b

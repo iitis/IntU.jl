@@ -39,8 +39,7 @@ import LinearAlgebra: tr
         end
 
         @testset "Graphical Calculus (LazyTrace)" begin
-            # Using SymbolicMatrix to trigger LazyTrace logic
-            Gs = SymbolicMatrix(:G, :GinUE, N) # Corrected: Ginibre Ensemble G
+            Gs = SymbolicMatrix(:G, :GinUE, N)
             meas_s = dGinUE(N)
 
             # < Tr(Gs * Gs') >
@@ -69,7 +68,6 @@ import LinearAlgebra: tr
     @testset "Symplectic Ginibre (GinSE)" begin
         G_se = SymbolicMatrix(:G, :GinSE, N)
         meas = dGinSE(N)
-        # Verify it doesn't crash and follows duality
         @test to_numeric(integrate(IntU.tr(G_se * G_se'), meas)) !== nothing
     end
 

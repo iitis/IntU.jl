@@ -12,7 +12,6 @@ function robust_substitute(ex, dict)
         return res
     end
 
-    # Fallback: manual Postwalk traversal with unwrapped keys
     unwrapped_dict = Dict(Symbolics.unwrap(k) => Symbolics.unwrap(v) for (k, v) in dict)
 
     p_res = SymbolicUtils.Postwalk(x -> begin
@@ -211,7 +210,6 @@ function _integrate_core(
 
                     if target_is_real
                         if is_real_sq_j && isequal(x_real_j, target_x)
-                            # Found match!
                             push!(new_args, c_i * target_x * conj(target_x))
                             skip_indices[j] = true
                             matched = true
@@ -219,7 +217,6 @@ function _integrate_core(
                         end
                     else
                         if is_imag_sq_j && isequal(x_imag_j, target_x)
-                            # Found match!
                             push!(new_args, c_i * target_x * conj(target_x))
                             skip_indices[j] = true
                             matched = true
@@ -264,7 +261,6 @@ function _integrate_core(
                 end
             end
         elseif op == (/)
-            # (A + B) / C -> A/C + B/C
             numerator = Symbolics.unwrap(args[1])
             if Symbolics.iscall(numerator) && Symbolics.operation(numerator) == (+)
                 return sum(
@@ -291,9 +287,7 @@ function _integrate_core(
 
     expr_rewritten = SymbolicUtils.Postwalk(
         x -> begin
-            # Apply rules first
             res = SymbolicUtils.PassThrough(chain)(x)
-            # Then distribute
             return monomializer(res)
         end;
         maketerm = (st, f, args, metadata; kwargs...) -> begin
@@ -317,12 +311,8 @@ function _integrate_core(
     else
         robust_substitute(Symbolics.unwrap(expr_num), subs_dict)
     end
-
-
-
     expanded_expr = Symbolics.expand(_safe_Num(Symbolics.unwrap(expr_subbed)))
 
-    # Flatten complex(...) calls introduced by substitution
     expanded_expr = _safe_Num(
         SymbolicUtils.Postwalk(
             x -> begin
@@ -399,7 +389,6 @@ function _safe_Num(x)
         return map(_safe_Num, x)
     end
     if !(x isa Number)
-        # Only wrap if it's a known symbolic object to avoid overhead/errors on obscure types
         if x isa SymbolicUtils.BasicSymbolic || x isa Symbolics.ComplexTerm
             return Num(x)
         end
@@ -424,8 +413,6 @@ function _try_extract_int(p_val)
     if p_val isa AbstractFloat && isinteger(p_val)
         return Int(p_val)
     end
-    # Fallback for symbolic types (e.g. BasicSymbolic{SymReal}) that
-    # represent integers but aren't Julia Integer subtypes
     return tryparse(Int, string(p_val))
 end
 
@@ -450,8 +437,6 @@ Integrates a single monomial term.
 function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :U)
     term = Symbolics.unwrap(term)
     if term isa LazyTrace
-        # If it leaked here, it means it's not specialized for this measure.
-        # Try a very basic expansion? No, let's error gracefully if not handled.
         throw(
             ArgumentError(
                 "Graphical integration (LazyTrace) not implemented for measure type $measure_type. Try expanding traces element-wise.",
@@ -489,7 +474,6 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
     function traverse(t, conjugated = false)
         t_unwrapped = Symbolics.unwrap(t)
 
-        # Try to match the variable directly (handles getindex, metadata, etc.)
         match_res = match_index(matcher, t_unwrapped)
         if match_res !== nothing
             _push_matched_index!(match_res, conjugated)
@@ -505,13 +489,11 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
             local op = Symbolics.operation(t_unwrapped)
             local args = Symbolics.arguments(t_unwrapped)
 
-            # Multiplicative: traverse each factor
             if op == (*)
                 for arg in args
                     traverse(arg, conjugated)
                 end
                 return
-                # Power: repeat base p times
             elseif op == (^)
                 base = args[1]
                 p_val = Symbolics.unwrap(args[2])
@@ -524,29 +506,24 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
                 end
                 traverse(base, conjugated)
                 return
-                # Division: traverse numerator, divide coefficient
             elseif op == (/)
                 traverse(args[1], conjugated)
                 coeff /= args[2]
                 return
-                # Conjugation: flip conjugated flag
             elseif op == conj || op == Base.conj
                 traverse(args[1], !conjugated)
                 return
-                # real(x) = (x + conj(x)) / 2
             elseif op == real || op == Base.real
                 coeff *= 1 // 2
                 traverse(args[1], conjugated)
                 traverse(args[1], !conjugated)
                 return
-                # imag(x) = (x - conj(x)) / (2im)
             elseif op == imag || op == Base.imag
                 coeff *= 1 // (2im)
                 traverse(args[1], conjugated)
                 coeff *= -1
                 traverse(args[1], !conjugated)
                 return
-                # Distributive: complex, +, -
             elseif op == complex || op == Base.complex || op == (+) || op == (-)
                 for arg in args
                     traverse(arg, conjugated)

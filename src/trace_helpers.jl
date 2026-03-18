@@ -1,5 +1,3 @@
-# Shared trace-graph helpers used by Haar, Gaussian, and Ginibre integration.
-# These functions operate on the cycle/factor structure of LazyTrace objects.
 
 """
     _extract_trace_data(t::LazyTrace)
@@ -34,11 +32,9 @@ function _build_wires(U_indices, U_bar_indices, cycle_ranges, all_factors)
     all_slots_set = Set{Int}(all_slots)
 
     for slot in all_slots
-        # Determine which cycle this slot belongs to
         cid = findfirst(rng -> slot in rng, cycle_ranges)
         rng = cycle_ranges[cid]
 
-        # Forward wire from index 2 to next index 1
         curr = slot
         consts = Any[]
         while true
@@ -50,7 +46,6 @@ function _build_wires(U_indices, U_bar_indices, cycle_ranges, all_factors)
             push!(consts, all_factors[curr])
         end
 
-        # Backward wire from index 1 to previous index 2
         curr = slot
         consts_rev = Any[]
         while true
@@ -75,7 +70,6 @@ function _evaluate_constant_cycles(t, cycle_ranges, all_slots, dim)
     res = t.prefactor
     slot_set = Set{Int}(all_slots)
     for (cid, rng) in enumerate(cycle_ranges)
-        # Check if any slot in rng is in all_slots (O(1) set lookup)
         has_U = any(idx -> idx in slot_set, rng)
 
         if !has_U

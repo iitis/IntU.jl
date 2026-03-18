@@ -20,7 +20,6 @@ for k = 1:3
     expected = factorial(k)
     println("Result: $val")
 
-    # The result should simplify to k! in the large-d limit or for d>=k
     # We can use symbolic substitution to check specific values
     val_at_d4 = Symbolics.substitute(val, Dict(d => 4))
     println("  At d=4: $val_at_d4 (Expected: $expected)")

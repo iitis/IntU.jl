@@ -30,12 +30,10 @@ SLOW_SAMPLES = 5
 
 
 def benchmark(func, n_warmup=N_WARMUP, n_samples=N_SAMPLES):
-    """Benchmark a function, returning median time in seconds."""
     # Warmup and detect slow benchmarks
     for _ in range(n_warmup):
         func()
 
-    # Probe: time one call to decide sample count
     start = time.perf_counter()
     func()
     probe_time = time.perf_counter() - start
@@ -45,8 +43,7 @@ def benchmark(func, n_warmup=N_WARMUP, n_samples=N_SAMPLES):
 
     times = []
     for _ in range(n_samples):
-        # Clear lru_cache between samples for fair comparison
-        # (IntU.jl benchmarks also re-run from scratch each sample)
+        # Clear cache between samples for fair comparison
         haarpy.haar_integral_unitary.cache_clear()
         haarpy.haar_integral_orthogonal.cache_clear()
         haarpy.haar_integral_circular_orthogonal.cache_clear()
@@ -94,7 +91,6 @@ def benchmark_meta():
 def run_and_report(name, func):
     print(f"  Running: {name} ...", end=" ", flush=True)
     try:
-        # Verify it produces a result first
         res = func()
         stats = benchmark(func)
         ms = stats["median_s"] * 1000
@@ -107,7 +103,6 @@ def run_and_report(name, func):
 
 
 # --- Section 1: Unitary |U_11|^{2k}, symbolic d ---
-# This is the primary comparison requested by the reviewer (k=3,4,5)
 
 print("\n=== Unitary: |U_11|^{2k}, symbolic d ===")
 
@@ -236,7 +231,6 @@ run_and_report(
 
 # --- Section 6: Off-diagonal integrals ---
 
-# Unitary off-diagonal
 print("\n=== Off-diagonal: Unitary, symbolic d ===")
 
 # |U_11|^2 |U_12|^2: rows=(1,1), cols=(1,2), conj_rows=(1,1), conj_cols=(1,2)
@@ -282,7 +276,6 @@ run_and_report(
     ),
 )
 
-# COE off-diagonal
 print("\n=== Off-diagonal: COE, symbolic d ===")
 
 # |S_12|^2: rows=(1,1), cols=(2,2)

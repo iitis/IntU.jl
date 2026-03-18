@@ -3,7 +3,6 @@ using Test
 using IntU
 using Symbolics
 
-# 1. Define Mock ITensor-like structures
 struct MockIndex
     id::Int
     dim::Int
@@ -14,26 +13,20 @@ struct MockTensor
     name::Symbol
 end
 
-# Implement the hooks required by IntU.integrate_graphical
 function IntU._contract_all(cs::Vector)
-    # For testing, we just return a symbolic expression representing the contraction
     if isempty(cs)
         return 1
     end
-    # Return a symbolic trace/product representation
     names = [c.name for c in cs]
     return Symbol("Contracted(", join(names, ","), ")")
 end
 
 function IntU._create_deltas(idxs1::Vector, idxs2::Vector)
-    # Return pairs of indices that are matched
     return [(idxs1[i], idxs2[i]) for i = 1:length(idxs1)]
 end
 
-# State control for mock behavior
 const mock_mode = Ref(:Unitary)
 
-# Consolidate _contract_with_deltas definition
 function IntU._contract_with_deltas(cs, ds, wg)
     if mock_mode[] == :Unitary
         return string(wg) * " * Tr(A)Tr(B)"
@@ -83,8 +76,6 @@ end
     mock_mode[] = :Orthogonal
 
     # Orthogonal integration for n=2
-    # weingarten_orthogonal_val sum
-    # This is more complex to predict exactly in mock, but we check if it runs.
     res_o = integrate_graphical([], [O1, O2], dO(2))
     @test contains(res_o, "Tr(O1 O2)")
 

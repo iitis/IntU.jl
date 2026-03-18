@@ -22,7 +22,6 @@ function benchmark_coe(k, N_matrix)
     measure = dCOE(d)
     expr = (S[1, 1] * conj(S[1, 1]))^k
 
-    # We display time
     @btime integrate($expr, $measure)
 end
 
@@ -62,7 +61,7 @@ benchmark_coe(2, N_val)
 benchmark_cse(2, N_val)
 benchmark_cue(2, N_val)
 
-# k=3 (6th moment) - Complexity grows
+# k=3 (6th moment)
 benchmark_coe(3, N_val)
-benchmark_cse(3, N_val) # CSE might be slower due to loop counting logic?
+benchmark_cse(3, N_val)
 benchmark_cue(3, N_val)

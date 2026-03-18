@@ -2,9 +2,7 @@ using IntU
 using Test
 using Symbolics
 
-# Helper to convert symbolic results to numbers
 function to_numeric(x)
-    # Flatten any complex(...) calls
     ux = Symbolics.unwrap(x)
     xf = SymbolicUtils.Postwalk(
         t -> begin

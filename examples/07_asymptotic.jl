@@ -30,6 +30,5 @@ println("Expansion (order 2): ", res3)
 
 # 5. Numeric dimension handling
 println("\n4. Numeric Dimension Handling (d=3)")
-# Even with numeric d, asymptotic returns a symbolic expansion in a dummy variable
 res4 = asymptotic(abs(U[1, 1])^4, dU(3), 4)
 println("Expansion (order 4): ", res4)

@@ -6,9 +6,7 @@ using Memoization
 using Printf
 import ITensors
 
-# Helper to run benchmark and return (median time in ms, memory in MiB)
 function measure_median_func(f)
-    # Benchmark the function call. We interpolate f to avoid overhead of finding it.
     b =
         @benchmark $f() evals=1 samples=30 seconds=120 setup=(Memoization.empty_all_caches!())
     m = median(b)
@@ -220,11 +218,6 @@ println("-----------------------------------------------------------------------
 @printf("%-20s %-10s %-10s %-10s\n", "Scaling Type", "Degree k", "Dim d", "Time (ms)")
 println("------------------------------------------------------------------------")
 
-function run_itensor_bench(k, d_val)
-    # Placeholder for consistency, actual calls moved to loop
-end
-
-# Copy create_trace_network from 10_itensor_integration.jl
 function create_trace_network(dim, k, measure_type = :U)
     out_indices = [ITensors.Index(dim, "Out,$i") for i = 1:k]
     in_indices = [ITensors.Index(dim, "In,$i") for i = 1:k]
@@ -292,7 +285,6 @@ function create_trace_network(dim, k, measure_type = :U)
     end
 end
 
-# Restore ITensor scaling benchmarks
 for k_val in [1, 2, 3, 4]
     local t_it, _ = measure_median_func(() -> begin
         tensors, measure = create_trace_network(2, k_val, :U)
@@ -347,7 +339,7 @@ function bench_matrix(N)
     d_val = N
     U_sym = SymbolicMatrix(:U, :U, d_val)
     m = dU(d_val)
-    expr = U_sym * U_sym' # This creates an N x N matrix of expressions if d_val is concrete
+    expr = U_sym * U_sym'
 
     t, mem = measure_median_func(() -> integrate(expr, m))
     @printf("%-15s %10.2f %20.2f\n", "$N x $N", t, mem)

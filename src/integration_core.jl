@@ -104,11 +104,8 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
         return Num(1)
     end
 
-    # Fast path: if the product does not contain the integration variable at all,
-    # it acts as a constant, so the integral is just the product itself.
     _, matcher, _, _ = measure_info(measure)
 
-    # We define a helper to safely extract the tag from different matchers
     if matcher isa MetadataMatcher ||
        (isdefined(Main, :SymbolicMatcher) && matcher isa Main.SymbolicMatcher) ||
        hasproperty(matcher, :tag) ||
@@ -122,11 +119,8 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
     dim_measure = _get_measure_dim(measure)
     n_factors = length(P.factors)
 
-    # inner_dims[i] is the shared dimension between factor i-1 and factor i
-    # inner_dims[1] is number of rows, inner_dims[n+1] is number of columns
     inner_dims = Vector{Any}(fill(nothing, n_factors + 1))
 
-    # Pass 1: Collect known dimensions
     for (i, f) in enumerate(P.factors)
         fr, fc = size(f)
         fr_un = Symbolics.unwrap(fr)
@@ -140,7 +134,6 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
         end
     end
 
-    # Pass 2: Fallback to measure dimension for any remaining unknowns
     for i = 1:(n_factors+1)
         if inner_dims[i] === nothing
             inner_dims[i] = dim_measure
@@ -157,7 +150,6 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
         nr = Int(nr_un)
         nc = Int(nc_un)
 
-        # Pre-calculate factor matrices to avoid repeated getindex overhead
         mats = []
         for (i, f) in enumerate(P.factors)
             cur_r = Symbolics.unwrap(inner_dims[i])
@@ -173,7 +165,6 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
 
             push!(mats, [f[r, c] for r = 1:Int(cur_r), c = 1:Int(cur_c)])
         end
-        # Calculate the full symbolic product once
         res_mat = reduce(*, mats)
 
         res = Matrix{Any}(undef, nr, nc)
@@ -226,14 +217,13 @@ function _integrate_core(
     matcher::AbstractIndexMatcher,
     measure_type = :U,
 )
-    # Split into real and imaginary parts to avoid recursion
     re = Symbolics.real(expr)
     im_part = Symbolics.imag(expr)
 
     int_re = _integrate_core(re, dim, subs_dict, matcher, measure_type)
     int_im = _integrate_core(im_part, dim, subs_dict, matcher, measure_type)
 
-    return int_re + 1im * int_im # standard complex number result
+    return int_re + 1im * int_im
 end
 
 function fallback_integrate(expr, measure)

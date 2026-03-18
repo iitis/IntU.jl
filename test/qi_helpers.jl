@@ -6,7 +6,6 @@ using Test
 @testset verbose=true "QI Helpers" begin
     @testset verbose=true "Partial Trace" begin
         # Test on a Bell state |phi+> = 1/sqrt(2) (|00> + |11>)
-        # rho = [1/2 0 0 1/2; 0 0 0 0; 0 0 0 0; 1/2 0 0 1/2]
         M = [0.5 0 0 0.5; 0 0 0 0; 0 0 0 0; 0.5 0 0 0.5]
         dims = (2, 2)
         rho = M

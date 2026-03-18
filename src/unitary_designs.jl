@@ -1,4 +1,3 @@
-# Unitary t-designs
 
 struct UnitaryDesign{D,T,M} <: AbstractMeasure
     dim::D
