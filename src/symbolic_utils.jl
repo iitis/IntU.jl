@@ -210,7 +210,7 @@ A matcher that identifies random matrix entries based on metadata attached to th
 The `type_tag` should match the `special_type` of a `SymbolicMatrix` (e.g., `:U`, `:O`, `:Sp`).
 """
 struct MetadataMatcher <: AbstractIndexMatcher
-    type_tag::Symbol # :U, :O, :Sp, etc.
+    type_tag::Symbol
 end
 
 function match_index(m::MetadataMatcher, t)

@@ -125,7 +125,7 @@ function check_gaussian_library(expr, measure, type)
         return nothing
     end
 
-    k = length(factors) # tr(H^k)
+    k = length(factors)
     d = measure.dim
 
     val = nothing

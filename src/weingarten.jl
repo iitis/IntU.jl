@@ -521,7 +521,7 @@ function _poly_gcd(a::Vector{BigInt}, b::Vector{BigInt})
     if !isempty(A) && A[end] < 0
         ;
         A = .-A;
-    end # Canonical sign
+    end
     return A
 end
 

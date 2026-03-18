@@ -223,7 +223,7 @@ function _integrate_core(
     int_re = _integrate_core(re, dim, subs_dict, matcher, measure_type)
     int_im = _integrate_core(im_part, dim, subs_dict, matcher, measure_type)
 
-    return int_re + 1im * int_im # standard complex number result
+    return int_re + 1im * int_im
 end
 
 function fallback_integrate(expr, measure)

@@ -163,7 +163,6 @@ end
 
 function _asymptotic_leaf_dict(ex_un, d_un, order)
     d_num = Symbolics.wrap(d_un)
-    # expand() is generally safer than simplify() for large mixed rational functions
     ex_sim = Symbolics.expand(Symbolics.wrap(ex_un))
 
     if ex_sim isa Complex

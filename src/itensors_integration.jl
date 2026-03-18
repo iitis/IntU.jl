@@ -153,7 +153,7 @@ function _integrate_graphical_unitary(constants, unitaries, dim; design_t = noth
     n_dag = length(u_dag_list)
 
     if n_u != n_dag
-        return 0 # Or a symbolic zero
+        return 0 # Maybe symbolic zero?
     end
 
     if design_t !== nothing && n_u > design_t
