@@ -10,16 +10,17 @@ concurrence, relative entropy) are planned for future releases.
 partial_trace(M, dims, subsystem)
 ```
 
-Symbolically computes the partial trace of a bipartite (or multipartite)
-composite system.
+Computes the partial trace of a bipartite (or multipartite) composite
+system. Supports symbolic matrix entries with concrete integer dimensions.
 
 - **`M`**: the density matrix (or arbitrary matrix) to trace over, of size
   $d_1 d_2 \times d_1 d_2$.
 - **`dims`**: a tuple of subsystem dimensions, e.g. `(d_A, d_B)`.
 - **`subsystem`**: the index of the subsystem to trace *out* (1-based).
 
-The function handles symbolic dimensions, so the result retains rational
-dependence on symbolic variables for further integration.
+The subsystem dimensions must be concrete integers. The matrix entries
+may be symbolic (e.g., products of `SymbolicMatrix` elements), so the
+result retains symbolic dependence for further integration.
 
 ## Example: Average Purity of a Random Bipartite State
 
@@ -55,29 +56,10 @@ println(avg_purity)
 
 The result $4/5$ agrees with the Page formula $(d_A + d_B)/(d_A d_B + 1) = 4/5$.
 
-## Example: Symbolic Dimensions
-
-The same calculation works with symbolic subsystem dimensions, producing
-an exact closed-form result:
-
-```julia
-using IntU, Symbolics
-@variables dA dB
-
-d = dA * dB
-U = SymbolicMatrix(:U, :U, d)
-psi = U[:, 1]
-rho = psi * adjoint(psi)
-rho_A = partial_trace(rho, (dA, dB), 2)
-
-avg_purity = integrate(tr(rho_A * rho_A), dU(d))
-# Output: (dA + dB) / (dA*dB + 1)
-```
-
 ## Example: Asymptotic Purity
 
-Combining `partial_trace` with `asymptotic` recovers the large-system
-behaviour directly:
+The Page formula can be combined with `asymptotic` to recover the
+large-system behaviour directly:
 
 ```julia
 using IntU, Symbolics

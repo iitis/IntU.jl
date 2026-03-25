@@ -68,6 +68,7 @@ has a $d^3$ leading term that is characteristic of free probability:
 ```julia
 using IntU, Symbolics
 @variables d
+H = SymbolicMatrix(:H, :GUE, d)
 
 # Leading large-d behaviour of the GUE 4th moment
 asymptotic(abs(tr(H))^4, dGUE(d), 2)
@@ -78,6 +79,10 @@ asymptotic(abs(tr(H))^4, dGUE(d), 2)
 ## Orthogonal group example
 
 ```julia
+using IntU, Symbolics
+@variables d
+O = SymbolicMatrix(:O, :O, d)
+
 # E[O_{11}^4] = 3/(d*(d+2)); leading large-d behaviour:
 asymptotic(O[1,1]^4, dO(d), 3)
 # Output: 3/d^2 - 6/d^3 + ...

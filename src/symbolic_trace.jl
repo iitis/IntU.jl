@@ -236,7 +236,7 @@ psi = symbolic_pure_state(:psi, d)
 integrate(abs(psi[1,1])^2, dPsi(d))   # 1/d
 ```
 """
-symbolic_pure_state(name, d) = SymbolicMatrix(name, false, :psi, d)
+symbolic_pure_state(name, d) = SymbolicMatrix(name, false, :psi, (d, 1))
 
 """
     symbolic_permutation(name::Symbol, d) -> SymbolicMatrix

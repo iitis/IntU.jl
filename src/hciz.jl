@@ -31,7 +31,7 @@ where `a` and `b` are eigenvalues of `A` and `B`, and `\\Delta` is the Vandermon
 If A and B are matrices, their eigenvalues are extracted. Supporting:
 - Numeric matrices (via `eigen`)
 - `Matrix{Num}` (symbolic diagonal or 2x2)
-- `SymbolicMatrix` (by generating symbolic eigenvalues `a_1, ..., a_d`)
+- `SymbolicMatrix` with concrete integer dimension (generates symbolic eigenvalues `a_1, ..., a_d`)
 
 Note: This formula is sensitive to degenerate eigenvalues where the denominators become zero. 
 In such cases, the limit should be taken. This implementation currently uses a 
@@ -44,15 +44,24 @@ function hciz(A::AbstractMatrix, B::AbstractMatrix)
 end
 
 function hciz(A::SymbolicMatrix, B::SymbolicMatrix)
-    if A.dim !== nothing
-        return hciz(A, B, A.dim)
-    else
+    d = A.dim
+    if d === nothing
         throw(
             ArgumentError(
-                "Must provide dimension d for symbolic HCIZ if matrices have symbolic dimension.",
+                "Must provide dimension d for symbolic HCIZ if matrices have no dimension set.",
             ),
         )
     end
+    if !(d isa Integer)
+        throw(
+            ArgumentError(
+                "HCIZ for SymbolicMatrix requires a concrete integer dimension " *
+                "(got $(typeof(d))). The formula requires enumerating d eigenvalue " *
+                "symbols and computing a d×d determinant.",
+            ),
+        )
+    end
+    return hciz(A, B, d)
 end
 
 function hciz(A::SymbolicMatrix, B::SymbolicMatrix, d::Int)

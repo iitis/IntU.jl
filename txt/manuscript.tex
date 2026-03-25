@@ -409,10 +409,12 @@ computed via standard diagonalization (\texttt{eigen}). For symbolic matrices
 of type \texttt{Matrix\{Num\}}, the package extracts eigenvalues from diagonal
 matrices of any dimension and from general $2 \times 2$ matrices via the
 quadratic formula; larger non-diagonal symbolic matrices require the user to
-supply eigenvalues directly. For \texttt{SymbolicMatrix} inputs, where explicit
-entries are not available, the package introduces formal eigenvalue symbols
-($a_1, \ldots, a_d$, $b_1, \ldots, b_d$) and evaluates the formula in terms of
-these symbols. When degenerate eigenvalues are detected in numeric input, the
+supply eigenvalues directly. For \texttt{SymbolicMatrix} inputs with a concrete integer dimension,
+where explicit entries are not available, the package introduces formal
+eigenvalue symbols ($a_1, \ldots, a_d$, $b_1, \ldots, b_d$) and evaluates the
+formula in terms of these symbols; symbolic dimensions are not supported here
+because the formula requires constructing a finite set of eigenvalue symbols and
+a $d \times d$ determinant. When degenerate eigenvalues are detected in numeric input, the
 implementation applies a perturbation $a_i \to a_i + i\,\epsilon$, where
 $\epsilon = \max(\|a\|_\infty,\, 1) \cdot 10^{-12}$ scales with the eigenvalue
 magnitude to maintain relative accuracy. This breaks exact degeneracies in the
@@ -501,12 +503,14 @@ sampling distribution.
 
 \subsection{Partial trace}
 The package includes a \texttt{partial\_trace(M, dims, system)} function
-for quantum information tasks. It computes the partial trace of a symbolic
-matrix $M$ over a specified subsystem, handling composite dimensions
-$d = d_A d_B$ symbolically so that the resulting reduced density matrix
-retains the correct symbolic dependencies for further integration. This
-enables the exact calculation of entanglement metrics such as purity by
-integrating the trace of the squared reduced density matrix, as
+for quantum information tasks. It computes the partial trace of a matrix
+$M$ over a specified subsystem, where the subsystem dimensions
+(e.g., $d_A$, $d_B$ with $d = d_A d_B$) are concrete integers. The
+matrix entries themselves may be symbolic expressions---for instance,
+products of \texttt{SymbolicMatrix} elements---so the resulting reduced
+density matrix retains symbolic dependencies suitable for further Haar
+integration. This enables the calculation of entanglement metrics such as
+purity by integrating the trace of the squared reduced density matrix, as
 demonstrated in Section~\ref{sec:performance}.
 
 \subsection{Symbolic dimensions and asymptotics}
