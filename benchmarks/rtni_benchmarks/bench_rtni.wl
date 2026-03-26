@@ -259,21 +259,30 @@ runAndReport[
 ];
 
 (* ============================================================================ *)
-(* Trace moments: graph API                                                      *)
+(* Trace moments: graph API + scalarization via converttomonomial               *)
 (* ============================================================================ *)
 
-trMomentGraph[k_] := Module[{g},
+(* Build the graph for |tr(U)|^{2k} and integrate.  The result of
+   integrateHaarUnitary is a list of {graph, weight} pairs (a tensor-network
+   superposition), NOT a scalar.  To obtain the scalar value we pass the
+   result through converttomonomial[..., {}, True], which traverses each
+   graph, constructs the matrix product, and applies Tr[].  This makes the
+   benchmark an apples-to-apples comparison with IntU.jl, which returns a
+   scalar directly. *)
+
+trMomentGraphScalar[k_] := Module[{g, graphResult},
   g = Join[
     Table[{{"U", i, 0, 1}, {"U", i, 1, 1}}, {i, k}],
     Table[{{"Ub", i, 0, 1}, {"Ub", i, 1, 1}}, {i, k}]
   ];
-  integrateHaarUnitary[g, "U", {dd}, {dd}, dd]
+  graphResult = integrateHaarUnitary[g, "U", {dd}, {dd}, dd];
+  converttomonomial[graphResult, {}, True]
 ];
 
 Print["\n=== Trace moments: |tr(U)|^{2k}, symbolic d ==="];
-runAndReport["U_|trU|^4_sym", Function[{}, trMomentGraph[2]], traceRow -> True];
-runAndReport["U_|trU|^6_sym", Function[{}, trMomentGraph[3]], traceRow -> True];
-runAndReport["U_|trU|^8_sym", Function[{}, trMomentGraph[4]], traceRow -> True];
+runAndReport["U_|trU|^4_sym", Function[{}, trMomentGraphScalar[2]]];
+runAndReport["U_|trU|^6_sym", Function[{}, trMomentGraphScalar[3]]];
+runAndReport["U_|trU|^8_sym", Function[{}, trMomentGraphScalar[4]]];
 
 (* ============================================================================ *)
 (* Trace polynomials                                                             *)
