@@ -56,7 +56,7 @@ integrate(expr, measure)
 
 ## Manual
 
-- [Unitary Integration](unitary_integration.md): Core functionality for $U(d)$ and $SU(d)$.
+- [Unitary Integration](unitary_integration.md): Core functionality for $U(d)$ and $SU(d)$ (balanced polynomials).
 - [Diagonal Unitaries](diagonal_unitary.md): Integration over the Torus group.
 - [Orthogonal & Symplectic](orthogonal_integration.md): Integration over real groups.
 - [Gaussian Ensembles](gaussian_integration.md): GUE, GOE, and GSE.

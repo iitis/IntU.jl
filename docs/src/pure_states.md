@@ -51,8 +51,8 @@ using IntU, Symbolics
 # Output: 2 / (d*(d+1))
 ```
 
-The ratio to $1/d^2$ is $(d+1)/2 \cdot 1/(d+1) \cdot 2 = 2/(d(d+1))$,
-reflecting the positive correlation induced by the normalisation constraint.
+For large $d$ this approaches $2/d^2$, exceeding $(1/d)^2$ by a factor of
+$2d/(d+1)$ — the kurtosis excess of a single Haar-random component.
 
 ### Cross-component second moment
 
@@ -63,7 +63,8 @@ reflecting the positive correlation induced by the normalisation constraint.
 ```
 
 The strict inequality $\mathbb{E}[|\psi_1|^2|\psi_2|^2] < 1/d^2$ reflects
-the positive correlation between components sharing the unit-norm constraint.
+the negative correlation (anti-correlation) between components imposed by the
+unit-norm constraint: if one component is large, the others must be smaller.
 
 ### Cross product of complex amplitudes
 

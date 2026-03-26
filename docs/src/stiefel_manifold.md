@@ -61,8 +61,9 @@ is a Haar-random unit vector, so each component has average squared magnitude $1
 # Output: 1 / (d*(d+1))
 ```
 
-This is strictly less than $1/d^2$, reflecting the positive correlation
-between entries of the same column imposed by the unit-norm constraint.
+This is strictly less than $1/d^2$, reflecting the negative correlation
+(anti-correlation) between entries of the same column imposed by the
+unit-norm constraint.
 
 ### Cross-column correlation
 

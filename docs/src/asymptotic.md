@@ -61,18 +61,18 @@ The leading $1/d^5$ matches the expectation from the stable-rank estimate.
 
 ## Gaussian ensemble examples
 
-For GUE the second trace moment grows as $d^2$, while the fourth moment
-has a $d^3$ leading term that is characteristic of free probability:
+For GUE the second trace moment $\langle \mathrm{tr}(H^2) \rangle = d^2$
+grows quadratically, while $\langle \mathrm{tr}(H)^4 \rangle = 3d^2$
+matches the fourth moment of a Gaussian (three Wick pairings):
 
 ```julia
 using IntU, Symbolics
 @variables d
 H = SymbolicMatrix(:H, :GUE, d)
 
-# Leading large-d behaviour of the GUE 4th moment
+# Leading large-d behaviour of the GUE 4th trace moment
 asymptotic(abs(tr(H))^4, dGUE(d), 2)
-# Output: 2d^2 + ...
-# (subleading terms encode non-Gaussian corrections)
+# Output: 3d^2
 ```
 
 ## Orthogonal group example
@@ -113,8 +113,10 @@ asymptotic(2 / (d * (d + 1)), d, 4)
 > [!IMPORTANT]
 > ### Symbolic (d) Pitfalls
 > - **Poles at small dimensions**: For Haar-related measures (Unitary,
->   Orthogonal, Circular), results are rational functions with poles at small
->   integer $d$ (typically $d < n$ for degree-$n$ moments).
+>   Orthogonal, Circular), element-wise results are rational functions with
+>   poles at small integer $d$ (typically $d < n$ for degree-$n$ moments).
+> - **Non-rational results**: Pure trace moments $|\mathrm{tr}(U)|^{2k}$
+>   depend on $d$ as a step function and require a concrete integer dimension.
 > - **Removable singularities**: substituting numeric values can yield $0/0$
 >   forms (e.g. at $d = 1$ or $d = 2$). Use `evaluate` to resolve these
 >   automatically.

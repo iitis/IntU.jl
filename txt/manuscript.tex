@@ -207,7 +207,7 @@ with \texttt{Haarpy} and \texttt{RTNI} is presented in
 Sections~\ref{sec:haarpy_comparison} and~\ref{sec:rtni_comparison}.
 
 However, existing tools often face limitations in extensibility, performance, or
-the ability to handle symbolic dimensions $d$ natively as rational functions.
+the ability to handle symbolic dimensions $d$ natively, producing rational functions of $d$ for most integrals.
 Furthermore, the translation from high-level, coordinate-free mathematical
 expressions (e.g., traces of products) to the index-based tensor contractions
 required by Weingarten calculus is often left to the user, leading to
@@ -215,15 +215,15 @@ error-prone manual preprocessing. \texttt{IntU.jl} addresses these issues and
 focuses on maximizing performance and symbolic flexibility within the compact
 group integration domain. A primary distinction lies in \texttt{IntU.jl}'s deep
 integration with the Julia \texttt{Symbolics.jl} ecosystem, treating dimensions
-$d$ as native symbolic rational functions rather than requiring separate
+$d$ as native symbolic variables rather than requiring separate
 symbolic algebra backends or manual substitutions.
 This diverse ensemble support, combined with specialized utilities for partial traces of symbolic subsystems, makes \texttt{IntU.jl} a versatile
 environment for both theoretical derivations and complex numerical experiments.
 
 \texttt{IntU.jl} offers a pure Julia implementation of the Weingarten calculus
-for the unitary $U(d)$, special unitary $SU(d)$, orthogonal $O(d)$, and
-symplectic $Sp(d)$ groups, as well as combinatorial integration for the
-symmetric group $S_d$. Key features distinguishing our approach include:
+for the unitary $U(d)$, orthogonal $O(d)$, and
+symplectic $Sp(d)$ groups, as well as $SU(d)$ for balanced polynomials and
+combinatorial integration for the symmetric group $S_d$. Key features distinguishing our approach include:
 \begin{itemize}
     \item \textbf{Diverse ensemble support}: Unified integration over compact
     groups, circular ensembles, Gaussian ensembles (GUE, GOE, GSE), random pure
@@ -522,11 +522,11 @@ demonstrated in Section~\ref{sec:performance}.
 \subsection{Symbolic dimensions and asymptotics}
 A standout feature of \texttt{IntU.jl} is its deep support for symbolic dimensions $d$.
 By leveraging the polynomial nature of group characters and Schur functions,
-\texttt{IntU.jl} computes integrals as exact rational functions of $d$:
+\texttt{IntU.jl} computes element-wise and trace-of-product integrals as exact rational functions of $d$:
 \begin{equation}
 \int_{G(d)} P(U, \bar{U}) dU = \frac{N(d)}{D(d)},
 \end{equation}
-where $N(d)$ and $D(d)$ are polynomials. This capability is critical for studying:
+where $N(d)$ and $D(d)$ are polynomials. (Not all results are rational: pure trace moments $|\mathrm{tr}(U)|^{2k}$ depend on $d$ as a step function and require a concrete integer dimension; see Section~\ref{sec:limitations}.) This capability is critical for studying:
 \begin{itemize}
     \item \textbf{Transition points}: Identifying poles in $D(d)$ that correspond to
     dimensions where the Weingarten expansion breaks down (e.g., $d < k$).
@@ -1448,15 +1448,15 @@ but RTNI returns non-scalar graph placeholders rather than scalarized values
 \section{Conclusion}
 \label{sec:conclusion}
 We have presented \texttt{IntU.jl}, a robust and extensible Julia package for
-performing symbolic integration over the Haar measure of the unitary, special
-unitary, orthogonal, and symplectic groups. By bridging the gap between the
+performing symbolic integration over the Haar measure of the unitary,
+orthogonal, and symplectic groups (and $SU(d)$ for balanced polynomials). By bridging the gap between the
 abstract theory of Weingarten calculus and practical computation,
 \texttt{IntU.jl} empowers researchers to rigorously derive properties of random
 quantum channels, higher-order entanglement statistics, and scrambling measures
 without resorting to brittle or approximate numerical sampling.
 
 The package's core strengths lie in its unified treatment of compact groups,
-its native handling of symbolic dimensions via rational functions, and its
+its native handling of symbolic dimensions, and its
 novel symbolic trace logic. The latter effectively decouples the user's high-level
 mathematical intent from the low-level index contractions required by the integration
 engine, significantly reducing the cognitive load and potential for error. As
