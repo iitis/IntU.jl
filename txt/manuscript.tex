@@ -713,7 +713,7 @@ result = @integrate abs(U[1,1])^2 dU(d)
 res_tr = @integrate abs(tr(U))^4 dU(10)
 # Output: 2
 
-# Cross-correlator vanishes for off-diagonal index pairings
+# Cross-correlator of off-diagonal index pairings
 res_c = @integrate U[1, 1] * conj(U[1, 2]) * U[2, 2] * conj(U[2, 1]) dU(d)
 # Output: -1/(d*(d^2 - 1))
 
