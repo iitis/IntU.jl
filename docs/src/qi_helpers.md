@@ -67,7 +67,7 @@ using IntU, Symbolics
 
 # Page formula for equal-size subsystems (d_A = d_B = n)
 page_purity = 2n / (n^2 + 1)
-asymptotic(page_purity, n, 4)
+asymptotic(page_purity, n, 5)
 # Output: 2/n - 2/n^3 + 2/n^5
 # Leading term: 2/n → subsystem approaches maximally mixed state
 ```

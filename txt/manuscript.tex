@@ -489,13 +489,19 @@ $\mathcal{D} \subset U(d)$ is a $t$-design if:
 for all polynomials $P$ of degree $q \le t$ in the entries of $U$ and $\bar{U}$.
 
 \texttt{IntU.jl} provides the \texttt{dDesign(d, t)} measure to represent
-such ensembles. The implementation strictly enforces the moment-matching
-condition:
+such ensembles. The implementation enforces the moment-matching condition as
+follows:
 \begin{enumerate}
-    \item For integrals of degree $q \le t$, the package returns the exact
-    Haar-averaged result using standard Weingarten calculus.
-    \item For integrals of degree $q > t$, the package raises an explicit error,
-    preventing incorrect assumptions about the design's higher-moment behavior.
+    \item For balanced integrands (equal degree $q$ in $U$ and $\bar{U}$) with
+    $q \le t$, the package returns the exact Haar-averaged result using standard
+    Weingarten calculus.
+    \item For balanced integrands with $q > t$, the package raises an explicit
+    error, preventing incorrect assumptions about the design's higher-moment
+    behavior.
+    \item Unbalanced integrands (different degree in $U$ and $\bar{U}$) return
+    zero, which is the Haar-correct value. This is guaranteed correct for total
+    degree $\le t$; for higher-degree unbalanced monomials, a $t$-design does
+    not guarantee this value, but no error is currently raised.
 \end{enumerate}
 This feature allows researchers to verify whether specific quantum protocols or
 randomized benchmarking schemes rely only on the $t$-moment properties of the

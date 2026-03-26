@@ -98,13 +98,20 @@ using IntU, Symbolics
  
 ### Integration Behavior and Guards
  
-`IntU.jl` strictly enforces the validity of the integration over $t$-designs:
- 
-1. **Degree Check**: The integrator calculates the total degree $q$ of the integrand in $U$ and $U^\dagger$.
-2. **Guards**: If the degree $q$ exceeds the design order $t$ ($q > t$), the package throws an `ErrorException` (e.g., `Integrand degree (3, 3) exceeds design order t=2`). This prevents accidental reliance on non-guaranteed values.
-3. **Performance**: For valid degrees ($q \le t$), the computation uses the standard Weingarten formulas, ensuring Haar-exact results.
- 
-This guard mechanism ensures that physical simulations and protocol verifications (such as randomized benchmarking) remain mathematically rigorous.
+`IntU.jl` enforces validity of integration over $t$-designs with the
+following behaviour:
+
+1. **Balanced integrands** (equal degree $q$ in $U$ and $U^\dagger$):
+   - $q \le t$: returns the exact Haar-averaged result via Weingarten calculus.
+   - $q > t$: throws an `ArgumentError` (e.g., `Integrand degree (3) exceeds design order t=2`), preventing accidental reliance on non-guaranteed values.
+2. **Unbalanced integrands** (different degree in $U$ and $U^\dagger$):
+   returns zero, which is the Haar-correct value. This is guaranteed correct
+   for total degree $\le t$; for higher-degree unbalanced monomials, a
+   $t$-design does not guarantee this value, but no error is raised.
+
+This guard mechanism helps ensure that physical simulations and protocol
+verifications (such as randomized benchmarking) remain mathematically
+rigorous for balanced polynomial integrands.
 
 ## Examples
 

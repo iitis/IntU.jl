@@ -53,7 +53,7 @@ In this case, the `integrate` function will ignore the current numerical content
 
 ## Supported Measures
 
-The ITensors integration supports all measure types provided by IntU:
+The ITensors integration supports the following measure types:
 
 | Measure | Usage |
 | :--- | :--- |
