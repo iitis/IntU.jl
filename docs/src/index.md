@@ -43,6 +43,7 @@ integrate(expr, measure)
 | Special unitary (balanced polynomials) | `dSU(d)` | [Unitary Integration](unitary_integration.md) |
 | Real orthogonal matrices | `dO(d)` | [Orthogonal & Symplectic](orthogonal_integration.md) |
 | Symplectic matrices ($d$ even) | `dSp(d)` | [Orthogonal & Symplectic](orthogonal_integration.md) |
+| Haar-random unitary matrices (CUE) | `dCUE(d)` | [Circular Ensembles](circular_ensembles.md) |
 | Symmetric unitary matrices (COE) | `dCOE(d)` | [Circular Ensembles](circular_ensembles.md) |
 | Self-dual unitary matrices (CSE) | `dCSE(d)` | [Circular Ensembles](circular_ensembles.md) |
 | Hermitian random matrices | `dGUE(d)` / `dGOE(d)` / `dGSE(d)` | [Gaussian Ensembles](gaussian_integration.md) |
@@ -67,7 +68,7 @@ integrate(expr, measure)
 - [Symbolic Trace Logic](symbolic_trace.md): Index-free matrix integration.
 - [Asymptotic Expansions](asymptotic.md): Large-$d$ limit analysis.
 - [Integral Library](integral_library.md): Pre-computed standard results.
-- [QI Helpers](qi_helpers.md): Tools for Purity, Fidelity, etc.
+- [QI Helpers](qi_helpers.md): Partial trace and quantum information helpers.
 - [ITensors Integration](itensors.md): Symmetric integration of tensor networks.
 
 ## API Reference

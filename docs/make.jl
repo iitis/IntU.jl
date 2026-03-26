@@ -26,7 +26,7 @@ makedocs(;
             "Gaussian Ensembles" => "gaussian_integration.md",
             "Pure States" => "pure_states.md",
             "Stiefel Manifolds" => "stiefel_manifold.md",
-            "Symbolic Traces" => "symbolic_trace.md",
+            "Symbolic Trace Integration" => "symbolic_trace.md",
             "Asymptotics" => "asymptotic.md",
             "Integral Library" => "integral_library.md",
             "QI Helpers" => "qi_helpers.md",

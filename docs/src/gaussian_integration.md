@@ -1,7 +1,5 @@
 # Gaussian Ensembles Integration
 
-# Gaussian Random Matrix Integration
-
 This section details the integration of polynomial functions over Gaussian Random Matrix Ensembles:
 the Gaussian Unitary Ensemble (GUE), the Gaussian Orthogonal Ensemble (GOE), and the Gaussian Symplectic Ensemble (GSE).
 
@@ -71,17 +69,17 @@ using IntU, Symbolics
 
 # GUE Measure with symbolic dimension
 # Average Trace of H^2
-# < Tr(H^2) > = d^2
+# < tr(H^2) > = d^2
 res = @integrate tr(H^2) dGUE(d)
 println(res)
 # Output: d^2
 
 # Average Trace of H^4
-# < Tr(H^4) > = 2d^3 + d
+# < tr(H^4) > = 2d^3 + d
 res4 = @integrate tr(H^4) dGUE(d)
 
 # Average Trace of H^6
-# < Tr(H^6) > = 5d^4 + 10d^2
+# < tr(H^6) > = 5d^4 + 10d^2
 res6 = @integrate tr(H^6) dGUE(d)
 ```
 
@@ -90,20 +88,20 @@ res6 = @integrate tr(H^6) dGUE(d)
 ```julia
 # GinUE Measure with symbolic dimension
 # Average Trace of G G'
-# < Tr(G G') > = d^2
+# < tr(G G') > = d^2
 res_ginue = @integrate tr(G * G') dGinUE(d)
 println(res_ginue)
 # Output: d^2
 
 # Average Trace of (G G')^2
-# < Tr(G G' G G') > = 2d^3
+# < tr(G G' G G') > = 2d^3
 res_ginue_sq = @integrate tr(G * G' * G * G') dGinUE(d)
 
 # Wishart-style moments
-# < Tr(G G')^2 > = d^4 + d^2
+# < tr(G G')^2 > = d^4 + d^2
 x2 = @integrate tr(G * G')^2 dGinUE(d)
 
-# < Tr((G G')^2) > = 2d^3 (matches the identity above)
+# < tr((G G')^2) > = 2d^3
 y2 = @integrate tr((G * G')^2) dGinUE(d)
 ```
 
@@ -112,7 +110,7 @@ y2 = @integrate tr((G * G')^2) dGinUE(d)
 ```julia
 # GOE Measure
 # Average Trace of H^2
-# < Tr(H^2) > = d^2 + d
+# < tr(H^2) > = d^2 + d
 res_goe = @integrate tr(H^2) dGOE(d)
 println(res_goe)
 # Output: d^2 + d
@@ -123,7 +121,7 @@ println(res_goe)
 ```julia
 # GSE Measure
 # Average Trace of H^2
-# < Tr(H^2) > = d^2 - d
+# < tr(H^2) > = d^2 - d
 res_gse = @integrate tr(H^2) dGSE(d)
 println(res_gse)
 # Output: d^2 - d

@@ -173,7 +173,7 @@ using IntU, Symbolics
 U = SymbolicMatrix(:U, :U)
 
 # 3. Trace moments
-# Integral of |Tr(U)|^2
+# Integral of |tr(U)|^2
 integrate(abs(tr(U))^2, dU(d))
 # Output: 1
 ```
@@ -201,7 +201,7 @@ using IntU, Symbolics
 @variables d
 U = SymbolicMatrix(:U, :U)
 
-# Integral of |Tr(U)|^4
+# Integral of |tr(U)|^4
 integrate(abs(tr(U))^4, dU(d))
 # Output: 2
 ```

@@ -3,7 +3,7 @@
 IntU.jl provides support for the three classical Circular Ensembles of Random Matrix Theory:
 - **CUE (Circular Unitary Ensemble)**: Corresponds to the Haar measure on the Unitary group $U(d)$.
 - **COE (Circular Orthogonal Ensemble)**: Ensemble of symmetric unitary matrices ($S^T = S$).
-- **CSE (Circular Symplectic Ensemble)**: Ensemble of self-dual unitary matrices ($S^R = J S^T J^T = S$) of even dimension $d=2N$.
+- **CSE (Circular Symplectic Ensemble)**: Ensemble of self-dual unitary matrices ($S^R \equiv J S^T J^T = S$, where $J$ is the standard symplectic form) of even dimension $d=2N$.
 
 These ensembles are defined on the unitary group, unlike the Gaussian ensembles which are defined on the space of Hermitian matrices.
 
@@ -91,7 +91,7 @@ integrate(abs(S[1, 1])^2, dCSE(d))
 
 ### CUE (Circular Unitary Ensemble)
 
-The CUE is statistical identical to the standard Unitary Haar measure.
+The CUE is statistically identical to the standard Unitary Haar measure.
 
 1. **Basic Integration using `@integrate`**
 

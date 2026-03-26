@@ -269,7 +269,7 @@ i'_{\sigma(m)}}$. The Weingarten function $\mathrm{Wg}^U(\sigma, d)$ depends
 only on the cycle type of $\sigma$ and can be expressed via the irreducible
 characters $\chi_\lambda$ of $S_k$:
 \begin{equation}
-\mathrm{Wg}^U(\sigma, d) = \frac{1}{(k!)^2} \sum_{\lambda \vdash k} \frac{f^\lambda \chi_\lambda(\sigma)}{s_{\lambda, d}(1)},
+\mathrm{Wg}^U(\sigma, d) = \frac{1}{(k!)^2} \sum_{\lambda \vdash k} \frac{(f^\lambda)^2 \chi_\lambda(\sigma)}{s_{\lambda, d}(1)},
 \end{equation}
 where $f^\lambda$ is the dimension of the irreducible representation $\lambda$
 and $s_{\lambda, d}(1)$ is the Schur polynomial evaluated at the identity,
@@ -713,7 +713,7 @@ result = @integrate abs(U[1,1])^2 dU(d)
 res_tr = @integrate abs(tr(U))^4 dU(10)
 # Output: 2
 
-# Cross-correlator of off-diagonal index pairings
+# Mixed-index fourth moment
 res_c = @integrate U[1, 1] * conj(U[1, 2]) * U[2, 2] * conj(U[2, 1]) dU(d)
 # Output: -1/(d*(d^2 - 1))
 
@@ -753,7 +753,7 @@ diagonal entry for the symmetric (COE) and self-dual (CSE) cases:
 \end{lstlisting}
 
 These results contrast with the Haar unitary value of $1/d$, reflecting the
-constraints imposed by the respective symmetries ($S=S^T$ and $S=S^R$).
+constraints imposed by the respective symmetries ($S=S^T$ for COE, $S=S^R$ for CSE, $O^TO=I$ for orthogonal, and the symplectic form for $Sp(d)$).
 
 \subsection{Matrix integration}
 \texttt{IntU.jl} allows for the direct integration of matrix-valued expressions.
@@ -986,7 +986,7 @@ mathematical structures while sharing the top-level dispatch mechanism:
     formulas for sparse partitions. Dimensions of irreducible representations $s_{\lambda, d}(1)$
     are computed via the Hook-Content formula:
     \begin{equation}
-    f^\lambda_d = \prod_{(i,j) \in \lambda} \frac{d + c_{i,j}}{h_{i,j}}
+    s_{\lambda, d}(1) = \prod_{(i,j) \in \lambda} \frac{d + c_{i,j}}{h_{i,j}}
     \end{equation}
     where $c_{i,j} = j-i$ is the content and $h_{i,j}$ is the hook length. This formulation
     allows the package to handle symbolic dimensions natively, producing exact rational functions

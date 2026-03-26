@@ -20,16 +20,17 @@ $|U_{i,j}|^2$ over the unitary group, i.e., computing $\int dU |U_{i,j}|^2 =
 IntU provides an exact analytic result instantly, even for symbolic dimensions, using a simple unified interface: `integrate(expr, measure)`. It supports matrix-valued expressions and provides the `@integrate` macro for intuitive symbolic integration.
 
 The `@integrate` macro implicitly identifies random matrices based on the measure:
-- `dU`, `dSU` $\rightarrow$ `U` (Unitary)
+- `dU`, `dSU`, `dCUE`, `dDesign` $\rightarrow$ `U` (Unitary / CUE / t-design)
 - `dO` $\rightarrow$ `O` (Orthogonal)
 - `dSp` $\rightarrow$ `Sp` (Symplectic)
 - `dPerm` $\rightarrow$ `P` (Permutation)
 - `dCPerm` $\rightarrow$ `Y` (Centered Permutation)
 - `dCOE`, `dCSE` $\rightarrow$ `S` (Circular Orthogonal/Symplectic)
+- `dGUE`, `dGOE`, `dGSE` $\rightarrow$ `H` (Gaussian Ensembles)
+- `dGinUE`, `dGinOE`, `dGinSE` $\rightarrow$ `G` (Ginibre Ensembles)
 - `dPsi` $\rightarrow$ `psi` (Pure State)
 - `dDiagUnitary` $\rightarrow$ `D` (Diagonal Unitary)
 - `dStiefel` $\rightarrow$ `V` (Stiefel Manifold)
-- Ginibre Ensembles $\rightarrow$ `G`
 
 Unknown symbols (like `A`, `B`, `d`) are automatically treated as constants or dimensions.
 

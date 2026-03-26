@@ -43,7 +43,7 @@ using IntU, Symbolics
 U = SymbolicMatrix(:U, :U, 10)
 
 asymptotic(abs(tr(U))^12, dU(10), 1)
-# Output: 720.0   (= 6!, confirming tr(U) → complex Gaussian as d → ∞)
+# Output: 720   (= 6!, confirming tr(U) → complex Gaussian as d → ∞)
 ```
 
 ### Entry-wise high-degree moment

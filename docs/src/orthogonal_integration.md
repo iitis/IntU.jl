@@ -123,7 +123,7 @@ using IntU, Symbolics
 @integrate abs(Sp[1, 1])^4 dSp(d)
 # Output: 2 / ((d + 1)*(d - 1))
 
-# Example S1: Symplectic mixed moments
+# Example Sp2: Symplectic mixed moments
 @integrate abs(Sp[1, 1])^2 * abs(Sp[1, 2])^2 dSp(d)
 
 # Example Sp1: high powers, single row

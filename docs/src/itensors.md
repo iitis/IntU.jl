@@ -125,7 +125,7 @@ res_final = integrate([V_wrap, res_partial], dU(2))
 ## Performance & Algorithms
 
 The ITensors integration uses a **Graphical Weingarten Engine**. Instead of
-expanding the Full matrix, it:
+expanding the full matrix, it:
 1.  Identifies the network topology (which indices are connected to which tensors).
 2.  Generates the possible Weingarten contractions as deltas over original ITensor indices.
 3.  Returns a sum of contracted ITensor networks.
