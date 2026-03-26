@@ -41,9 +41,13 @@ are pre-computed for small $k$:
 | $\mathbb{E}[\,\|\mathrm{tr}(U)\|^6\,]$ | $6$ |
 | $\mathbb{E}[\,\|\mathrm{tr}(U)\|^8\,]$ | $24$ |
 
-The pattern $k!$ is the large-$d$ limit, reflecting the Gaussian universality
-of $\mathrm{tr}(U)$ as $d \to \infty$. The library stores the exact rational
-function of $d$; the table above gives the leading term only.
+The pattern $k!$ is the large-$d$ (stable-range) limit, reflecting the
+Gaussian universality of $\mathrm{tr}(U)$ as $d \to \infty$. For **integer**
+$d$, the library returns the exact value
+$\sum_{\lambda \vdash k,\, \ell(\lambda) \le d} (f^\lambda)^2$, which equals
+$k!$ when $d \ge k$ but is smaller for $d < k$. Because the dependence on $d$
+is a step function (not a polynomial), trace moments require a concrete integer
+dimension and will raise an error if called with symbolic $d$.
 
 ## Gaussian Ensembles
 

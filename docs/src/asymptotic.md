@@ -40,10 +40,9 @@ simply $6! = 720$:
 
 ```julia
 using IntU, Symbolics
-@variables d
-U = SymbolicMatrix(:U, :U, d)
+U = SymbolicMatrix(:U, :U, 10)
 
-asymptotic(abs(tr(U))^12, dU(d), 1)
+asymptotic(abs(tr(U))^12, dU(10), 1)
 # Output: 720.0   (= 6!, confirming tr(U) → complex Gaussian as d → ∞)
 ```
 

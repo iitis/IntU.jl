@@ -18,13 +18,10 @@ using Symbolics
         @test isequal(res, 1)
     end
 
-    @testset "abs(tr(U))^(2k) symbolic d integration" begin
-        res4 = @integrate abs(tr(U))^4 dU(d)
-        res6 = @integrate abs(tr(U))^6 dU(d)
-        res8 = @integrate abs(tr(U))^8 dU(d)
-        @test res4 == 2
-        @test res6 == 6
-        @test res8 == 24
+    @testset "abs(tr(U))^(2k) symbolic d raises error" begin
+        @test_throws ArgumentError @integrate abs(tr(U))^4 dU(d)
+        @test_throws ArgumentError @integrate abs(tr(U))^6 dU(d)
+        @test_throws ArgumentError @integrate abs(tr(U))^8 dU(d)
     end
     
     @testset "sqrt(tr(U))" begin

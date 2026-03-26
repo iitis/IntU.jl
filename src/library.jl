@@ -60,8 +60,18 @@ function check_haar_library(expr, measure)
         k = _match_haar_pure_trace_moment(expr, measure)
         if k !== nothing
             d = measure.dim
-            moment = d isa Integer ? _haar_trace_moment_value(k, d) : factorial(k)
-            return prefactor * moment
+            if d isa Integer
+                return prefactor * _haar_trace_moment_value(k, d)
+            elseif k <= 1
+                return prefactor * one(BigInt)
+            else
+                throw(
+                    ArgumentError(
+                        "|tr(U)|^$(2k) requires a concrete integer dimension " *
+                        "(result depends on d in a non-polynomial way).",
+                    ),
+                )
+            end
         end
 
         if length(expr.cycles) != 1

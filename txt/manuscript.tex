@@ -292,7 +292,7 @@ $\mathrm{Wg}^U(\mathrm{id}, d) \approx d^{-k}$, recovering the normalization
 expected from independent Gaussian entries at the naive limit.
 
 \paragraph{Symbolic ($d$) Pitfalls}
-While Weingarten functions are rational in $d$, they contain poles at small integer dimensions (typically $d < k$ for degree $k$ moments). Furthermore, substituting numeric values can yield $0/0$ expressions (removable singularities) at specific points like $d=1, 2$. \texttt{IntU.jl}'s \texttt{evaluate} function automatically simplifies these expressions to resolve such singularities.
+While Weingarten functions are rational in $d$, they contain poles at small integer dimensions (typically $d < k$ for degree $k$ moments). Furthermore, substituting numeric values can yield $0/0$ expressions (removable singularities) at specific points like $d=1, 2$. \texttt{IntU.jl}'s \texttt{evaluate} function automatically simplifies these expressions to resolve such singularities. An important exception is pure trace moments $|\mathrm{tr}(U)|^{2k}$, whose exact value $\sum_{\lambda \vdash k,\, \ell(\lambda) \le d} (f^\lambda)^2$ depends on $d$ as a step function rather than a rational function; these require a concrete integer dimension and raise an error for symbolic $d$.
 
 \paragraph{Special Unitary group $SU(d)$}
 For all currently supported ``balanced'' polynomial expressions (where the number of $U$ and $\bar{U}$ factors are equal), the integration over $SU(d)$ is equivalent to $U(d)$. Non-stable-range effects involving $\epsilon$-tensor contractions for specific small $d$ are not currently covered.
@@ -533,8 +533,8 @@ where $N(d)$ and $D(d)$ are polynomials. This capability is critical for studyin
     \item \textbf{Thermodynamic limits}: The \texttt{asymptotic(expr, measure, order)}
     function computes the series expansion of the result in powers of $1/d$.
     This automates the extraction of large-$d$ behavior even for high-degree
-    moments like $|\mathrm{tr}(U)|^{12}$, where exact rational results are
-    combinatorially heavy to simplify.
+    moments like $|\mathrm{tr}(U)|^{12}$ (using a concrete integer dimension),
+    where exact results are combinatorially heavy to simplify.
 \end{itemize}
 Even when the input dimension is numeric (e.g., $d=3$), the \texttt{asymptotic}
 routine can introduce a dummy symbolic variable to perform the expansion, providing
@@ -682,6 +682,11 @@ The current implementation has several known limitations:
     symmetric group ($|S_k| = k!$) and pair partitions ($|M_{2k}| =
     (2k{-}1)!!$), exact symbolic integration is practically limited to
     polynomial degrees $2k \lesssim 12$ on standard hardware.
+    \item \textbf{Trace moments}: Pure trace moments
+    $|\mathrm{tr}(U)|^{2k}$ depend on $d$ as a step function (not a
+    polynomial), so they require a concrete integer dimension.  For
+    integer $d$, the library returns the exact value; for symbolic $d$,
+    an \texttt{ArgumentError} is raised.
 \end{itemize}
 
 \section{Usage examples}
@@ -704,8 +709,8 @@ using IntU
 result = @integrate abs(U[1,1])^2 dU(d)
 # Output: 1/d
 
-# Complex trace moments are also supported
-res_tr = @integrate abs(tr(U))^4 dU(d)
+# Complex trace moments require a concrete integer dimension
+res_tr = @integrate abs(tr(U))^4 dU(10)
 # Output: 2
 
 # Cross-correlator vanishes for off-diagonal index pairings
@@ -803,8 +808,8 @@ expansion of trace moments reveals the Gaussian universality of
 $\mathrm{tr}(U)$:
 
 \begin{lstlisting}[language=Julia]
-# E[|tr(U)|^6]: exact result is a rational function of d
-asymp_tr6 = asymptotic(abs(tr(U))^6, dU(d), 3)
+# E[|tr(U)|^6]: asymptotic expansion requires concrete d
+asymp_tr6 = asymptotic(abs(tr(U))^6, dU(10), 3)
 # Leading term: 6 = 3!, confirming that tr(U) behaves as
 # a standard complex Gaussian as d -> infinity
 \end{lstlisting}
