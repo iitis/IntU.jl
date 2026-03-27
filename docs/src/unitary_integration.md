@@ -194,15 +194,14 @@ integrate(tr(U * A * U' * B), dU(d))
 
 ### 6. Complex Trace Powers
 
-`IntU.jl` supports integrating complex powers and absolute values of traces, such as $|tr(U)|^n$. These are processed efficiently using a lazy evaluation engine.
+`IntU.jl` supports integrating complex powers and absolute values of traces, such as $|tr(U)|^n$. These are processed efficiently using a lazy evaluation engine. Note that pure trace moments $|tr(U)|^{2k}$ with $k > 1$ require a concrete integer dimension (the result depends on $d$ as a step function, not a polynomial).
 
 ```julia
 using IntU, Symbolics
-@variables d
-U = SymbolicMatrix(:U, :U)
+U = SymbolicMatrix(:U, :U, 10)
 
-# Integral of |tr(U)|^4
-integrate(abs(tr(U))^4, dU(d))
+# Integral of |tr(U)|^4 (requires concrete d)
+integrate(abs(tr(U))^4, dU(10))
 # Output: 2
 ```
 

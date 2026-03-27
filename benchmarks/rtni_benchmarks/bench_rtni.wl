@@ -262,27 +262,30 @@ runAndReport[
 (* Trace moments: graph API + scalarization via converttomonomial               *)
 (* ============================================================================ *)
 
-(* Build the graph for |tr(U)|^{2k} and integrate.  The result of
-   integrateHaarUnitary is a list of {graph, weight} pairs (a tensor-network
-   superposition), NOT a scalar.  To obtain the scalar value we pass the
-   result through converttomonomial[..., {}, True], which traverses each
-   graph, constructs the matrix product, and applies Tr[].  This makes the
-   benchmark an apples-to-apples comparison with IntU.jl, which returns a
-   scalar directly. *)
+(* Build the graph for |tr(U)|^{2k} and integrate with concrete d=10.
+   Pure trace moments depend on d as a step function (not a polynomial),
+   so both IntU.jl and RTNI use a concrete dimension here.
 
-trMomentGraphScalar[k_] := Module[{g, graphResult},
+   The result of integrateHaarUnitary is a list of {graph, weight} pairs
+   (a tensor-network superposition), NOT a scalar.  To obtain the scalar
+   value we pass the result through converttomonomial[..., {}, True],
+   which traverses each graph, constructs the matrix product, and applies
+   Tr[].  This makes the benchmark an apples-to-apples comparison with
+   IntU.jl, which returns a scalar directly. *)
+
+trMomentGraphScalar[k_, dim_] := Module[{g, graphResult},
   g = Join[
     Table[{{"U", i, 0, 1}, {"U", i, 1, 1}}, {i, k}],
     Table[{{"Ub", i, 0, 1}, {"Ub", i, 1, 1}}, {i, k}]
   ];
-  graphResult = integrateHaarUnitary[g, "U", {dd}, {dd}, dd];
+  graphResult = integrateHaarUnitary[g, "U", {dim}, {dim}, dim];
   converttomonomial[graphResult, {}, True]
 ];
 
-Print["\n=== Trace moments: |tr(U)|^{2k}, symbolic d ==="];
-runAndReport["U_|trU|^4_sym", Function[{}, trMomentGraphScalar[2]]];
-runAndReport["U_|trU|^6_sym", Function[{}, trMomentGraphScalar[3]]];
-runAndReport["U_|trU|^8_sym", Function[{}, trMomentGraphScalar[4]]];
+Print["\n=== Trace moments: |tr(U)|^{2k}, d=10 ==="];
+runAndReport["U_|trU|^4_d=10", Function[{}, trMomentGraphScalar[2, 10]]];
+runAndReport["U_|trU|^6_d=10", Function[{}, trMomentGraphScalar[3, 10]]];
+runAndReport["U_|trU|^8_d=10", Function[{}, trMomentGraphScalar[4, 10]]];
 
 (* ============================================================================ *)
 (* Trace polynomials                                                             *)

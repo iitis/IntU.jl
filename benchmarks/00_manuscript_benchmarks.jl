@@ -54,10 +54,6 @@ m50 = dU(50)
 t, _ = measure_median_func(() -> integrate(abs(U50[1, 1])^10, m50))
 @printf("%-18s %-25s %-15s %10.2f\n", "Unitary", "|U_11|^10", "d=50", t)
 
-# |tr(U)|^4, Symbolic
-t, _ = measure_median_func(() -> integrate(abs(tr(U))^4, measure_sym))
-@printf("%-18s %-25s %-15s %10.2f\n", "Unitary", "|tr(U)|^4", "Symbolic", t)
-
 # |tr(U)|^10, d=10
 t, _ = measure_median_func(() -> integrate(abs(tr(U10))^10, m10))
 @printf("%-18s %-25s %-15s %10.2f\n", "Unitary", "|tr(U)|^10", "d=10", t)

@@ -394,20 +394,25 @@ end
 
 # ============================================================================
 # Section 5: Trace moments (graph-based in RTNI)
+# Note: pure trace moments |tr(U)|^{2k} with k > 1 require a concrete
+# integer dimension (the result is a step function in d, not a polynomial).
+# We use d=10 for these benchmarks.
 # ============================================================================
-println("\n=== Trace moments: |tr(U)|^{2k}, symbolic d ===")
+println("\n=== Trace moments: |tr(U)|^{2k}, d=10 ===")
 
-run_and_report("U_|trU|^4_sym", () -> integrate(abs(tr(U))^4, measure_sym))
-run_and_report("U_|trU|^6_sym", () -> integrate(abs(tr(U))^6, measure_sym))
-run_and_report("U_|trU|^8_sym", () -> integrate(abs(tr(U))^8, measure_sym))
+U10_tr = SymbolicMatrix(:U, :U, 10)
+measure_10 = dU(10)
+run_and_report("U_|trU|^4_d=10", () -> integrate(abs(tr(U10_tr))^4, measure_10))
+run_and_report("U_|trU|^6_d=10", () -> integrate(abs(tr(U10_tr))^6, measure_10))
+run_and_report("U_|trU|^8_d=10", () -> integrate(abs(tr(U10_tr))^8, measure_10))
 
-println("\n=== Trace moments: |tr(U)|^{2k}, symbolic d (ITensors engine) ===")
+println("\n=== Trace moments: |tr(U)|^{2k}, d=10 (ITensors engine) ===")
 println("    (fixed concrete trace-loop dimension for ITensor constants)")
 
 const ITENSOR_TRACE_IDX_DIM = 2
-run_and_report("U_|trU|^4_sym_itensor", () -> integrate_trace_moment_itensor(2, measure_sym; idx_dim = ITENSOR_TRACE_IDX_DIM))
-run_and_report("U_|trU|^6_sym_itensor", () -> integrate_trace_moment_itensor(3, measure_sym; idx_dim = ITENSOR_TRACE_IDX_DIM))
-run_and_report("U_|trU|^8_sym_itensor", () -> integrate_trace_moment_itensor(4, measure_sym; idx_dim = ITENSOR_TRACE_IDX_DIM))
+run_and_report("U_|trU|^4_d=10_itensor", () -> integrate_trace_moment_itensor(2, measure_10; idx_dim = ITENSOR_TRACE_IDX_DIM))
+run_and_report("U_|trU|^6_d=10_itensor", () -> integrate_trace_moment_itensor(3, measure_10; idx_dim = ITENSOR_TRACE_IDX_DIM))
+run_and_report("U_|trU|^8_d=10_itensor", () -> integrate_trace_moment_itensor(4, measure_10; idx_dim = ITENSOR_TRACE_IDX_DIM))
 
 # ============================================================================
 # Section 6: Trace polynomial - tr(U A U^* B)

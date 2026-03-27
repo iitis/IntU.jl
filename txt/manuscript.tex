@@ -1191,7 +1191,6 @@ Unitary & $|U_{11}|^8$ & Symbolic & 1.15 \\
 Unitary & $|U_{11}|^{10}$ & Symbolic & 1.15 \\
 Unitary & $|U_{11}|^{10}$ & $d=10$ & 1.03 \\
 Unitary & $|U_{11}|^{10}$ & $d=50$ & 1.04 \\
-Unitary & $|\mathrm{tr}(U)|^4$ & Symbolic & 0.39 \\
 Unitary & $|\mathrm{tr}(U)|^{14}$ & $d=10$ & 0.02 \\
 \hline
 Orthogonal & $O_{11}^2$ & Symbolic & 0.52 \\
@@ -1385,31 +1384,22 @@ orthogonal and unitary diagonal moments.
 \label{sec:rtni_comparison}
 We benchmark \texttt{IntU.jl} against \texttt{RTNI} \cite{fukuda2019rtni} on
 identical integrands over $U(d)$, executed on the same hardware.
-Table~\ref{tab:rtni_comparison} reports median runtimes for $N=10$
-samples, adaptively reduced to $N=3$ for slow cases. JIT and import overhead
-are excluded. The speedup is defined as $\mathrm{RTNI} / \mathrm{IntU.jl}$, so
+Table~\ref{tab:rtni_comparison} reports median runtimes (default $N=10$
+samples, adaptively reduced to $N=3$ for slow cases; JIT/import overhead
+excluded). The speedup is defined as $\mathrm{RTNI} / \mathrm{IntU.jl}$, so
 values greater than one indicate faster execution in \texttt{IntU.jl}.
-
-An important caveat concerns the output format. \texttt{RTNI} natively operates
-on tensor network graphs and returns graph-level objects. For
-element-wise integrals like products of individual matrix entries
-$U_{ij}$, both tools produce fully evaluated scalar expressions, making timing
-comparisons meaningful. For trace-polynomial integrals such as
-$|\mathrm{tr}(U)|^{2k}$, however, \texttt{RTNI} returns a graph placeholder
-that would require additional post-processing to yield a scalar value. These
-rows are marked with $^\dagger$ in the table, and their timings are not directly
-comparable since the two tools are solving different problems: \texttt{IntU.jl}
-returns the final scalar result, while \texttt{RTNI} returns an intermediate
-representation. Reproduction scripts are available in
-\texttt{benchmarks/rtni\_benchmarks/}.
+All rows produce fully evaluated scalar results in both tools, ensuring an
+apples-to-apples comparison. For \texttt{RTNI}'s graph-based engine, this
+includes the cost of converting the internal graph representation to a scalar
+expression via \texttt{converttomonomial}. Reproduction scripts are available
+in \texttt{benchmarks/rtni\_benchmarks/}.
 
 \begin{table*}[t]
   \centering
   % \footnotesize
   \caption{Performance comparison: \texttt{IntU.jl} vs.\ \texttt{RTNI}
-  (Mathematica). Median runtime over repeated runs. Rows marked with
-  \textsuperscript{\ensuremath{\dagger}} are not directly comparable:
-  \texttt{RTNI} returned a graph placeholder rather than a scalar value.}
+  (Mathematica). Median runtime over repeated runs. All rows produce
+  fully evaluated scalar results in both tools.}
   \label{tab:rtni_comparison}
   \begin{tabular}{llrrr}
     \hline
@@ -1426,13 +1416,8 @@ representation. Reproduction scripts are available in
     U($d$) & $|U_{11}|^2|U_{12}|^2$, $d=10$ & 2.20 & 2.44 & 1.1$\times$ \\
     U($d$) & $|U_{11}|^2|U_{12}|^4$, $d=10$ & 2.19 & 35.38 & 16.2$\times$ \\
     U($d$) & $|U_{11}|^2|U_{22}|^2$, $d=10$ & 2.24 & 2.44 & 1.1$\times$ \\
-    U($d$) & $|tr(U)|^4$, symbolic $d$ & 0.56 & 0.14 & 0.2$\times$ \textsuperscript{\ensuremath{\dagger}} \\
-    U($d$) & $|tr(U)|^6$, symbolic $d$ & 2.71 & 0.15 & 0.1$\times$ \textsuperscript{\ensuremath{\dagger}} \\
-    U($d$) & $|tr(U)|^8$, symbolic $d$ & 21.48 & 0.17 & 0.0$\times$ \textsuperscript{\ensuremath{\dagger}} \\
     U($d$) & $\mathrm{tr}(UAU^\ast B)$, symbolic $d$ & 0.12 & 0.50 & 4.0$\times$ \\
     U($d$) & $\mathrm{tr}((UAU^\ast B)^2)$, symbolic $d$ & 1.27 & 2.45 & 1.9$\times$ \\
-    \hline
-    \multicolumn{5}{l}{\footnotesize $^\dagger$RTNI returned a non-scalar graph placeholder rather than a scalarized value for these rows.} \\
     \hline
   \end{tabular}
 \end{table*}
@@ -1444,14 +1429,11 @@ moderately faster ($0.4\times$). By degree eight ($|U_{11}|^8$),
 ($3863\times$--$4006\times$), reflecting \texttt{IntU.jl}'s optimized
 cycle-grouping strategy that avoids the full permutation-level expansion. For
 mixed-index integrals, performance is near parity at low degree
-($1.0\times$-$1.1\times$ for $|U_{11}|^2|U_{12}|^2$) and diverges at higher
-degree ($16\times$ for $|U_{11}|^2|U_{12}|^4$). The two trace-polynomial rows
-where both tools return scalar values, $\mathrm{tr}(UAU^\ast B)$ and
-$\mathrm{tr}((UAU^\ast B)^2)$, show \texttt{IntU.jl} advantages of
-$4.0\times$ and $1.9\times$, respectively. The remaining trace-moment rows
-($|\mathrm{tr}(U)|^{2k}$, marked $^\dagger$) are not directly comparable:
-\texttt{IntU.jl} evaluates the full scalar result, whereas \texttt{RTNI}
-returns an unevaluated graph object.
+($1.0\times$--$1.1\times$ for $|U_{11}|^2|U_{12}|^2$) and diverges at higher
+degree ($16\times$ for $|U_{11}|^2|U_{12}|^4$). For trace-polynomial
+integrals, $\mathrm{tr}(UAU^\ast B)$ and $\mathrm{tr}((UAU^\ast B)^2)$,
+\texttt{IntU.jl} shows advantages of $4.0\times$ and $1.9\times$,
+respectively.
 
 \section{Conclusion}
 \label{sec:conclusion}
