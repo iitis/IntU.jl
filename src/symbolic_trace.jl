@@ -262,6 +262,7 @@ function Base.show(io::IO, A::SymbolicMatrix)
     elseif A.is_trans
         print(io, ".'")
     elseif A.is_adj
+        print(io, "ᴴ")
     end
 end
 
@@ -357,6 +358,17 @@ const SymbolicAny = Union{SymbolicMatrix,SymbolicMatrixProduct,SymbolicKron}
 function Base.size(P::SymbolicMatrixProduct)
     if isempty(P.factors)
         return (0, 0)
+    end
+    # Validate internal dimension consistency
+    for i in 1:(length(P.factors) - 1)
+        cols_i = size(P.factors[i], 2)
+        rows_next = size(P.factors[i + 1], 1)
+        if cols_i isa Integer && rows_next isa Integer && cols_i != rows_next
+            throw(DimensionMismatch(
+                "Incompatible dimensions in matrix product: factor $i has $cols_i columns " *
+                "but factor $(i + 1) has $rows_next rows."
+            ))
+        end
     end
     return (size(P.factors[1], 1), size(P.factors[end], 2))
 end
@@ -655,13 +667,21 @@ Symbolic trace of a coordinate-free matrix expression.
 Returns a `LazyTrace` object that can be integrated.
 """
 function tr(A::SymbolicMatrix)
+    rows, cols = size(A)
+    if rows !== nothing && cols !== nothing && !isequal(rows, cols)
+        throw(ArgumentError("Trace requires a square matrix, got size ($rows, $cols)."))
+    end
     return tr_lazy(A)
 end
 function tr(A::SymbolicMatrixProduct)
+    rows, cols = size(A)
+    if rows !== nothing && cols !== nothing && !isequal(rows, cols)
+        throw(ArgumentError("Trace requires a square matrix, got size ($rows, $cols)."))
+    end
+
     is_dirty = any(f -> !(f isa SymbolicAny) || f isa SymbolicKron, A.factors)
 
     if is_dirty
-        rows, cols = size(A)
         if rows isa Integer && cols isa Integer && rows == cols
             return sum(i -> A[i, i], 1:rows)
         end

@@ -536,6 +536,22 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
     end
     traverse(term, false)
 
+    # Validate that concrete indices are within the measure dimension
+    if dim isa Integer
+        for (i, j) in Iterators.flatten((u_indices, u_bar_indices))
+            if i isa Integer && i > dim
+                throw(ArgumentError(
+                    "Row index $i exceeds measure dimension $dim."
+                ))
+            end
+            if j isa Integer && j > dim
+                throw(ArgumentError(
+                    "Column index $j exceeds measure dimension $dim."
+                ))
+            end
+        end
+    end
+
     n_u = length(u_indices)
     n_bar = length(u_bar_indices)
 

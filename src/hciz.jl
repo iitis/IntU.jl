@@ -9,7 +9,8 @@ Computes the Vandermonde determinant of a vector `v`:
 """
 function vandermonde_det(v::AbstractVector)
     d = length(v)
-    res = one(eltype(v))
+    T = eltype(v)
+    res = T === Any ? 1 : one(T)
     for i = 1:d
         for j = (i+1):d
             res *= (v[i] - v[j])
@@ -43,25 +44,47 @@ function hciz(A::AbstractMatrix, B::AbstractMatrix)
     return hciz(a, b)
 end
 
+function _hciz_extract_dim(M::SymbolicMatrix)
+    d = M.dim
+    if d isa Tuple
+        rows, cols = d
+        if !isequal(rows, cols)
+            throw(ArgumentError(
+                "HCIZ requires square matrices, got non-square dimension $(d) for $(M.name)."
+            ))
+        end
+        return rows
+    end
+    return d
+end
+
 function hciz(A::SymbolicMatrix, B::SymbolicMatrix)
-    d = A.dim
-    if d === nothing
+    d_a = _hciz_extract_dim(A)
+    d_b = _hciz_extract_dim(B)
+    if d_a === nothing || d_b === nothing
         throw(
             ArgumentError(
                 "Must provide dimension d for symbolic HCIZ if matrices have no dimension set.",
             ),
         )
     end
-    if !(d isa Integer)
+    if !isequal(d_a, d_b)
+        throw(
+            ArgumentError(
+                "HCIZ requires A and B to have the same dimension, got A.dim=$(A.dim) and B.dim=$(B.dim).",
+            ),
+        )
+    end
+    if !(d_a isa Integer)
         throw(
             ArgumentError(
                 "HCIZ for SymbolicMatrix requires a concrete integer dimension " *
-                "(got $(typeof(d))). The formula requires enumerating d eigenvalue " *
+                "(got $(typeof(d_a))). The formula requires enumerating d eigenvalue " *
                 "symbols and computing a d×d determinant.",
             ),
         )
     end
-    return hciz(A, B, d)
+    return hciz(A, B, d_a)
 end
 
 function hciz(A::SymbolicMatrix, B::SymbolicMatrix, d::Int)
@@ -106,8 +129,9 @@ function hciz(a::AbstractVector, b::AbstractVector)
     d = length(a)
     d == 0 && return 1.0
 
+    _is_pure_numeric(v) = all(x -> x isa Number && !(x isa Num), v)
     if _has_degeneracies(a) || _has_degeneracies(b)
-        if eltype(a) <: Number && eltype(b) <: Number
+        if _is_pure_numeric(a) && _is_pure_numeric(b)
             eps_a = max(maximum(abs, a), 1.0) * 1e-12
             eps_b = max(maximum(abs, b), 1.0) * 1e-12
             a = [a[i] + i * eps_a for i = 1:d]

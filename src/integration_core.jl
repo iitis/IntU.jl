@@ -53,17 +53,18 @@ end
 """
     integrate(expr::SymbolicMatrix, measure)
 
-Integrate a SymbolicMatrix as a whole. Returns a matrix of results if the 
-dimension in `measure` is a concrete integer.
+Integrate a SymbolicMatrix as a whole. Returns a matrix of results if the
+matrix dimensions are concrete integers. Supports rectangular matrices
+(e.g., pure states with size `(d, 1)` or Stiefel matrices with size `(d, k)`).
 """
 function integrate(A::SymbolicMatrix, measure::AbstractMeasure)
-    dim = _get_measure_dim(measure)
-    if dim isa Integer
-        res = Matrix{Any}(undef, dim, dim)
+    rows, cols = size(A)
+    if rows isa Integer && cols isa Integer
+        res = Matrix{Any}(undef, rows, cols)
         fill!(res, 0)
-        p = Progress(dim*dim; dt = 10.0, desc = "Integrating matrix elements... ")
-        for i = 1:dim
-            for j = 1:dim
+        p = Progress(rows * cols; dt = 10.0, desc = "Integrating matrix elements... ")
+        for i = 1:rows
+            for j = 1:cols
                 res[i, j] = integrate(A[i, j], measure)
                 next!(p)
             end
@@ -72,7 +73,7 @@ function integrate(A::SymbolicMatrix, measure::AbstractMeasure)
     end
     throw(
         ArgumentError(
-            "Direct integration of SymbolicMatrix requires a numeric dimension in the measure.",
+            "Direct integration of SymbolicMatrix requires concrete integer dimensions.",
         ),
     )
 end
@@ -127,9 +128,21 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
         fc_un = Symbolics.unwrap(fc)
 
         if fr_un isa Integer && fr_un != typemax(Int)
+            if inner_dims[i] isa Integer && inner_dims[i] != fr_un
+                throw(ArgumentError(
+                    "Dimension mismatch in matrix product: factor $i has $fr_un rows " *
+                    "but preceding factor has $(inner_dims[i]) columns."
+                ))
+            end
             inner_dims[i] = fr_un
         end
         if fc_un isa Integer && fc_un != typemax(Int)
+            if inner_dims[i+1] isa Integer && inner_dims[i+1] != fc_un
+                throw(ArgumentError(
+                    "Dimension mismatch in matrix product: factor $i has $fc_un columns " *
+                    "but following factor has $(inner_dims[i+1]) rows."
+                ))
+            end
             inner_dims[i+1] = fc_un
         end
     end

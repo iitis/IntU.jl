@@ -15,6 +15,12 @@ function partial_trace(M, dims, subsystem)
     if subsystem < 1 || subsystem > n
         throw(ArgumentError("subsystem index $subsystem out of range 1:$n"))
     end
+    total = prod(dims)
+    if size(M) != (total, total)
+        throw(ArgumentError(
+            "Matrix size $(size(M)) does not match product of subsystem dimensions ($total × $total)."
+        ))
+    end
 
     target_subs = filter(i -> i != subsystem, 1:n)
     target_dims = dims[target_subs]
