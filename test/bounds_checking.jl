@@ -44,4 +44,23 @@ using Test
     @test (@integrate abs(U[1, 1])^2 dU(d)) !== nothing
     @test (@integrate abs(V[1, 1])^2 dStiefel(d, k)) !== nothing
     @test (@integrate abs(psi[1, 1])^2 dPsi(d)) !== nothing
+
+    # 6. Num-wrapped dimensions
+    U_num = SymbolicMatrix(:U, :U, Num(2))
+    @test_throws BoundsError U_num[1, 3]
+    @test_throws BoundsError U_num[3, 1]
+    @test U_num[1, 1] !== nothing
+
+    # 7. Num-wrapped index vs measure dimension
+    @test_throws BoundsError integrate(abs(U_num[1, 3])^2, dU(Num(2)))
+
+    # 8. Num-wrapped dimension integration
+    U_num2 = symbolic_unitary(:U, Num(2))
+    res_num = integrate(U_num2 * U_num2', dU(Num(2)))
+    @test size(res_num) == (2, 2)
+
+    # 9. axes consistent with size for Num dimensions
+    A_num = SymbolicMatrix(:A, :Constant, Num(3))
+    @test size(A_num) == (3, 3)
+    @test axes(A_num) == (Base.OneTo(3), Base.OneTo(3))
 end

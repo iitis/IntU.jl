@@ -52,4 +52,39 @@ using Symbolics
         @test occursin("tr(", s)
         @test length(s) > 10
     end
+
+    @testset "tr() rejects non-square matrices" begin
+        psi = SymbolicMatrix(:psi, :psi, (4, 1))
+        @test_throws ArgumentError tr(psi)
+
+        rect = SymbolicMatrix(:R, :Constant, (2, 3))
+        @test_throws ArgumentError tr(rect)
+
+        # Product yielding non-square
+        A_ns = SymbolicMatrix(:A, :Constant, (2, 3))
+        B_ns = SymbolicMatrix(:B, :Constant, (3, 4))
+        @test_throws ArgumentError tr(A_ns * B_ns)
+    end
+
+    @testset "show(::SymbolicMatrix) conjugation marker" begin
+        U2 = SymbolicMatrix(:U, :U, 2)
+        s_U = sprint(show, U2)
+        s_adj = sprint(show, U2')
+        @test s_U != s_adj
+        @test occursin("ᴴ", s_adj) || occursin("'", s_adj)
+        @test string(U2) != string(conj(U2))
+    end
+
+    @testset "Product indexing expands with Num dimensions" begin
+        A_num = SymbolicMatrix(:A, :Constant, Num(2))
+        B_num = SymbolicMatrix(:B, :Constant, Num(2))
+        val = (A_num * B_num)[1, 1]
+        @test !occursin("sum_", string(val))
+    end
+
+    @testset "Product dimension mismatch detection" begin
+        A_bad = SymbolicMatrix(:A, :Constant, (2, 3))
+        B_bad = SymbolicMatrix(:B, :Constant, (4, 2))
+        @test_throws DimensionMismatch size(A_bad * B_bad)
+    end
 end

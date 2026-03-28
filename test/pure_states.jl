@@ -41,4 +41,10 @@ using LinearAlgebra
         res = integrate(psi_sq[1, 2], dPsi(d))
         @test is_really_zero(res)
     end
+
+    @testset "Rectangular Matrix-Valued Integration" begin
+        psi = SymbolicMatrix(:psi, :psi, (4, 1))
+        res = integrate(psi, dPsi(4))
+        @test size(res) == (4, 1)
+    end
 end

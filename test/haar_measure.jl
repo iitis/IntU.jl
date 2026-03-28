@@ -90,4 +90,26 @@ using LinearAlgebra
         res_mismatch = integrate(U10[1, 1]^10 * conj(U10[2, 2])^10, dU(10))
         @test res_mismatch == 0
     end
+
+    @testset "_try_extract_int edge cases" begin
+        @test IntU._try_extract_int(2) == 2
+        @test IntU._try_extract_int(Num(2)) == 2
+        @test IntU._try_extract_int(2 // 1) == 2
+        @test IntU._try_extract_int(2.0) == 2
+        @test IntU._try_extract_int(big(10)^15) == 10^15
+
+        @variables d_tei
+        @test IntU._try_extract_int(d_tei) === nothing
+        @test IntU._try_extract_int(nothing) === nothing
+        @test IntU._try_extract_int(3.5) === nothing
+        @test IntU._try_extract_int(3 // 2) === nothing
+        @test IntU._try_extract_int(big(10)^50) === nothing
+    end
+
+    @testset "BigInt Dimensions" begin
+        d_big = big(10)^15
+        U_big = symbolic_unitary(:U, d_big)
+        res = integrate(abs(U_big[1, 1])^2, dU(d_big))
+        @test res == 1 // big(10)^15
+    end
 end

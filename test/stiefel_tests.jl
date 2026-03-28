@@ -80,4 +80,10 @@ using LinearAlgebra
         res = integrate(V_large[1, k+1], dStiefel(d, k))
         @test isequal(res, 0)
     end
+
+    @testset "Rectangular Matrix-Valued Integration" begin
+        V = SymbolicMatrix(:V, :V, (4, 2))
+        res_v = integrate(V, dStiefel(4, 2))
+        @test size(res_v) == (4, 2)
+    end
 end

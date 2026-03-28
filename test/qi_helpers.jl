@@ -17,5 +17,9 @@ using Test
         # Trace out the first qubit
         rho_B = partial_trace(rho, dims, 1)
         @test map(to_numeric, rho_B) ≈ [0.5 0; 0 0.5]
+
+        # Shape validation
+        @test_throws ArgumentError partial_trace(rand(3, 3), (2, 2), 1)
+        @test_throws ArgumentError partial_trace(rand(4, 5), (2, 2), 1)
     end
 end

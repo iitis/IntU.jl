@@ -40,4 +40,9 @@ using Test
     # (3x3) * (2x2) should fail getindex if we force it
     P_bad = U3 * U2
     @test_throws DimensionMismatch P_bad[1, 1]
+
+    # 6. Invalid constant product on integrate fast path
+    A_c = SymbolicMatrix(:A, :Constant, (2, 3))
+    B_c = SymbolicMatrix(:B, :Constant, (4, 2))
+    @test_throws DimensionMismatch integrate(A_c * B_c, dU(2))
 end

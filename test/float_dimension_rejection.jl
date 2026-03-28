@@ -135,4 +135,16 @@ using Symbolics
             IntU.StiefelMeasure(4, 2.0, nothing),
         )
     end
+
+    @testset "Num-Wrapped Constraint Validation" begin
+        # Odd Num dimension rejected for Sp and CSE
+        @test_throws ArgumentError dSp(Num(3))
+        @test_throws ArgumentError dCSE(Num(3))
+        @test dSp(Num(4)) isa IntU.SymplecticMeasure
+        @test dCSE(Num(4)) isa IntU.CSEMeasure
+
+        # Stiefel k > d rejected for Num
+        @test_throws ArgumentError dStiefel(Num(3), Num(4))
+        @test dStiefel(Num(4), Num(2)) isa IntU.StiefelMeasure
+    end
 end
