@@ -158,7 +158,7 @@ software</concept_desc>
 \ccsdesc[500]{Mathematics of computing~Mathematical software}
 
 %%
-%% Keywords. The author(s) should pick 3--5 keywords to be treated as
+%% Keywords. The author(s) should pick 3-5 keywords to be treated as
 %% keywords in each piece of poetry together with their running enumeration.
 \keywords{Symbolic integration, Haar measure, Weingarten calculus, Julia programming language, quantum information.}
 
@@ -512,8 +512,8 @@ The package includes a \texttt{partial\_trace(M, dims, system)} function
 for quantum information tasks. It computes the partial trace of a matrix
 $M$ over a specified subsystem, where the subsystem dimensions
 (e.g., $d_A$, $d_B$ with $d = d_A d_B$) are concrete integers. The
-matrix entries themselves may be symbolic expressions---for instance,
-products of \texttt{SymbolicMatrix} elements---so the resulting reduced
+matrix entries themselves may be symbolic expressions, for instance,
+products of \texttt{SymbolicMatrix} elements, so the resulting reduced
 density matrix retains symbolic dependencies suitable for further Haar
 integration. This enables the calculation of entanglement metrics such as
 purity by integrating the trace of the squared reduced density matrix, as
@@ -882,7 +882,7 @@ combinatorial problems and studying centered permutation ensembles.
 
 The first result, $1/(d(d-1))$, is the probability that a uniformly random
 permutation maps both 1 and 2 to themselves, reflecting the well-known
-inclusion--exclusion counting of derangements. The second result shows
+inclusion-exclusion counting of derangements. The second result shows
 that centring the permutation matrix removes the $1/d$ mean, leaving a
 variance that converges to $1/d$ for large $d$.
 
@@ -1313,7 +1313,7 @@ comparison scripts are available in
 Table~\ref{tab:haarpy_comparison} summarizes the results. For \textbf{unitary}
 integrals, \texttt{IntU.jl} achieves strong speedups for diagonal moments
 ($|U_{11}|^{2k}$, $k = 3, 4, 5$): $12.4\times$, $18.9\times$, and
-$72.3\times$ in the symbolic-$d$ rows, and $53.4\times$--$55.3\times$ in the
+$72.3\times$ in the symbolic-$d$ rows, and $53.4\times$-$55.3\times$ in the
 numeric-$d$ rows. Off-diagonal unitary integrals range from near parity
 ($1.4\times$ for $|U_{11}|^2|U_{22}|^2$) to substantial gains
 ($13.4\times$ for $|U_{11}|^4|U_{12}|^4$).
@@ -1325,10 +1325,10 @@ exceeding $2\times 10^4\times$ at degree 10. This disparity arises because
 \texttt{Haarpy} constructs and inverts the full $(2k{-}1)!! \times (2k{-}1)!!$
 Weingarten matrix even when a single entry suffices, whereas \texttt{IntU.jl}
 exploits the structure of univariate integrands to bypass this cost entirely.
-Off-diagonal orthogonal integrals show a $5.0$--$6.0\times$ advantage.
+Off-diagonal orthogonal integrals show a $5.0$-$6.0\times$ advantage.
 
 For the \textbf{circular orthogonal ensemble} (COE), \texttt{IntU.jl} uses a
-closed-form expression for diagonal moments, yielding $2.3$--$18.9\times$
+closed-form expression for diagonal moments, yielding $2.3$-$18.9\times$
 speedups that grow with the degree. We note that \texttt{Haarpy} (v0.0.6, the latest release available at
 time of writing) returned incorrect results (zero) for the off-diagonal COE
 integrals tested ($|S_{12}|^{2k}$, $|S_{11}|^2|S_{12}|^2$), which
@@ -1426,10 +1426,10 @@ For element-wise integrals, the performance gap grows dramatically with
 polynomial degree. At the lowest order ($|U_{11}|^2$), \texttt{RTNI} is
 moderately faster ($0.4\times$). By degree eight ($|U_{11}|^8$),
 \texttt{IntU.jl} is over three orders of magnitude faster
-($3863\times$--$4006\times$), reflecting \texttt{IntU.jl}'s optimized
+($3863\times$-$4006\times$), reflecting \texttt{IntU.jl}'s optimized
 cycle-grouping strategy that avoids the full permutation-level expansion. For
 mixed-index integrals, performance is near parity at low degree
-($1.0\times$--$1.1\times$ for $|U_{11}|^2|U_{12}|^2$) and diverges at higher
+($1.0\times$-$1.1\times$ for $|U_{11}|^2|U_{12}|^2$) and diverges at higher
 degree ($16\times$ for $|U_{11}|^2|U_{12}|^4$). For trace-polynomial
 integrals, $\mathrm{tr}(UAU^\ast B)$ and $\mathrm{tr}((UAU^\ast B)^2)$,
 \texttt{IntU.jl} shows advantages of $4.0\times$ and $1.9\times$,
