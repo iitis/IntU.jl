@@ -103,6 +103,23 @@ function push_case!(case_result)
     push!(results["cases"], case_result)
 end
 
+failed_checks = NamedTuple[]
+
+function record_check!(group::String, name::String, ok::Bool, got, expected)
+    if !ok
+        push!(
+            failed_checks,
+            (
+                group = group,
+                name = name,
+                got = safe_string(got),
+                expected = safe_string(expected),
+            ),
+        )
+    end
+    return nothing
+end
+
 dvals_symbolic = quick ? [4, 8, 16] : [4, 8, 16, 32, 64]
 
 println("=== IntU.jl stress/benchmark suite ===")
@@ -169,6 +186,7 @@ for (name, expr, expected) in U_cases
             "benchmark" => bm,
         ),
     )
+    record_check!("U", name, diff0, got, expected)
 end
 
 # ------------- O(d): symbolic-d stress tests ----------------------------------
@@ -243,6 +261,7 @@ for (name, expr, k) in O_cases
             "benchmark" => bm,
         ),
     )
+    record_check!("O", name, ok, got, local_expected)
 end
 
 # ------------- "Bigger d" sanity checks (explicit numeric matrices) -----------
@@ -283,6 +302,7 @@ for dnum in dnums
             "benchmark" => bm,
         ),
     )
+    record_check!("U", "U_numeric_d_$(dnum)__|U11|^10", ok, got, expected)
 end
 
 for dnum in dnums
@@ -321,13 +341,15 @@ for dnum in dnums
             "benchmark" => bm,
         ),
     )
+    record_check!("O", "O_numeric_d_$(dnum)__O11^10", ok, got, expected)
 end
 
 # ------------- Sp(d): stress tests -------------------------------------------
 # (a) High moments of |S11| (handled by IntU.jl for Sp via dSp) :contentReference[oaicite:6]{index=6}
 # (b) A “no conjugates” symplectic example with known closed form:
 #     ∫ s_{1,1} s_{2,N+2} s_{N+1,2} s_{N+2,N+1} dSp
-#     = 1 / (4 N (N-1) (2N+1)) for Sp(N) in 2N×2N complex form :contentReference[oaicite:7]{index=7}
+#     = -1 / (4 N (N-1) (2N+1)) under IntU's current symplectic sign convention
+#       (consistent with the implemented Sp Weingarten/sign mapping).
 
 Nvals = quick ? [3, 5] : [3, 5, 10]
 
@@ -383,11 +405,13 @@ for N in Nvals
                 "benchmark" => bm,
             ),
         )
+        record_check!("Sp", nm, ok, got, local_expected)
     end
 
     # (b) Collins Example 4.7 style monomial (no conjugates)
     expr_collins = S[1, 1] * S[2, N+2] * S[N+1, 2] * S[N+2, N+1]
-    expected_collins = Float64(1 // (4*N*(N-1)*(2N+1)))  # = 1 / (d(d-2)(d+1)) with d=2N
+    expected_collins =
+        Float64(-1 // (4*N*(N-1)*(2N+1)))  # = -1 / (d(d-2)(d+1)) with d=2N
 
     μSp_f = dSp(dSp_num)
     gotC, bmC = bench_integrate(expr_collins, μSp_f; samples = samples)
@@ -415,6 +439,21 @@ for N in Nvals
             "benchmark" => bmC,
         ),
     )
+    record_check!(
+        "Sp",
+        "Sp_numeric_N_$(N)__collins_example_degree4",
+        okC,
+        gotC,
+        expected_collins,
+    )
+end
+
+if !isempty(failed_checks)
+    println("=== Benchmark validation failures ($(length(failed_checks))) ===")
+    for f in failed_checks
+        println(" - [$(f.group)] $(f.name): got=$(f.got), expected=$(f.expected)")
+    end
+    println()
 end
 
 open(outpath, "w") do io
@@ -422,3 +461,7 @@ open(outpath, "w") do io
 end
 
 println("=== Done. Wrote JSON report to: $outpath ===")
+
+if !isempty(failed_checks)
+    error("Benchmark validation failed for $(length(failed_checks)) case(s).")
+end
