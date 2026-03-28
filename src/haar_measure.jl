@@ -40,7 +40,10 @@ Defines the Haar measure for the Unitary group $U(d)$.
 
 Integration engine identifies variables via metadata tag `:U`.
 """
-dU(dim) = HaarMeasure(dim)
+function dU(dim)
+    _assert_no_float_param(dim, "dim", "dU")
+    return HaarMeasure(dim)
+end
 
 
 IntU._measure_tag(::HaarMeasure) = :U

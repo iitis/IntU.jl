@@ -6,7 +6,8 @@ end
 struct SymplecticMeasure{D} <: AbstractMeasure
     dim::D
     function SymplecticMeasure(dim::D) where {D}
-        if dim isa Integer && isodd(dim)
+        d_int = _try_extract_int(dim)
+        if d_int !== nothing && isodd(d_int)
             throw(
                 ArgumentError(
                     "Dimension dim must be even for SymplecticMeasure, got $dim.",
@@ -23,7 +24,10 @@ end
 Defines the Haar measure for the real Orthogonal group $O(d)$ with dimension `dim`.
 Integration engine identifies variables via metadata tag `:O`.
 """
-dO(dim) = OrthogonalMeasure(dim)
+function dO(dim)
+    _assert_no_float_param(dim, "dim", "dO")
+    return OrthogonalMeasure(dim)
+end
 
 @doc raw"""
     dSp(dim)
@@ -32,7 +36,10 @@ Defines the Haar measure for the Symplectic group $Sp(d)$.
 The dimension `dim` must be even.
 Integration engine identifies variables via metadata tag `:Sp`.
 """
-dSp(dim) = SymplecticMeasure(dim)
+function dSp(dim)
+    _assert_no_float_param(dim, "dim", "dSp")
+    return SymplecticMeasure(dim)
+end
 
 
 IntU._measure_tag(::OrthogonalMeasure) = :O

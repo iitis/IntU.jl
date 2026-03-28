@@ -17,14 +17,20 @@ Defines the Haar measure for the Symmetric group $S_d$ (permutation matrices) of
 
 Integration engine identifies variables via metadata tag `:Perm`.
 """
-dPerm(dim) = PermutationMeasure(dim)
+function dPerm(dim)
+    _assert_no_float_param(dim, "dim", "dPerm")
+    return PermutationMeasure(dim)
+end
 
 @doc raw"""
     dCPerm(dim)
 
 Defines the measure for Centered Permutation matrices $Y = P - J/d$ where $P \in S_d$.
 """
-dCPerm(dim) = CenteredPermutationMeasure(dim)
+function dCPerm(dim)
+    _assert_no_float_param(dim, "dim", "dCPerm")
+    return CenteredPermutationMeasure(dim)
+end
 
 function fallback_integrate(t::LazyTrace, measure::PermutationMeasure)
     matcher = measure.matcher === nothing ? MetadataMatcher(:Perm) : measure.matcher

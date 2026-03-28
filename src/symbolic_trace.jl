@@ -63,14 +63,19 @@ end
 
 function Base.axes(A::SymbolicMatrix)
     sz = size(A)
-    return map(s -> s isa Integer ? (Base.OneTo(s)) : (1:1), sz)
+    return map(s -> begin
+        v = _try_extract_int(s)
+        v !== nothing ? Base.OneTo(v) : (1:1)
+    end, sz)
 end
 
 function _getindex_scalar(A::SymbolicMatrix, i, j)
     if A.dim !== nothing
         rows, cols = size(A)
+        rows_int = _try_extract_int(rows)
+        cols_int = _try_extract_int(cols)
         if i isa Integer
-            if i < 1 || (rows isa Integer && i > rows)
+            if i < 1 || (rows_int !== nothing && i > rows_int)
                 throw(BoundsError(A, (i, j)))
             end
         else
@@ -89,7 +94,7 @@ function _getindex_scalar(A::SymbolicMatrix, i, j)
             end
         end
         if j isa Integer
-            if j < 1 || (cols isa Integer && j > cols)
+            if j < 1 || (cols_int !== nothing && j > cols_int)
                 throw(BoundsError(A, (i, j)))
             end
         else
@@ -363,7 +368,9 @@ function Base.size(P::SymbolicMatrixProduct)
     for i in 1:(length(P.factors) - 1)
         cols_i = size(P.factors[i], 2)
         rows_next = size(P.factors[i + 1], 1)
-        if cols_i isa Integer && rows_next isa Integer && cols_i != rows_next
+        ci = _try_extract_int(cols_i)
+        rn = _try_extract_int(rows_next)
+        if ci !== nothing && rn !== nothing && ci != rn
             throw(DimensionMismatch(
                 "Incompatible dimensions in matrix product: factor $i has $cols_i columns " *
                 "but factor $(i + 1) has $rows_next rows."
@@ -389,23 +396,26 @@ function Base.getindex(P::SymbolicMatrixProduct, i::Integer, j::Integer)
     dimA = size(A, 2)
     dimB = size(B, 1)
 
+    dA = _try_extract_int(dimA)
+    dB = _try_extract_int(dimB)
+
     dim = nothing
-    if dimA isa Integer && dimB isa Integer
-        if dimA != dimB
+    if dA !== nothing && dB !== nothing
+        if dA != dB
             throw(
                 DimensionMismatch(
                     "matrix A has dimensions $(size(A)), matrix B has dimensions $(size(B))",
                 ),
             )
         end
-        dim = dimA
-    elseif dimA isa Integer
-        dim = dimA
-    elseif dimB isa Integer
-        dim = dimB
+        dim = dA
+    elseif dA !== nothing
+        dim = dA
+    elseif dB !== nothing
+        dim = dB
     end
 
-    if dim isa Integer
+    if dim !== nothing
         return Symbolics.wrap(sum(A[i, k] * B[k, j] for k = 1:dim))
     else
         return Num(Symbolics.variable(Symbol("sum_$(A)_$(B)_$(i)_$(j)"); T = Number))

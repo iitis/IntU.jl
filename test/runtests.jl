@@ -150,6 +150,10 @@ end
         include("ginibre.jl")
     end
 
+    @testset verbose=true "Float Dimension Rejection" begin
+        include("float_dimension_rejection.jl")
+    end
+
     @testset verbose=true "UX Improvements" begin
         include("ux_improvements.jl")
         include("macro_regression.jl")

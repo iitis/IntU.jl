@@ -188,8 +188,8 @@ O_cases = [
 
 for (name, expr, k) in O_cases
     use_concrete_O = (k >= 4)
-    local_μO = use_concrete_O ? dO(20.0) : μO
-    local_d = use_concrete_O ? 20.0 : d
+    local_μO = use_concrete_O ? dO(20) : μO
+    local_d = use_concrete_O ? 20 : d
 
     local_expected = if name == "O_row_prod4__∏O1j^2"
         orth_row_product(local_d, 4)
@@ -199,7 +199,7 @@ for (name, expr, k) in O_cases
         orth_entry_even_moment(local_d, k)
     end
 
-    println("[O(d)] $name $(use_concrete_O ? "(concrete d=20.0)" : "(symbolic)")")
+    println("[O(d)] $name $(use_concrete_O ? "(concrete d=20)" : "(symbolic)")")
     got, bm = bench_integrate(expr, local_μO; samples = samples)
 
     ok = if use_concrete_O
@@ -234,7 +234,7 @@ for (name, expr, k) in O_cases
         Dict(
             "group" => "O",
             "name" => name,
-            "d" => use_concrete_O ? 20.0 : "symbolic",
+            "d" => use_concrete_O ? 20 : "symbolic",
             "integrand" => safe_string(expr),
             "expected" => safe_string(local_expected),
             "got" => safe_string(got),
@@ -254,8 +254,8 @@ for dnum in dnums
     end
     Ubig_sym = SymbolicMatrix(:Ubig, :U, dnum)
     Ubig = Ubig_sym[1:dnum, 1:dnum]
-    # Use Float64 for high degree to avoid rational overhead
-    μUbig = dU(Float64(dnum))
+    # Keep concrete dimensions integer-like for strict dimension validation.
+    μUbig = dU(dnum)
     expr = abs2(Ubig[1, 1])^5
     expected = 120.0 / (dnum*(dnum+1)*(dnum+2)*(dnum+3)*(dnum+4))
 
@@ -291,8 +291,8 @@ for dnum in dnums
     end
     Obig_sym = SymbolicMatrix(:Obig, :O, dnum)
     Obig = Obig_sym[1:dnum, 1:dnum]
-    # Use Float64 to avoid Int64 rational overflow for k=5 (10th moment)
-    μObig = dO(Float64(dnum))
+    # Keep concrete dimensions integer-like for strict dimension validation.
+    μObig = dO(dnum)
     expr = Obig[1, 1]^10
     expected =
         Float64((doublefactorial_odd(9)) // (dnum*(dnum+2)*(dnum+4)*(dnum+6)*(dnum+8)))  # 945/...
@@ -354,8 +354,8 @@ for N in Nvals
     end
 
     for (nm, expr, expected) in cases_Sp
-        # Use Float64 for high degree to avoid rational overflow in the O(-d) mapping
-        local_μSp = dSp(Float64(dSp_num))
+        # Keep concrete dimensions integer-like for strict dimension validation.
+        local_μSp = dSp(dSp_num)
         local_expected = Float64(expected)
 
         got, bm = bench_integrate(expr, local_μSp; samples = samples)
@@ -389,7 +389,7 @@ for N in Nvals
     expr_collins = S[1, 1] * S[2, N+2] * S[N+1, 2] * S[N+2, N+1]
     expected_collins = Float64(1 // (4*N*(N-1)*(2N+1)))  # = 1 / (d(d-2)(d+1)) with d=2N
 
-    μSp_f = dSp(Float64(dSp_num))
+    μSp_f = dSp(dSp_num)
     gotC, bmC = bench_integrate(expr_collins, μSp_f; samples = samples)
     okC = isapprox(Symbolics.value(gotC), expected_collins; atol = 1e-14)
 

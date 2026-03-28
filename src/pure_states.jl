@@ -13,7 +13,10 @@ distributed according to the Haar measure.
 
 Integration engine identifies variables via metadata tag `:psi`.
 """
-dPsi(dim) = PureStateMeasure(dim)
+function dPsi(dim)
+    _assert_no_float_param(dim, "dim", "dPsi")
+    return PureStateMeasure(dim)
+end
 
 IntU._measure_tag(::PureStateMeasure) = :psi
 

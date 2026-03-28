@@ -13,7 +13,11 @@ Defines a measure representing a **unitary $t$-design**.
 
 Integration engine identifies variables via metadata tag `:U`.
 """
-dDesign(dim, t) = UnitaryDesign(dim, t)
+function dDesign(dim, t)
+    _assert_no_float_param(dim, "dim", "dDesign")
+    _assert_no_float_param(t, "t", "dDesign")
+    return UnitaryDesign(dim, t)
+end
 
 function IntU.measure_info(measure::UnitaryDesign)
     subs_dict = Dict{Any,Any}()
@@ -22,5 +26,7 @@ function IntU.measure_info(measure::UnitaryDesign)
     if dim isa SymbolicMatrix
         dim = dim.dim
     end
-    return (subs_dict, matcher, dim, (:Design, measure.t))
+    dim = _assert_no_float_param(dim, "dim", "UnitaryDesign")
+    t = _assert_no_float_param(measure.t, "t", "UnitaryDesign")
+    return (subs_dict, matcher, dim, (:Design, t))
 end

@@ -398,24 +398,7 @@ function _safe_Num(x)
     return _to_Num(x_un)
 end
 
-"""
-    _try_extract_int(p_val)
-
-Attempt to extract an integer from a symbolic or numeric value.
-Handles Julia `Integer`, `AbstractFloat` with integer value, and
-`SymbolicUtils.BasicSymbolic` types that print as integers.
-Returns the `Int` value or `nothing`.
-"""
-function _try_extract_int(p_val)
-    if p_val isa Integer
-        return Int(p_val)
-    end
-    if p_val isa AbstractFloat && isinteger(p_val)
-        return Int(p_val)
-    end
-    return tryparse(Int, string(p_val))
-end
-
+# _try_extract_int is defined in symbolic_utils.jl
 
 function _robust_real_num(x)
     res = _robust_real(x)
@@ -537,16 +520,19 @@ function process_term(term, matcher::AbstractIndexMatcher, dim, measure_type = :
     traverse(term, false)
 
     # Validate that concrete indices are within the measure dimension
-    if dim isa Integer
+    dim_int = _try_extract_int(dim)
+    if dim_int !== nothing
         for (i, j) in Iterators.flatten((u_indices, u_bar_indices))
-            if i isa Integer && i > dim
+            i_int = _try_extract_int(i)
+            if i_int !== nothing && i_int > dim_int
                 throw(ArgumentError(
-                    "Row index $i exceeds measure dimension $dim."
+                    "Row index $i_int exceeds measure dimension $dim_int."
                 ))
             end
-            if j isa Integer && j > dim
+            j_int = _try_extract_int(j)
+            if j_int !== nothing && j_int > dim_int
                 throw(ArgumentError(
-                    "Column index $j exceeds measure dimension $dim."
+                    "Column index $j_int exceeds measure dimension $dim_int."
                 ))
             end
         end

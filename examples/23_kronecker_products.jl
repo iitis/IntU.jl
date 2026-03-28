@@ -46,9 +46,10 @@ println("Result 3[1,1]: ", res3[1, 1])
 # 4. Dimension-less Neighbors (Dimension Propagation)
 println("\n--- 4. Dimension Propagation ---")
 # B has no dimension specified
-B_un = symbolic_unitary(:B_un, nothing)
-# kron(U, U) is 4x4. B_un will correctly infer 4x4 size from its neighbors.
-expr4 = kron(U, U) * B_un * adjoint(kron(U, U))
+B_un = SymbolicMatrix(:B_un, :Constant)
+U2 = symbolic_unitary(:U2, 2)
+# kron(U2, U2) is 4x4. B_un will correctly infer 4x4 size from its neighbors.
+expr4 = kron(U2, U2) * B_un * adjoint(kron(U2, U2))
 res4 = integrate(expr4, dU(2))
 
 println("Integral with dimension-less B succeeded.")

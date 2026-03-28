@@ -18,6 +18,9 @@ DiagonalUnitaryMeasure(dim) = DiagonalUnitaryMeasure(dim, nothing)
 Defines the measure for the group of diagonal unitary matrices (the torus $T^d$) of dimension `dim`.
 Integration engine identifies variables via metadata tag `:DiagUnitary`.
 """
-dDiagUnitary(dim) = DiagonalUnitaryMeasure(dim)
+function dDiagUnitary(dim)
+    _assert_no_float_param(dim, "dim", "dDiagUnitary")
+    return DiagonalUnitaryMeasure(dim)
+end
 
 IntU._measure_tag(::DiagonalUnitaryMeasure) = :DiagUnitary

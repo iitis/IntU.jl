@@ -18,7 +18,10 @@ polynomials, the integrals over $SU(d)$ and $U(d)$ coincide. In the current
 implementation, non-balanced expressions are handled by the same phase
 invariance rule as $U(d)$ and evaluate to zero.
 """
-dSU(dim) = SpecialUnitary(dim)
+function dSU(dim)
+    _assert_no_float_param(dim, "dim", "dSU")
+    return SpecialUnitary(dim)
+end
 
 function IntU.measure_info(measure::SpecialUnitary)
     return IntU.measure_info(dU(measure.dim))

@@ -64,6 +64,86 @@ function _ensure_symbolic_dim(d)
 end
 
 """
+    _concrete_numeric_value(x)
+
+Return the concrete numeric payload of `x` when available, otherwise `nothing`.
+Works for plain numbers and concrete symbolic constants (e.g. `Num(2.0)`).
+"""
+function _concrete_numeric_value(x)
+    if x isa Num
+        v = Symbolics.value(x)
+        return v isa Number ? v : nothing
+    end
+    if x isa Number
+        return x
+    end
+    v = try
+        Symbolics.value(x)
+    catch
+        nothing
+    end
+    return v isa Number ? v : nothing
+end
+
+"""
+    _assert_no_float_param(x, param_name, context="value")
+
+Reject float-valued measure parameters. Accepts exact integer-like numeric values
+and symbolic variables, but throws for concrete floats (including wrapped
+constants like `Num(2.0)`).
+"""
+function _assert_no_float_param(
+    x,
+    param_name::AbstractString,
+    context::AbstractString = "value",
+)
+    v = _concrete_numeric_value(x)
+    if v isa AbstractFloat
+        throw(ArgumentError(
+            "$context requires `$param_name` to be an exact integer-like value " *
+            "or symbolic variable; got float input $x."
+        ))
+    end
+    return x
+end
+
+"""
+    _try_extract_int(x)
+
+Extract a plain `Int` from `x` if it wraps a concrete integer value.
+Returns the `Int`, or `nothing` if `x` is symbolic or non-integer.
+Handles: plain `Integer`, `Num`-wrapped integer constants (e.g. `Num(2)`).
+"""
+function _try_extract_int(x)
+    if x isa Integer
+        return typemin(Int) <= x <= typemax(Int) ? Int(x) : nothing
+    end
+    if x isa AbstractFloat && isinteger(x) && typemin(Int) <= x <= typemax(Int)
+        return trunc(Int, x)
+    end
+    if x isa Rational && isinteger(x)
+        n = numerator(x)
+        return typemin(Int) <= n <= typemax(Int) ? Int(n) : nothing
+    end
+    if x isa Num
+        u = Symbolics.unwrap(x)
+        if !SymbolicUtils.issym(u) && !SymbolicUtils.iscall(u)
+            st = SymbolicUtils.symtype(u)
+            val = getfield(getfield(u, 1), 1)
+            if st <: Integer
+                return typemin(Int) <= val <= typemax(Int) ? Int(val) : nothing
+            end
+            if (st <: AbstractFloat || st <: Rational) && isinteger(val)
+                return _try_extract_int(val)
+            end
+        end
+    end
+    # Fallback: try parsing the string representation (handles BasicSymbolic constants)
+    str = string(x)
+    return tryparse(Int, str)
+end
+
+"""
     _try_numeric(v)
 
 Attempt to convert a value to a clean numeric form. Returns the converted value,
@@ -73,7 +153,14 @@ or `nothing` if conversion is not possible.
 """
 function _try_numeric(v)
     if v isa AbstractFloat
-        return rationalize(v, tol = 1e-13)
+        isfinite(v) || return v
+        # Only rationalize if the result is exact (tol=0) and has a reasonable
+        # denominator. This avoids silently zeroing tiny values like 1e-20.
+        r = rationalize(v, tol = 0)
+        if isfinite(r) && abs(denominator(r)) <= 10^15
+            return r
+        end
+        return v
     end
     if v isa Real
         return v

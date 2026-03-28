@@ -11,7 +11,11 @@ If called with `dim`, it integrates entries tagged with `:V` via `SymbolicMatrix
 Reference:
 - Edelman, A., Arias, T. A., & Smith, S. T. (1998). The geometry of algorithms with orthogonality constraints.
 """
-dStiefel(dim, k) = StiefelMeasure(dim, k)
+function dStiefel(dim, k)
+    _assert_no_float_param(dim, "dim", "dStiefel")
+    _assert_no_float_param(k, "k", "dStiefel")
+    return StiefelMeasure(dim, k)
+end
 
 
 """
@@ -25,7 +29,9 @@ struct StiefelMeasure{D,K,M} <: AbstractMeasure
     k::K
     matcher::M
     function StiefelMeasure(dim::D, k::K, matcher::M) where {D,K,M}
-        if dim isa Integer && k isa Integer && k > dim
+        d_int = _try_extract_int(dim)
+        k_int = _try_extract_int(k)
+        if d_int !== nothing && k_int !== nothing && k_int > d_int
             throw(
                 ArgumentError(
                     "Stiefel manifold V_k(C^d) requires k <= d, got k=$k, d=$dim",
@@ -47,10 +53,14 @@ function IntU.measure_info(measure::StiefelMeasure)
     if dim isa SymbolicMatrix
         dim = dim.dim
     end
-    return (subs_dict, matcher, dim, (tag, measure.k))
+    dim = _assert_no_float_param(dim, "dim", "StiefelMeasure")
+    k = _assert_no_float_param(measure.k, "k", "StiefelMeasure")
+    return (subs_dict, matcher, dim, (tag, k))
 end
 
 function integrate(P::SymbolicMatrixProduct, measure::StiefelMeasure)
+    _validate_measure_discrete_params(measure)
+
     if isempty(P.factors)
         return Num(1)
     end

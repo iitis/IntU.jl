@@ -20,6 +20,7 @@ for (T, tag, ctor) in [
                 measure.matcher === nothing ? MetadataMatcher($(QuoteNode(tag))) :
                 measure.matcher
             dim = measure.dim isa SymbolicMatrix ? measure.dim.dim : measure.dim
+            dim = _assert_no_float_param(dim, "dim", $(string(ctor)))
             return (subs_dict, matcher, dim, $(QuoteNode(tag)))
         end
 
@@ -33,14 +34,20 @@ end
 
 Gaussian Unitary Ensemble (GUE) measure.
 """
-dGUE(dim) = GUEMeasure(dim)
+function dGUE(dim)
+    _assert_no_float_param(dim, "dim", "dGUE")
+    return GUEMeasure(dim)
+end
 
 """
     dGOE(dim)
 
 Gaussian Orthogonal Ensemble (GOE) measure.
 """
-dGOE(dim) = GOEMeasure(dim)
+function dGOE(dim)
+    _assert_no_float_param(dim, "dim", "dGOE")
+    return GOEMeasure(dim)
+end
 
 """
     dGSE(dim)
@@ -49,6 +56,7 @@ Gaussian Symplectic Ensemble (GSE) measure.
 `dim` must be even.
 """
 function dGSE(dim)
+    _assert_no_float_param(dim, "dim", "dGSE")
     if dim isa Integer && isodd(dim)
         throw(ArgumentError("GSE dimension must be even, got $dim"))
     end
@@ -60,14 +68,20 @@ end
 
 Complex Ginibre Ensemble (GinUE) measure.
 """
-dGinUE(dim) = GinUEMeasure(dim)
+function dGinUE(dim)
+    _assert_no_float_param(dim, "dim", "dGinUE")
+    return GinUEMeasure(dim)
+end
 
 """
     dGinOE(dim)
 
 Real Ginibre Ensemble (GinOE) measure.
 """
-dGinOE(dim) = GinOEMeasure(dim)
+function dGinOE(dim)
+    _assert_no_float_param(dim, "dim", "dGinOE")
+    return GinOEMeasure(dim)
+end
 
 """
     dGinSE(dim)
@@ -76,6 +90,7 @@ Quaternionic/Symplectic Ginibre Ensemble (GinSE) measure.
 `dim` must be even.
 """
 function dGinSE(dim)
+    _assert_no_float_param(dim, "dim", "dGinSE")
     if dim isa Integer && isodd(dim)
         throw(ArgumentError("GinSE dimension must be even, got $dim"))
     end

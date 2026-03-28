@@ -51,6 +51,35 @@ function _get_measure_dim(measure)
 end
 
 """
+    _validate_measure_discrete_params(measure)
+
+Fail fast on float-like discrete measure parameters, even for code paths that
+bypass `measure_info` (e.g. precomputed-library or specialized integration
+methods). This keeps constructor and integration-time policy aligned.
+"""
+function _validate_measure_discrete_params(measure::AbstractMeasure)
+    ctx = "measure $(nameof(typeof(measure)))"
+
+    if hasproperty(measure, :dim)
+        dim = getproperty(measure, :dim)
+        if dim isa SymbolicMatrix
+            dim = dim.dim
+        end
+        _assert_no_float_param(dim, "dim", ctx)
+    end
+
+    if hasproperty(measure, :k)
+        _assert_no_float_param(getproperty(measure, :k), "k", ctx)
+    end
+
+    if hasproperty(measure, :t)
+        _assert_no_float_param(getproperty(measure, :t), "t", ctx)
+    end
+
+    return nothing
+end
+
+"""
     integrate(expr::SymbolicMatrix, measure)
 
 Integrate a SymbolicMatrix as a whole. Returns a matrix of results if the
@@ -58,13 +87,15 @@ matrix dimensions are concrete integers. Supports rectangular matrices
 (e.g., pure states with size `(d, 1)` or Stiefel matrices with size `(d, k)`).
 """
 function integrate(A::SymbolicMatrix, measure::AbstractMeasure)
-    rows, cols = size(A)
-    if rows isa Integer && cols isa Integer
-        res = Matrix{Any}(undef, rows, cols)
+    rows_raw, cols_raw = size(A)
+    nr = _try_extract_int(rows_raw)
+    nc = _try_extract_int(cols_raw)
+    if nr !== nothing && nc !== nothing
+        res = Matrix{Any}(undef, nr, nc)
         fill!(res, 0)
-        p = Progress(rows * cols; dt = 10.0, desc = "Integrating matrix elements... ")
-        for i = 1:rows
-            for j = 1:cols
+        p = Progress(nr * nc; dt = 10.0, desc = "Integrating matrix elements... ")
+        for i = 1:nr
+            for j = 1:nc
                 res[i, j] = integrate(A[i, j], measure)
                 next!(p)
             end
@@ -113,6 +144,7 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
        hasproperty(matcher, :type_tag)
         tag = hasproperty(matcher, :type_tag) ? matcher.type_tag : matcher.tag
         if !_has_integration_variable(P, tag)
+            size(P)  # validate internal dimension consistency
             return P
         end
     end
@@ -122,51 +154,56 @@ function integrate(P::SymbolicMatrixProduct, measure::AbstractMeasure)
 
     inner_dims = Vector{Any}(fill(nothing, n_factors + 1))
 
-    for (i, f) in enumerate(P.factors)
+    for (idx, f) in enumerate(P.factors)
         fr, fc = size(f)
-        fr_un = Symbolics.unwrap(fr)
-        fc_un = Symbolics.unwrap(fc)
-
-        if fr_un isa Integer && fr_un != typemax(Int)
-            if inner_dims[i] isa Integer && inner_dims[i] != fr_un
-                throw(ArgumentError(
-                    "Dimension mismatch in matrix product: factor $i has $fr_un rows " *
-                    "but preceding factor has $(inner_dims[i]) columns."
-                ))
-            end
-            inner_dims[i] = fr_un
+        fr_int = _try_extract_int(fr)
+        if fr_int === nothing
+            fr_v = Symbolics.unwrap(fr)
+            fr_int = fr_v isa Integer && fr_v != typemax(Int) ? fr_v : nothing
         end
-        if fc_un isa Integer && fc_un != typemax(Int)
-            if inner_dims[i+1] isa Integer && inner_dims[i+1] != fc_un
+        fc_int = _try_extract_int(fc)
+        if fc_int === nothing
+            fc_v = Symbolics.unwrap(fc)
+            fc_int = fc_v isa Integer && fc_v != typemax(Int) ? fc_v : nothing
+        end
+
+        if fr_int !== nothing
+            prev = inner_dims[idx]
+            if prev isa Integer && prev != fr_int
                 throw(ArgumentError(
-                    "Dimension mismatch in matrix product: factor $i has $fc_un columns " *
-                    "but following factor has $(inner_dims[i+1]) rows."
+                    "Dimension mismatch in matrix product: factor $idx has $fr_int rows " *
+                    "but preceding factor has $prev columns."
                 ))
             end
-            inner_dims[i+1] = fc_un
+            inner_dims[idx] = fr_int
+        end
+        if fc_int !== nothing
+            nxt = inner_dims[idx+1]
+            if nxt isa Integer && nxt != fc_int
+                throw(ArgumentError(
+                    "Dimension mismatch in matrix product: factor $idx has $fc_int columns " *
+                    "but following factor has $nxt rows."
+                ))
+            end
+            inner_dims[idx+1] = fc_int
         end
     end
 
     for i = 1:(n_factors+1)
         if inner_dims[i] === nothing
-            inner_dims[i] = dim_measure
+            dim_int = _try_extract_int(dim_measure)
+            inner_dims[i] = dim_int !== nothing ? dim_int : dim_measure
         end
     end
 
-    nr = inner_dims[1]
-    nc = inner_dims[end]
+    nr = inner_dims[1] isa Integer ? inner_dims[1] : _try_extract_int(inner_dims[1])
+    nc = inner_dims[end] isa Integer ? inner_dims[end] : _try_extract_int(inner_dims[end])
 
-    nr_un = Symbolics.unwrap(nr)
-    nc_un = Symbolics.unwrap(nc)
-
-    if nr_un isa Integer && nc_un isa Integer
-        nr = Int(nr_un)
-        nc = Int(nc_un)
-
+    if nr isa Integer && nc isa Integer
         mats = []
-        for (i, f) in enumerate(P.factors)
-            cur_r = Symbolics.unwrap(inner_dims[i])
-            cur_c = Symbolics.unwrap(inner_dims[i+1])
+        for (idx, f) in enumerate(P.factors)
+            cur_r = inner_dims[idx]
+            cur_c = inner_dims[idx+1]
 
             if !(cur_r isa Integer && cur_c isa Integer)
                 throw(
@@ -215,6 +252,8 @@ Top-level integration function. It first checks the [Pre-computed Integral Libra
 for instant results. If not found, it calls `fallback_integrate` for the specific measure.
 """
 function integrate(expr, measure::AbstractMeasure)
+    _validate_measure_discrete_params(measure)
+
     lib_res = check_library(expr, measure)
     if lib_res !== nothing
         return lib_res
@@ -299,5 +338,6 @@ function measure_info(measure::AbstractMeasure)
     if dim isa SymbolicMatrix
         dim = dim.dim
     end
+    dim = _assert_no_float_param(dim, "dim", "measure $tag")
     return (subs_dict, matcher, dim, tag)
 end

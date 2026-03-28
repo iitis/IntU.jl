@@ -4,7 +4,10 @@
 Defines the Circular Unitary Ensemble measure for U(d).
 This is mathematically equivalent to the Haar measure on U(d).
 """
-dCUE(dim) = dU(dim)
+function dCUE(dim)
+    _assert_no_float_param(dim, "dim", "dCUE")
+    return dU(dim)
+end
 
 struct COEMeasure{D,M} <: AbstractMeasure
     dim::D
@@ -17,7 +20,8 @@ struct CSEMeasure{D,M} <: AbstractMeasure
     dim::D
     matcher::M
     function CSEMeasure(dim::D, matcher::M) where {D,M}
-        if dim isa Integer && isodd(dim)
+        d_int = _try_extract_int(dim)
+        if d_int !== nothing && isodd(d_int)
             throw(ArgumentError("Dimension dim must be even for CSEMeasure, got $dim."))
         end
         new{D,M}(dim, matcher)
@@ -32,7 +36,10 @@ IntU._measure_tag(::CSEMeasure) = :CSE
 Defines the Circular Orthogonal Ensemble (COE) measure on U(N).
 Integration engine identifies variables via metadata tag `:COE`.
 """
-dCOE(dim) = COEMeasure(dim)
+function dCOE(dim)
+    _assert_no_float_param(dim, "dim", "dCOE")
+    return COEMeasure(dim)
+end
 
 @doc raw"""
     dCSE(dim)
@@ -40,7 +47,10 @@ dCOE(dim) = COEMeasure(dim)
 Defines the Circular Symplectic Ensemble (CSE) measure on U(2N).
 Integration engine identifies variables via metadata tag `:CSE`.
 """
-dCSE(dim) = CSEMeasure(dim)
+function dCSE(dim)
+    _assert_no_float_param(dim, "dim", "dCSE")
+    return CSEMeasure(dim)
+end
   
 function _coe_diagonal_moment(m, dim)
     num = one(Rational{BigInt})

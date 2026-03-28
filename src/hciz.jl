@@ -75,7 +75,8 @@ function hciz(A::SymbolicMatrix, B::SymbolicMatrix)
             ),
         )
     end
-    if !(d_a isa Integer)
+    d_int = _try_extract_int(d_a)
+    if d_int === nothing
         throw(
             ArgumentError(
                 "HCIZ for SymbolicMatrix requires a concrete integer dimension " *
@@ -84,7 +85,7 @@ function hciz(A::SymbolicMatrix, B::SymbolicMatrix)
             ),
         )
     end
-    return hciz(A, B, d_a)
+    return hciz(A, B, d_int)
 end
 
 function hciz(A::SymbolicMatrix, B::SymbolicMatrix, d::Int)
@@ -95,7 +96,9 @@ end
 
 function _get_eigenvalues(M::AbstractMatrix)
     if all(x -> x isa Number && !(x isa Num), M)
-        return eigen(M).values
+        # Convert to a concrete numeric matrix type if needed (e.g. Matrix{Any})
+        M_num = eltype(M) <: Number && !(eltype(M) <: Num) ? M : float.(M)
+        return eigen(M_num).values
     end
 
     if isdiag(M)
@@ -132,6 +135,11 @@ function hciz(a::AbstractVector, b::AbstractVector)
     _is_pure_numeric(v) = all(x -> x isa Number && !(x isa Num), v)
     if _has_degeneracies(a) || _has_degeneracies(b)
         if _is_pure_numeric(a) && _is_pure_numeric(b)
+            # Sort to make the perturbation permutation-invariant.
+            # Use a total order (real, then imag) so complex ties are stable.
+            _hciz_order(z) = (real(z), imag(z))
+            a = sort(collect(a); by=_hciz_order)
+            b = sort(collect(b); by=_hciz_order)
             eps_a = max(maximum(abs, a), 1.0) * 1e-12
             eps_b = max(maximum(abs, b), 1.0) * 1e-12
             a = [a[i] + i * eps_a for i = 1:d]
