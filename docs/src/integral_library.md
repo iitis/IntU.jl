@@ -32,14 +32,15 @@ B = SymbolicMatrix(:B)
 ### Trace moments
 
 Pure trace moments $|\mathrm{tr}(U)|^{2k} = \mathrm{tr}(U)^k \cdot \mathrm{tr}(U^\dagger)^k$
-are pre-computed for small $k$:
+are pre-computed for small $k$. The values below are the stable-range results
+(valid when $d \ge k$):
 
 | Integral | Result |
 |---|---|
 | $\mathbb{E}[\,\|\mathrm{tr}(U)\|^2\,]$ | $1$ |
-| $\mathbb{E}[\,\|\mathrm{tr}(U)\|^4\,]$ | $2$ |
-| $\mathbb{E}[\,\|\mathrm{tr}(U)\|^6\,]$ | $6$ |
-| $\mathbb{E}[\,\|\mathrm{tr}(U)\|^8\,]$ | $24$ |
+| $\mathbb{E}[\,\|\mathrm{tr}(U)\|^4\,]$ | $2$ (for $d \ge 2$) |
+| $\mathbb{E}[\,\|\mathrm{tr}(U)\|^6\,]$ | $6$ (for $d \ge 3$) |
+| $\mathbb{E}[\,\|\mathrm{tr}(U)\|^8\,]$ | $24$ (for $d \ge 4$) |
 
 The pattern $k!$ is the large-$d$ (stable-range) limit, reflecting the
 Gaussian universality of $\mathrm{tr}(U)$ as $d \to \infty$. For **integer**

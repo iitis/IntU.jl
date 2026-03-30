@@ -124,8 +124,11 @@ $O(d)$, $Sp(d)$, and $SU(d)$ for balanced polynomials), circular and Gaussian
 ensembles, Ginibre ensembles, permutation groups, random pure states, and
 unitary $t$-designs. The package
 provides a fully open-source implementation of the Weingarten calculus and Wick
-contractions with native support for symbolic dimensions $d$ as rational
-functions, automatic asymptotic expansions, a high-level symbolic trace
+contractions with broad symbolic-$d$ support for entry-wise and
+trace-polynomial integrals, while selected workflows currently require concrete
+integer dimensions (including higher pure trace moments
+$|\mathrm{tr}(U)|^{2k}$ for $k > 1$ and HCIZ with \texttt{SymbolicMatrix}
+inputs), automatic asymptotic expansions, a high-level symbolic trace
 interface that reconstructs Weingarten graphs from index-free expressions, and
 a bridge to \texttt{ITensors.jl} for tensor network averaging. We discuss the
 underlying algorithms—including the Murnaghan-Nakayama rule and
@@ -207,7 +210,7 @@ with \texttt{Haarpy} and \texttt{RTNI} is presented in
 Sections~\ref{sec:haarpy_comparison} and~\ref{sec:rtni_comparison}.
 
 However, existing tools often face limitations in extensibility, performance, or
-the ability to handle symbolic dimensions $d$ natively, producing rational functions of $d$ for most integrals.
+the ability to handle symbolic dimensions $d$ natively across a broad class of workflows.
 Furthermore, the translation from high-level, coordinate-free mathematical
 expressions (e.g., traces of products) to the index-based tensor contractions
 required by Weingarten calculus is often left to the user, leading to
@@ -793,7 +796,8 @@ facilitates this analysis by expanding exact rational results into power series.
 Consider the fourth moment of a matrix entry, $|U_{11}|^4$:
 
 \begin{lstlisting}[language=Julia]
-using IntU
+using IntU, Symbolics
+@variables d
 # The shorthand factory functions can be used for explicit variable creation
 U = symbolic_unitary(:U, d)
 expr = abs(U[1,1])^4
@@ -804,18 +808,25 @@ asymp_res = asymptotic(expr, dU(d), 4)
 
 This facility is particularly valuable for extracting universal scaling laws
 from combinatorially complex exact expressions. For instance, the large-$d$
-expansion of trace moments reveals the Gaussian universality of
+limit of trace moments reveals the Gaussian universality of
 $\mathrm{tr}(U)$:
 
 \begin{lstlisting}[language=Julia]
 # E[|tr(U)|^6]: asymptotic expansion requires concrete d
 asymp_tr6 = asymptotic(abs(tr(U))^6, dU(10), 3)
-# Leading term: 6 = 3!, confirming that tr(U) behaves as
-# a standard complex Gaussian as d -> infinity
+# For d >= 3 this moment is already exactly 6 = 3!
+# (stable-range value)
 \end{lstlisting}
 
-The leading-order coefficient $k! = 6$ matches the $2k$-th moment of a standard
-complex Gaussian, while the subleading corrections encode finite-size deviations.
+For pure trace moments, the exact finite-$d$ dependence is a step function in
+integer $d$:
+\[
+\mathbb{E}\!\left[|\mathrm{tr}(U)|^{2k}\right]
+= \sum_{\lambda \vdash k,\ \ell(\lambda)\le d} (f^\lambda)^2.
+\]
+Hence, for fixed $k$, the value equals $k!$ exactly once $d \ge k$ (for example,
+$\mathbb{E}[|\mathrm{tr}(U)|^6]=6$ for all integer $d \ge 3$), and there is no
+$1/d$-type subleading correction series in that stabilized regime.
 
 As a physically grounded application, consider Page's result on the average
 entanglement of random bipartite states \cite{page1993average}. For a random
@@ -989,8 +1000,8 @@ mathematical structures while sharing the top-level dispatch mechanism:
     s_{\lambda, d}(1) = \prod_{(i,j) \in \lambda} \frac{d + c_{i,j}}{h_{i,j}}
     \end{equation}
     where $c_{i,j} = j-i$ is the content and $h_{i,j}$ is the hook length. This formulation
-    allows the package to handle symbolic dimensions natively, producing exact rational functions
-    of $d$.
+    allows the package to handle symbolic dimensions natively in supported workflows,
+    producing exact rational functions of $d$ where applicable.
     \item \textbf{Orthogonal and symplectic groups}: For these groups, the package generates pair partitions
     recursively, canonicalizing them (typically as sorted pairs) to enable $\mathcal{O}(1)$ lookup.
     For symbolic dimensions $d$, \texttt{IntU.jl} utilizes a specialized univariate polynomial
@@ -1312,23 +1323,23 @@ comparison scripts are available in
 
 Table~\ref{tab:haarpy_comparison} summarizes the results. For \textbf{unitary}
 integrals, \texttt{IntU.jl} achieves strong speedups for diagonal moments
-($|U_{11}|^{2k}$, $k = 3, 4, 5$): $12.4\times$, $18.9\times$, and
-$72.3\times$ in the symbolic-$d$ rows, and $53.4\times$-$55.3\times$ in the
+($|U_{11}|^{2k}$, $k = 3, 4, 5$): $12.8\times$, $26.5\times$, and
+$55.2\times$ in the symbolic-$d$ rows, and $64.7\times$-$65.1\times$ in the
 numeric-$d$ rows. Off-diagonal unitary integrals range from near parity
 ($1.4\times$ for $|U_{11}|^2|U_{22}|^2$) to substantial gains
-($13.4\times$ for $|U_{11}|^4|U_{12}|^4$).
+($7.6\times$ for $|U_{11}|^4|U_{12}|^4$).
 
 The \textbf{orthogonal} group results reveal a more dramatic separation: while
-both packages are close at low degree ($O_{11}^2$, $1.7\times$),
+both packages are close at low degree ($O_{11}^2$, $2.8\times$),
 \texttt{IntU.jl}'s optimized univariate Weingarten solver delivers speedups
-exceeding $2\times 10^4\times$ at degree 10. This disparity arises because
+exceeding $1.8\times 10^4\times$ at degree 10. This disparity arises because
 \texttt{Haarpy} constructs and inverts the full $(2k{-}1)!! \times (2k{-}1)!!$
 Weingarten matrix even when a single entry suffices, whereas \texttt{IntU.jl}
 exploits the structure of univariate integrands to bypass this cost entirely.
-Off-diagonal orthogonal integrals show a $5.0$-$6.0\times$ advantage.
+Off-diagonal orthogonal integrals show a $6.6$-$8.2\times$ advantage.
 
 For the \textbf{circular orthogonal ensemble} (COE), \texttt{IntU.jl} uses a
-closed-form expression for diagonal moments, yielding $2.3$-$18.9\times$
+closed-form expression for diagonal moments, yielding $2.0$-$11.6\times$
 speedups that grow with the degree. We note that \texttt{Haarpy} (v0.0.6, the latest release available at
 time of writing) returned incorrect results (zero) for the off-diagonal COE
 integrals tested ($|S_{12}|^{2k}$, $|S_{11}|^2|S_{12}|^2$), which
@@ -1352,30 +1363,30 @@ orthogonal and unitary diagonal moments.
     Group & Integrand & IntU.jl (ms) & Haarpy (ms) & Speedup \\
     \hline
     \multicolumn{5}{l}{\emph{Diagonal moments}} \\
-    U($d$) & $|U_{11}|^6$, symbolic $d$ & 1.24 & 15.40 & 12.4$\times$ \\
-    U($d$) & $|U_{11}|^8$, symbolic $d$ & 1.47 & 27.69 & 18.9$\times$ \\
-    U($d$) & $|U_{11}|^{10}$, symbolic $d$ & 1.24 & 89.96 & 72.3$\times$ \\
-    U($d$) & $|U_{11}|^{10}$, $d=10$ & 1.01 & 53.83 & 53.4$\times$ \\
-    U($d$) & $|U_{11}|^{10}$, $d=50$ & 1.00 & 55.09 & 55.3$\times$ \\
+    U($d$) & $|U_{11}|^6$, symbolic $d$ & 0.96 & 12.26 & 12.8$\times$ \\
+    U($d$) & $|U_{11}|^8$, symbolic $d$ & 0.98 & 25.92 & 26.5$\times$ \\
+    U($d$) & $|U_{11}|^{10}$, symbolic $d$ & 2.19 & 121.07 & 55.2$\times$ \\
+    U($d$) & $|U_{11}|^{10}$, $d=10$ & 0.90 & 57.98 & 64.7$\times$ \\
+    U($d$) & $|U_{11}|^{10}$, $d=50$ & 0.84 & 54.75 & 65.1$\times$ \\
     \hline
-    O($d$) & $O_{11}^2$, symbolic $d$ & 0.50 & 0.86 & 1.7$\times$ \\
-    O($d$) & $O_{11}^4$, symbolic $d$ & 0.49 & 4.53 & 9.2$\times$ \\
-    O($d$) & $O_{11}^6$, $d=10$ & 0.46 & 1.12 & 2.4$\times$ \\
-    O($d$) & $O_{11}^8$, $d=20$ & 0.45 & 74.16 & 163.3$\times$ \\
-    O($d$) & $O_{11}^{10}$, $d=20$ & 0.46 & 11704.50 & 25388.9$\times$ \\
-    O($d$) & $O_{11}^{10}$, $d=50$ & 0.47 & 10385.43 & 21895.9$\times$ \\
+    O($d$) & $O_{11}^2$, symbolic $d$ & 0.45 & 1.26 & 2.8$\times$ \\
+    O($d$) & $O_{11}^4$, symbolic $d$ & 0.48 & 6.40 & 13.5$\times$ \\
+    O($d$) & $O_{11}^6$, $d=10$ & 0.75 & 1.19 & 1.6$\times$ \\
+    O($d$) & $O_{11}^8$, $d=20$ & 0.52 & 74.57 & 143.4$\times$ \\
+    O($d$) & $O_{11}^{10}$, $d=20$ & 0.61 & 11184.57 & 18264.1$\times$ \\
+    O($d$) & $O_{11}^{10}$, $d=50$ & 0.63 & 10660.16 & 16826.5$\times$ \\
     \hline
-    COE & $|S_{11}|^2$, symbolic $d$ & 1.07 & 2.47 & 2.3$\times$ \\
-    COE & $|S_{11}|^4$, symbolic $d$ & 1.06 & 5.00 & 4.7$\times$ \\
-    COE & $|S_{11}|^6$, symbolic $d$ & 1.11 & 21.02 & 18.9$\times$ \\
+    COE & $|S_{11}|^2$, symbolic $d$ & 1.44 & 3.92 & 2.7$\times$ \\
+    COE & $|S_{11}|^4$, symbolic $d$ & 2.54 & 5.04 & 2.0$\times$ \\
+    COE & $|S_{11}|^6$, symbolic $d$ & 1.90 & 21.99 & 11.6$\times$ \\
     \hline
     \multicolumn{5}{l}{\emph{Off-diagonal products}} \\
-    U($d$) & $|U_{11}|^2|U_{12}|^2$, symbolic $d$ & 1.83 & 6.46 & 3.5$\times$ \\
-    U($d$) & $|U_{11}|^4|U_{12}|^4$, symbolic $d$ & 1.73 & 23.21 & 13.4$\times$ \\
-    U($d$) & $|U_{11}|^2|U_{22}|^2$, symbolic $d$ & 2.33 & 3.18 & 1.4$\times$ \\
+    U($d$) & $|U_{11}|^2|U_{12}|^2$, symbolic $d$ & 2.01 & 7.41 & 3.7$\times$ \\
+    U($d$) & $|U_{11}|^4|U_{12}|^4$, symbolic $d$ & 3.14 & 24.00 & 7.6$\times$ \\
+    U($d$) & $|U_{11}|^2|U_{22}|^2$, symbolic $d$ & 3.31 & 4.75 & 1.4$\times$ \\
     \hline
-    O($d$) & $O_{11}^2 O_{12}^2$, symbolic $d$ & 0.61 & 3.65 & 6.0$\times$ \\
-    O($d$) & $O_{11}O_{12}O_{21}O_{22}$, sym.\ $d$ & 1.03 & 5.10 & 5.0$\times$ \\
+    O($d$) & $O_{11}^2 O_{12}^2$, symbolic $d$ & 0.83 & 5.44 & 6.6$\times$ \\
+    O($d$) & $O_{11}O_{12}O_{21}O_{22}$, sym.\ $d$ & 0.91 & 7.53 & 8.2$\times$ \\
     \hline
 \end{tabular}
 \end{table}
@@ -1405,34 +1416,34 @@ in \texttt{benchmarks/rtni\_benchmarks/}.
     \hline
     Group & Integrand & IntU.jl (ms) & RTNI (ms) & Speedup \\
     \hline
-    U($d$) & $|U_{11}|^2$, symbolic $d$ & 1.27 & 0.54 & 0.4$\times$ \\
-    U($d$) & $|U_{11}|^4$, symbolic $d$ & 1.31 & 2.64 & 2.0$\times$ \\
-    U($d$) & $|U_{11}|^6$, symbolic $d$ & 1.32 & 38.74 & 29.3$\times$ \\
-    U($d$) & $|U_{11}|^8$, symbolic $d$ & 1.33 & 5130.93 & 3863.3$\times$ \\
-    U($d$) & $|U_{11}|^8$, $d=10$ & 1.27 & 5080.77 & 4005.5$\times$ \\
-    U($d$) & $|U_{11}|^2|U_{12}|^2$, symbolic $d$ & 2.23 & 2.50 & 1.1$\times$ \\
-    U($d$) & $|U_{11}|^2|U_{12}|^4$, symbolic $d$ & 2.24 & 36.49 & 16.3$\times$ \\
-    U($d$) & $|U_{11}|^2|U_{22}|^2$, symbolic $d$ & 2.50 & 2.51 & 1.0$\times$ \\
-    U($d$) & $|U_{11}|^2|U_{12}|^2$, $d=10$ & 2.20 & 2.44 & 1.1$\times$ \\
-    U($d$) & $|U_{11}|^2|U_{12}|^4$, $d=10$ & 2.19 & 35.38 & 16.2$\times$ \\
-    U($d$) & $|U_{11}|^2|U_{22}|^2$, $d=10$ & 2.24 & 2.44 & 1.1$\times$ \\
-    U($d$) & $\mathrm{tr}(UAU^\ast B)$, symbolic $d$ & 0.12 & 0.50 & 4.0$\times$ \\
-    U($d$) & $\mathrm{tr}((UAU^\ast B)^2)$, symbolic $d$ & 1.27 & 2.45 & 1.9$\times$ \\
+    U($d$) & $|U_{11}|^2$, symbolic $d$ & 1.81 & 0.61 & 0.3$\times$ \\
+    U($d$) & $|U_{11}|^4$, symbolic $d$ & 1.52 & 2.85 & 1.9$\times$ \\
+    U($d$) & $|U_{11}|^6$, symbolic $d$ & 2.27 & 37.23 & 16.4$\times$ \\
+    U($d$) & $|U_{11}|^8$, symbolic $d$ & 1.69 & 5684.27 & 3364.8$\times$ \\
+    U($d$) & $|U_{11}|^8$, $d=10$ & 1.37 & 5570.28 & 4071.7$\times$ \\
+    U($d$) & $|U_{11}|^2|U_{12}|^2$, symbolic $d$ & 2.49 & 2.57 & 1.0$\times$ \\
+    U($d$) & $|U_{11}|^2|U_{12}|^4$, symbolic $d$ & 2.80 & 40.41 & 14.4$\times$ \\
+    U($d$) & $|U_{11}|^2|U_{22}|^2$, symbolic $d$ & 2.88 & 2.54 & 0.9$\times$ \\
+    U($d$) & $|U_{11}|^2|U_{12}|^2$, $d=10$ & 2.91 & 2.53 & 0.9$\times$ \\
+    U($d$) & $|U_{11}|^2|U_{12}|^4$, $d=10$ & 2.62 & 39.26 & 15.0$\times$ \\
+    U($d$) & $|U_{11}|^2|U_{22}|^2$, $d=10$ & 2.50 & 2.55 & 1.0$\times$ \\
+    U($d$) & $\mathrm{tr}(UAU^\ast B)$, symbolic $d$ & 0.21 & 0.57 & 2.8$\times$ \\
+    U($d$) & $\mathrm{tr}((UAU^\ast B)^2)$, symbolic $d$ & 1.36 & 2.56 & 1.9$\times$ \\
     \hline
   \end{tabular}
 \end{table*}
 
 For element-wise integrals, the performance gap grows dramatically with
 polynomial degree. At the lowest order ($|U_{11}|^2$), \texttt{RTNI} is
-moderately faster ($0.4\times$). By degree eight ($|U_{11}|^8$),
+moderately faster ($0.3\times$). By degree eight ($|U_{11}|^8$),
 \texttt{IntU.jl} is over three orders of magnitude faster
-($3863\times$-$4006\times$), reflecting \texttt{IntU.jl}'s optimized
+($3365\times$-$4072\times$), reflecting \texttt{IntU.jl}'s optimized
 cycle-grouping strategy that avoids the full permutation-level expansion. For
 mixed-index integrals, performance is near parity at low degree
-($1.0\times$-$1.1\times$ for $|U_{11}|^2|U_{12}|^2$) and diverges at higher
-degree ($16\times$ for $|U_{11}|^2|U_{12}|^4$). For trace-polynomial
+($0.9\times$-$1.0\times$ for $|U_{11}|^2|U_{12}|^2$) and diverges at higher
+degree ($14\times$-$15\times$ for $|U_{11}|^2|U_{12}|^4$). For trace-polynomial
 integrals, $\mathrm{tr}(UAU^\ast B)$ and $\mathrm{tr}((UAU^\ast B)^2)$,
-\texttt{IntU.jl} shows advantages of $4.0\times$ and $1.9\times$,
+\texttt{IntU.jl} shows advantages of $2.8\times$ and $1.9\times$,
 respectively.
 
 \section{Conclusion}
@@ -1446,7 +1457,9 @@ quantum channels, higher-order entanglement statistics, and scrambling measures
 without resorting to brittle or approximate numerical sampling.
 
 The package's core strengths lie in its unified treatment of compact groups,
-its native handling of symbolic dimensions, and its
+its broad symbolic-$d$ support for entry-wise and trace-polynomial integrals
+(with explicit concrete-$d$ exceptions for higher pure trace moments and HCIZ
+on \texttt{SymbolicMatrix} inputs), and its
 novel symbolic trace logic. The latter effectively decouples the user's high-level
 mathematical intent from the low-level index contractions required by the integration
 engine, significantly reducing the cognitive load and potential for error. As

@@ -3,11 +3,11 @@
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://iitis.github.io/IntU.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://iitis.github.io/IntU.jl/dev/)
 
-IntU.jl is a Julia package for the **symbolic** calculation of integrals over
-the Haar measure of classical compact groups ($U(d)$, $O(d)$, $Sp(d)$) and
-related ensembles. It leverages **Weingarten Calculus** to compute exact results
-for polynomial functions of matrix entries, supporting arbitrary symbolic
-dimension $d$.
+IntU.jl is a Julia package for the exact symbolic and numeric calculation of
+integrals over the Haar measure of classical compact groups ($U(d)$, $O(d)$,
+$Sp(d)$) and related ensembles. It leverages **Weingarten Calculus** to compute
+exact results for polynomial functions of matrix entries, with broad support
+for symbolic dimension $d$ in entry-wise and trace-polynomial workflows.
 
 For detailed documentation, please visit [iitis.github.io/IntU.jl](https://iitis.github.io/IntU.jl).
 
@@ -17,7 +17,12 @@ To introduce the main functionality of IntU, consider the problem of averaging
 $|U_{i,j}|^2$ over the unitary group, i.e., computing $\int dU |U_{i,j}|^2 =
 \int dU U_{i,j} U_{k,l}^* dU$.
 
-IntU provides an exact analytic result instantly, even for symbolic dimensions, using a simple unified interface: `integrate(expr, measure)`. It supports matrix-valued expressions and provides the `@integrate` macro for intuitive symbolic integration.
+IntU provides exact analytic results through a unified interface:
+`integrate(expr, measure)`. It supports matrix-valued expressions and provides
+the `@integrate` macro for intuitive symbolic integration. Symbolic dimensions
+are supported for a broad class of workflows; selected paths currently require
+concrete integer dimensions (notably higher pure trace moments
+`|tr(U)|^(2k), k > 1`, and `hciz` on `SymbolicMatrix` inputs).
 
 The `@integrate` macro implicitly identifies random matrices based on the measure:
 - `dU`, `dSU`, `dCUE`, `dDesign` $\rightarrow$ `U` (Unitary / CUE / t-design)
