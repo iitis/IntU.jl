@@ -702,13 +702,13 @@ principles facilitate practical research tasks.
 \subsection{Basic integration}
 Consider the partial moment $\int_{U(d)} |U_{11}|^2 dU$. This integral represents
 the average magnitude squared of a single entry of a Haar-random unitary matrix.
-In \texttt{IntU.jl}, this can be computed using standard symbolic variables.
-Note that we define a symbolic dimension $d$ and a symbolic unitary matrix $U$
-of size $d \times d$:
+In \texttt{IntU.jl}, this can be computed directly with \texttt{@integrate}:
+the macro infers both the symbolic matrix symbol (\texttt{U}) and the symbolic
+dimension (\texttt{d}) from the measure context \texttt{dU(d)}:
 
 \begin{lstlisting}[language=Julia]
 using IntU
-# The @integrate macro automatically handles symbolic dimensions and measures
+# The @integrate macro infers U and d from the measure context
 result = @integrate abs(U[1,1])^2 dU(d)
 # Output: 1/d
 
@@ -812,8 +812,10 @@ limit of trace moments reveals the Gaussian universality of
 $\mathrm{tr}(U)$:
 
 \begin{lstlisting}[language=Julia]
+using IntU
+U10 = symbolic_unitary(:U, 10)
 # E[|tr(U)|^6]: asymptotic expansion requires concrete d
-asymp_tr6 = asymptotic(abs(tr(U))^6, dU(10), 3)
+asymp_tr6 = asymptotic(abs(tr(U10))^6, dU(10), 3)
 # For d >= 3 this moment is already exactly 6 = 3!
 # (stable-range value)
 \end{lstlisting}

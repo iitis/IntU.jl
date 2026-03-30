@@ -40,9 +40,9 @@ simply $6! = 720$:
 
 ```julia
 using IntU, Symbolics
-U = SymbolicMatrix(:U, :U, 10)
+U10 = SymbolicMatrix(:U, :U, 10)
 
-asymptotic(abs(tr(U))^12, dU(10), 1)
+asymptotic(abs(tr(U10))^12, dU(10), 1)
 # Output: 720   (= 6!, confirming tr(U) → complex Gaussian as d → ∞)
 ```
 
@@ -53,7 +53,11 @@ $120 / (d(d+1)(d+2)(d+3)(d+4))$. The asymptotic expansion reveals the
 leading scaling immediately:
 
 ```julia
-asymptotic(abs(U[1,1])^10, dU(d), 6)
+using IntU, Symbolics
+@variables d
+Ud = SymbolicMatrix(:Ud, :U, d)
+
+asymptotic(abs(Ud[1,1])^10, dU(d), 6)
 # Output: 120/d^5 - 1200/d^6 + ...
 ```
 
