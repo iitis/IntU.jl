@@ -807,21 +807,25 @@ asymp_res = asymptotic(expr, dU(d), 4)
 \end{lstlisting}
 
 This facility is particularly valuable for extracting universal scaling laws
-from combinatorially complex exact expressions. For instance, the large-$d$
-limit of trace moments reveals the Gaussian universality of
-$\mathrm{tr}(U)$:
+from combinatorially complex exact expressions. For higher trace-polynomial
+observables, it directly exposes both leading behavior and finite-size
+corrections in powers of $1/d$:
 
 \begin{lstlisting}[language=Julia]
-using IntU
-U10 = symbolic_unitary(:U, 10)
-# E[|tr(U)|^6]: asymptotic expansion requires concrete d
-asymp_tr6 = asymptotic(abs(tr(U10))^6, dU(10), 3)
-# For d >= 3 this moment is already exactly 6 = 3!
-# (stable-range value)
+using IntU, Symbolics
+@variables d
+U = symbolic_unitary(:U, d)
+A = SymbolicMatrix(:A); B = SymbolicMatrix(:B)
+C = SymbolicMatrix(:C); D = SymbolicMatrix(:D)
+
+asymp_tp = asymptotic(tr(U*A*U'*B*U*C*U'*D), dU(d), 3)
+# Leading terms:
+# (tr(A)tr(B*D)tr(C) + tr(A*C)tr(B)tr(D))/d^2
+# - (tr(A)tr(B)tr(C)tr(D) + tr(A*C)tr(B*D))/d^3
 \end{lstlisting}
 
-For pure trace moments, the exact finite-$d$ dependence is a step function in
-integer $d$:
+In contrast, pure trace moments have exact finite-$d$ dependence given by a
+step function in integer $d$:
 \[
 \mathbb{E}\!\left[|\mathrm{tr}(U)|^{2k}\right]
 = \sum_{\lambda \vdash k,\ \ell(\lambda)\le d} (f^\lambda)^2.

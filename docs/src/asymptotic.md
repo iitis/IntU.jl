@@ -32,19 +32,25 @@ skipping integration.
 
 ## Unitary group examples
 
-### Leading-order trace moment
+### Leading-order trace-polynomial moment
 
-The 12th moment $|\mathrm{tr}(U)|^{12}$ (degree 6 in $U$ and $\bar U$) has a
-combinatorially heavy exact form, but the leading asymptotic coefficient is
-simply $6! = 720$:
+For trace-polynomial moments that are rational in $d$, `asymptotic(expr, measure, order)`
+returns the large-$d$ scaling directly:
 
 ```julia
 using IntU, Symbolics
-U10 = SymbolicMatrix(:U, :U, 10)
+@variables d
+U = symbolic_unitary(:U, d)
+A = SymbolicMatrix(:A)
+B = SymbolicMatrix(:B)
 
-asymptotic(abs(tr(U10))^12, dU(10), 1)
-# Output: 720   (= 6!, confirming tr(U) → complex Gaussian as d → ∞)
+asymptotic(tr(U * A * U' * B), dU(d), 2)
+# Output: tr(A)*tr(B)/d
 ```
+
+Pure-trace moments $|\mathrm{tr}(U)|^{2k}$ are a special case: their exact value
+is step-function in $d$, so they should be evaluated at concrete dimension with
+`integrate`.
 
 ### Entry-wise high-degree moment
 
@@ -121,6 +127,8 @@ asymptotic(2 / (d * (d + 1)), d, 4)
 >   poles at small integer $d$ (typically $d < n$ for degree-$n$ moments).
 > - **Non-rational results**: Pure trace moments $|\mathrm{tr}(U)|^{2k}$
 >   depend on $d$ as a step function and require a concrete integer dimension.
+>   Prefer `integrate(abs(tr(U))^(2k), dU(n))` over `asymptotic(expr, measure)`
+>   for these cases.
 > - **Removable singularities**: substituting numeric values can yield $0/0$
 >   forms (e.g. at $d = 1$ or $d = 2$). Use `evaluate` to resolve these
 >   automatically.
