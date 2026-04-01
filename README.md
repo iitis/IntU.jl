@@ -14,15 +14,18 @@ For detailed documentation, please visit [iitis.github.io/IntU.jl](https://iitis
 ## IntU in action
 
 To introduce the main functionality of IntU, consider the problem of averaging
-$|U_{i,j}|^2$ over the unitary group, i.e., computing $\int dU |U_{i,j}|^2 =
-\int dU U_{i,j} U_{k,l}^* dU$.
+$|U_{i,j}|^2$ over the unitary group, i.e., computing
+$\int dU |U_{i,j}|^2 = \int dU\, U_{i,j}\,\overline{U_{i,j}}$.
+More generally, the second moment is $\int dU\, U_{i,j}\,\overline{U_{k,l}}$.
 
 IntU provides exact analytic results through a unified interface:
-`integrate(expr, measure)`. It supports matrix-valued expressions and provides
-the `@integrate` macro for intuitive symbolic integration. Symbolic dimensions
-are supported for a broad class of workflows; selected paths currently require
-concrete integer dimensions (notably higher pure trace moments
-`|tr(U)|^(2k), k > 1`, and `hciz` on `SymbolicMatrix` inputs).
+`integrate(expr, measure)`. It supports matrix-valued expressions (for concrete
+integer result dimensions) and provides the `@integrate` macro for intuitive
+symbolic integration. Symbolic dimensions are supported for a broad class of
+workflows; selected paths currently require concrete integer dimensions
+(notably higher pure trace moments `|tr(U)|^(2k), k > 1`, `hciz` on
+`SymbolicMatrix` inputs, and direct matrix-valued integration of
+`SymbolicMatrix`/`SymbolicMatrixProduct` expressions).
 
 The `@integrate` macro implicitly identifies random matrices based on the measure:
 - `dU`, `dSU`, `dCUE`, `dDesign` $\rightarrow$ `U` (Unitary / CUE / t-design)
@@ -215,12 +218,19 @@ IntU.jl provides a bridge to [ITensors.jl](https://github.com/ITensors/ITensors.
 
 ```julia
 using IntU, ITensors
-i, j = Index(2), Index(2)
-U_it = randomITensor(i, j)
-U = ITensorUnitary(U_it; out_indices=[i], in_indices=[j])
+i = Index(2, "Out")
+j = Index(2, "In")
+i2 = Index(2, "Out2")
+j2 = Index(2, "In2")
 
-A = randomITensor(j, i)
-res = integrate([U, A], dU(2))
+# Mark a Haar-random unitary U and its adjoint U_dag
+U = ITensorUnitary(out_indices=[i], in_indices=[j])
+U_dag = ITensorUnitary(out_indices=[j2], in_indices=[i2], is_adj=true)
+
+# Integrate a balanced network E[Tr(U A U_dag B)] over U(2)
+A = randomITensor(j, j2)
+B = randomITensor(i2, i)
+res = integrate([U, A, U_dag, B], dU(2))
 ```
 
 ## Running Examples and Benchmarks
@@ -257,7 +267,7 @@ sh benchmarks/runbenchmarks.sh 01
 
 ## Installation
 
-IntU is tested with Julia 1.11 or later. Installation can be done through the
+IntU is tested with Julia 1.11 or 1.12. Installation can be done through the
 Pkg REPL:
 
 ```julia

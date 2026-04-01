@@ -128,7 +128,9 @@ contractions with broad symbolic-$d$ support for entry-wise and
 trace-polynomial integrals, while selected workflows currently require concrete
 integer dimensions (including higher pure trace moments
 $|\mathrm{tr}(U)|^{2k}$ for $k > 1$ and HCIZ with \texttt{SymbolicMatrix}
-inputs), automatic asymptotic expansions, a high-level symbolic trace
+inputs, and direct matrix-valued integration of
+\texttt{SymbolicMatrix}/\texttt{SymbolicMatrixProduct} expressions), automatic
+asymptotic expansions, a high-level symbolic trace
 interface that reconstructs Weingarten graphs from index-free expressions, and
 a bridge to \texttt{ITensors.jl} for tensor network averaging. We discuss the
 underlying algorithms—including the Murnaghan-Nakayama rule and
@@ -386,8 +388,9 @@ The package supports a wide range of integration measures, grouped as follows:
     $T^d$ (\texttt{dDiagUnitary}), representing independent phase averaging for
     each diagonal entry.
     \item \textbf{Matrix integration}: Native support for integrating
-    AbstractArray-valued expressions, enabling coordinate-free validation of
-    matrix identities (e.g., $\mathbb{E}[U U^\dagger] = I$).
+    AbstractArray-valued expressions with concrete integer result dimensions,
+    enabling coordinate-free validation of matrix identities (e.g.,
+    $\mathbb{E}[U U^\dagger] = I$).
 \end{itemize}
 
 \subsection{Harish-Chandra-Itzykson-Zuber (HCIZ) integrals}
@@ -604,8 +607,10 @@ three key distinctions:
     \item \textbf{Symbolic abstractions}: Neither \texttt{RTNI} nor
     \texttt{Haarpy} provides asymptotic $1/d$ expansions or
     \texttt{IntU.jl}-style symbolic trace logic. \texttt{Haarpy} does not
-    provide matrix-valued integration, while \texttt{RTNI} exposes graph/tensor
-    outputs that typically require additional trace or scalarization
+    provide matrix-valued integration, while \texttt{IntU.jl} provides direct
+    matrix-valued integration for concrete-size array outputs and
+    \texttt{RTNI} exposes graph/tensor outputs that typically require
+    additional trace or scalarization
     post-processing for like-for-like scalar comparisons. These features
     significantly reduce the manual effort required for common calculations.
     \item \textbf{Platform}: \texttt{RTNI} requires the proprietary Mathematica
@@ -694,6 +699,11 @@ The current implementation has several known limitations:
     polynomial), so they require a concrete integer dimension.  For
     integer $d$, the library returns the exact value; for symbolic $d$,
     an \texttt{ArgumentError} is raised.
+    \item \textbf{Matrix-valued integration}: Direct matrix-valued integration
+    of \texttt{SymbolicMatrix} and \texttt{SymbolicMatrixProduct} expressions
+    requires concrete integer result dimensions. If the output size is symbolic,
+    users should scalarize the expression (for example with
+    \texttt{tr(\ldots)}) instead of requesting a full matrix-valued result.
 \end{itemize}
 
 \section{Usage examples}
@@ -763,10 +773,11 @@ These results contrast with the Haar unitary value of $1/d$, reflecting the
 constraints imposed by the respective symmetries ($S=S^T$ for COE, $S=S^R$ for CSE, $O^TO=I$ for orthogonal, and the symplectic form for $Sp(d)$).
 
 \subsection{Matrix integration}
-\texttt{IntU.jl} allows for the direct integration of matrix-valued expressions.
-This eliminates the need for manual element-wise iteration or broadcasting,
-automatically performing the integration over all array entries. For Haar-random
-unitary matrices, we verify the relation $\int U U^\dagger dU = I$:
+\texttt{IntU.jl} allows for the direct integration of matrix-valued expressions
+when the result dimensions are concrete integers. This eliminates the need for
+manual element-wise iteration or broadcasting, automatically performing the
+integration over all array entries. For Haar-random unitary matrices, we verify
+the relation $\int U U^\dagger dU = I$:
 \begin{lstlisting}[language=Julia]
 using IntU
 # Integrate the matrix product U * U'
@@ -865,8 +876,9 @@ prohibitive.
 Finally, we demonstrate the integration of a tensor network using the
 \texttt{ITensors.jl} interface. This approach is particularly useful for Haar
 averaging of random quantum circuits and tensor networks without explicit index
-manipulation. We define a simple network consisting of a random unitary $U$ and
-a constant tensor $A$, then compute the average $\mathbb{E}[U A]$.
+manipulation. We define a balanced network consisting of a random unitary $U$,
+its adjoint $U^\dagger$, and constant tensors $A,B$, then compute its Haar
+average.
 
 \begin{lstlisting}[language=Julia]
 using IntU, ITensors
@@ -881,7 +893,8 @@ A = randomITensor(j, k); B = randomITensor(l, i)
 
 # Integrate the balanced network [U, A, U_dag, B] over U(2)
 integrate([U, A, U_dag, B], dU(2))
-# result is a scalar ITensor: tr(A) * tr(B) / 2
+# result is a scalar ITensor from Weingarten delta contractions
+# (for d=2 the overall prefactor is 1/2)
 \end{lstlisting}
 
 This high-level approach allows for the symbolic integration of networks with
@@ -1468,8 +1481,9 @@ without resorting to brittle or approximate numerical sampling.
 
 The package's core strengths lie in its unified treatment of compact groups,
 its broad symbolic-$d$ support for entry-wise and trace-polynomial integrals
-(with explicit concrete-$d$ exceptions for higher pure trace moments and HCIZ
-on \texttt{SymbolicMatrix} inputs), and its
+(with explicit concrete-$d$ exceptions for higher pure trace moments, HCIZ
+on \texttt{SymbolicMatrix} inputs, and direct matrix-valued integration of
+\texttt{SymbolicMatrix}/\texttt{SymbolicMatrixProduct} expressions), and its
 novel symbolic trace logic. The latter effectively decouples the user's high-level
 mathematical intent from the low-level index contractions required by the integration
 engine, significantly reducing the cognitive load and potential for error. As

@@ -19,11 +19,13 @@ j2 = Index(2, "In2")
 U = ITensorUnitary(out_indices=[i], in_indices=[j])
 U_dag = ITensorUnitary(out_indices=[j2], in_indices=[i2], is_adj=true)
 
-# Integrate E[Tr(U A U_dag B)] over U(2)
-# Here we use A and B to connect the dangling indices
+# Integrate a balanced network [U, A, U_dag, B] over U(2)
+# Here A and B connect the dangling indices
 A = randomITensor(j, j2) 
 B = randomITensor(i2, i)
 res = integrate([U, A, U_dag, B], dU(2))
+# The result is a scalar ITensor from Weingarten delta contractions
+# (for d=2 the overall prefactor is 1/2)
 ```
 
 ## Defining Random Unitaries
