@@ -535,13 +535,17 @@ where $N(d)$ and $D(d)$ are polynomials. (Not all results are rational: pure tra
     dimensions where the Weingarten expansion breaks down (e.g., $d < k$).
     \item \textbf{Thermodynamic limits}: The \texttt{asymptotic(expr, measure, order)}
     function computes the series expansion of the result in powers of $1/d$.
-    This automates the extraction of large-$d$ behavior even for high-degree
-    moments like $|\mathrm{tr}(U)|^{12}$ (using a concrete integer dimension),
-    where exact results are combinatorially heavy to simplify.
+    This automates the extraction of large-$d$ behavior for rational-in-$d$
+    observables (for example, high-degree entry moments and trace-polynomial
+    integrals), where exact expressions can be combinatorially heavy.
+    Pure trace moments $|\mathrm{tr}(U)|^{2k}$ are outside this workflow:
+    they should be evaluated with \texttt{integrate(..., dU(n))} at concrete
+    integer $n$.
 \end{itemize}
 Even when the input dimension is numeric (e.g., $d=3$), the \texttt{asymptotic}
-routine can introduce a dummy symbolic variable to perform the expansion, providing
-theoretical insights alongside numerical results.
+routine can introduce a dummy symbolic variable to perform the expansion for
+these rational-in-$d$ observables, providing theoretical insights alongside
+numerical results.
 
 \subsection{Symbolic trace logic}
 To simplify the integration of high-rank tensor networks and complex trace
