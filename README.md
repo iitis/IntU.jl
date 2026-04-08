@@ -15,8 +15,9 @@ For detailed documentation, please visit [iitis.github.io/IntU.jl](https://iitis
 
 To introduce the main functionality of IntU, consider the problem of averaging
 $|U_{i,j}|^2$ over the unitary group, i.e., computing
-$\int dU |U_{i,j}|^2 = \int dU\, U_{i,j}\,\overline{U_{i,j}}$.
-More generally, the second moment is $\int dU\, U_{i,j}\,\overline{U_{k,l}}$.
+$\int dU\, |U_{i,j}|^2 = \int dU\, U_{i,j}\,\overline{U_{i,j}}$.
+This is the diagonal special case of the general second-moment correlator
+$\int dU\, U_{i,j}\,\overline{U_{k,l}}$ (obtained by setting $k=i$, $l=j$).
 
 IntU provides exact analytic results through a unified interface:
 `integrate(expr, measure)`. It supports matrix-valued expressions (for concrete

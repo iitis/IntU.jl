@@ -180,21 +180,31 @@ integrate(abs(tr(U))^2, dU(d))
 
 ### 5. Matrix Integration
 
-You can integrate matrix-valued expressions directly. The function `integrate` will element-wise integrate any `AbstractArray` (including `SymbolicMatrix` and `SymbolicMatrixProduct`) passed to it.
+You can integrate matrix-valued expressions directly. For generic
+`AbstractArray` inputs, `integrate` applies element-wise integration. For direct
+matrix-valued integration of `SymbolicMatrix` and
+`SymbolicMatrixProduct` expressions, the output dimensions must be concrete
+integers.
 
 ```julia
-using IntU, Symbolics
-@variables d
-U = SymbolicMatrix(:U, :U)
-# E[tr(U A U' B)] = tr(A) * tr(B) / d
-A = SymbolicMatrix(:A)
-B = SymbolicMatrix(:B)
-integrate(tr(U * A * U' * B), dU(d))
+using IntU
+
+# Matrix-valued integration (concrete dimension required)
+res = @integrate U * U' dU(2)
+# Output: 2x2 identity matrix
 ```
+
+For symbolic dimensions, use scalar contractions such as `tr(...)` instead of
+requesting a full matrix-valued result.
 
 ### 6. Complex Trace Powers
 
-`IntU.jl` supports integrating complex powers and absolute values of traces, such as $|tr(U)|^n$. These are processed efficiently using a lazy evaluation engine. Note that pure trace moments $|tr(U)|^{2k}$ with $k > 1$ require a concrete integer dimension (the result depends on $d$ as a step function, not a polynomial).
+`IntU.jl` supports trace absolute values with integer-power workflows used in
+practice, in particular even powers $|tr(U)|^{2k}$. These are processed via the
+lazy trace engine. Odd or non-integer powers are currently unsupported and
+raise an `IntegrationError`. Also note that pure trace moments
+$|tr(U)|^{2k}$ with $k > 1$ require a concrete integer dimension (the result
+depends on $d$ as a step function, not a polynomial).
 
 ```julia
 using IntU, Symbolics

@@ -16,7 +16,9 @@ vandermonde_det
 > in IntU.jl. It handles matrix-valued expressions and library lookups, and
 > supports symbolic dimensions for a broad class of entry-wise and
 > trace-polynomial workflows. Some paths require concrete integer dimensions
-> (including `|tr(U)|^(2k)` for `k > 1` and `hciz` on `SymbolicMatrix` inputs).
+> (including `|tr(U)|^(2k)` for `k > 1`, `hciz` on `SymbolicMatrix` inputs, and
+> direct matrix-valued integration of `SymbolicMatrix` /
+> `SymbolicMatrixProduct` expressions).
 
 ## Measures
 
