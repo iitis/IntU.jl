@@ -1190,23 +1190,23 @@ Key observations include:
     \item \textbf{Symbolic overhead}: Computing integrals with symbolic
     dimension $d$ is computationally demanding, but optimization strategies
     significantly reduce this cost. For example, computing $\int |U_{11}|^{10}
-    dU$ symbolically took approximately 1.15 ms, achieving performance comparable
-    to fixed $d=10$ numeric integration ($1.03$ ms). This efficiency leverages the
+    dU$ symbolically took approximately 0.90 ms, achieving performance comparable
+    to fixed $d=10$ numeric integration ($0.81$ ms). This efficiency leverages the
     grouping of identical cycle structures in the Weingarten sum.
     \item \textbf{Low-degree performance}: For common use cases involving
     lower-degree polynomials (e.g., $2k=6$), the package is extremely fast. The
-    symbolic integration of $|U_{11}|^6$ completes in approximately 1.11 ms. For
+    symbolic integration of $|U_{11}|^6$ completes in approximately 0.88 ms. For
     the orthogonal group, symbolic low-degree moments are similarly fast
-    ($O_{11}^2$: 0.52 ms, $O_{11}^4$: 0.54 ms). For higher-degree orthogonal
+    ($O_{11}^2$: 0.02 ms, $O_{11}^4$: 0.03 ms). For higher-degree orthogonal
     moments, the table reports concrete-dimension runs, where
     $O_{11}^{10}$ remains sub-millisecond at $d=20$ and $d=50$
-    (0.48 ms and 0.47 ms).
+    (0.37 ms and 0.36 ms).
     \item \textbf{Group differences}: Performance is workload-dependent.
     Unitary symbolic entry moments remain near the 1 ms range in this table,
     and orthogonal moments are highly efficient (especially in concrete
     high-degree cases). In contrast, the listed symplectic entry moments are
-    noticeably slower at higher degree (5.63 ms for $|Sp_{11}|^8$ at $d=10$,
-    and $\sim 96$--100 ms for $|Sp_{11}|^{10}$ at $d=10,20$). The dedicated
+    noticeably slower at higher degree (4.51 ms for $|Sp_{11}|^8$ at $d=10$,
+    and $\sim 78$--79 ms for $|Sp_{11}|^{10}$ at $d=10,20$). The dedicated
     comparison tables in Sections~\ref{sec:haarpy_comparison} and
     \ref{sec:rtni_comparison} show that the largest cross-tool speedups occur
     for high-degree unitary and orthogonal workloads, while some low-degree
@@ -1216,20 +1216,20 @@ Key observations include:
     implementation even for large dimensions (e.g., $d=50$).
     \item \textbf{Application}: The integration of the trace of the squared reduced density matrix for a bipartite state
     ($d=6$), which involves contracting a 4$^\mathrm{th}$ degree polynomial over
-    unitary group, completes in approximately 12.32 ms, demonstrating the
+    unitary group, completes in approximately 9.81 ms, demonstrating the
     tool's applicability to quantum information tasks.
     \item \textbf{Tensor network scaling}: The graphical engine scales
     efficiently with both the degree $k$ and dimension $d$. As shown in Table
     \ref{tab:itensor_benchmarks}, for a loop network of Haar unitaries, the
-    median time increases from 0.03 ms at $k=1$ to 18.88 ms at $k=4$ for
+    median time increases from 0.02 ms at $k=1$ to 15.44 ms at $k=4$ for
     fixed $d=2$. Dimension scaling for $k=2$ remains sub-second up to $d=50$,
-    reaching 1.21 s at $d=100$. For higher degrees like $k=3$, the overhead
-    increases more rapidly with $d$, with $d=30$ taking 15.53 s, reflecting the
+    reaching 1.08 s at $d=100$. For higher degrees like $k=3$, the overhead
+    increases more rapidly with $d$, with $d=30$ taking 17.05 s, reflecting the
     increasing rank of intermediate tensor contractions.
     \item \textbf{Permutation groups}: Integration over the symmetric group
     $S_d$ is exceptionally fast due to its combinatorial nature. Computing the
     degree-10 monomial $\prod_{i=1}^{10} P_{ii}$ (ten distinct index pairs) for
-    $d=100$ takes only 0.42 ms. This
+    $d=100$ takes only 0.49 ms. This
     high performance extends to the centered permutation ensemble, which remains
     efficient even after polynomial expansion.
 \end{enumerate}
@@ -1243,55 +1243,54 @@ median values over 30 samples.}
 \hline
 Group & Integrand & Dimension $d$ & Time (ms) \\
 \hline
-Unitary & $|U_{11}|^6$ & Symbolic & 1.11 \\
-Unitary & $|U_{11}|^8$ & Symbolic & 1.15 \\
-Unitary & $|U_{11}|^{10}$ & Symbolic & 1.15 \\
-Unitary & $|U_{11}|^{10}$ & $d=10$ & 1.03 \\
-Unitary & $|U_{11}|^{10}$ & $d=50$ & 1.04 \\
-Unitary & $|\mathrm{tr}(U)|^{14}$ & $d=10$ & 0.02 \\
+Unitary & $|U_{11}|^6$ & Symbolic & 0.88 \\
+Unitary & $|U_{11}|^8$ & Symbolic & 0.90 \\
+Unitary & $|U_{11}|^{10}$ & Symbolic & 0.90 \\
+Unitary & $|U_{11}|^{10}$ & $d=10$ & 0.81 \\
+Unitary & $|U_{11}|^{10}$ & $d=50$ & 0.83 \\
 \hline
-Orthogonal & $O_{11}^2$ & Symbolic & 0.52 \\
-Orthogonal & $O_{11}^4$ & Symbolic & 0.54 \\
-Orthogonal & $O_{11}^6$ & $d=10$ & 0.48 \\
-Orthogonal & $O_{11}^8$ & $d=20$ & 0.48 \\
-Orthogonal & $O_{11}^{10}$ & $d=20$ & 0.48 \\
-Orthogonal & $O_{11}^{10}$ & $d=50$ & 0.47 \\
+Orthogonal & $O_{11}^2$ & Symbolic & 0.02 \\
+Orthogonal & $O_{11}^4$ & Symbolic & 0.03 \\
+Orthogonal & $O_{11}^6$ & $d=10$ & 0.37 \\
+Orthogonal & $O_{11}^8$ & $d=20$ & 0.38 \\
+Orthogonal & $O_{11}^{10}$ & $d=20$ & 0.37 \\
+Orthogonal & $O_{11}^{10}$ & $d=50$ & 0.36 \\
 \hline
-Symplectic & $|Sp_{11}|^8$ & $d=10$ & 5.63 \\
-Symplectic & $|Sp_{11}|^{10}$ & $d=10$ & 95.87 \\
-Symplectic & $|Sp_{11}|^{10}$ & $d=20$ & 99.85 \\
+Symplectic & $|Sp_{11}|^8$ & $d=10$ & 4.51 \\
+Symplectic & $|Sp_{11}|^{10}$ & $d=10$ & 77.53 \\
+Symplectic & $|Sp_{11}|^{10}$ & $d=20$ & 79.18 \\
 \hline
-GinUE & $\mathrm{tr}(GG^\dagger)$ & Symbolic & 0.01 \\
-GinUE & $\mathrm{tr}(GG^\dagger)$ & $d=4$ & ${<}0.01$ \\
+GinUE & $\mathrm{tr}(GG^\dagger)$ & Symbolic & 0.00 \\
+GinUE & $\mathrm{tr}(GG^\dagger)$ & $d=4$ & 0.00 \\
 \hline
-Circ. Orthogonal & $|S_{11}|^2$ & Symbolic & 1.32 \\
-Circ. Orthogonal & $|S_{11}|^4$ & Symbolic & 1.12 \\
-Circ. Orthogonal & $|S_{11}|^6$ & Symbolic & 1.06 \\
-Circ. Symplectic & $|S_{11}|^2$ & Symbolic & 1.55 \\
-Circ. Symplectic & $|S_{11}|^4$ & Symbolic & 6.02 \\
-Circ. Symplectic & $|S_{11}|^6$ & Symbolic & 129.76 \\
+Circ. Orthogonal & $|S_{11}|^2$ & Symbolic & 0.02 \\
+Circ. Orthogonal & $|S_{11}|^4$ & Symbolic & 0.03 \\
+Circ. Orthogonal & $|S_{11}|^6$ & Symbolic & 1.07 \\
+Circ. Symplectic & $|S_{11}|^2$ & Symbolic & 0.30 \\
+Circ. Symplectic & $|S_{11}|^4$ & Symbolic & 2.92 \\
+Circ. Symplectic & $|S_{11}|^6$ & Symbolic & 102.43 \\
 \hline
-Permutation & $\prod_{i=1}^{10} P_{ii}$ & $d=100$ & 0.42 \\
-Permutation & $\mathrm{tr}(PA)^2$ & $d=4$ & 18.37 \\
-Centered Perm. & $Y_{11}^4$ & $d=10$ & 0.54 \\
+Permutation & $\prod_{i=1}^{10} P_{ii}$ & $d=100$ & 0.49 \\
+Permutation & $\mathrm{tr}(PA)^2$ & $d=4$ & 14.57 \\
+Centered Perm. & $Y_{11}^4$ & $d=10$ & 0.43 \\
 \hline
-Application & Bipartite & $d=6$ & 12.32 \\
+Application & Bipartite & $d=6$ & 9.81 \\
 \hline
 \end{tabular}
 \end{table}
 
 The results demonstrate that \texttt{IntU.jl} remains efficient for practically
 relevant problem sizes. The rapid execution of the bipartite state application ($\approx$
-12.32 ms) highlights the library's utility for routine quantum information tasks,
+9.81 ms) highlights the library's utility for routine quantum information tasks,
 while the sub-millisecond performance for low-degree orthogonal integrals
 facilitates large-scale statistical sampling. We further note that circular
-ensemble timings are heterogeneous: COE rows remain near 1--3 ms in
+ensemble timings are heterogeneous: COE rows remain near 0.02--1.07 ms in
 Table~\ref{tab:benchmarks}, while higher-degree CSE examples are
 substantially more expensive. For highly symmetric
 integrands, such as powers of a single matrix entry, the integration engine
 utilizes an optimized grouped-summation technique that significantly reduces
 symbolic overhead by collecting terms with identical cycle types. Consequently,
-high-degree moments such as $|O_{11}|^6$ are computed in under 0.50 ms.
+high-degree moments such as $|O_{11}|^6$ are computed in under 0.40 ms.
 Simultaneously, the symbolic engine proves capable of handling high-degree
 moments that are intractable by hand. The caching mechanism ensures that
 subsequent calls with the same parameters are virtually instantaneous.
@@ -1305,26 +1304,26 @@ showing scaling with degree $k$ and dimension $d$.}
 \hline
 Scaling type & Degree $k$ & Dimension $d$ & Time (ms) \\
 \hline
-Degree $k$ (U) & 1 & 2 & 0.03 \\
-Degree $k$ (U) & 2 & 2 & 0.09 \\
-Degree $k$ (U) & 3 & 2 & 0.63 \\
-Degree $k$ (U) & 4 & 2 & 18.88 \\
+Degree $k$ (U) & 1 & 2 & 0.02 \\
+Degree $k$ (U) & 2 & 2 & 0.06 \\
+Degree $k$ (U) & 3 & 2 & 0.46 \\
+Degree $k$ (U) & 4 & 2 & 15.44 \\
 \hline
-Degree $k$ (O) & 2 & 3 & 0.02 \\
-Degree $k$ (O) & 4 & 3 & 0.61 \\
-Degree $k$ (O) & 6 & 3 & 494.62 \\
+Degree $k$ (O) & 2 & 3 & 0.01 \\
+Degree $k$ (O) & 4 & 3 & 0.56 \\
+Degree $k$ (O) & 6 & 3 & 483.66 \\
 \hline
-Dimension $d$ ($k=2$) & 2 & 2 & 0.11 \\
+Dimension $d$ ($k=2$) & 2 & 2 & 0.18 \\
 Dimension $d$ ($k=2$) & 2 & 10 & 0.15 \\
-Dimension $d$ ($k=2$) & 2 & 50 & 96.83 \\
-Dimension $d$ ($k=2$) & 2 & 100 & 1212.17 \\
+Dimension $d$ ($k=2$) & 2 & 50 & 72.28 \\
+Dimension $d$ ($k=2$) & 2 & 100 & 1078.01 \\
 \hline
-Dimension $d$ ($k=3$) & 3 & 2 & 0.62 \\
-Dimension $d$ ($k=3$) & 3 & 10 & 11.51 \\
-Dimension $d$ ($k=3$) & 3 & 20 & 1547.72 \\
-Dimension $d$ ($k=3$) & 3 & 30 & 15532.34 \\
+Dimension $d$ ($k=3$) & 3 & 2 & 0.46 \\
+Dimension $d$ ($k=3$) & 3 & 10 & 13.94 \\
+Dimension $d$ ($k=3$) & 3 & 20 & 1585.20 \\
+Dimension $d$ ($k=3$) & 3 & 30 & 17052.91 \\
 \hline
-Orthogonal & 6 & 3 & 434.15 \\
+Orthogonal & 6 & 3 & 480.71 \\
 \hline
 \end{tabular}
 \end{table}
@@ -1345,9 +1344,9 @@ matrix of expressions.}
 \hline
 Matrix size ($N$) & Median time (ms) & Allocations (MiB) \\
 \hline
-$2 \times 2$ & 2.97 & 0.82 \\
-$3 \times 3$ & 7.22 & 2.22 \\
-$4 \times 4$ & 14.64 & 4.84 \\
+$2 \times 2$ & 2.55 & 0.82 \\
+$3 \times 3$ & 6.58 & 2.22 \\
+$4 \times 4$ & 12.53 & 4.84 \\
 \hline
 \end{tabular}
 \end{table}

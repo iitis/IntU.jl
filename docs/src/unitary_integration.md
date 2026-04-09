@@ -219,6 +219,13 @@ integrate(abs(tr(U))^4, dU(10))
 
 IntU.jl provides direct support for **Harish-Chandra-Itzykson-Zuber (HCIZ)** integrals.
 
+> [!NOTE]
+> `hciz` supports eigenvalue-vector and matrix interfaces. For
+> `SymbolicMatrix` inputs, the dimension must be a concrete integer (symbolic
+> `d` is unsupported in this path). For numeric matrix inputs with degenerate
+> eigenvalues, IntU sorts both spectra and applies tiny independent
+> perturbations to both before evaluating the HCIZ formula.
+
 ```julia
 using IntU, LinearAlgebra
 

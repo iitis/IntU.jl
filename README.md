@@ -195,6 +195,13 @@ matrices, which is often more convenient for quantum information tasks.
 ### Harish-Chandra-Itzykson-Zuber (HCIZ) Integrals
 IntU supports calculating HCIZ integrals of the form $\int_{U(d)} dU \exp(\text{Tr}(A U B U^\dagger))$.
 
+> [!NOTE]
+> HCIZ has two user paths: eigenvalue vectors and matrix inputs. For
+> `SymbolicMatrix` inputs, `hciz` requires a concrete integer dimension (symbolic
+> `d` is not supported). For numeric matrix inputs with degenerate spectra, IntU
+> sorts both spectra and applies tiny independent perturbations to both before
+> evaluating the determinant formula.
+
 ```julia
 using IntU, LinearAlgebra
 A = diagm([1.0, 2.0])
