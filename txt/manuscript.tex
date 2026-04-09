@@ -361,7 +361,9 @@ The package supports a wide range of integration measures, grouped as follows:
     special unitary $SU(d)$, orthogonal $O(d)$, and symplectic $Sp(d)$ groups.
     These are defined via \texttt{dU(d)}, \texttt{dSU(d)}, \texttt{dO(d)}, and
     \texttt{dSp(d)}, where the argument is the dimension $d$. For balanced
-    polynomials, $SU(d)$ and $U(d)$ integrals coincide.
+    polynomials in the currently supported stable range, $SU(d)$ and $U(d)$
+    integrals coincide; non-stable-range $\epsilon$-tensor effects at specific
+    small $d$ are not currently covered.
     \item \textbf{Circular ensembles}: Measures for the circular unitary (CUE),
     orthogonal (COE), and symplectic (CSE) ensembles. While CUE is equivalent to
     the Haar measure on $U(d)$, COE and CSE represent symmetric and self-dual
@@ -1223,7 +1225,8 @@ Key observations include:
     increasing rank of intermediate tensor contractions.
     \item \textbf{Permutation groups}: Integration over the symmetric group
     $S_d$ is exceptionally fast due to its combinatorial nature. Computing the
-    10$^\mathrm{th}$ moment $P_{11}^{10}$ for $d=100$ takes only 0.47 ms. This
+    degree-10 monomial $\prod_{i=1}^{10} P_{ii}$ (ten distinct index pairs) for
+    $d=100$ takes only 0.42 ms. This
     high performance extends to the centered permutation ensemble, which remains
     efficient even after polynomial expansion.
 \end{enumerate}
@@ -1265,7 +1268,7 @@ Circ. Symplectic & $|S_{11}|^2$ & Symbolic & 1.55 \\
 Circ. Symplectic & $|S_{11}|^4$ & Symbolic & 6.02 \\
 Circ. Symplectic & $|S_{11}|^6$ & Symbolic & 129.76 \\
 \hline
-Permutation & $P_{11}^{10}$ & $d=100$ & 0.47 \\
+Permutation & $\prod_{i=1}^{10} P_{ii}$ & $d=100$ & 0.42 \\
 Permutation & $\mathrm{tr}(PA)^2$ & $d=4$ & 18.37 \\
 Centered Perm. & $Y_{11}^4$ & $d=10$ & 0.54 \\
 \hline

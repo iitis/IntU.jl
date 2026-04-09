@@ -171,8 +171,9 @@ println("-----------------------------------------------------------------------
 # Permutation
 mP100 = dPerm(100)
 P100 = SymbolicMatrix(:P, :Perm, 100) # Permutation matrices are real
-t, _ = measure_median_func(() -> integrate(P100[1, 1]^10, mP100))
-@printf("%-18s %-25s %-15s %10.2f\n", "Permutation", "P_11^10", "d=100", t)
+expr_perm10 = prod(P100[i, i] for i = 1:10)
+t, _ = measure_median_func(() -> integrate(expr_perm10, mP100))
+@printf("%-18s %-25s %-15s %10.2f\n", "Permutation", "prod_{i=1}^{10} P_ii", "d=100", t)
 
 # tr(PA)^2, d=4
 mP4 = dPerm(4)
