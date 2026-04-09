@@ -439,15 +439,18 @@ pairwise contractions:
     \item \textbf{GUE}: $\langle H_{ij} \bar{H}_{kl} \rangle = \delta_{il} \delta_{jk}$, leading to $\langle \mathrm{tr}(H^2) \rangle = d^2$, $\langle \mathrm{tr}(H^4) \rangle = 2d^3 + d$, and $\langle \mathrm{tr}(H^6) \rangle = 5d^4 + 10d^2$.
     \item \textbf{GOE}: $\langle H_{ij} H_{kl} \rangle = \delta_{ik} \delta_{jl} + \delta_{il} \delta_{jk}$ (for real symmetric $H$), leading to $\langle \mathrm{tr}(H^2) \rangle = d^2 + d$.
     \item \textbf{GSE}: For self-dual Hermitian matrices, the package utilizes
-    the duality relation:
+    the even-moment duality relation:
     \begin{equation}
-    \langle \mathrm{tr}(H^k) \rangle_{\mathrm{GSE}}(d) = (-1)^{\frac{k}{2} + 1} \langle \mathrm{tr}(H^k) \rangle_{\mathrm{GOE}}(-d),
+    \langle \mathrm{tr}(H^k) \rangle_{\mathrm{GSE}}(d) = (-1)^{\frac{k}{2} + 1} \langle \mathrm{tr}(H^k) \rangle_{\mathrm{GOE}}(-d), \qquad k \in 2\mathbb{N},
     \end{equation}
-    which implies $\langle \mathrm{tr}(H^2) \rangle = d^2 - d$.
+    while odd moments vanish, $\langle \mathrm{tr}(H^{2m+1}) \rangle_{\mathrm{GSE}} = 0$.
+    This implies $\langle \mathrm{tr}(H^2) \rangle = d^2 - d$.
 \end{itemize}
 This approach allows \texttt{IntU.jl} to compute moments for all three Beta
 ensembles ($\beta=1, 2, 4$) while maintaining full support for symbolic
-dimensions $d$.
+dimensions $d$. For concrete integer dimensions, the symplectic/quaternionic
+measure constructor enforces even size: \texttt{dGSE(n)} raises an error when
+\texttt{n} is odd.
 
 \subsection{Ginibre ensembles}
 Moving beyond Hermitian matrices, \texttt{IntU.jl} supports the Ginibre
@@ -459,6 +462,8 @@ Gaussian entries. These are integrated using similar Wick contraction rules:
     \item \textbf{GinOE}: $\langle G_{ij} G_{kl} \rangle = \delta_{ik}
     \delta_{jl}$ for real entries.
     \item \textbf{GinSE}: Quaternionic entries treated via duality relations.
+    For concrete integer dimensions, \texttt{dGinSE(n)} requires even
+    \texttt{n} and raises an error on odd \texttt{n}.
 \end{itemize}
 Like the beta ensembles, these rules are implemented to support both symbolic 
 dimensions $d$ and high-level trace expressions.
@@ -1534,7 +1539,7 @@ The source code for \texttt{IntU.jl} is available on GitHub under the Apache Lic
 
 \begin{acks}
 ZP acknowledges support from the National Science Center (NCN), Poland,
-under Project Opus No. 2022/47/B/ST6/02380. {\L}P cknowledges support from
+under Project Opus No. 2022/47/B/ST6/02380. {\L}P acknowledges support from
 the National Science Center (NCN), Poland, under Project Opus
 No. 2024/53/B/ST2/02026.
 \end{acks}
