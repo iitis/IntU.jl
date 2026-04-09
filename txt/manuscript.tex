@@ -1191,14 +1191,21 @@ Key observations include:
     \item \textbf{Low-degree performance}: For common use cases involving
     lower-degree polynomials (e.g., $2k=6$), the package is extremely fast. The
     symbolic integration of $|U_{11}|^6$ completes in approximately 1.11 ms. For
-    the orthogonal group, our optimized solver allows computing high-degree 
-    moments like $O_{11}^{10}$ in under 0.50 ms, representing near-constant
-    time overhead relative to low-degree cases.
-    \item \textbf{Group differences}: Orthogonal and symplectic integrals are
-    now comparable to unitary ones even for symbolic dimensions. For higher
-    degrees (e.g., $k=5, 6$), the optimized univariate solver and exact rational
-    summation maintain extreme efficiency, as shown by the sub-millisecond 
-    performance of $O_{11}^{10}$ in Table \ref{tab:benchmarks}.
+    the orthogonal group, symbolic low-degree moments are similarly fast
+    ($O_{11}^2$: 0.52 ms, $O_{11}^4$: 0.54 ms). For higher-degree orthogonal
+    moments, the table reports concrete-dimension runs, where
+    $O_{11}^{10}$ remains sub-millisecond at $d=20$ and $d=50$
+    (0.48 ms and 0.47 ms).
+    \item \textbf{Group differences}: Performance is workload-dependent.
+    Unitary symbolic entry moments remain near the 1 ms range in this table,
+    and orthogonal moments are highly efficient (especially in concrete
+    high-degree cases). In contrast, the listed symplectic entry moments are
+    noticeably slower at higher degree (5.63 ms for $|Sp_{11}|^8$ at $d=10$,
+    and $\sim 96$--100 ms for $|Sp_{11}|^{10}$ at $d=10,20$). The dedicated
+    comparison tables in Sections~\ref{sec:haarpy_comparison} and
+    \ref{sec:rtni_comparison} show that the largest cross-tool speedups occur
+    for high-degree unitary and orthogonal workloads, while some low-degree
+    mixed-index unitary cases are near parity.
     \item \textbf{Correctness}: All benchmarks were verified against known exact
     values or asymptotic results, confirming the numerical stability of the
     implementation even for large dimensions (e.g., $d=50$).
@@ -1271,8 +1278,10 @@ The results demonstrate that \texttt{IntU.jl} remains efficient for practically
 relevant problem sizes. The rapid execution of the bipartite state application ($\approx$
 12.32 ms) highlights the library's utility for routine quantum information tasks,
 while the sub-millisecond performance for low-degree orthogonal integrals
-facilitates large-scale statistical sampling. We further note that the circular
-ensembles (COE/CSE) maintain excellent performance. For highly symmetric
+facilitates large-scale statistical sampling. We further note that circular
+ensemble timings are heterogeneous: COE rows remain near 1--3 ms in
+Table~\ref{tab:benchmarks}, while higher-degree CSE examples are
+substantially more expensive. For highly symmetric
 integrands, such as powers of a single matrix entry, the integration engine
 utilizes an optimized grouped-summation technique that significantly reduces
 symbolic overhead by collecting terms with identical cycle types. Consequently,
