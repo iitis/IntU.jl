@@ -111,7 +111,7 @@ using Symbolics
 page = 2d / (d^2 + 1)
 asymptotic(page, d, 5)
 # Output: 2/d - 2/d^3 + 2/d^5
-# Leading 2/d → purity approaches 1/d (maximally mixed)
+# Leading 2/d: purity is O(1/d); maximally mixed would be exactly 1/d
 ```
 
 ```julia

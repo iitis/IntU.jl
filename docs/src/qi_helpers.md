@@ -69,13 +69,15 @@ using IntU, Symbolics
 page_purity = 2n / (n^2 + 1)
 asymptotic(page_purity, n, 5)
 # Output: 2/n - 2/n^3 + 2/n^5
-# Leading term: 2/n → subsystem approaches maximally mixed state
+# Leading term: 2/n (same O(1/n) scaling as maximally mixed purity 1/n)
 ```
 
 > [!NOTE]
-> For large subsystems, the leading term $2/n$ shows the purity approaches
-> $1/n$ (the maximally mixed value), confirming that Haar-random pure states
-> are nearly maximally entangled — the core of Page's theorem.
+> For large subsystems, the purity is order $1/n$:
+> $\mathbb{E}[\mathrm{tr}(\rho_A^2)] = 2/n + O(1/n^3)$ for equal bipartitions.
+> A maximally mixed $n$-dimensional state has purity exactly $1/n$, so this
+> result indicates highly mixed (and nearly maximally entangled) subsystems,
+> not equality with the maximally mixed value.
 
 ## See Also
 

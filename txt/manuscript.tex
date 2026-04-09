@@ -864,9 +864,11 @@ asymptotic(page_purity, n, 5)
 # Output: 2/n - 2/n^3 + 2/n^5
 \end{lstlisting}
 
-The leading term $2/n$ shows that the subsystem approaches the maximally mixed
-state (purity $1/n$) as the dimension grows, which is the core of Page's
-theorem: a random subsystem is nearly maximally entangled. The subleading
+The leading term $2/n$ shows that the subsystem purity is of order $1/n$ as the
+dimension grows. For comparison, a maximally mixed $n$-dimensional state has
+purity exactly $1/n$, so Page's law indicates highly mixed (and thus nearly
+maximally entangled) reduced states rather than equality with the maximally
+mixed value. The subleading
 corrections $-2/n^3 + \cdots$ quantify the finite-size deviations from
 maximal entanglement. Such expansions automate the derivation of scaling laws
 where manual simplification of the underlying Weingarten sums would be
