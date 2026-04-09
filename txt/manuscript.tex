@@ -339,9 +339,11 @@ caching results to accelerate repeated integration tasks.
 
 \subsection{Permutation group $S_d$}
 The symmetric group $S_d$ consists of $d \times d$ permutation matrices. For a
-monomial in the matrix entries $P_{i,j}$, the integral is non-zero only if the
-indices are consistent with a permutation (i.e., all row indices are distinct
-and all column indices are distinct). The result is:
+monomial in the matrix entries $P_{i,j}$, repeated identical factors are first
+collapsed (equivalently, we work with the set of distinct index pairs). The
+integral is non-zero only if this deduplicated set is consistent with a
+permutation (i.e., all row indices are distinct and all column indices are
+distinct). The result is:
 \begin{equation}
 \int_{S_d} P_{i_1 j_1} \dots P_{i_k j_k} dP = \frac{(d-k)!}{d!},
 \end{equation}
@@ -649,7 +651,7 @@ Category & Feature & \texttt{IntU.jl} & \texttt{RTNI} & \texttt{Haarpy} \\
   & Gaussian (GUE/GOE/GSE) & $\checkmark$ & --       & --           \\
   & Ginibre (GinUE/GinOE/GinSE) & $\checkmark$ & --  & --           \\
 \hline
-\multirow{4}{*}{Discrete/other}
+\multirow{5}{*}{Discrete/other}
   & Permutation groups  & $\checkmark$ & --           & $\checkmark$ \\
   & Unitary $t$-designs & $\checkmark$ & --           & --           \\
   & Stiefel manifolds   & $\checkmark$ & --           & --           \\
