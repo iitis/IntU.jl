@@ -4,6 +4,7 @@ using Symbolics
 
 @testset "Integral Library" begin
     @variables d
+    sym_eq(a, b) = IntU._symbolic_isequal(Symbolics.simplify(Symbolics.expand(a - b)), 0)
 
     @testset "Haar Unitary Trace" begin
         U = SymbolicMatrix(:U, :U)
@@ -59,5 +60,110 @@ using Symbolics
         expr1 = IntU.LazyTrace(Vector{AbstractMatrix}[[H, H]], Num(1))
         res1 = IntU.check_gaussian_library(expr1, dGUE(d), :GUE)
         @test isequal(res1, d^2)
+    end
+
+    @testset "Gaussian Element-Wise Second Moments" begin
+        H_gue = SymbolicMatrix(:H, :GUE)
+        H_goe = SymbolicMatrix(:H, :GOE)
+        H_gse = SymbolicMatrix(:H, :GSE)
+
+        cases = [
+            (H_gue[1, 1]^2, dGUE(d), 1),
+            (H_gue[1, 1] * conj(H_gue[1, 1]), dGUE(d), 1),
+            (H_goe[1, 1]^2, dGOE(d), 2),
+            (H_goe[1, 2]^2, dGOE(d), 1),
+            (H_gse[1, 1]^2, dGSE(d), 1),
+        ]
+
+        for (expr, measure, expected) in cases
+            lib = IntU.check_library(expr, measure)
+            @test lib !== nothing
+            @test sym_eq(lib, expected)
+            @test sym_eq(integrate(expr, measure), expected)
+            @test sym_eq(IntU.fallback_integrate(expr, measure), expected)
+        end
+
+        @test IntU.check_library(H_gue[1, 1]^4, dGUE(d)) === nothing
+    end
+
+    @testset "Ginibre Library Entries" begin
+        G_ue = SymbolicMatrix(:G, :GinUE)
+        G_oe = SymbolicMatrix(:G, :GinOE)
+        G_se = SymbolicMatrix(:G, :GinSE)
+
+        ginue_cases = [
+            (IntU.tr(G_ue * G_ue'), dGinUE(d), d^2),
+            (IntU.tr((G_ue * G_ue')^2), dGinUE(d), 2d^3),
+            (IntU.tr(G_ue * G_ue')^2, dGinUE(d), d^4 + d^2),
+        ]
+
+        for (expr, measure, expected) in ginue_cases
+            lib = IntU.check_library(expr, measure)
+            @test lib !== nothing
+            @test sym_eq(lib, expected)
+            @test sym_eq(integrate(expr, measure), expected)
+            @test sym_eq(IntU.fallback_integrate(expr, measure), expected)
+        end
+
+        expr_goe = IntU.tr(G_oe * transpose(G_oe))
+        lib_goe = IntU.check_library(expr_goe, dGinOE(d))
+        @test lib_goe !== nothing
+        @test sym_eq(lib_goe, d^2)
+        @test sym_eq(integrate(expr_goe, dGinOE(d)), d^2)
+
+        expr_gse = IntU.tr(G_se * G_se')
+        lib_gse = IntU.check_library(expr_gse, dGinSE(d))
+        @test lib_gse !== nothing
+        @test sym_eq(lib_gse, d^2)
+        @test sym_eq(integrate(expr_gse, dGinSE(d)), d^2)
+
+        @test IntU.check_library(IntU.tr(G_ue^2), dGinUE(d)) === nothing
+    end
+
+    @testset "Orthogonal/Symplectic/Circular Library Entries" begin
+        O = SymbolicMatrix(:O, :O)
+        Sp = SymbolicMatrix(:Sp, :Sp)
+        S_coe = SymbolicMatrix(:S, :COE)
+        S_cse = SymbolicMatrix(:S, :CSE)
+
+        low_order_cases = [
+            (O[1, 1]^2, dO(d), 1 / d),
+            (O[1, 1]^4, dO(d), 3 / (d * (d + 2))),
+            (abs(Sp[1, 1])^2, dSp(d), 1 / d),
+            (abs(Sp[1, 1])^4, dSp(d), 2 / (d + d^2)),
+            (abs(Sp[1, 1])^2 * abs(Sp[1, 2])^2, dSp(d), 1 / (d + d^2)),
+            (abs(S_coe[1, 1])^2, dCOE(d), 2 / (d + 1)),
+            (abs(S_coe[1, 2])^2, dCOE(d), 1 / (d + 1)),
+            (abs(S_coe[1, 1])^4, dCOE(d), 8 / ((d + 1) * (d + 3))),
+            (abs(S_coe[1, 2])^4, dCOE(d), 2 / (d * (d + 3))),
+            (
+                abs(S_coe[1, 1])^2 * abs(S_coe[1, 2])^2,
+                dCOE(d),
+                2 / ((d + 1) * (d + 3)),
+            ),
+            (abs(S_cse[1, 1])^2, dCSE(d), 1 / (d - 1)),
+            (abs(S_cse[1, 1])^4, dCSE(d), 2 / (-d + d^2)),
+        ]
+
+        for (expr, measure, expected) in low_order_cases
+            lib = IntU.check_library(expr, measure)
+            @test lib !== nothing
+            @test sym_eq(lib, expected)
+            @test sym_eq(integrate(expr, measure), expected)
+            @test sym_eq(IntU.fallback_integrate(expr, measure), expected)
+        end
+
+        high_order_cases = [
+            O[1, 1]^2 * O[1, 2]^4 * O[1, 3]^6,
+            O[1, 1]^2 * O[2, 2]^4 * O[1, 3]^6,
+        ]
+        for expr in high_order_cases
+            @test IntU.check_library(expr, dO(d)) !== nothing
+        end
+        @test IntU.check_library(abs(Sp[1, 1])^2 * abs(Sp[1, 2])^4 * abs(Sp[1, 3])^6, dSp(d)) !==
+              nothing
+
+        @test IntU.check_library(O[1, 1]^6, dO(d)) === nothing
+        @test IntU.check_library(abs(S_coe[1, 1])^6, dCOE(d)) === nothing
     end
 end

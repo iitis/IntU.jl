@@ -32,8 +32,8 @@ B = SymbolicMatrix(:B)
 ### Trace moments
 
 Pure trace moments $|\mathrm{tr}(U)|^{2k} = \mathrm{tr}(U)^k \cdot \mathrm{tr}(U^\dagger)^k$
-are pre-computed for small $k$. The values below are the stable-range results
-(valid when $d \ge k$):
+are handled by a dedicated exact library path for concrete integer $d$. The
+values below are the stable-range results (valid when $d \ge k$):
 
 | Integral | Result |
 |---|---|
@@ -76,24 +76,46 @@ using IntU, Symbolics
 The library also covers element-wise second moments:
 
 ```julia
-# GUE: E[H_{ij} H_{kl}] = delta_{il}*delta_{jk}
-# This feeds into higher-level moment matching automatically.
+# GUE diagonal second moment
+@integrate H[1, 1]^2 dGUE(d)
+# Output: 1
+
+# GOE diagonal second moment
+@integrate H[1, 1]^2 dGOE(d)
+# Output: 2
 ```
 
 ## Ginibre Ensembles
 
-Trace moments for GinUE, GinOE, and GinSE are cached for low degrees:
+Low-order trace moments are cached for Ginibre ensembles:
 
-| Moment | GinUE |
-|:---|:---|
-| $\langle \mathrm{tr}(G G^\dagger) \rangle$ | $d^2$ |
-| $\langle \mathrm{tr}(G G^\dagger)^2 \rangle$ | $d^4 + d^2$ |
-| $\langle \mathrm{tr}((G G^\dagger)^2) \rangle$ | $2d^3$ |
+| Moment | GinUE | GinOE | GinSE |
+|:---|:---|:---|:---|
+| $\langle \mathrm{tr}(G G^\dagger) \rangle$ | $d^2$ | — | $d^2$ |
+| $\langle \mathrm{tr}(G G^T) \rangle$ | — | $d^2$ | — |
+| $\langle \mathrm{tr}(G G^\dagger)^2 \rangle$ | $d^4 + d^2$ | — | — |
+| $\langle \mathrm{tr}((G G^\dagger)^2) \rangle$ | $2d^3$ | — | — |
 
 ```julia
 # GinUE second moment — O(1) retrieval
 @integrate tr(G * G') dGinUE(d)
 # Output: d^2
+```
+
+## Orthogonal, Symplectic, and Circular Ensembles
+
+The library also includes targeted moment patterns used in the O/Sp/COE/CSE
+documentation examples (low-order moments plus selected benchmark-style
+high-degree monomials). For example:
+
+```julia
+# Orthogonal
+@integrate O[1, 1]^4 dO(d)
+# Output: 3 / (d*(d + 2))
+
+# COE (off-diagonal fourth moment)
+@integrate abs(S[1, 2])^4 dCOE(d)
+# Output: 2 / (d*(d + 3))
 ```
 
 ## Fallback Mechanism

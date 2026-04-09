@@ -38,11 +38,11 @@ using IntU, Symbolics
 
 # COE diagonal 4th moment E[|S_{1,1}|^4]
 @integrate abs(S[1, 1])^4 dCOE(d)
-# Output: 6 / ((d + 1) * (d + 3))
+# Output: 8 / ((d + 1) * (d + 3))
 
 # COE off-diagonal 4th moment E[|S_{1,2}|^4]
 @integrate abs(S[1, 2])^4 dCOE(d)
-# Output: 3 / ((d + 1) * (d + 3))
+# Output: 2 / (d * (d + 3))
 
 # COE correlation moment E[|S_{1,1}|^2 |S_{1,2}|^2]
 @integrate abs(S[1, 1])^2 * abs(S[1, 2])^2 dCOE(d)
@@ -127,4 +127,4 @@ res = integrate(abs(U[1, 1])^2, dCUE(d))
 - [Unitary Integration](unitary_integration.md) — CUE is the Haar measure on $U(d)$; Weingarten calculus background
 - [Orthogonal & Symplectic](orthogonal_integration.md) — COE arises from $O(d)$, CSE from $Sp(d)$
 - [Asymptotic Expansions](asymptotic.md) — large-$d$ limit of circular ensemble moments
-- [Integral Library](integral_library.md) — pre-computed trace moments
+- [Integral Library](integral_library.md) — targeted pre-computed circular moments

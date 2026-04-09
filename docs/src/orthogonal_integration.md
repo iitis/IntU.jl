@@ -152,4 +152,4 @@ using IntU, Symbolics
 - [Unitary Integration](unitary_integration.md) — Weingarten calculus for $U(d)$; shares the same index-contraction framework
 - [Circular Ensembles](circular_ensembles.md) — COE arises from $O(d)$, CSE from $Sp(d)$
 - [Asymptotic Expansions](asymptotic.md) — large-$d$ expansions of orthogonal/symplectic results
-- [Integral Library](integral_library.md) — pre-computed moments for $O(d)$ and $Sp(d)$
+- [Integral Library](integral_library.md) — targeted pre-computed moments for $O(d)$ and $Sp(d)$
