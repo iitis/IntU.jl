@@ -424,12 +424,15 @@ where explicit entries are not available, the package introduces formal
 eigenvalue symbols ($a_1, \ldots, a_d$, $b_1, \ldots, b_d$) and evaluates the
 formula in terms of these symbols; symbolic dimensions are not supported here
 because the formula requires constructing a finite set of eigenvalue symbols and
-a $d \times d$ determinant. When degenerate eigenvalues are detected in numeric input, the
-implementation applies a perturbation $a_i \to a_i + i\,\epsilon$, where
-$\epsilon = \max(\|a\|_\infty,\, 1) \cdot 10^{-12}$ scales with the eigenvalue
-magnitude to maintain relative accuracy. This breaks exact degeneracies in the
-Vandermonde denominators while introducing errors of order
-$\mathcal{O}(\epsilon)$ in the result, which is negligible for
+a $d \times d$ determinant. When degenerate eigenvalues are detected in numeric
+input, the implementation first sorts both spectra (using a total order by real
+then imaginary part) to make the procedure permutation-invariant, and then
+applies independent perturbations
+$a_i \to a_i + i\,\epsilon_a$ and $b_i \to b_i + i\,\epsilon_b$, where
+$\epsilon_a = \max(\|a\|_\infty,\, 1)\cdot 10^{-12}$ and
+$\epsilon_b = \max(\|b\|_\infty,\, 1)\cdot 10^{-12}$. This breaks exact
+degeneracies in both Vandermonde denominators while introducing errors of order
+$\mathcal{O}(\max(\epsilon_a,\epsilon_b))$ in the result, which is negligible for
 double-precision arithmetic. For symbolic eigenvalues, degenerate cases must
 be resolved analytically by the user (e.g., via L'H\^{o}pital's rule).
 
@@ -635,7 +638,7 @@ three key distinctions:
 \begin{table*}[t]
 \centering
 \caption{Feature comparison of symbolic Haar integration packages.
-$\checkmark$ = fully supported, $\sim$ = partial support\textsuperscript{a,b},
+$\checkmark$ = fully supported, $\sim$\textsuperscript{a}/$\sim$\textsuperscript{b} = partial support with caveat \textsuperscript{a}/\textsuperscript{b},
 -- = not supported.}
 \label{tab:comparison}
 \begin{tabular}{llccc}
@@ -646,10 +649,10 @@ Category & Feature & \texttt{IntU.jl} & \texttt{RTNI} & \texttt{Haarpy} \\
   & $U(d)$             & $\checkmark$ & $\checkmark$ & $\checkmark$ \\
   & $SU(d)$ (balanced)  & $\checkmark$ & --           & --           \\
   & $O(d)$             & $\checkmark$ & --           & $\checkmark$ \\
-  & $Sp(d)$            & $\checkmark$ & --           & $\sim$       \\
+  & $Sp(d)$            & $\checkmark$ & --           & $\sim$\textsuperscript{a}       \\
 \hline
 \multirow{3}{*}{Ensembles}
-  & Circular (COE/CSE) & $\checkmark$ & --           & $\sim$       \\
+  & Circular (COE/CSE) & $\checkmark$ & --           & $\sim$\textsuperscript{a}       \\
   & Gaussian (GUE/GOE/GSE) & $\checkmark$ & --       & --           \\
   & Ginibre (GinUE/GinOE/GinSE) & $\checkmark$ & --  & --           \\
 \hline
@@ -667,7 +670,7 @@ Category & Feature & \texttt{IntU.jl} & \texttt{RTNI} & \texttt{Haarpy} \\
 \hline
 \multirow{3}{*}{Interfaces}
   & Tensor network integration & $\checkmark$ & $\checkmark$ & --   \\
-  & Matrix-valued integration  & $\checkmark$ & $\sim$       & --   \\
+  & Matrix-valued integration  & $\checkmark$ & $\sim$\textsuperscript{b}       & --   \\
   & HCIZ integrals             & $\checkmark$ & --           & --   \\
 \hline
 \multirow{3}{*}{Platform}

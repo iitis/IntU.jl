@@ -121,7 +121,7 @@ integrate(abs(S[1, 1])^2, dSp(d))
 using IntU, Symbolics
 @variables d
 @integrate abs(Sp[1, 1])^4 dSp(d)
-# Output: 2 / ((d + 1)*(d - 1))
+# Output: 2 / (d + d^2)
 
 # Example Sp2: Symplectic mixed moments
 @integrate abs(Sp[1, 1])^2 * abs(Sp[1, 2])^2 dSp(d)
