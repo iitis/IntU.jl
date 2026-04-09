@@ -514,7 +514,7 @@ randomized benchmarking schemes rely only on the $t$-moment properties of the
 sampling distribution.
 
 \subsection{Partial trace}
-The package includes a \texttt{partial\_trace(M, dims, system)} function
+The package includes a \texttt{partial\_trace(M, dims, subsystem)} function
 for quantum information tasks. It computes the partial trace of a matrix
 $M$ over a specified subsystem, where the subsystem dimensions
 (e.g., $d_A$, $d_B$ with $d = d_A d_B$) are concrete integers. The
@@ -982,8 +982,9 @@ left path through normalization, substitution, expansion, and dispatch to
 specialized engines. Trace expressions are first analyzed by the symbolic
 trace logic, which reconstructs the Weingarten graph before entering the
 dispatch stage. Common patterns are intercepted by the library lookup for
-$\mathcal{O}(1)$ evaluation. All engine results are memoized.}
-\Description{Architecture diagram of IntU.jl showing two flows: scalar expressions go through normalization, substitution, expansion, and dispatch to specialized engines; trace expressions first pass symbolic trace logic and graph reconstruction before dispatch. A library lookup path handles common patterns in constant time, and all engine outputs are memoized.}
+$\mathcal{O}(1)$ evaluation. Performance-critical internals (representation-theoretic
+quantities and Weingarten-related data) are memoized/cached for reuse.}
+\Description{Architecture diagram of IntU.jl showing two flows: scalar expressions go through normalization, substitution, expansion, and dispatch to specialized engines; trace expressions first pass symbolic trace logic and graph reconstruction before dispatch. A library lookup path handles common patterns in constant time, and selected internal computations (for example characters, dimensions, and Weingarten data) are cached.}
 \label{fig:architecture}
 \end{figure*}
 
@@ -1532,8 +1533,10 @@ The source code for \texttt{IntU.jl} is available on GitHub under the Apache Lic
 \end{itemize}
 
 \begin{acks}
-LP and ZP acknowledge financial support from the National Science Center,
-grant number\ldots
+ZP acknowledges support from the National Science Center (NCN), Poland,
+under Project Opus No. 2022/47/B/ST6/02380. {\L}P cknowledges support from
+the National Science Center (NCN), Poland, under Project Opus
+No. 2024/53/B/ST2/02026.
 \end{acks}
 
 \bibliographystyle{ACM-Reference-Format}
