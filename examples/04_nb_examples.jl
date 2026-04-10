@@ -38,7 +38,7 @@ println("Result: ", res2, " (Expected: -1/16200)")
 println("\n--- Example 3: Multiple Unitaries ---")
 @variables dU_dim, dV_dim
 U = SymbolicMatrix(:U, :U, dU_dim)
-V = SymbolicMatrix(:V, :U, dV_dim)
+V = SymbolicMatrix(:V, :V, dV_dim)
 X = SymbolicMatrix(:X) # Constant matrix
 
 # Complex expression with two independent unitaries
@@ -48,7 +48,7 @@ X = SymbolicMatrix(:X) # Constant matrix
 integrand3 = (U[1, 1] * V[1, 1]) * X[1, 1] * conj(U[1, 1] * V[1, 1])
 
 println("Integrating over V...")
-tmp = integrate(integrand3, dU(dV_dim))
+tmp = integrate(integrand3, IntU.HaarMeasure(dV_dim, IntU.MetadataMatcher(:V)))
 println("Integrating over U...")
 res3 = integrate(tmp, dU(dU_dim))
 println("Result: ", res3)
