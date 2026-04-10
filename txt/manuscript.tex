@@ -1549,7 +1549,11 @@ The source code for \texttt{IntU.jl} is available on GitHub under the Apache Lic
     The Haarpy and RTNI comparison scripts additionally require external
     runtimes (Python+\texttt{haarpy} and
     Mathematica/RTNI, respectively); these dependencies are outside Julia's
-    manifest pinning.
+    manifest pinning. The Haarpy runner enforces \texttt{haarpy==0.0.6}
+    (overrideable via \texttt{HAARPY\_VERSION}), and the RTNI workflow records a
+    concrete RTNI package identifier in metadata (version symbol when
+    available, otherwise \texttt{RTNI.wl} SHA-256; optional strict check via
+    \texttt{RTNI\_EXPECTED\_SHA256}).
     Each generated comparison result file includes an optional
     \texttt{\_meta} block (runtime/package versions, timestamp, host/OS
     details, and source identifiers) to document the exact run context across

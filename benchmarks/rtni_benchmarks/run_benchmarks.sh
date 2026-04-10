@@ -6,6 +6,8 @@
 #     (Julia dependencies are pinned by ../Manifest.toml and instantiated below)
 #   - Wolfram Mathematica with RTNI package installed
 #     (RTNI.wl and precomputedWG/ must be in this directory or on $Path)
+#   - For reproducibility, pin RTNI.wl to a specific source revision
+#     (recommended: verify SHA-256 via RTNI_EXPECTED_SHA256 environment variable)
 #
 # Usage:
 #   cd benchmarks/rtni_benchmarks
@@ -33,6 +35,15 @@ julia --project="$BENCH_ROOT" bench_intu.jl
 echo ""
 echo "=== Running RTNI benchmarks (Mathematica) ==="
 cd "$SCRIPT_DIR"
+if [ -n "${RTNI_EXPECTED_SHA256:-}" ] && [ -f "RTNI.wl" ]; then
+    actual_sha="$(sha256sum RTNI.wl | awk '{print $1}')"
+    if [ "$actual_sha" != "$RTNI_EXPECTED_SHA256" ]; then
+        echo "ERROR: RTNI.wl SHA-256 mismatch."
+        echo "  expected: $RTNI_EXPECTED_SHA256"
+        echo "  actual:   $actual_sha"
+        exit 1
+    fi
+fi
 if command -v math &> /dev/null; then
     math -script bench_rtni.wl
 else

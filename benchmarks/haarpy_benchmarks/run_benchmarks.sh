@@ -2,7 +2,7 @@
 # Run both benchmark suites and produce comparison table.
 #
 # Prerequisites:
-#   conda create -n haarpy_bench python=3.11 && conda activate haarpy_bench && pip install haarpy
+#   conda create -n haarpy_bench python=3.11 && conda activate haarpy_bench && pip install "haarpy==0.0.6"
 #   Julia with IntU.jl and JSON3 available
 #   (Julia dependencies are pinned by ../Manifest.toml and instantiated below)
 #
@@ -14,6 +14,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BENCH_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+HAARPY_VERSION="${HAARPY_VERSION:-0.0.6}"
 
 echo "=== Running IntU.jl benchmarks (Julia) ==="
 cd "$SCRIPT_DIR"
@@ -25,6 +26,25 @@ echo "=== Running Haarpy benchmarks (Python) ==="
 eval "$(conda shell.bash hook 2>/dev/null)"
 conda activate haarpy_bench
 cd "$SCRIPT_DIR"
+python - <<'PY'
+import os, sys
+from importlib import metadata
+
+expected = os.environ.get("HAARPY_VERSION", "0.0.6")
+try:
+    actual = metadata.version("haarpy")
+except Exception:
+    print(f"ERROR: haarpy is not installed in the active environment (expected {expected}).")
+    print(f"Install with: pip install 'haarpy=={expected}'")
+    sys.exit(1)
+
+if actual != expected:
+    print(f"ERROR: haarpy version mismatch: found {actual}, expected {expected}.")
+    print(f"Install with: pip install 'haarpy=={expected}'")
+    sys.exit(1)
+
+print(f"Using haarpy=={actual}")
+PY
 python bench_haarpy.py
 
 echo ""

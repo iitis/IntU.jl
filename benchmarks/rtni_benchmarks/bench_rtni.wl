@@ -24,13 +24,22 @@ Unprotect[NotebookDirectory];
 NotebookDirectory[] := scriptDir;
 Protect[NotebookDirectory];
 
-Get["RTNI.wl"];
+rtniResolved = Quiet@Check[FindFile["RTNI.wl"], $Failed];
+If[
+  rtniResolved === $Failed,
+  Print["ERROR: Could not locate RTNI.wl (must be in this directory or on $Path)."];
+  Exit[1];
+];
+rtniPath = ExpandFileName[rtniResolved];
+Get[rtniPath];
 
-rtniPath = ExpandFileName["RTNI.wl"];
-rtniHash = If[
-  FileExistsQ[rtniPath],
-  IntegerString[FileHash[rtniPath, "SHA256"], 16, 64],
-  "missing"
+rtniHash = IntegerString[FileHash[rtniPath, "SHA256"], 16, 64];
+rtniVersion = Which[
+  ValueQ[RTNI`$Version], ToString[RTNI`$Version, InputForm],
+  ValueQ[RTNI`Version], ToString[RTNI`Version, InputForm],
+  ValueQ[RTNIVersion], ToString[RTNIVersion, InputForm],
+  ValueQ[$RTNIVersion], ToString[$RTNIVersion, InputForm],
+  True, "sha256:" <> rtniHash
 ];
 scriptPath = If[$InputFileName =!= "", ExpandFileName[$InputFileName], "interactive"];
 outputPath = FileNameJoin[{scriptDir, "results_rtni.json"}];
@@ -324,7 +333,7 @@ results["_meta"] = <|
     "machine" -> $MachineName
   |>,
   "runtime" -> <|"name" -> "Mathematica", "version" -> $Version|>,
-  "packages" -> <|"RTNI" -> "unknown"|>,
+  "packages" -> <|"RTNI" -> rtniVersion|>,
   "sources" -> <|
     "RTNI.wl" -> <|
       "path" -> rtniPath,
