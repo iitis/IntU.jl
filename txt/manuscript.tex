@@ -1535,6 +1535,10 @@ The source code for \texttt{IntU.jl} is available on GitHub under the Apache Lic
     \item \textbf{License}: Apache License 2.0
     \item \textbf{Version}: The results in this paper were generated using
     version v1.0.0.
+    \item \textbf{Pinned Julia environments}: Reproducibility relies on
+    versioned \texttt{Manifest.toml} files in \texttt{examples/} and
+    \texttt{benchmarks/}. The benchmark/example runner scripts instantiate
+    these environments before execution.
     \item \textbf{Benchmarks}: To reproduce the benchmarks presented in Section
     \ref{sec:performance}, run the benchmark suites from the repository root:
     \begin{lstlisting}[language=bash]
@@ -1542,8 +1546,10 @@ The source code for \texttt{IntU.jl} is available on GitHub under the Apache Lic
     bash benchmarks/haarpy_benchmarks/run_benchmarks.sh
     bash benchmarks/rtni_benchmarks/run_benchmarks.sh
     \end{lstlisting}
-    The Haarpy and RTNI comparison scripts require external runtimes
-    (Python+\texttt{haarpy} and Mathematica/RTNI, respectively).
+    The Haarpy and RTNI comparison scripts additionally require external
+    runtimes (Python+\texttt{haarpy} and
+    Mathematica/RTNI, respectively); these dependencies are outside Julia's
+    manifest pinning.
     Each generated comparison result file includes an optional
     \texttt{\_meta} block (runtime/package versions, timestamp, host/OS
     details, and source identifiers) to document the exact run context across

@@ -18,6 +18,8 @@
 
 # Julia specific
 Manifest.toml
+!examples/Manifest.toml
+!benchmarks/Manifest.toml
 docs/build/
 docs/site/
 test/tmp/

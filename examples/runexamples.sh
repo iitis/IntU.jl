@@ -7,6 +7,9 @@ echo "========================================"
 echo "    Running IntU.jl Examples            "
 echo "========================================"
 
+# Instantiate examples environment to ensure dependencies are available
+julia --project=examples -e 'import Pkg; Pkg.instantiate()'
+
 # Run specific scripts if provided, otherwise run all examples
 if [ $# -gt 0 ]; then
     for arg in "$@"; do

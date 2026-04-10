@@ -3,6 +3,7 @@
 #
 # Prerequisites:
 #   - Julia with IntU.jl available
+#     (Julia dependencies are pinned by ../Manifest.toml and instantiated below)
 #   - Wolfram Mathematica with RTNI package installed
 #     (RTNI.wl and precomputedWG/ must be in this directory or on $Path)
 #

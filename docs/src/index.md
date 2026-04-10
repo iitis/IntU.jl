@@ -13,6 +13,20 @@ using Pkg
 Pkg.add(url="https://github.com/iitis/IntU.jl")
 ```
 
+### Reproducible Setup From a Checkout
+
+For paper-grade reproducibility, use a tagged checkout (for this manuscript:
+`v1.0.0`) and instantiate the pinned project environments used by the
+examples and benchmarks:
+
+```julia
+using Pkg
+Pkg.activate("examples"); Pkg.instantiate()
+Pkg.activate("benchmarks"); Pkg.instantiate()
+```
+
+This uses the versioned `Manifest.toml` files in `examples/` and `benchmarks/`.
+
 ## The @integrate Macro
 
 For more intuitive symbolic integration, **IntU.jl** provides the `@integrate` macro. It automatically identifies random matrices based on the measure and manages variable declarations.
