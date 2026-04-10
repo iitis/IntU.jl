@@ -26,7 +26,7 @@ function benchmark_asymptotic()
     # Case 3: Pure State Fourth Moment
     println("\n3. Pure State Fourth Moment (Order 4)")
     # Use SymbolicMatrix for psi to get the :psi tag
-    psi = SymbolicMatrix(:psi, :psi, d)
+    psi = SymbolicMatrix(:psi, :psi, (d, 1))
     m_psi = dPsi(d)
     expr3 = abs2(psi[1, 1])^2
     t3 = @benchmark asymptotic($expr3, $m_psi, 4)
