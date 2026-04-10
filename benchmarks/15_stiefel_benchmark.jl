@@ -8,7 +8,7 @@ println("=== Stiefel Manifold Benchmark ===")
 @variables d
 
 k = 3
-V_sym = SymbolicMatrix(:V, :U, (d, k))
+V_sym = SymbolicMatrix(:V, :V, (d, k))
 measure = dStiefel(d, k)
 
 function random_stiefel_poly(V, m)
@@ -41,7 +41,7 @@ println("Benchmarking Stiefel integration (degree 4, variable k)...")
 poly_fixed = V_sym[1, 1] * conj(V_sym[1, 1]) * V_sym[1, 2] * conj(V_sym[1, 2])
 
 for k_val in [2, 4, 8]
-    local V_k = SymbolicMatrix(Symbol("Vk_$k_val"), :U, d)
+    local V_k = SymbolicMatrix(Symbol("Vk_$k_val"), :V, (d, k_val))
     local poly_k = V_k[1, 1] * conj(V_k[1, 1]) * V_k[1, 2] * conj(V_k[1, 2])
     local measure_k = dStiefel(d, k_val)
 
