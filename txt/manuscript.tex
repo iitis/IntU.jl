@@ -1466,17 +1466,17 @@ in \texttt{benchmarks/rtni\_benchmarks/}.
     \hline
     Group & Integrand & IntU.jl (ms) & RTNI (ms) & Speedup \\
     \hline
-    U($d$) & $|U_{11}|^2$, symbolic $d$ & 1.81 & 0.61 & 0.3$\times$ \\
-    U($d$) & $|U_{11}|^4$, symbolic $d$ & 1.52 & 2.85 & 1.9$\times$ \\
-    U($d$) & $|U_{11}|^6$, symbolic $d$ & 2.27 & 37.23 & 16.4$\times$ \\
-    U($d$) & $|U_{11}|^8$, symbolic $d$ & 1.69 & 5684.27 & 3364.8$\times$ \\
-    U($d$) & $|U_{11}|^8$, $d=10$ & 1.37 & 5570.28 & 4071.7$\times$ \\
-    U($d$) & $|U_{11}|^2|U_{12}|^2$, symbolic $d$ & 2.49 & 2.57 & 1.0$\times$ \\
-    U($d$) & $|U_{11}|^2|U_{12}|^4$, symbolic $d$ & 2.80 & 40.41 & 14.4$\times$ \\
-    U($d$) & $|U_{11}|^2|U_{22}|^2$, symbolic $d$ & 2.88 & 2.54 & 0.9$\times$ \\
-    U($d$) & $|U_{11}|^2|U_{12}|^2$, $d=10$ & 2.91 & 2.53 & 0.9$\times$ \\
-    U($d$) & $|U_{11}|^2|U_{12}|^4$, $d=10$ & 2.62 & 39.26 & 15.0$\times$ \\
-    U($d$) & $|U_{11}|^2|U_{22}|^2$, $d=10$ & 2.50 & 2.55 & 1.0$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^2$, symbolic $d$ & 1.81 & 0.61 & 0.3$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^4$, symbolic $d$ & 1.52 & 2.85 & 1.9$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^6$, symbolic $d$ & 2.27 & 37.23 & 16.4$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^8$, symbolic $d$ & 1.69 & 5684.27 & 3364.8$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^8$, $d=10$ & 1.37 & 5570.28 & 4071.7$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^2|U_{12}|^2$, symbolic $d$ & 2.49 & 2.57 & 1.0$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^2|U_{12}|^4$, symbolic $d$ & 2.80 & 40.41 & 14.4$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^2|U_{22}|^2$, symbolic $d$ & 2.88 & 2.54 & 0.9$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^2|U_{12}|^2$, $d=10$ & 2.91 & 2.53 & 0.9$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^2|U_{12}|^4$, $d=10$ & 2.62 & 39.26 & 15.0$\times$ \\
+    U($d$) (Element API) & $|U_{11}|^2|U_{22}|^2$, $d=10$ & 2.50 & 2.55 & 1.0$\times$ \\
     U($d$) & $\mathrm{tr}(UAU^\ast B)$, symbolic $d$ & 0.21 & 0.57 & 2.8$\times$ \\
     U($d$) & $\mathrm{tr}((UAU^\ast B)^2)$, symbolic $d$ & 1.36 & 2.56 & 1.9$\times$ \\
     \hline
