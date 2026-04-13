@@ -1539,21 +1539,38 @@ The source code for \texttt{IntU.jl} is available on GitHub under the Apache Lic
     versioned \texttt{Manifest.toml} files in \texttt{examples/} and
     \texttt{benchmarks/}. The benchmark/example runner scripts instantiate
     these environments before execution.
-    \item \textbf{Benchmarks}: To reproduce the benchmarks presented in Section
-    \ref{sec:performance}, run the benchmark suites from the repository root:
+    \item \textbf{Benchmarks}: Native IntU Julia benchmarks are turnkey from a
+    clean checkout (with pinned Julia manifests). To reproduce them, run:
     \begin{lstlisting}[language=bash]
     bash benchmarks/runbenchmarks.sh
-    bash benchmarks/haarpy_benchmarks/run_benchmarks.sh
-    bash benchmarks/rtni_benchmarks/run_benchmarks.sh
     \end{lstlisting}
-    The Haarpy and RTNI comparison scripts additionally require external
-    runtimes (Python+\texttt{haarpy} and
-    Mathematica/RTNI, respectively); these dependencies are outside Julia's
-    manifest pinning. The Haarpy runner enforces \texttt{haarpy==0.0.6}
-    (overrideable via \texttt{HAARPY\_VERSION}), and the RTNI workflow records a
-    concrete RTNI package identifier in metadata (version symbol when
-    available, otherwise \texttt{RTNI.wl} SHA-256; optional strict check via
-    \texttt{RTNI\_EXPECTED\_SHA256}).
+    Cross-tool comparisons (\texttt{Haarpy}, \texttt{RTNI}) require manual
+    external setup and are not one-command reproducible from Julia manifests
+    alone.
+
+    Haarpy setup and run:
+    \begin{lstlisting}[language=bash]
+    cd benchmarks/haarpy_benchmarks
+    conda env create -f environment.haarpy_bench.yml
+    conda activate haarpy_bench
+    bash run_benchmarks.sh
+    \end{lstlisting}
+    The pinned conda environment specifies \texttt{haarpy==0.0.6}
+    (overrideable at runtime via \texttt{HAARPY\_VERSION}).
+
+    RTNI setup and run:
+    \begin{lstlisting}[language=bash]
+    # 1) Install RTNI for Mathematica and stage RTNI.wl + precomputedWG/
+    #    in benchmarks/rtni_benchmarks/ (or on $Path)
+    cd benchmarks/rtni_benchmarks
+    export RTNI_EXPECTED_SHA256=cf7aaa1ba49b249ce7b9dd4a682bf2dd4cf83b47b8b92b341a84a882238694b2
+    bash run_benchmarks.sh
+    \end{lstlisting}
+    For the manuscript comparison, the RTNI source revision is pinned by
+    \texttt{RTNI\_EXPECTED\_SHA256} (full value shown in the command block
+    above).
+    The RTNI workflow records the package identifier in metadata (version symbol
+    when available, otherwise \texttt{RTNI.wl} SHA-256).
     Each generated comparison result file includes an optional
     \texttt{\_meta} block (runtime/package versions, timestamp, host/OS
     details, and source identifiers) to document the exact run context across

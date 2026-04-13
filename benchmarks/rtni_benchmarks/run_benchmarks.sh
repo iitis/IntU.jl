@@ -26,6 +26,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BENCH_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+RTNI_RECOMMENDED_SHA256="${RTNI_RECOMMENDED_SHA256:-cf7aaa1ba49b249ce7b9dd4a682bf2dd4cf83b47b8b92b341a84a882238694b2}"
 
 echo "=== Running IntU.jl benchmarks (Julia) ==="
 cd "$SCRIPT_DIR"
@@ -35,6 +36,10 @@ julia --project="$BENCH_ROOT" bench_intu.jl
 echo ""
 echo "=== Running RTNI benchmarks (Mathematica) ==="
 cd "$SCRIPT_DIR"
+if [ -z "${RTNI_EXPECTED_SHA256:-}" ]; then
+    echo "NOTE: For manuscript-grade reproducibility, set:"
+    echo "  RTNI_EXPECTED_SHA256=$RTNI_RECOMMENDED_SHA256"
+fi
 if [ -n "${RTNI_EXPECTED_SHA256:-}" ] && [ -f "RTNI.wl" ]; then
     actual_sha="$(sha256sum RTNI.wl | awk '{print $1}')"
     if [ "$actual_sha" != "$RTNI_EXPECTED_SHA256" ]; then

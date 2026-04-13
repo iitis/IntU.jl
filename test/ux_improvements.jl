@@ -69,7 +69,7 @@ using Symbolics
         @test isequal(res[1, 2], 0//1)
 
         k = 1
-        V = SymbolicMatrix(:V, :U, (d, k))
+        V = SymbolicMatrix(:V, :V, (d, k))
         res_v = @integrate V' * V dStiefel(2, 1)
         @test res_v isa AbstractMatrix
         @test size(res_v) == (1, 1)
