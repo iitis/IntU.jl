@@ -35,7 +35,7 @@ The `@integrate` macro implicitly identifies random matrices based on the measur
 - `dPerm` $\rightarrow$ `P` (Permutation)
 - `dCPerm` $\rightarrow$ `Y` (Centered Permutation)
 - `dCOE`, `dCSE` $\rightarrow$ `S` (Circular Orthogonal/Symplectic)
-- `dGUE`, `dGOE`, `dGSE` $\rightarrow$ `H` (Gaussian Ensembles)
+- `dGUE`, `dGOE`, `dGSE` $\rightarrow$ `H` (Gaussian Ensembles; `dGSE(n)` requires even integer `n` for concrete dimensions)
 - `dGinUE`, `dGinOE`, `dGinSE` $\rightarrow$ `G` (Ginibre Ensembles)
 - `dPsi` $\rightarrow$ `psi` (Pure State)
 - `dDiagUnitary` $\rightarrow$ `D` (Diagonal Unitary)
@@ -123,7 +123,10 @@ preserve the symplectic form, $Sp \Omega Sp^T = \Omega$. Use `dSp`.
 Ginibre ensembles consist of non-Hermitian matrices with i.i.d. Gaussian entries. 
 - **GinUE (Complex Ginibre Ensemble)**: i.i.d. complex Gaussian entries. Use `dGinUE`.
 - **GinOE (Real Ginibre Ensemble)**: i.i.d. real Gaussian entries. Use `dGinOE`.
-- **GinSE (Symplectic Ginibre Ensemble)**: i.i.d. quaternionic Gaussian entries. Use `dGinSE`.
+- **GinSE (Symplectic Ginibre Ensemble)**: i.i.d. quaternionic Gaussian entries. Use `dGinSE` (`dGinSE(n)` requires even integer `n` for concrete dimensions).
+
+For quaternionic/symplectic Gaussian measures, concrete odd dimensions are rejected:
+`dGSE(n)` and `dGinSE(n)` throw an `ArgumentError` when `n` is odd.
 
 ```julia
 # E[Tr(G G')] = d^2

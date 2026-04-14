@@ -34,6 +34,7 @@ The contraction rule involves the symplectic form $J$:
 \langle H_{ij} H_{kl} \rangle_{GSE} = \delta_{il} \delta_{jk} + (J)_{ik} (J)_{jl}
 ```
 IntU.jl implements GSE integration by mapping it to contractions involving the definition of the symplectic metric.
+For concrete integer dimensions, `dGSE(n)` requires even `n`; odd `n` throws an `ArgumentError`.
 
 ## Ginibre Ensembles
 
@@ -57,10 +58,12 @@ Matrices $G$ with i.i.d. real Gaussian entries. The contraction rule is:
 ### GinSE (Symplectic Ginibre Ensemble)
 
 Matrices $G$ with i.i.d. quaternionic Gaussian entries. Integrals are computed using duality relations.
+For concrete integer dimensions, `dGinSE(n)` requires even `n`; odd `n` throws an `ArgumentError`.
 
 ## Usage
 
 You can define the Gaussian measures using `dGUE`, `dGOE`, `dGSE`, `dGinUE`, `dGinOE`, and `dGinSE`.
+For concrete integer dimensions, `dGSE(n)` and `dGinSE(n)` require even `n`.
 
 ### GUE Example
 
