@@ -119,23 +119,22 @@
 Symbolic integration over the Haar measure of compact groups is a computational
 cornerstone in quantum information science and random matrix theory. We present
 \texttt{IntU.jl}, a comprehensive Julia package for computing exact expectations
-of polynomial functions over a wide range of compact groups ($U(d)$,
-$O(d)$, $Sp(d)$, and $SU(d)$ for balanced polynomials), circular and Gaussian
-ensembles, Ginibre ensembles, permutation groups, random pure states, and
-unitary $t$-designs. The package
-provides a fully open-source implementation of the Weingarten calculus and Wick
-contractions with broad symbolic-$d$ support for entry-wise and
-trace-polynomial integrals, while selected workflows currently require concrete
-integer dimensions (including higher pure trace moments
+of polynomial functions over a wide range of compact groups ($U(d)$, $O(d)$,
+$Sp(d)$, and $SU(d)$ for balanced polynomials), circular and Gaussian ensembles,
+Ginibre ensembles, permutation groups, random pure states, and unitary
+$t$-designs. The package provides a fully open-source implementation of the
+Weingarten calculus and Wick contractions with broad symbolic-$d$ support for
+entry-wise and trace-polynomial integrals, while selected workflows currently
+require concrete integer dimensions (including higher pure trace moments
 $|\mathrm{tr}(U)|^{2k}$ for $k > 1$ and HCIZ with \texttt{SymbolicMatrix}
 inputs, and direct matrix-valued integration of
 \texttt{SymbolicMatrix}/\texttt{SymbolicMatrixProduct} expressions), automatic
-asymptotic expansions, a high-level symbolic trace
-interface that reconstructs Weingarten graphs from index-free expressions, and
-a bridge to \texttt{ITensors.jl} for tensor network averaging. We discuss the
-underlying algorithms—including the Murnaghan-Nakayama rule and
-symplectic-orthogonal duality—and demonstrate that the package efficiently
-handles high-degree moments and quantum information metrics.
+asymptotic expansions, a high-level symbolic trace interface that reconstructs
+Weingarten graphs from index-free expressions, and a bridge to
+\texttt{ITensors.jl} for tensor network averaging. We discuss the underlying
+algorithms, including the Murnaghan-Nakayama rule and symplectic-orthogonal
+duality, and demonstrate that the package efficiently handles high-degree
+moments and quantum information metrics.
 \end{abstract}
 
 %%
@@ -180,7 +179,7 @@ in mathematical physics, with profound implications in random matrix theory
 quantum information theory (QIT) \cite{nielsen2010quantum, watrous2018theory}.
 The ability to compute moments of random matrices enables the exact
 characterization of ``typical'' properties of quantum systems, such as the
-average entanglement entropy of subsystems—a concept famously pioneered by Page
+average entanglement entropy of subsystems, a concept famously pioneered by Page
 \cite{page1993average}. Furthermore, these integrals are essential for studying
 quantum chaos, scrambling, and the design of quantum circuits that approximate
 randomness, known as unitary $t$-designs \cite{brandao2016exponential}.
@@ -259,7 +258,7 @@ Section \ref{sec:performance} and conclude in Section \ref{sec:conclusion}.
 \label{sec:background}
 The core technique behind \texttt{IntU.jl} is the Weingarten calculus. For a
 compact group $G$, the integral of a polynomial in matrix elements can be
-expressed as a sum over a combinatorial set—permutations for the unitary case
+expressed as a sum over a combinatorial set: permutations for the unitary case
 and pair partitions for the orthogonal and symplectic cases.
 
 \subsection{The unitary group $U(d)$}
@@ -296,11 +295,23 @@ k - c(\sigma)$. For the identity permutation, the leading order term is
 $\mathrm{Wg}^U(\mathrm{id}, d) \approx d^{-k}$, recovering the normalization
 expected from independent Gaussian entries at the naive limit.
 
-\paragraph{Symbolic ($d$) Pitfalls}
-While Weingarten functions are rational in $d$, they contain poles at small integer dimensions (typically $d < k$ for degree $k$ moments). Furthermore, substituting numeric values can yield $0/0$ expressions (removable singularities) at specific points like $d=1, 2$. \texttt{IntU.jl}'s \texttt{evaluate} function automatically simplifies these expressions to resolve such singularities. An important exception is pure trace moments $|\mathrm{tr}(U)|^{2k}$, whose exact value $\sum_{\lambda \vdash k,\, \ell(\lambda) \le d} (f^\lambda)^2$ depends on $d$ as a step function rather than a rational function; these require a concrete integer dimension and raise an error for symbolic $d$.
+\paragraph{Symbolic $d$ pitfalls}
+While Weingarten functions are rational in $d$, they contain poles at small
+integer dimensions (typically $d < k$ for degree $k$ moments). Furthermore,
+substituting numeric values can yield $0/0$ expressions, which are removable
+singularities, at specific points like $d=1, 2$. \texttt{IntU.jl}'s
+\texttt{evaluate} function automatically simplifies these expressions to resolve
+such singularities. An important exception is pure trace moments
+$|\mathrm{tr}(U)|^{2k}$, whose exact value $\sum_{\lambda \vdash k,\,
+\ell(\lambda) \le d} (f^\lambda)^2$ depends on $d$ as a step function rather
+than a rational function; these require a concrete integer dimension and raise
+an error for symbolic $d$.
 
 \paragraph{Special Unitary group $SU(d)$}
-For all currently supported ``balanced'' polynomial expressions (where the number of $U$ and $\bar{U}$ factors are equal), the integration over $SU(d)$ is equivalent to $U(d)$. Non-stable-range effects involving $\epsilon$-tensor contractions for specific small $d$ are not currently covered.
+For all currently supported ``balanced'' polynomial expressions (where the
+number of $U$ and $\bar{U}$ factors are equal), the integration over $SU(d)$ is
+equivalent to $U(d)$. Non-stable-range effects involving $\epsilon$-tensor
+contractions for specific small $d$ are not currently covered.
 
 \subsection{Orthogonal and symplectic groups}
 For the orthogonal group $O(d)$ and symplectic group $Sp(d)$, the integration
@@ -379,8 +390,8 @@ The package supports a wide range of integration measures, grouped as follows:
     \item \textbf{Gaussian and Ginibre ensembles}: Support for the Gaussian
     unitary (GUE), orthogonal (GOE), and symplectic (GSE) ensembles, as well as
     the complex (GinUE), real (GinOE), and symplectic (GinSE) Ginibre ensembles.
-    These rely on Wick's theorem for integration rather than Weingarten
-    calculus.
+    These rely on Wick's theorem~\cite{wick1950evaluation} for integration
+    rather than Weingarten calculus.
     \item \textbf{Unitary designs}: Unitary $t$-designs (\texttt{dDesign}),
     which mimic the first $t$ moments of the Haar measure, useful for studying
     pseudo-randomness in quantum circuits.
@@ -453,11 +464,10 @@ pairwise contractions:
     while odd moments vanish, $\langle \mathrm{tr}(H^{2m+1}) \rangle_{\mathrm{GSE}} = 0$.
     This implies $\langle \mathrm{tr}(H^2) \rangle = d^2 - d$.
 \end{itemize}
-This approach allows \texttt{IntU.jl} to compute moments for all three Beta
-ensembles ($\beta=1, 2, 4$) while maintaining full support for symbolic
-dimensions $d$. For concrete integer dimensions, the symplectic/quaternionic
-measure constructor enforces even size: \texttt{dGSE(n)} raises an error when
-\texttt{n} is odd.
+This approach allows \texttt{IntU.jl} to compute moments for all three ensembles
+while maintaining full support for symbolic dimensions $d$. For concrete integer
+dimensions, the symplectic measure constructor enforces even size:
+\texttt{dGSE(n)} raises an error when \texttt{n} is odd.
 
 \subsection{Ginibre ensembles}
 Moving beyond Hermitian matrices, \texttt{IntU.jl} supports the Ginibre
@@ -468,9 +478,9 @@ Gaussian entries. These are integrated using similar Wick contraction rules:
     \item \textbf{GinUE}: $\langle G_{ij} \bar{G}_{kl} \rangle = \delta_{ik} \delta_{jl}$, leading to $\langle \mathrm{tr}(G G^\dagger) \rangle = d^2$, $\langle \mathrm{tr}(G G^\dagger)^2 \rangle = d^4 + d^2$, and $\langle \mathrm{tr}((G G^\dagger)^2) \rangle = 2d^3$. Only contractions between $G$ and its conjugate $\bar{G}$ are non-vanishing.
     \item \textbf{GinOE}: $\langle G_{ij} G_{kl} \rangle = \delta_{ik}
     \delta_{jl}$ for real entries.
-    \item \textbf{GinSE}: Quaternionic entries treated via duality relations.
-    For concrete integer dimensions, \texttt{dGinSE(n)} requires even
-    \texttt{n} and raises an error on odd \texttt{n}.
+    \item \textbf{GinSE}: Symplectic entries treated via duality relations. For
+    concrete integer dimensions, \texttt{dGinSE(n)} requires even \texttt{n} and
+    raises an error on odd \texttt{n}.
 \end{itemize}
 Like the beta ensembles, these rules are implemented to support both symbolic 
 dimensions $d$ and high-level trace expressions.
@@ -1006,8 +1016,8 @@ dispatch symbolic expressions efficiently:
 \begin{enumerate}
     \item \textbf{Normalization}: The input expression is first normalized using a ruleset
     based on \texttt{SymbolicUtils.jl}. This step expands complex conjugates and rewrites
-    composite functions—such as $\mathrm{abs}(z)^2 \to z \bar{z}$, $\mathrm{real}(z) \to \frac{1}{2}(z +
-    \bar{z})$, and $\mathrm{imag}(z) \to \frac{1}{2i}(z - \bar{z})$—into polynomial forms
+    composite functions, such as $\mathrm{abs}(z)^2 \to z \bar{z}$, $\mathrm{real}(z) \to \frac{1}{2}(z +
+    \bar{z})$, and $\mathrm{imag}(z) \to \frac{1}{2i}(z - \bar{z})$, into polynomial forms
     amenable to integration.
     \item \textbf{Substitution}: Symbolic variables representing matrix elements
     $U_{ij}$ are replaced by an internal atomic representation that facilitates
@@ -1043,7 +1053,7 @@ mathematical structures while sharing the top-level dispatch mechanism:
     \item \textbf{Orthogonal and symplectic groups}: For these groups, the package generates pair partitions
     recursively, canonicalizing them (typically as sorted pairs) to enable $\mathcal{O}(1)$ lookup.
     For symbolic dimensions $d$, \texttt{IntU.jl} utilizes a specialized univariate polynomial
-    solver based on the \textbf{Bareiss algorithm} with exact \texttt{BigInt} arithmetic.
+    solver based on the Bareiss algorithm~\cite{bareiss1968sylvester} with exact \texttt{BigInt} arithmetic.
     Furthermore, to ensure stability for high-degree Weingarten sums where traditional
     simplification can fail, the engine employs a custom exact rational summation logic.
     Integration over the symplectic group reuses this optimized engine via duality:
@@ -1114,8 +1124,8 @@ implementations due to their maximal combinatorial complexity.
 
 All native \texttt{IntU.jl} benchmarks in this section were performed using the
 \texttt{BenchmarkTools.jl} package, and reported execution times represent the
-\textbf{median} of $N=30$ samples. These results \textbf{exclude} the initial
-JIT compilation and warm-up time, reflecting steady-state performance observed
+median of $N=30$ samples. These results \emph{exclude} the initial JIT
+compilation and warm-up time, reflecting steady-state performance observed
 during production use. Cross-tool comparisons (Sections
 \ref{sec:haarpy_comparison} and \ref{sec:rtni_comparison}) use dedicated
 benchmark scripts with adaptive sample counts for very slow cases; those
@@ -1126,8 +1136,7 @@ runner described in Section \ref{sec:availability}. Cross-tool comparisons
 (Haarpy/RTNI) are generated by dedicated scripts in
 \texttt{benchmarks/haarpy\_benchmarks/} and
 \texttt{benchmarks/rtni\_benchmarks/}. Additional stress tests and correctness
-checks are
-available in \texttt{benchmarks/09\_stress\_test\_2.jl} and
+checks are available in \texttt{benchmarks/09\_stress\_test\_2.jl} and
 \texttt{benchmarks/08\_stress\_test\_1.jl}.
 
 
@@ -1139,7 +1148,7 @@ pair partitions $M_{2k}$ (for orthogonal/symplectic cases). The size of these
 sets grows factorially: $|S_k| = k!$ and $|M_{2k}| = (2k-1)!!$. Consequently,
 the runtime scales exponentially with the degree of the polynomial.
 
-For the \textbf{unitary group}, the dominant cost is the double sum over $S_k$
+For the unitary group, the dominant cost is the double sum over $S_k$
 in the Weingarten formula, giving $\mathcal{O}((k!)^2)$ per integral.
 Individual Weingarten function evaluations require summing over partitions
 $\lambda \vdash k$, each involving a character computation via the
@@ -1147,7 +1156,7 @@ Murnaghan-Nakayama rule in $\mathcal{O}(k^2)$ time per partition, and a
 Hook-Content dimension evaluation in $\mathcal{O}(k)$ time. These values are
 memoized, so repeated queries are $\mathcal{O}(1)$.
 
-For the \textbf{orthogonal and symplectic groups}, the cost is dominated by
+For the orthogonal and symplectic groups, the cost is dominated by
 the construction and inversion of the $(2k-1)!! \times (2k-1)!!$ Weingarten
 matrix. When $d$ is symbolic, this inversion is performed using the Bareiss
 algorithm with exact \texttt{BigInt} arithmetic, at a cost of
@@ -1168,11 +1177,11 @@ slightly higher degrees.
 
 \paragraph{Memory scaling}
 Memory consumption is governed by two factors: the size of the intermediate
-symbolic expressions and the memoization cache. For the \textbf{unitary group},
+symbolic expressions and the memoization cache. For the unitary group,
 the number of partitions $\lambda \vdash k$ grows sub-exponentially (the
 partition function $p(k)$), and each cached Weingarten value is a single
 rational function of $d$, so the cache remains modest (under 1~MiB for $k \le
-6$). For the \textbf{orthogonal group}, the Weingarten matrix has
+6$). For the orthogonal group, the Weingarten matrix has
 $(2k{-}1)!! \times (2k{-}1)!!$ entries; at $k=5$ this is $945 \times 945$,
 requiring approximately 7~MiB with \texttt{BigInt} entries for symbolic
 inversion. At $k=6$ ($10395 \times 10395$), the matrix alone exceeds 800~MiB,
@@ -1369,15 +1378,15 @@ Timings exclude JIT warm-up for \texttt{IntU.jl} and import overhead for
 comparison scripts are available in
 \texttt{benchmarks/haarpy\_benchmarks/}.
 
-Table~\ref{tab:haarpy_comparison} summarizes the results. For \textbf{unitary}
-integrals, \texttt{IntU.jl} achieves strong speedups for diagonal moments
-($|U_{11}|^{2k}$, $k = 3, 4, 5$): $12.0\times$, $27.5\times$, and
-$88.5\times$ in the symbolic-$d$ rows, and $47.5\times$-$55.3\times$ in the
-numeric-$d$ rows. Off-diagonal unitary integrals range from near parity
-($1.5\times$ for $|U_{11}|^2|U_{22}|^2$) to substantial gains
-($11.4\times$ for $|U_{11}|^4|U_{12}|^4$).
+Table~\ref{tab:haarpy_comparison} summarizes the results. For unitary integrals,
+\texttt{IntU.jl} achieves strong speedups for diagonal moments ($|U_{11}|^{2k}$,
+$k = 3, 4, 5$): $12.0\times$, $27.5\times$, and $88.5\times$ in the symbolic-$d$
+rows, and $47.5\times$-$55.3\times$ in the numeric-$d$ rows. Off-diagonal
+unitary integrals range from near parity ($1.5\times$ for
+$|U_{11}|^2|U_{22}|^2$) to substantial gains ($11.4\times$ for
+$|U_{11}|^4|U_{12}|^4$).
 
-The \textbf{orthogonal} group results reveal a more dramatic separation: while
+The orthogonal group results reveal a more dramatic separation: while
 both packages handle low-degree cases efficiently, \texttt{IntU.jl} is already
 substantially faster ($O_{11}^2$: $34.7\times$, $O_{11}^4$: $70.0\times$),
 \texttt{IntU.jl}'s optimized univariate Weingarten solver delivers speedups
@@ -1387,7 +1396,7 @@ Weingarten matrix even when a single entry suffices, whereas \texttt{IntU.jl}
 exploits the structure of univariate integrands to bypass this cost entirely.
 Off-diagonal orthogonal integrals show a $4.5$-$6.0\times$ advantage.
 
-For the \textbf{circular orthogonal ensemble} (COE), \texttt{IntU.jl} uses a
+For the circular orthogonal ensemble (COE), \texttt{IntU.jl} uses a
 closed-form expression for diagonal moments, yielding $20.9$-$127.2\times$
 speedups that grow with the degree. We note that \texttt{Haarpy} (v0.0.6, the latest release available at
 time of writing) returned incorrect results (zero) for the off-diagonal COE
