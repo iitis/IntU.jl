@@ -4,6 +4,7 @@ using LinearAlgebra
 using BenchmarkTools
 using Memoization
 using Printf
+using Random
 import ITensors
 
 function measure_median_func(f)
@@ -206,6 +207,7 @@ println("\n\nTable 2: ITensor network integration (Haar measure)")
 println("------------------------------------------------------------------------")
 @printf("%-20s %-10s %-10s %-10s\n", "Scaling Type", "Degree k", "Dim d", "Time (ms)")
 println("------------------------------------------------------------------------")
+Random.seed!(20260410)
 
 function create_trace_network(dim, k, measure_type = :U)
     out_indices = [ITensors.Index(dim, "Out,$i") for i = 1:k]
@@ -275,46 +277,36 @@ function create_trace_network(dim, k, measure_type = :U)
 end
 
 for k_val in [1, 2, 3, 4]
-    local t_it, _ = measure_median_func(() -> begin
-        tensors, measure = create_trace_network(2, k_val, :U)
-        integrate(tensors, measure)
-    end)
+    local tensors, measure = create_trace_network(2, k_val, :U)
+    local t_it, _ = measure_median_func(() -> integrate(tensors, measure))
     @printf("%-20s %-10d %-10d %10.2f\n", "Degree k (U)", k_val, 2, t_it)
 end
 
 println("------------------------------------------------------------------------")
 for k_val in [2, 4, 6]
-    local t_it_o, _ = measure_median_func(() -> begin
-        tensors, measure = create_trace_network(3, k_val, :O)
-        integrate(tensors, measure)
-    end)
+    local tensors, measure = create_trace_network(3, k_val, :O)
+    local t_it_o, _ = measure_median_func(() -> integrate(tensors, measure))
     @printf("%-20s %-10d %-10d %10.2f\n", "Degree k (O)", k_val, 3, t_it_o)
 end
 
 println("------------------------------------------------------------------------")
 for d_val in [2, 10, 50, 100]
-    local t_it, _ = measure_median_func(() -> begin
-        tensors, measure = create_trace_network(d_val, 2, :U)
-        integrate(tensors, measure)
-    end)
+    local tensors, measure = create_trace_network(d_val, 2, :U)
+    local t_it, _ = measure_median_func(() -> integrate(tensors, measure))
     @printf("%-20s %-10d %-10d %10.2f\n", "Dimension d (k=2)", 2, d_val, t_it)
 end
 
 println("------------------------------------------------------------------------")
 for d_val in [2, 10, 20, 30]
-    local t_it, _ = measure_median_func(() -> begin
-        tensors, measure = create_trace_network(d_val, 3, :U)
-        integrate(tensors, measure)
-    end)
+    local tensors, measure = create_trace_network(d_val, 3, :U)
+    local t_it, _ = measure_median_func(() -> integrate(tensors, measure))
     @printf("%-20s %-10d %-10d %10.2f\n", "Dimension d (k=3)", 3, d_val, t_it)
 end
 
 println("------------------------------------------------------------------------")
 # Orthogonal k=6, d=3
-t_it_o6, _ = measure_median_func(() -> begin
-    tensors, measure = create_trace_network(3, 6, :O)
-    integrate(tensors, measure)
-end)
+tensors, measure = create_trace_network(3, 6, :O)
+t_it_o6, _ = measure_median_func(() -> integrate(tensors, measure))
 @printf("%-20s %-10d %-10d %10.2f\n", "Orthogonal", 6, 3, t_it_o6)
 
 
