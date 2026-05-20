@@ -640,10 +640,11 @@ networks, and \texttt{Haarpy} \cite{cardin2024haarpy}, a Python library for
 Weingarten calculus over classical compact groups. The comparison highlights
 three key distinctions:
 \begin{enumerate}
-    \item \textbf{Ensemble breadth}: \texttt{IntU.jl} is the only package to
-    support Gaussian, Ginibre, and circular ensembles alongside compact groups,
-    as well as discrete structures such as permutation groups, unitary
-    $t$-designs, Stiefel manifolds, and diagonal unitaries.
+    \item \textbf{Ensemble breadth}: Among the compared tools,
+    \texttt{IntU.jl} supports Gaussian, Ginibre, and circular ensembles
+    alongside compact groups, as well as discrete structures such as
+    permutation groups, unitary $t$-designs, Stiefel manifolds, and diagonal
+    unitaries.
     \item \textbf{Symbolic abstractions}: Neither \texttt{RTNI} nor
     \texttt{Haarpy} provides asymptotic $1/d$ expansions or
     \texttt{IntU.jl}-style symbolic trace logic. \texttt{Haarpy} does not
@@ -939,9 +940,9 @@ integrate([U, A, U_dag, B], dU(2))
 # (for d=2 the overall prefactor is 1/2)
 \end{lstlisting}
 
-This high-level approach allows for the symbolic integration of networks with
-thousands of indices, as the underlying engine operates directly on the network
-topology.
+This high-level approach allows symbolic integration to be expressed directly at
+the network level, avoiding manual elementwise index expansion while letting the
+underlying engine operate on the network topology.
  
 \subsection{Permutation groups}
 Symbolic integration over the Symmetric Group $S_d$ is particularly useful for
