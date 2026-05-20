@@ -256,10 +256,11 @@ Section \ref{sec:performance} and conclude in Section \ref{sec:conclusion}.
 
 \section{Background: Weingarten calculus}
 \label{sec:background}
-The core technique behind \texttt{IntU.jl} is the Weingarten calculus. For a
-compact group $G$, the integral of a polynomial in matrix elements can be
-expressed as a sum over a combinatorial set: permutations for the unitary case
-and pair partitions for the orthogonal and symplectic cases.
+The core technique behind \texttt{IntU.jl} is the Weingarten calculus. For the
+compact matrix groups considered here, the integral of a polynomial in
+matrix elements can be expressed as a sum over a combinatorial set:
+permutations for the unitary case and pair partitions for the orthogonal and
+symplectic cases.
 
 \subsection{The unitary group $U(d)$}
 For the unitary group $U(d)$, the integral of a polynomial of degree $k$ in both
@@ -270,24 +271,26 @@ $U$ and $\bar{U}$ is given by:
 where $S_k$ is the symmetric group of degree $k$, and $\delta_\sigma(\vec{i},
 \vec{i}')$ is a product of Kronecker deltas $\prod_m \delta_{i_m,
 i'_{\sigma(m)}}$. The Weingarten function $\mathrm{Wg}^U(\sigma, d)$ depends
-only on the cycle type of $\sigma$ and can be expressed via the irreducible
-characters $\chi_\lambda$ of $S_k$:
+only on the cycle type of $\sigma$ and, for generic $d$, can be expressed via
+the irreducible characters $\chi_\lambda$ of $S_k$:
 \begin{equation}
-\mathrm{Wg}^U(\sigma, d) = \frac{1}{(k!)^2} \sum_{\lambda \vdash k} \frac{(f^\lambda)^2 \chi_\lambda(\sigma)}{s_{\lambda, d}(1)},
+\mathrm{Wg}^U(\sigma, d) = \frac{1}{(k!)^2} \sum_{\lambda \vdash k} \frac{(f^\lambda)^2 \chi_\lambda(\sigma)}{s_\lambda(1^d)},
 \end{equation}
 where $f^\lambda$ is the dimension of the irreducible representation $\lambda$
-and $s_{\lambda, d}(1)$ is the Schur polynomial evaluated at the identity,
-representing the dimension of the corresponding $U(d)$ representation.
+and $s_\lambda(1^d) = s_\lambda(1,\ldots,1)$ is the Schur polynomial evaluated
+at $d$ variables all equal to one, representing the dimension of the
+corresponding $U(d)$ representation.
 
-Crucially, $s_{\lambda, d}(1)$ is a polynomial in $d$, which implies that
+Crucially, $s_\lambda(1^d)$ is a polynomial in $d$, which implies that
 $\mathrm{Wg}^U(\sigma, d)$ is a rational function of $d$. This property is
 essential for symbolic integration, as it allows for exact results even when $d$
-is treated as a variable. The function contains poles at integers $d$ such that
+is treated as a variable. Possible poles occur at integers $d$ such that
 $|d| < k$, reflecting the breakdown of the expansion for small dimensions.
 
-In the asymptotic limit $d \to \infty$, the Weingarten function behaves as:
+For fixed $k$ and $\sigma$, in the asymptotic limit $d \to \infty$, the
+Weingarten function satisfies:
 \begin{equation}
-\mathrm{Wg}^U(\sigma, d) \sim d^{-k - |\sigma|},
+\mathrm{Wg}^U(\sigma, d) = O(d^{-k - |\sigma|}),
 \end{equation}
 where $|\sigma|$ denotes the minimum number of transpositions required to
 generate $\sigma$, related to the number of cycles $c(\sigma)$ by $|\sigma| =
@@ -314,20 +317,23 @@ equivalent to $U(d)$. Non-stable-range effects involving $\epsilon$-tensor
 contractions for specific small $d$ are not currently covered.
 
 \subsection{Orthogonal and symplectic groups}
-For the orthogonal group $O(d)$ and symplectic group $Sp(d)$, the integration
-involves even moments of the matrix elements and is indexed by the set of pair
-partitions $P_{2k}$ of $\{1, \dots, 2k\}$. For $O(d)$, the integral is:
+For the orthogonal group $O(d)$ and compact symplectic group $Sp(d)$
+(in the package convention, a $d \times d$ matrix group with even
+$d = 2n$), odd moments vanish and even moments are indexed by the set of
+pair partitions $P_{2k}$ of $\{1, \dots, 2k\}$. For $O(d)$, the integral is:
 \begin{equation}
 \int_{O(d)} O_{i_1 j_1} \dots O_{i_{2k} j_{2k}} dO = \sum_{p, q \in P_{2k}} \delta_p(\vec{i}) \delta_q(\vec{j}) \mathrm{Wg}^O(p, q, d).
 \end{equation}
-Similarly, for the symplectic group $Sp(d)$ (where $d$ must be even), the
-formula is:
+Here $\delta_p(\vec{i}) = \prod_{\{a,b\} \in p} \delta_{i_a i_b}$.
+Similarly, for the symplectic group $Sp(d)$, with standard symplectic form
+$J=\begin{pmatrix}0&I_n\\-I_n&0\end{pmatrix}$, the formula is:
 \begin{equation}
 \int_{Sp(d)} S_{i_1 j_1} \dots S_{i_{2k} j_{2k}} dS = \sum_{p, q \in P_{2k}} \Delta^J_p(\vec{i})\, \Delta^J_q(\vec{j})\, \mathrm{Wg}^{Sp}(p, q, d),
 \end{equation}
-where $\Delta^J_p(\vec{i}) = \prod_{(a,b) \in p} J_{i_a i_b}$ contracts each
-pair through the symplectic form $J$, introducing signs $\pm 1$. For detailed
-closure relations on these groups, see Collins and \'{S}niady
+where $\Delta^J_p(\vec{i}) = \prod_{(a,b) \in p,\ a < b} J_{i_a i_b}$
+contracts each pair through the symplectic form $J$, introducing signs
+$\pm 1$. For detailed closure relations on these groups, see Collins and
+\'{S}niady
 \cite{collins2006integration}.
 
 \texttt{IntU.jl} leverages the fundamental duality between the orthogonal and
@@ -341,15 +347,16 @@ to unify the codebase, computing symplectic integrals by reusing the optimized
 orthogonal engine with an appropriately signed dimension parameter $d \to -d$.
 
 Both $\mathrm{Wg}^O$ and $\mathrm{Wg}^{Sp}$ are rational functions of $d$, and
-their poles dictate the dimensions for which the integration formulas are valid
-(e.g., $d \ge k-1$ for $O(d)$).
+their poles mark singularities of the rational inverse-Gram representation; the
+Haar integrals themselves are well defined for admissible group dimensions.
 
 \texttt{IntU.jl} efficiently computes these functions using character-based
 formulas and Gram-matrix inversion (detailed in Section~\ref{sec:implementation}),
 caching results to accelerate repeated integration tasks.
 
 \subsection{Permutation group $S_d$}
-The symmetric group $S_d$ consists of $d \times d$ permutation matrices. For a
+We represent the symmetric group $S_d$ by $d \times d$ permutation matrices and
+integrate with respect to the normalized counting measure. For a
 monomial in the matrix entries $P_{i,j}$, repeated identical factors are first
 collapsed (equivalently, we work with the set of distinct index pairs). The
 integral is non-zero only if this deduplicated set is consistent with a
@@ -358,7 +365,7 @@ distinct). The result is:
 \begin{equation}
 \int_{S_d} P_{i_1 j_1} \dots P_{i_k j_k} dP = \frac{(d-k)!}{d!},
 \end{equation}
-where $k$ is the number of distinct index pairs.
+where $k$ is the number of distinct index pairs after the collapse.
 
 \section{Software features}
 \label{sec:features}
@@ -371,36 +378,42 @@ The package supports a wide range of integration measures, grouped as follows:
     \item \textbf{Compact groups}: Standard Haar measures on the unitary $U(d)$,
     special unitary $SU(d)$, orthogonal $O(d)$, and symplectic $Sp(d)$ groups.
     These are defined via \texttt{dU(d)}, \texttt{dSU(d)}, \texttt{dO(d)}, and
-    \texttt{dSp(d)}, where the argument is the dimension $d$. For balanced
+    \texttt{dSp(d)}, where the argument is the matrix dimension $d$; for
+    concrete dimensions, \texttt{dSp(d)} requires even $d$. For balanced
     polynomials in the currently supported stable range, $SU(d)$ and $U(d)$
     integrals coincide; non-stable-range $\epsilon$-tensor effects at specific
     small $d$ are not currently covered.
     \item \textbf{Circular ensembles}: Measures for the circular unitary (CUE),
-    orthogonal (COE), and symplectic (CSE) ensembles. While CUE is equivalent to
-    the Haar measure on $U(d)$, COE and CSE represent symmetric and self-dual
-    unitary matrices, respectively.
-    \item \textbf{Quantum states}: The induced measure on pure states
+    orthogonal (COE), and symplectic (CSE) ensembles, accessed via
+    \texttt{dCUE(d)}, \texttt{dCOE(d)}, and \texttt{dCSE(d)}. The constructor
+    \texttt{dCUE(d)} is an alias for \texttt{dU(d)}, while \texttt{dCSE(d)}
+    requires even concrete matrix dimensions; COE and CSE represent symmetric
+    and self-dual unitary matrices, respectively.
+    \item \textbf{Quantum states}: The Fubini--Study measure on pure states
     $|\psi\rangle$ drawn from the complex projective space $\mathbb{C}P^{d-1}$
     \cite{zyczkowski2001induced, bengtsson2017geometry}, accessed via
     \texttt{dPsi(d)}. This corresponds to the distribution of the first
     column of a Haar-random unitary matrix and is represented as a $(d, 1)$ symbolic matrix.
     \item \textbf{Permutation groups}: Measures for the Symmetric Group $S_d$
-    (\texttt{dPerm}) and the ensemble of centered permutation matrices
-    (\texttt{dCPerm}). Centered permutations $Y$ satisfy $Y_{ij} = P_{ij} - 1/d$, where $P \in S_d$.
+    (\texttt{dPerm(d)}) and the ensemble of centered permutation matrices
+    (\texttt{dCPerm(d)}). Centered permutations $Y$ satisfy $Y_{ij} = P_{ij} - 1/d$, where $P \in S_d$.
     \item \textbf{Gaussian and Ginibre ensembles}: Support for the Gaussian
     unitary (GUE), orthogonal (GOE), and symplectic (GSE) ensembles, as well as
-    the complex (GinUE), real (GinOE), and symplectic (GinSE) Ginibre ensembles.
-    These rely on Wick's theorem~\cite{wick1950evaluation} for integration
+    the complex (GinUE), real (GinOE), and symplectic (GinSE) Ginibre ensembles,
+    accessed via \texttt{dGUE(d)}, \texttt{dGOE(d)}, \texttt{dGSE(d)},
+    \texttt{dGinUE(d)}, \texttt{dGinOE(d)}, and \texttt{dGinSE(d)}. For
+    concrete dimensions, \texttt{dGSE(d)} and \texttt{dGinSE(d)} require even
+    $d$. These rely on Wick's theorem~\cite{wick1950evaluation} for integration
     rather than Weingarten calculus.
-    \item \textbf{Unitary designs}: Unitary $t$-designs (\texttt{dDesign}),
+    \item \textbf{Unitary designs}: Unitary $t$-designs (\texttt{dDesign(d, t)}),
     which mimic the first $t$ moments of the Haar measure, useful for studying
     pseudo-randomness in quantum circuits.
     \item \textbf{Stiefel manifolds}: The Stiefel manifold $V_k(\mathbb{C}^d)$,
     representing $d \times k$ matrices with orthonormal columns. This
     generalizes Haar-random pure states ($k=1$) and is implemented via
-    \texttt{dStiefel(d, k)}.
+    \texttt{dStiefel(d, k)}, with $k \le d$ required for concrete dimensions.
     \item \textbf{Diagonal unitary matrices}: Integration over the torus group
-    $T^d$ (\texttt{dDiagUnitary}), representing independent phase averaging for
+    $T^d$ (\texttt{dDiagUnitary(d)}), representing independent phase averaging for
     each diagonal entry.
     \item \textbf{Matrix integration}: Native support for integrating
     AbstractArray-valued expressions with concrete integer result dimensions,
@@ -454,7 +467,7 @@ Gaussian ensembles (GUE, GOE, GSE). These are implemented using Wick's theorem
 Gaussian Hermitian matrix $H$, the expectation values are determined by the
 pairwise contractions:
 \begin{itemize}
-    \item \textbf{GUE}: $\langle H_{ij} \bar{H}_{kl} \rangle = \delta_{il} \delta_{jk}$, leading to $\langle \mathrm{tr}(H^2) \rangle = d^2$, $\langle \mathrm{tr}(H^4) \rangle = 2d^3 + d$, and $\langle \mathrm{tr}(H^6) \rangle = 5d^4 + 10d^2$.
+    \item \textbf{GUE}: $\langle H_{ij} \bar{H}_{kl} \rangle = \delta_{ik} \delta_{jl}$, leading to $\langle \mathrm{tr}(H^2) \rangle = d^2$, $\langle \mathrm{tr}(H^4) \rangle = 2d^3 + d$, and $\langle \mathrm{tr}(H^6) \rangle = 5d^4 + 10d^2$.
     \item \textbf{GOE}: $\langle H_{ij} H_{kl} \rangle = \delta_{ik} \delta_{jl} + \delta_{il} \delta_{jk}$ (for real symmetric $H$), leading to $\langle \mathrm{tr}(H^2) \rangle = d^2 + d$.
     \item \textbf{GSE}: For self-dual Hermitian matrices, the package utilizes
     the even-moment duality relation:
@@ -550,14 +563,17 @@ demonstrated in Section~\ref{sec:performance}.
 \subsection{Symbolic dimensions and asymptotics}
 A standout feature of \texttt{IntU.jl} is its deep support for symbolic dimensions $d$.
 By leveraging the polynomial nature of group characters and Schur functions,
-\texttt{IntU.jl} computes element-wise and trace-of-product integrals as exact rational functions of $d$:
+\texttt{IntU.jl} computes many supported element-wise and trace-of-product
+integrals as exact rational functions of $d$; for supported
+Haar/Weingarten-type matrix-group integrals, these take the form:
 \begin{equation}
 \int_{G(d)} P(U, \bar{U}) dU = \frac{N(d)}{D(d)},
 \end{equation}
 where $N(d)$ and $D(d)$ are polynomials. (Not all results are rational: pure trace moments $|\mathrm{tr}(U)|^{2k}$ depend on $d$ as a step function and require a concrete integer dimension; see Section~\ref{sec:limitations}.) This capability is critical for studying:
 \begin{itemize}
-    \item \textbf{Transition points}: Identifying poles in $D(d)$ that correspond to
-    dimensions where the Weingarten expansion breaks down (e.g., $d < k$).
+    \item \textbf{Transition points}: Identifying poles in $D(d)$ that mark
+    singularities of the rational representation; at admissible integer
+    dimensions, removable singularities may still have well-defined values.
     \item \textbf{Thermodynamic limits}: The \texttt{asymptotic(expr, measure, order)}
     function computes the series expansion of the result in powers of $1/d$.
     This automates the extraction of large-$d$ behavior for rational-in-$d$
@@ -567,10 +583,10 @@ where $N(d)$ and $D(d)$ are polynomials. (Not all results are rational: pure tra
     they should be evaluated with \texttt{integrate(..., dU(n))} at concrete
     integer $n$.
 \end{itemize}
-Even when the input dimension is numeric (e.g., $d=3$), the \texttt{asymptotic}
-routine can introduce a dummy symbolic variable to perform the expansion for
-these rational-in-$d$ observables, providing theoretical insights alongside
-numerical results.
+Even when the input dimension is numeric (e.g., $d=3$), for measures supporting
+symbolic reconstruction, the \texttt{asymptotic} routine can introduce a dummy
+symbolic variable to perform the expansion for these rational-in-$d$
+observables, providing theoretical insights alongside numerical results.
 
 \subsection{Symbolic trace logic}
 To simplify the integration of high-rank tensor networks and complex trace
@@ -579,18 +595,20 @@ This system abstracts away explicit tensor indices, allowing users to define
 computations in terms of coordinate-free matrix objects:
 \begin{itemize}
     \item \textbf{Symbolic Matrix}: The \texttt{SymbolicMatrix} type represents
-    an operator with specific properties (Unitary $U$, Adjoint $U^\dagger$, or
-    Constant $M$).
-    \item \textbf{Lazy Evaluation}: Operations like multiplication ($A * B$) and
-    trace ($\mathrm{tr}$) generate \texttt{LazyTrace} objects. These objects maintain
+    an operator tagged by its role, such as a Haar unitary $U$, its adjoint
+    $U^\dagger$, or a constant matrix $M$.
+    \item \textbf{Lazy Evaluation}: Products such as $A * B$ build
+    \texttt{SymbolicMatrixProduct} objects, while trace operations
+    ($\mathrm{tr}$ or \texttt{tr\_lazy}) generate \texttt{LazyTrace} objects. These objects maintain
     algebraic structures (products of traces of matrix strings) without expanding
     indices, e.g., representing $\mathrm{tr}(U A U^\dagger B)$ as a graph cycle rather
     than a sum over four indices.
     \item \textbf{Graph Reconstruction}: During integration, the package
-    interprets these lazy structures as edges in a Weingarten graph. It
-    automatically reconstructs the connectivity required for pair-partition
-    matching, effectively converting the ``index-free'' input into the precise tensor
-    contractions required by the Weingarten formula.
+    interprets these lazy structures as contraction graphs. It automatically
+    reconstructs the connectivity required for the relevant permutation,
+    pair-partition, or Wick contractions, effectively converting the
+    ``index-free'' input into the precise tensor contractions required by the
+    relevant Weingarten or Wick formulas.
 \end{itemize}
 This abstraction significantly reduces the potential for index-mismatch errors
 and renders the code nearly isomorphic to the mathematical pen-and-paper
@@ -1042,10 +1060,10 @@ mathematical structures while sharing the top-level dispatch mechanism:
 \begin{itemize}
     \item \textbf{Unitary group}: Characters of the symmetric group are computed
     using the Murnaghan-Nakayama rule, which is significantly faster than determinantal
-    formulas for sparse partitions. Dimensions of irreducible representations $s_{\lambda, d}(1)$
+    formulas for sparse partitions. Dimensions of irreducible representations $s_\lambda(1^d)$
     are computed via the Hook-Content formula:
     \begin{equation}
-    s_{\lambda, d}(1) = \prod_{(i,j) \in \lambda} \frac{d + c_{i,j}}{h_{i,j}}
+    s_\lambda(1^d) = \prod_{(i,j) \in \lambda} \frac{d + c_{i,j}}{h_{i,j}}
     \end{equation}
     where $c_{i,j} = j-i$ is the content and $h_{i,j}$ is the hook length. This formulation
     allows the package to handle symbolic dimensions natively in supported workflows,
@@ -1117,16 +1135,18 @@ We evaluated the performance of \texttt{IntU.jl} using a suite of stress tests
 involving high-degree polynomial integrals over the unitary, orthogonal, and
 symplectic groups. The benchmarks were run on a workstation equipped with an
 Intel Core i7-12700KF processor (12 cores, 20 threads) and 64 GB of RAM (Julia
-1.12.3). Specifically, we evaluated the computation time for the moments of
-single matrix entries, such as $\int |U_{11}|^{2k} dU$, for high degrees $2k
-\geq 8$. These integrals represent a standard stress test for Weingarten
-implementations due to their maximal combinatorial complexity.
+1.12.3). Specifically, we evaluated high-degree entry moments, such as
+$\int |U_{11}|^{2k} dU$ for $2k \geq 8$, together with mixed-index and
+tensor-network workloads. The entry-moment cases test high-degree symbolic
+arithmetic and shortcut dispatch, while the mixed-index and tensor-network
+cases exercise the general combinatorial contraction paths.
 
 All native \texttt{IntU.jl} benchmarks in this section were performed using the
 \texttt{BenchmarkTools.jl} package, and reported execution times represent the
-median of $N=30$ samples. These results \emph{exclude} the initial JIT
-compilation and warm-up time, reflecting steady-state performance observed
-during production use. Cross-tool comparisons (Sections
+median of $N=30$ cold-cache samples, with memoization caches cleared before
+each sample. These results \emph{exclude} the initial JIT compilation and
+warm-up time, reflecting steady-state performance observed during production
+use. Cross-tool comparisons (Sections
 \ref{sec:haarpy_comparison} and \ref{sec:rtni_comparison}) use dedicated
 benchmark scripts with adaptive sample counts for very slow cases; those
 policies are stated in the corresponding subsections. The reproduction script
@@ -1142,32 +1162,31 @@ checks are available in \texttt{benchmarks/09\_stress\_test\_2.jl} and
 
 
 \subsection{Theoretical complexity}
-The computational complexity of the Weingarten integration is dominated by the
+The computational complexity of generic Weingarten integration is governed by
 summation over the symmetric group $S_k$ (for the unitary case) or the set of
 pair partitions $M_{2k}$ (for orthogonal/symplectic cases). The size of these
 sets grows factorially: $|S_k| = k!$ and $|M_{2k}| = (2k-1)!!$. Consequently,
-the runtime scales exponentially with the degree of the polynomial.
+the uncompressed formulas scale exponentially with the degree of the
+polynomial.
 
-For the unitary group, the dominant cost is the double sum over $S_k$
-in the Weingarten formula, giving $\mathcal{O}((k!)^2)$ per integral.
+For the unitary group, the generic uncompressed formula contains a double sum
+over $S_k$, giving $\mathcal{O}((k!)^2)$ terms per integral. The implementation
+groups terms by cycle type where useful, and symmetric entry moments such as
+$|U_{11}|^{2k}$ use closed-form or row/column moment shortcuts.
 Individual Weingarten function evaluations require summing over partitions
 $\lambda \vdash k$, each involving a character computation via the
 Murnaghan-Nakayama rule in $\mathcal{O}(k^2)$ time per partition, and a
 Hook-Content dimension evaluation in $\mathcal{O}(k)$ time. These values are
 memoized, so repeated queries are $\mathcal{O}(1)$.
 
-For the orthogonal and symplectic groups, the cost is dominated by
-the construction and inversion of the $(2k-1)!! \times (2k-1)!!$ Weingarten
-matrix. When $d$ is symbolic, this inversion is performed using the Bareiss
-algorithm with exact \texttt{BigInt} arithmetic, at a cost of
-$\mathcal{O}(((2k-1)!!)^3)$ operations. When $d$ is numeric, standard
-floating-point linear algebra reduces this substantially. In both cases, the
-result is cached: each Weingarten matrix is inverted only once per degree $k$,
-and subsequent queries retrieve cached values in $\mathcal{O}(1)$. The
-per-integral contraction cost remains $\mathcal{O}(((2k-1)!!)^2)$ from
-summing over all pairs of pair partitions. Symplectic integrals reuse the
-orthogonal engine via the duality $d \to -d$, incurring no additional
-asymptotic cost.
+For the orthogonal and symplectic groups, the naive Gram matrix is indexed by
+pair partitions and has $(2k-1)!! \times (2k-1)!!$ entries. The implementation's
+main integration path instead solves a reduced system indexed by loop/cycle
+types and sums grouped pair-partition contractions. The reduced Weingarten data
+are cached once per degree and dimension, and subsequent queries reuse the
+cached values. Symplectic integrals use the same reduced data with
+$d \to -d$, together with the symplectic contraction signs, so they do not
+require a separate full matrix inversion.
 
 Empirically, we find that exact symbolic integration is feasible for degrees up
 to $2k \approx 10\text{-}12$ on standard hardware. Beyond this regime, the number of
@@ -1177,20 +1196,17 @@ slightly higher degrees.
 
 \paragraph{Memory scaling}
 Memory consumption is governed by two factors: the size of the intermediate
-symbolic expressions and the memoization cache. For the unitary group,
-the number of partitions $\lambda \vdash k$ grows sub-exponentially (the
-partition function $p(k)$), and each cached Weingarten value is a single
-rational function of $d$, so the cache remains modest (under 1~MiB for $k \le
-6$). For the orthogonal group, the Weingarten matrix has
-$(2k{-}1)!! \times (2k{-}1)!!$ entries; at $k=5$ this is $945 \times 945$,
-requiring approximately 7~MiB with \texttt{BigInt} entries for symbolic
-inversion. At $k=6$ ($10395 \times 10395$), the matrix alone exceeds 800~MiB,
-which sets the practical memory ceiling for symbolic orthogonal integration.
-The dominant memory cost of the intermediate symbolic expansion scales as
-$\mathcal{O}((k!)^2)$ terms for the unitary group, each carrying a rational
-coefficient and index tuple. Once memoized, however, subsequent integrations at
-the same degree $k$ incur negligible additional memory, as Weingarten values are
-retrieved from cache rather than recomputed.
+symbolic expressions and the memoization cache. For the unitary group, the
+number of partitions $\lambda \vdash k$ grows sub-exponentially (the partition
+function $p(k)$), and each cached Weingarten value is a single rational function
+of $d$, so the cache remains modest (under 1~MiB for $k \le 6$). For the
+orthogonal and symplectic groups, the uncompressed pair-partition matrix would
+have $(2k{-}1)!! \times (2k{-}1)!!$ entries, but the main implementation stores
+and reuses reduced loop/cycle-type data. The dominant memory cost of generic
+intermediate symbolic expansions still grows rapidly with the number of valid
+contractions. Once memoized, however, subsequent integrations at the same
+degree $k$ incur little additional memory, as Weingarten data are retrieved from
+cache rather than recomputed.
 
 \subsection{Benchmark results}
 Table \ref{tab:benchmarks} summarizes the execution times for selected integrals.
@@ -1221,8 +1237,8 @@ Key observations include:
     for high-degree unitary and orthogonal workloads, while some low-degree
     mixed-index unitary cases are near parity.
     \item \textbf{Correctness}: All benchmarks were verified against known exact
-    values or asymptotic results, confirming the numerical stability of the
-    implementation even for large dimensions (e.g., $d=50$).
+    values or asymptotic results, providing correctness checks for the reported
+    cases.
     \item \textbf{Application}: The integration of the trace of the squared reduced density matrix for a bipartite state
     ($d=6$), which involves contracting a 4$^\mathrm{th}$ degree polynomial over
     unitary group, completes in approximately 9.81 ms, demonstrating the
