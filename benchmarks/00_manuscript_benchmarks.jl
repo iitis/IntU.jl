@@ -1,4 +1,4 @@
-using IntU
+using IntegrateUnitary
 using Symbolics
 using LinearAlgebra
 using BenchmarkTools
@@ -15,7 +15,7 @@ function measure_median_func(f)
 end
 
 println("========================================================================")
-println("Reproducing Manuscript Benchmarks (IntU.jl)")
+println("Reproducing Manuscript Benchmarks (IntegrateUnitary.jl)")
 println("========================================================================")
 println("")
 
@@ -217,13 +217,13 @@ function create_trace_network(dim, k, measure_type = :U)
 
     if measure_type == :U
         for i = 1:k
-            U = IntU.ITensorUnitary(
+            U = IntegrateUnitary.ITensorUnitary(
                 out_indices = [out_indices[i]],
                 in_indices = [in_indices[i]],
                 is_adj = false,
             )
 
-            U_dag = IntU.ITensorUnitary(
+            U_dag = IntegrateUnitary.ITensorUnitary(
                 out_indices = [in_indices[i]],
                 in_indices = [out_indices[i]],
                 is_adj = true,
@@ -243,7 +243,7 @@ function create_trace_network(dim, k, measure_type = :U)
         return tensors, dU(dim)
     elseif measure_type == :O
         for i = 1:k
-            O = IntU.ITensorUnitary(
+            O = IntegrateUnitary.ITensorUnitary(
                 out_indices = [out_indices[i]],
                 in_indices = [in_indices[i]],
                 is_adj = false,
@@ -259,7 +259,7 @@ function create_trace_network(dim, k, measure_type = :U)
         return tensors, dO(dim)
     elseif measure_type == :Sp
         for i = 1:k
-            S = IntU.ITensorUnitary(
+            S = IntegrateUnitary.ITensorUnitary(
                 out_indices = [out_indices[i]],
                 in_indices = [in_indices[i]],
                 is_adj = false,

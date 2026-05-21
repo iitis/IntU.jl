@@ -1,4 +1,4 @@
-using IntU
+using IntegrateUnitary
 using Test
 using Symbolics
 using LinearAlgebra
@@ -8,12 +8,12 @@ using LinearAlgebra
 
     @testset "Weingarten Asymptotic" begin
         # Wg([1]) = 1/d
-        wg1 = IntU.weingarten([1], d)
+        wg1 = IntegrateUnitary.weingarten([1], d)
         res1 = asymptotic(wg1, d, 2)
         @test is_really_zero(res1 - 1/d)
 
         # Wg([2]) = -1/(d(d^2-1)) = -1/d^3 - 1/d^5 ...
-        wg2 = IntU.weingarten([2], d)
+        wg2 = IntegrateUnitary.weingarten([2], d)
         res2 = asymptotic(wg2, d, 5)
         # Should be -1/d^3 - 1/d^5
         @test is_really_zero(res2 - (-1/d^3 - 1/d^5))

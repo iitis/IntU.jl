@@ -3,7 +3,7 @@
 #
 # Prerequisites:
 #   conda env create -f environment.haarpy_bench.yml
-#   Julia with IntU.jl and JSON3 available
+#   Julia with IntegrateUnitary.jl and JSON3 available
 #   (Julia dependencies are pinned by ../Manifest.toml and instantiated below)
 #
 # Usage:
@@ -18,7 +18,7 @@ HAARPY_VERSION="${HAARPY_VERSION:-0.0.6}"
 HAARPY_CONDA_ENV="${HAARPY_CONDA_ENV:-haarpy_bench}"
 HAARPY_ENV_YML="${HAARPY_ENV_YML:-$SCRIPT_DIR/environment.haarpy_bench.yml}"
 
-echo "=== Running IntU.jl benchmarks (Julia) ==="
+echo "=== Running IntegrateUnitary.jl benchmarks (Julia) ==="
 cd "$SCRIPT_DIR"
 julia --project="$BENCH_ROOT" -e 'using Pkg; Pkg.instantiate()' 2>/dev/null
 julia --project="$BENCH_ROOT" bench_intu.jl

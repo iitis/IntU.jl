@@ -1,4 +1,4 @@
-using IntU
+using IntegrateUnitary
 using Symbolics
 
 # 1. Define symbolic dimension and Matrix

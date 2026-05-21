@@ -321,7 +321,7 @@ function integrate_indices(U_idxs::Vector{<:Tuple}, U_bar_idxs::Vector{<:Tuple},
         total_den = one(Num)
 
         for (ct, count) in cycle_counts
-            wnum, wden = IntU.weingarten_raw(ct, dim)
+            wnum, wden = IntegrateUnitary.weingarten_raw(ct, dim)
             if isequal(total_den, 1)
                 total_num = count * wnum
                 total_den = wden

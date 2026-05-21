@@ -1,5 +1,5 @@
 using BenchmarkTools
-using IntU
+using IntegrateUnitary
 using Symbolics
 using LinearAlgebra
 

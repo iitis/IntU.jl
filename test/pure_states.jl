@@ -1,4 +1,4 @@
-using IntU
+using IntegrateUnitary
 using Test
 using Symbolics
 using LinearAlgebra

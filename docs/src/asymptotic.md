@@ -1,7 +1,7 @@
 # Asymptotic Expansions
 
 For large Hilbert space dimension $d$, exact Weingarten results are often
-complicated rational functions of $d$. IntU.jl provides utilities to expand
+complicated rational functions of $d$. IntegrateUnitary.jl provides utilities to expand
 these into a Laurent series in $1/d$, extracting the physically relevant
 scaling behaviour.
 
@@ -38,7 +38,7 @@ For trace-polynomial moments that are rational in $d$, `asymptotic(expr, measure
 returns the large-$d$ scaling directly:
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 U = symbolic_unitary(:U, d)
 A = SymbolicMatrix(:A)
@@ -59,7 +59,7 @@ $120 / (d(d+1)(d+2)(d+3)(d+4))$. The asymptotic expansion reveals the
 leading scaling immediately:
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 Ud = SymbolicMatrix(:Ud, :U, d)
 
@@ -76,7 +76,7 @@ grows quadratically, while $\langle \mathrm{tr}(H)^4 \rangle = 3d^2$
 matches the fourth moment of a Gaussian (three Wick pairings):
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 H = SymbolicMatrix(:H, :GUE, d)
 
@@ -88,7 +88,7 @@ asymptotic(abs(tr(H))^4, dGUE(d), 2)
 ## Orthogonal group example
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 O = SymbolicMatrix(:O, :O, d)
 

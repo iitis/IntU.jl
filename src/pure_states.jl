@@ -18,6 +18,6 @@ function dPsi(dim)
     return PureStateMeasure(dim)
 end
 
-IntU._measure_tag(::PureStateMeasure) = :psi
+IntegrateUnitary._measure_tag(::PureStateMeasure) = :psi
 
-IntU._reconstruct_symbolic(::PureStateMeasure, d_asymp) = dPsi(d_asymp)
+IntegrateUnitary._reconstruct_symbolic(::PureStateMeasure, d_asymp) = dPsi(d_asymp)

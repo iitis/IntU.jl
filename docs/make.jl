@@ -1,17 +1,17 @@
-using IntU
+using IntegrateUnitary
 using Documenter
 
-DocMeta.setdocmeta!(IntU, :DocTestSetup, :(using IntU); recursive = true)
+DocMeta.setdocmeta!(IntegrateUnitary, :DocTestSetup, :(using IntegrateUnitary); recursive = true)
 
 makedocs(;
-    modules = [IntU],
+    modules = [IntegrateUnitary],
     authors = "Łukasz Pawela and Zbigniew Puchała",
-    repo = Documenter.Remotes.GitHub("iitis", "IntU.jl"),
-    sitename = "IntU.jl",
+    repo = Documenter.Remotes.GitHub("iitis", "IntegrateUnitary.jl"),
+    sitename = "IntegrateUnitary.jl",
     remotes = nothing,
     format = Documenter.HTML(;
         prettyurls = get(ENV, "CI", "false") == "true",
-        canonical = "https://iitis.github.io/IntU.jl",
+        canonical = "https://iitis.github.io/IntegrateUnitary.jl",
         assets = String[],
     ),
     warnonly = [:missing_docs],
@@ -36,4 +36,4 @@ makedocs(;
     ],
 )
 
-deploydocs(; repo = "github.com/iitis/IntU.jl", devbranch = "main")
+deploydocs(; repo = "github.com/iitis/IntegrateUnitary.jl", devbranch = "main")

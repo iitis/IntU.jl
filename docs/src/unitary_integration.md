@@ -2,11 +2,11 @@
 
 This section details the integration of polynomial functions over the unitary
 group $U(d)$ with respect to the Haar measure. It covers the theoretical foundations
-based on Weingarten Calculus and provides practical examples using `IntU.jl`.
+based on Weingarten Calculus and provides practical examples using `IntegrateUnitary.jl`.
 
 ## Overview
 
-IntU.jl allows for evaluating integrals of the form:
+IntegrateUnitary.jl allows for evaluating integrals of the form:
 
 ```math
 \int_{U(d)} U_{i_1 j_1} \dots U_{i_n j_n} \bar{U}_{k_1 l_1} \dots \bar{U}_{k_n l_n} dU
@@ -54,12 +54,12 @@ For small $n$, the values are:
     *   $\text{Wg}([2,1], d) = -\frac{1}{(d^2-1)(d^2-4)}$
     *   $\text{Wg}([3], d) = \frac{2}{d(d^2-1)(d^2-4)}$
 
-IntU.jl computes these values symbolically for any $n$, using the Murnaghan-Nakayama rule
+IntegrateUnitary.jl computes these values symbolically for any $n$, using the Murnaghan-Nakayama rule
 to evaluate characters of the symmetric group.
 
 ## Implementation Details
 
-IntU.jl automates the following steps:
+IntegrateUnitary.jl automates the following steps:
 1.  **Index Identification**: It parses the symbolic expression to identify
     which variables correspond to elements of $U$ and $\bar{U}$, extracting
     their indices ($i, j, k, l$).
@@ -73,7 +73,7 @@ IntU.jl automates the following steps:
 
 ### Symbolic Dimension
 
-A key feature of IntU.jl is the ability to leave the dimension $d$ as a symbolic variable.
+A key feature of IntegrateUnitary.jl is the ability to leave the dimension $d$ as a symbolic variable.
 This is achieved through the `SymbolicMatrix` type, which represents a matrix
 of arbitrary (symbolic) size.
 
@@ -89,7 +89,7 @@ In many applications, full Haar integration is not required. Instead, one uses *
 Use the `dDesign(d, t)` measure to define a unitary $t$-design of dimension $d$ and order $t$.
  
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 # E[|U_11|^2] using a 2-design (degree 1 in U, 1 in U*)
 @integrate abs(U[1,1])^2 dDesign(d, 2)
@@ -98,7 +98,7 @@ using IntU, Symbolics
  
 ### Integration Behavior and Guards
  
-`IntU.jl` enforces validity of integration over $t$-designs with the
+`IntegrateUnitary.jl` enforces validity of integration over $t$-designs with the
 following behaviour:
 
 1. **Balanced integrands** (equal degree $q$ in $U$ and $U^\dagger$):
@@ -120,7 +120,7 @@ rigorous for balanced polynomial integrands.
 The `@integrate` macro provides a convenient way to integrate expressions without manually declaring variables. It uses heuristics to identify random unitaries (usually `U`) and dimensions.
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 # E[|U_11|^2]
 @integrate abs(U[1, 1])^2 dU(d)
@@ -142,7 +142,7 @@ For more control, or when dealing with multiple matrices, you can declare symbol
 
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 U = SymbolicMatrix(:U, :U)
 
@@ -155,7 +155,7 @@ integrate(abs(U[1, 1])^2, dU(d))
 ### 3. Higher Unitary Moments
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 U = SymbolicMatrix(:U, :U)
 
@@ -168,7 +168,7 @@ integrate(abs(U[1, 1])^4, dU(d))
 ### 4. Trace Moments
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 U = SymbolicMatrix(:U, :U)
 
@@ -187,7 +187,7 @@ matrix-valued integration of `SymbolicMatrix` and
 integers.
 
 ```julia
-using IntU
+using IntegrateUnitary
 
 # Matrix-valued integration (concrete dimension required)
 res = @integrate U * U' dU(2)
@@ -199,7 +199,7 @@ requesting a full matrix-valued result.
 
 ### 6. Complex Trace Powers
 
-`IntU.jl` supports trace absolute values with integer-power workflows used in
+`IntegrateUnitary.jl` supports trace absolute values with integer-power workflows used in
 practice, in particular even powers $|tr(U)|^{2k}$. These are processed via the
 lazy trace engine. Odd or non-integer powers are currently unsupported and
 raise an `IntegrationError`. Also note that pure trace moments
@@ -207,7 +207,7 @@ $|tr(U)|^{2k}$ with $k > 1$ require a concrete integer dimension (the result
 depends on $d$ as a step function, not a polynomial).
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 U = SymbolicMatrix(:U, :U, 10)
 
 # Integral of |tr(U)|^4 (requires concrete d)
@@ -217,17 +217,17 @@ integrate(abs(tr(U))^4, dU(10))
 
 ### 7. HCIZ Integrals
 
-IntU.jl provides direct support for **Harish-Chandra-Itzykson-Zuber (HCIZ)** integrals.
+IntegrateUnitary.jl provides direct support for **Harish-Chandra-Itzykson-Zuber (HCIZ)** integrals.
 
 > [!NOTE]
 > `hciz` supports eigenvalue-vector and matrix interfaces. For
 > `SymbolicMatrix` inputs, the dimension must be a concrete integer (symbolic
 > `d` is unsupported in this path). For numeric matrix inputs with degenerate
-> eigenvalues, IntU sorts both spectra and applies tiny independent
+> eigenvalues, IntegrateUnitary sorts both spectra and applies tiny independent
 > perturbations to both before evaluating the HCIZ formula.
 
 ```julia
-using IntU, LinearAlgebra
+using IntegrateUnitary, LinearAlgebra
 
 # Define matrices
 A = diagm([1.0, 2.0])
@@ -247,7 +247,7 @@ See the [API Reference](api.md) for more details.
 > ### Symbolic (d) Pitfalls
 > - **Small Dimensions**: For Haar-related measures (Unitary, Orthogonal, Circular), element-wise results are rational functions with poles at small $d$ (typically $d < n$ for degree $n$ moments). Pure trace moments $|\mathrm{tr}(U)|^{2k}$ are an exception: they depend on $d$ as a step function and require a concrete integer dimension.
 > - **Removable Singularities**: Substituting numeric values can yield $0/0$ forms (e.g., at $d=1$ or $d=2$).
-> - **Automatic Handling**: `IntU.jl`'s `evaluate` function automatically simplifies expressions to resolve removable singularities when a denominator evaluates to zero.
+> - **Automatic Handling**: `IntegrateUnitary.jl`'s `evaluate` function automatically simplifies expressions to resolve removable singularities when a denominator evaluates to zero.
 
 - **Computational Complexity**: The sum involves $(n!)^2$ terms. While optimized
     to group cycles, integrals with high degrees ($n > 6$) can become

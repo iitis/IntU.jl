@@ -14,7 +14,7 @@ for (T, tag, ctor) in [
         end
         $T(dim) = $T(dim, nothing)
 
-        function IntU.measure_info(measure::$T)
+        function IntegrateUnitary.measure_info(measure::$T)
             subs_dict = Dict{Any,Any}()
             matcher =
                 measure.matcher === nothing ? MetadataMatcher($(QuoteNode(tag))) :
@@ -24,7 +24,7 @@ for (T, tag, ctor) in [
             return (subs_dict, matcher, dim, $(QuoteNode(tag)))
         end
 
-        IntU._reconstruct_symbolic(::$T, d_asymp) = $ctor(d_asymp)
+        IntegrateUnitary._reconstruct_symbolic(::$T, d_asymp) = $ctor(d_asymp)
     end
 end
 

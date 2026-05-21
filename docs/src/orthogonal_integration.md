@@ -31,7 +31,7 @@ where:
 The `@integrate` macro automatically identifies `O` as the random orthogonal matrix.
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 # E[O_11^2]
 @integrate O[1, 1]^2 dO(d)
@@ -43,7 +43,7 @@ using IntU, Symbolics
 For more control, you can declare symbols explicitly.
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 O = SymbolicMatrix(:O, :O)
 integrate(O[1, 1]^2, dO(d))
@@ -54,7 +54,7 @@ integrate(O[1, 1]^2, dO(d))
 The `@integrate` macro can be used for higher moments too.
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 @integrate O[1, 1]^4 dO(d)
 # Output: 3 / (d*(d + 2))
@@ -73,7 +73,7 @@ Crucially, the dimension $d$ must be even ($d=2n$).
 
 ### The Symplectic Form J
 
-IntU.jl assumes the standard symplectic form $J$:
+IntegrateUnitary.jl assumes the standard symplectic form $J$:
 ```math
 J = \begin{pmatrix} 0 & I_n \\ -I_n & 0 \end{pmatrix}
 ```
@@ -81,7 +81,7 @@ Or in tensor block structure. This matrix is used to relate the conjugate entrie
 ```math
 \bar{S}_{ij} = (J S J^T)_{ij}
 ```
-IntU.jl handles `conj(S[i,j])` by automatically substituting it with the appropriate linear combination of $S$ entries and $J$ factors before integration.
+IntegrateUnitary.jl handles `conj(S[i,j])` by automatically substituting it with the appropriate linear combination of $S$ entries and $J$ factors before integration.
 
 ### Theory
 
@@ -99,7 +99,7 @@ The Weingarten function $\text{Wg}^{Sp}$ is related to $\text{Wg}^O$ by the dime
 The `@integrate` macro is also available for the symplectic group. It identifies `Sp` as the random symplectic matrix.
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 # E[|Sp_11|^2]
 @integrate abs(Sp[1, 1])^2 dSp(2)
@@ -109,7 +109,7 @@ using IntU, Symbolics
 ### 2. Manual Integration
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 S = SymbolicMatrix(:S, :Sp)
 integrate(abs(S[1, 1])^2, dSp(d))
@@ -118,7 +118,7 @@ integrate(abs(S[1, 1])^2, dSp(d))
 ### 3. Higher Moments
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 @integrate abs(Sp[1, 1])^4 dSp(d)
 # Output: 2 / (d + d^2)
@@ -136,9 +136,9 @@ using IntU, Symbolics
 > ### Symbolic (d) Pitfalls
 > - **Small Dimensions**: For Haar-related measures (Unitary, Orthogonal, Circular), element-wise results are rational functions with poles at small $d$ (typically $d < n$ for degree $n$ moments). Pure trace moments $|\mathrm{tr}(U)|^{2k}$ are an exception: they depend on $d$ as a step function and require a concrete integer dimension.
 > - **Removable Singularities**: Substituting numeric values can yield $0/0$ forms (e.g., at $d=1$ or $d=2$).
-> - **Automatic Handling**: `IntU.jl`'s `evaluate` function automatically simplifies expressions to resolve removable singularities when a denominator evaluates to zero.
+> - **Automatic Handling**: `IntegrateUnitary.jl`'s `evaluate` function automatically simplifies expressions to resolve removable singularities when a denominator evaluates to zero.
 
-- **High-Performance Symbolic Solver**: For symbolic dimensions $d$, `IntU.jl` uses a specialized univariate polynomial solver based on the **Bareiss algorithm**.
+- **High-Performance Symbolic Solver**: For symbolic dimensions $d$, `IntegrateUnitary.jl` uses a specialized univariate polynomial solver based on the **Bareiss algorithm**.
 - **Exact Rational Summation**: Orthogonal integration uses an internal exact rational arithmetic engine to compute Weingarten sums.
 - **Cycle Type Grouping**: The integration engine automatically groups pair partitions by their loop cycle types, reducing the number of symbolic operations.
 

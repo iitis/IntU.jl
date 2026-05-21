@@ -19,7 +19,7 @@ function dDesign(dim, t)
     return UnitaryDesign(dim, t)
 end
 
-function IntU.measure_info(measure::UnitaryDesign)
+function IntegrateUnitary.measure_info(measure::UnitaryDesign)
     subs_dict = Dict{Any,Any}()
     matcher = measure.matcher === nothing ? MetadataMatcher(:U) : measure.matcher
     dim = measure.dim

@@ -1,5 +1,5 @@
 # ============================================================
-# IntU.jl Haar-integration test script (Unitary/Orthogonal/Symplectic)
+# IntegrateUnitary.jl Haar-integration test script (Unitary/Orthogonal/Symplectic)
 #
 # Run:
 #   julia benchmarks/08_stress_test_1.jl
@@ -11,7 +11,7 @@
 # - We iterate over concrete sizes N for the matrix variables to create valid Julia arrays.
 # ============================================================
 using Symbolics
-using IntU
+using IntegrateUnitary
 using LinearAlgebra
 using BenchmarkTools
 using Statistics
@@ -20,7 +20,7 @@ using Statistics
 # Helpers
 # --------------------------
 function is_symbolic_zero(x)
-    return IntU._iszero(x)
+    return IntegrateUnitary._iszero(x)
 end
 
 function equal_symbolic(got, expected; subs = Vector{Dict}())
@@ -41,7 +41,7 @@ function equal_symbolic(got, expected; subs = Vector{Dict}())
 end
 
 function run_example(name, expr, μ, expected; subs = Vector{Dict}(), benchmark = false)
-    got = IntU.integrate(expr, μ)
+    got = IntegrateUnitary.integrate(expr, μ)
 
     simplified_got = Symbolics.simplify(got)
 
@@ -53,7 +53,7 @@ function run_example(name, expr, μ, expected; subs = Vector{Dict}(), benchmark 
 
     if benchmark
         println("  -> Benchmarking...")
-        t = @benchmark IntU.integrate($expr, $μ) samples=30 evals=1
+        t = @benchmark IntegrateUnitary.integrate($expr, $μ) samples=30 evals=1
         med_time_ms = median(t).time / 1e6
         println("  -> Median Time: $(round(med_time_ms, digits=2)) ms")
     end
@@ -249,7 +249,7 @@ end
 # Main Loop
 # ============================================================
 println("============================================================")
-println("Running IntU examples with symbolic dimension 'd'")
+println("Running IntegrateUnitary examples with symbolic dimension 'd'")
 println("============================================================\n")
 
 test_unitary()

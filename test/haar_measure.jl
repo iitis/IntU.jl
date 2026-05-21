@@ -1,4 +1,4 @@
-using IntU
+using IntegrateUnitary
 using Test
 using Symbolics
 using LinearAlgebra
@@ -92,18 +92,18 @@ using LinearAlgebra
     end
 
     @testset "_try_extract_int edge cases" begin
-        @test IntU._try_extract_int(2) == 2
-        @test IntU._try_extract_int(Num(2)) == 2
-        @test IntU._try_extract_int(2 // 1) == 2
-        @test IntU._try_extract_int(2.0) == 2
-        @test IntU._try_extract_int(big(10)^15) == 10^15
+        @test IntegrateUnitary._try_extract_int(2) == 2
+        @test IntegrateUnitary._try_extract_int(Num(2)) == 2
+        @test IntegrateUnitary._try_extract_int(2 // 1) == 2
+        @test IntegrateUnitary._try_extract_int(2.0) == 2
+        @test IntegrateUnitary._try_extract_int(big(10)^15) == 10^15
 
         @variables d_tei
-        @test IntU._try_extract_int(d_tei) === nothing
-        @test IntU._try_extract_int(nothing) === nothing
-        @test IntU._try_extract_int(3.5) === nothing
-        @test IntU._try_extract_int(3 // 2) === nothing
-        @test IntU._try_extract_int(big(10)^50) === nothing
+        @test IntegrateUnitary._try_extract_int(d_tei) === nothing
+        @test IntegrateUnitary._try_extract_int(nothing) === nothing
+        @test IntegrateUnitary._try_extract_int(3.5) === nothing
+        @test IntegrateUnitary._try_extract_int(3 // 2) === nothing
+        @test IntegrateUnitary._try_extract_int(big(10)^50) === nothing
     end
 
     @testset "BigInt Dimensions" begin

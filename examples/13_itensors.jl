@@ -1,8 +1,8 @@
 # Example 13: ITensors.jl Integration Showcase
 # ============================================
-# This example demonstrates the IntU.jl + ITensors.jl bridge.
+# This example demonstrates the IntegrateUnitary.jl + ITensors.jl bridge.
 
-using IntU
+using IntegrateUnitary
 using ITensors
 using Symbolics
 
@@ -19,7 +19,7 @@ function print_itensor(label, T)
     end
 end
 
-println("Starting IntU + ITensors Showcase...\n")
+println("Starting IntegrateUnitary + ITensors Showcase...\n")
 
 # ==========================================================
 # 1. Haar Unitary Integration: E[Tr(U A U' B)]

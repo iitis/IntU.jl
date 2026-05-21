@@ -1,6 +1,6 @@
 # Permutation Group Integration
 
-IntU.jl provides support for symbolic integration over two related ensembles: the **Symmetric Group** $S_d$ and the **Centered Permutation Ensemble**.
+IntegrateUnitary.jl provides support for symbolic integration over two related ensembles: the **Symmetric Group** $S_d$ and the **Centered Permutation Ensemble**.
 
 ## Ordinary Permutation Matrices ($S_d$)
 
@@ -8,7 +8,7 @@ The **Symmetric Group** $S_d$ consists of all $d!$ possible $d \times d$
 permutation matrices. A permutation matrix $P$ has exactly one entry equal to
 $1$ in each row and column, with all other entries being $0$.
 
-Integration over $S_d$ in IntU.jl computes the uniform average over this
+Integration over $S_d$ in IntegrateUnitary.jl computes the uniform average over this
 discrete set:
 ```math
 \mathbb{E}_{P \in S_d}[f(P)] = \frac{1}{d!} \sum_{P \in S_d} f(P)
@@ -23,7 +23,7 @@ Use `dPerm(d)` to define the measure.
 The `@integrate` macro automatically identifies `P` as the random permutation matrix.
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 # E[P_11] = 1/d
 @integrate P[1,1] dPerm(d)
@@ -33,7 +33,7 @@ using IntU, Symbolics
 2. **Manual Integration**
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 
 @variables d
 P = SymbolicMatrix(:P, :Perm)
@@ -90,7 +90,7 @@ Use `dCPerm(d)` to define the measure.
 The `@integrate` macro automatically identifies `Y` as the centered permutation matrix.
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 # Variance E[Y_11^2] = (d-1)/d^2
 @integrate Y[1, 1]^2 dCPerm(d)
@@ -100,7 +100,7 @@ using IntU, Symbolics
 2. **Manual Integration**
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 Y = SymbolicMatrix(:Y, :CPerm)
 
@@ -119,10 +119,10 @@ Integration for centered permutations is handled by substituting $Y_{ij} = P_{ij
 
 ## Symbolic Traces
 
-IntU.jl supports integration of traces involving permutation matrices. While these can be integrated using `Symbolics.jl` arrays and `scalarize`, the combinatorial nature of $S_d$ means that correlations are correctly handled even for large expressions.
+IntegrateUnitary.jl supports integration of traces involving permutation matrices. While these can be integrated using `Symbolics.jl` arrays and `scalarize`, the combinatorial nature of $S_d$ means that correlations are correctly handled even for large expressions.
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 # E[tr(P * A)]
 @integrate tr(P * A) dPerm(d)

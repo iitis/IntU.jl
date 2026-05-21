@@ -105,15 +105,15 @@ macro integrate(expr, measure)
                        $s.special_type !== $(QuoteNode(tag)) ||
                        !isequal($s.dim, $m_dim)
                         dim = if $(QuoteNode(tag)) === :psi
-                            (IntU._ensure_symbolic_dim($m_dim), 1)
+                            (IntegrateUnitary._ensure_symbolic_dim($m_dim), 1)
                         elseif $(QuoteNode(tag)) === :V
                             m_args = $(measure.args)
                             (
-                                IntU._ensure_symbolic_dim(m_args[2]),
-                                IntU._ensure_symbolic_dim(m_args[3]),
+                                IntegrateUnitary._ensure_symbolic_dim(m_args[2]),
+                                IntegrateUnitary._ensure_symbolic_dim(m_args[3]),
                             )
                         else
-                            IntU._ensure_symbolic_dim($m_dim)
+                            IntegrateUnitary._ensure_symbolic_dim($m_dim)
                         end
                         $s = SymbolicMatrix($(QuoteNode(s)), $(QuoteNode(tag)), dim);
                     end

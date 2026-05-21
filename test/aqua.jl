@@ -2,5 +2,5 @@ using Test
 using Aqua
 
 @testset "Aqua.jl Quality Assurance" begin
-    Aqua.test_all(IntU)
+    Aqua.test_all(IntegrateUnitary)
 end

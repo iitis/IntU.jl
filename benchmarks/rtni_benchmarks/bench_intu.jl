@@ -1,13 +1,13 @@
 """
-Performance comparison benchmarks for IntU.jl.
+Performance comparison benchmarks for IntegrateUnitary.jl.
 Computes the same unitary integrals as bench_rtni.wl for a head-to-head
 comparison with RTNI (Mathematica).
 
 Usage:
-    julia --project=/path/to/IntU.jl/benchmarks bench_intu.jl
+    julia --project=/path/to/IntegrateUnitary.jl/benchmarks bench_intu.jl
 """
 
-using IntU
+using IntegrateUnitary
 using Symbolics
 using BenchmarkTools
 using Memoization
@@ -70,7 +70,7 @@ function benchmark_meta()
         ),
         "runtime" => Dict("name" => "Julia", "version" => string(VERSION)),
         "packages" => Dict(
-            "IntU" => module_version(IntU),
+            "IntegrateUnitary" => module_version(IntegrateUnitary),
             "ITensors" => module_version(ITensors),
         ),
         "sources" => Dict(
@@ -193,7 +193,7 @@ function u11_moment_itensor_network(k::Int, idx_dim::Int)
     return tensors
 end
 
-function integrate_u11_itensor(k::Int, measure::IntU.AbstractMeasure; idx_dim::Int)
+function integrate_u11_itensor(k::Int, measure::IntegrateUnitary.AbstractMeasure; idx_dim::Int)
     tensors = u11_moment_itensor_network(k, idx_dim)
     return integrate(tensors, measure)
 end
@@ -226,7 +226,7 @@ function trace_moment_itensor_network(k::Int, idx_dim::Int)
     return tensors
 end
 
-function integrate_trace_moment_itensor(k::Int, measure::IntU.AbstractMeasure; idx_dim::Int)
+function integrate_trace_moment_itensor(k::Int, measure::IntegrateUnitary.AbstractMeasure; idx_dim::Int)
     tensors = trace_moment_itensor_network(k, idx_dim)
     return integrate(tensors, measure)
 end
@@ -271,7 +271,7 @@ function tr_uau_db_sq_itensor_network(
 end
 
 function integrate_tr_uau_db_itensor(
-    measure::IntU.AbstractMeasure;
+    measure::IntegrateUnitary.AbstractMeasure;
     idx_dim::Int,
     avals::AbstractMatrix{<:Real},
     bvals::AbstractMatrix{<:Real},
@@ -280,7 +280,7 @@ function integrate_tr_uau_db_itensor(
 end
 
 function integrate_tr_uau_db_sq_itensor(
-    measure::IntU.AbstractMeasure;
+    measure::IntegrateUnitary.AbstractMeasure;
     idx_dim::Int,
     avals::AbstractMatrix{<:Real},
     bvals::AbstractMatrix{<:Real},

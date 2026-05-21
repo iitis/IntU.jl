@@ -1,5 +1,5 @@
 using Test
-using IntU
+using IntegrateUnitary
 using Symbolics
 using LinearAlgebra
 
@@ -37,11 +37,11 @@ using LinearAlgebra
         # 1. Scalar integration with symbolic d
         # E[|V_11|^2] = 1/d
         res11 = integrate(abs2(V[1, 1]), measure)
-        @test IntU._symbolic_isequal(Symbolics.simplify(res11), 1/d_sym)
+        @test IntegrateUnitary._symbolic_isequal(Symbolics.simplify(res11), 1/d_sym)
 
         # E[|V_11|^2 * |V_12|^2] = 1/(d(d+1)) for complex
         res1112 = integrate(abs2(V[1, 1]) * abs2(V[1, 2]), measure)
-        @test IntU._symbolic_isequal(
+        @test IntegrateUnitary._symbolic_isequal(
             Symbolics.simplify(res1112 - 1/(d_sym * (d_sym + 1))),
             0,
         )

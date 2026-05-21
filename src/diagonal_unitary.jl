@@ -23,4 +23,4 @@ function dDiagUnitary(dim)
     return DiagonalUnitaryMeasure(dim)
 end
 
-IntU._measure_tag(::DiagonalUnitaryMeasure) = :DiagUnitary
+IntegrateUnitary._measure_tag(::DiagonalUnitaryMeasure) = :DiagUnitary

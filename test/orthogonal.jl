@@ -1,4 +1,4 @@
-using IntU
+using IntegrateUnitary
 using Test
 using Symbolics
 using LinearAlgebra
@@ -76,7 +76,7 @@ using LinearAlgebra
 
         # Invalid dimension
         @test_throws ArgumentError dSp(3)
-        @test_throws ArgumentError IntU.SymplecticMeasure(3)
+        @test_throws ArgumentError IntegrateUnitary.SymplecticMeasure(3)
     end
 
     @testset "Matrix Integration Checks" begin

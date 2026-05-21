@@ -3,7 +3,7 @@
 # This example demonstrates how to use the symbolic trace logic to integrate
 # traces of random unitary matrices and constant matrices.
 
-using IntU
+using IntegrateUnitary
 using Symbolics
 using LinearAlgebra
 

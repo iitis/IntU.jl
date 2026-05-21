@@ -11,7 +11,7 @@ fixed reference state:
 $$|\psi\rangle = U|0\rangle, \quad U \sim \mathrm{Haar}(U(d)).$$
 
 The components $\psi_i = U_{i,1}$ are the entries of the first column of $U$.
-IntU.jl exploits this connection: `dPsi(d)` internally delegates to unitary
+IntegrateUnitary.jl exploits this connection: `dPsi(d)` internally delegates to unitary
 Weingarten calculus on the first column index.
 
 ### Connection to the Stiefel manifold
@@ -35,7 +35,7 @@ Entries are indexed as `psi[i, 1]` (column-vector convention).
 ### Second moment
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 
 # E[|psi_1|^2] = 1/d  (uniform distribution across components)
@@ -77,7 +77,7 @@ unit-norm constraint: if one component is large, the others must be smaller.
 ### Manual integration
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 
 psi = SymbolicMatrix(:psi, :psi, (d, 1))

@@ -1,5 +1,5 @@
 """
-Compare IntU.jl and RTNI benchmark results side-by-side.
+Compare IntegrateUnitary.jl and RTNI benchmark results side-by-side.
 
 Usage:
     python compare_results.py
@@ -293,13 +293,13 @@ def warn_meta_consistency(intu_meta, rtni_meta):
         (("host", "os"), "host.os"),
         (("host", "arch"), "host.arch"),
     ]:
-        warn_mismatch_field(intu_meta, rtni_meta, path, label, "IntU", "RTNI")
+        warn_mismatch_field(intu_meta, rtni_meta, path, label, "IntegrateUnitary", "RTNI")
 
     for path, label, side in [
-        (("runtime", "name"), "runtime.name", "IntU"),
-        (("runtime", "version"), "runtime.version", "IntU"),
-        (("packages", "IntU"), "packages.IntU", "IntU"),
-        (("packages", "ITensors"), "packages.ITensors", "IntU"),
+        (("runtime", "name"), "runtime.name", "IntegrateUnitary"),
+        (("runtime", "version"), "runtime.version", "IntegrateUnitary"),
+        (("packages", "IntegrateUnitary"), "packages.IntegrateUnitary", "IntegrateUnitary"),
+        (("packages", "ITensors"), "packages.ITensors", "IntegrateUnitary"),
     ]:
         warn_missing_meta_field(intu_meta, path, label, side)
 
@@ -312,7 +312,7 @@ def warn_meta_consistency(intu_meta, rtni_meta):
 
     intu_runtime = nested_get(intu_meta, ("runtime", "name"))
     if intu_runtime is not None and intu_runtime != "Julia":
-        print(f"Warning: unexpected IntU runtime.name={intu_runtime!r} (expected 'Julia').")
+        print(f"Warning: unexpected IntegrateUnitary runtime.name={intu_runtime!r} (expected 'Julia').")
 
     rtni_runtime = nested_get(rtni_meta, ("runtime", "name"))
     if rtni_runtime is not None and rtni_runtime != "Mathematica":
@@ -325,9 +325,9 @@ def warn_meta_consistency(intu_meta, rtni_meta):
         (("sources", "RTNI.wl", "sha256"), "sources.RTNI.wl.sha256"),
         (("sources", "RTNI.wl", "path"), "sources.RTNI.wl.path"),
     ]:
-        warn_missing_meta_field(intu_meta, path, label, "IntU")
+        warn_missing_meta_field(intu_meta, path, label, "IntegrateUnitary")
         warn_missing_meta_field(rtni_meta, path, label, "RTNI")
-        warn_mismatch_field(intu_meta, rtni_meta, path, label, "IntU", "RTNI")
+        warn_mismatch_field(intu_meta, rtni_meta, path, label, "IntegrateUnitary", "RTNI")
 
 
 def get_entry(blob, key):
@@ -383,7 +383,7 @@ def row_metrics(row, intu, rtni):
 
 
 def render_console_table(rows, intu, rtni, *, title):
-    header = f"{'Integral':<40s} {'IntU.jl (ms)':>14s} {'RTNI (ms)':>14s} {'Speedup':>13s}"
+    header = f"{'Integral':<40s} {'IntegrateUnitary.jl (ms)':>14s} {'RTNI (ms)':>14s} {'Speedup':>13s}"
     sep = "-" * len(header)
 
     print("\n" + "=" * len(header))
@@ -405,16 +405,16 @@ def render_console_table(rows, intu, rtni, *, title):
         print(f"{r['label']:<40s} {i_str:>14s} {r_str:>14s} {sp:>13s}")
 
     print(sep)
-    print("Speedup = RTNI / IntU.jl (higher = IntU.jl is faster).")
+    print("Speedup = RTNI / IntegrateUnitary.jl (higher = IntegrateUnitary.jl is faster).")
     print("† RTNI row timed successfully, but result remained non-scalar (graph placeholder).")
 
 
 def render_supplementary_console(rows, intu):
-    header = f"{'Supplementary IntU-only row':<45s} {'IntU.jl (ms)':>14s} {'Status':>12s}"
+    header = f"{'Supplementary IntegrateUnitary-only row':<45s} {'IntegrateUnitary.jl (ms)':>14s} {'Status':>12s}"
     sep = "-" * len(header)
 
     print("\n" + "=" * len(header))
-    print("Supplementary IntU Rows (Not in Main RTNI Table)")
+    print("Supplementary IntegrateUnitary Rows (Not in Main RTNI Table)")
     print("=" * len(header))
     print(header)
     print(sep)
@@ -459,7 +459,7 @@ def main():
     intu_meta = get_meta(intu)
     rtni_meta = get_meta(rtni)
 
-    print_meta("IntU.jl", intu_meta)
+    print_meta("IntegrateUnitary.jl", intu_meta)
     print_meta("RTNI", rtni_meta)
     warn_meta_consistency(intu_meta, rtni_meta)
 
@@ -467,7 +467,7 @@ def main():
         MAIN_COMPARABLE_ROWS,
         intu,
         rtni,
-        title="IntU.jl vs RTNI (Mathematica) — Main Comparable Rows",
+        title="IntegrateUnitary.jl vs RTNI (Mathematica) — Main Comparable Rows",
     )
     render_supplementary_console(SUPPLEMENTARY_ROWS, intu)
     write_latex_rows_file(MAIN_COMPARABLE_ROWS, intu, rtni, LATEX_ROWS_OUTPUT)

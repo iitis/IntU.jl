@@ -33,7 +33,7 @@ The contraction rule involves the symplectic form $J$:
 ```math
 \langle H_{ij} H_{kl} \rangle_{GSE} = \delta_{il} \delta_{jk} + (J)_{ik} (J)_{jl}
 ```
-IntU.jl implements GSE integration by mapping it to contractions involving the definition of the symplectic metric.
+IntegrateUnitary.jl implements GSE integration by mapping it to contractions involving the definition of the symplectic metric.
 For concrete integer dimensions, `dGSE(n)` requires even `n`; odd `n` throws an `ArgumentError`.
 
 ## Ginibre Ensembles
@@ -68,7 +68,7 @@ For concrete integer dimensions, `dGSE(n)` and `dGinSE(n)` require even `n`.
 ### GUE Example
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 
 # GUE Measure with symbolic dimension
 # Average Trace of H^2
@@ -132,17 +132,17 @@ println(res_gse)
 
 ## Scaling Conventions
 
-IntU.jl computes the raw Gaussian moments (combinatorial counts).
+IntegrateUnitary.jl computes the raw Gaussian moments (combinatorial counts).
 This corresponds to the normalization where the variance of off-diagonal entries is 1.
 
 *   **Standard Physics Normalization** (Wigner's semicircle law radius 2): Requires scaling $H \to H/\sqrt{d}$.
     $\langle \text{Tr}(H^2) \rangle \to d$.
-*   **IntU.jl Normalization**:
+*   **IntegrateUnitary.jl Normalization**:
     $\langle \text{Tr}(H^2) \rangle_{GUE} = d^2$.
 
 ## Implementation Details
 
-IntU.jl automates the following steps:
+IntegrateUnitary.jl automates the following steps:
 1.  **Index Collection**: Parses the expression to find all occurrences of $H$ (or $G$).
 2.  **Pair Partitioning**: Generates all ways to pair up the matrix factors.
 3.  **Contraction**: For each pair, applies the specific ensemble contraction rule.
@@ -154,7 +154,7 @@ IntU.jl automates the following steps:
 > ### Symbolic (d) Pitfalls
 > - **Small Dimensions**: For Haar-related measures (Unitary, Orthogonal, Circular), element-wise results are rational functions with poles at small $d$ (typically $d < n$ for degree $n$ moments). Pure trace moments $|\mathrm{tr}(U)|^{2k}$ are an exception: they depend on $d$ as a step function and require a concrete integer dimension.
 > - **Removable Singularities**: Substituting numeric values can yield $0/0$ forms (e.g., at $d=1$ or $d=2$).
-> - **Automatic Handling**: `IntU.jl`'s `evaluate` function automatically simplifies expressions to resolve removable singularities when a denominator evaluates to zero.
+> - **Automatic Handling**: `IntegrateUnitary.jl`'s `evaluate` function automatically simplifies expressions to resolve removable singularities when a denominator evaluates to zero.
 
 ## References
 
@@ -167,7 +167,7 @@ IntU.jl automates the following steps:
 
 For common moments like $\langle \text{Tr}(H^2) \rangle$,
 $\langle \text{Tr}(H^4) \rangle$, and $\langle \text{Tr}(H^6) \rangle$,
-`IntU.jl` uses a [Pre-computed Integral Library](integral_library.md) to
+`IntegrateUnitary.jl` uses a [Pre-computed Integral Library](integral_library.md) to
 provide results instantly.
 
 > [!TIP]

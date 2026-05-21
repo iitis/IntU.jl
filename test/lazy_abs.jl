@@ -1,4 +1,4 @@
-using IntU
+using IntegrateUnitary
 using Test
 using Symbolics
 
@@ -8,7 +8,7 @@ using Symbolics
 
     @testset "abs(tr(U))" begin
         expr = abs(tr(U))
-        @test expr isa IntU.LazyPower
+        @test expr isa IntegrateUnitary.LazyPower
         @test expr.exponent == 0.5
         # |tr(U)| = (tr(U) * tr(U'))^0.5
     end
@@ -26,7 +26,7 @@ using Symbolics
     
     @testset "sqrt(tr(U))" begin
         expr = sqrt(tr(U))
-        @test expr isa IntU.LazyPower
+        @test expr isa IntegrateUnitary.LazyPower
         @test expr.exponent == 0.5
     end
 

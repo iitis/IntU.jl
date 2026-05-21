@@ -77,7 +77,7 @@
 %%
 %% The "title" command has an optional parameter,
 %% allowing the author to define a "short title" to be used in page headers.
-\title{IntU.jl: A \texttt{Julia} package for symbolic integration over Haar measures}
+\title{IntegrateUnitary.jl: A \texttt{Julia} package for symbolic integration over Haar measures}
 
 %%
 %% The "author" command and its associated commands are used to define
@@ -118,7 +118,7 @@
 \begin{abstract}
 Symbolic integration over the Haar measure of compact groups is a computational
 cornerstone in quantum information science and random matrix theory. We present
-\texttt{IntU.jl}, a comprehensive Julia package for computing exact expectations
+\texttt{IntegrateUnitary.jl}, a comprehensive Julia package for computing exact expectations
 of polynomial functions over a wide range of compact groups ($U(d)$, $O(d)$,
 $Sp(d)$, and $SU(d)$ for balanced polynomials), circular and Gaussian ensembles,
 Ginibre ensembles, permutation groups, random pure states, and unitary
@@ -215,16 +215,16 @@ the ability to handle symbolic dimensions $d$ natively across a broad class of w
 Furthermore, the translation from high-level, coordinate-free mathematical
 expressions (e.g., traces of products) to the index-based tensor contractions
 required by Weingarten calculus is often left to the user, leading to
-error-prone manual preprocessing. \texttt{IntU.jl} addresses these issues and
+error-prone manual preprocessing. \texttt{IntegrateUnitary.jl} addresses these issues and
 focuses on maximizing performance and symbolic flexibility within the compact
-group integration domain. A primary distinction lies in \texttt{IntU.jl}'s deep
+group integration domain. A primary distinction lies in \texttt{IntegrateUnitary.jl}'s deep
 integration with the Julia \texttt{Symbolics.jl} ecosystem, treating dimensions
 $d$ as native symbolic variables rather than requiring separate
 symbolic algebra backends or manual substitutions.
-This diverse ensemble support, combined with specialized utilities for partial traces of symbolic subsystems, makes \texttt{IntU.jl} a versatile
+This diverse ensemble support, combined with specialized utilities for partial traces of symbolic subsystems, makes \texttt{IntegrateUnitary.jl} a versatile
 environment for both theoretical derivations and complex numerical experiments.
 
-\texttt{IntU.jl} offers a pure Julia implementation of the Weingarten calculus
+\texttt{IntegrateUnitary.jl} offers a pure Julia implementation of the Weingarten calculus
 for the unitary $U(d)$, orthogonal $O(d)$, and
 symplectic $Sp(d)$ groups, as well as $SU(d)$ for balanced polynomials and
 combinatorial integration for the symmetric group $S_d$. Key features distinguishing our approach include:
@@ -256,7 +256,7 @@ Section \ref{sec:performance} and conclude in Section \ref{sec:conclusion}.
 
 \section{Background: Weingarten calculus}
 \label{sec:background}
-The core technique behind \texttt{IntU.jl} is the Weingarten calculus. For the
+The core technique behind \texttt{IntegrateUnitary.jl} is the Weingarten calculus. For the
 compact matrix groups considered here, the integral of a polynomial in
 matrix elements can be expressed as a sum over a combinatorial set:
 permutations for the unitary case and pair partitions for the orthogonal and
@@ -302,7 +302,7 @@ expected from independent Gaussian entries at the naive limit.
 While Weingarten functions are rational in $d$, they contain poles at small
 integer dimensions (typically $d < k$ for degree $k$ moments). Furthermore,
 substituting numeric values can yield $0/0$ expressions, which are removable
-singularities, at specific points like $d=1, 2$. \texttt{IntU.jl}'s
+singularities, at specific points like $d=1, 2$. \texttt{IntegrateUnitary.jl}'s
 \texttt{evaluate} function automatically simplifies these expressions to resolve
 such singularities. An important exception is pure trace moments
 $|\mathrm{tr}(U)|^{2k}$, whose exact value $\sum_{\lambda \vdash k,\,
@@ -336,7 +336,7 @@ $\pm 1$. For detailed closure relations on these groups, see Collins and
 \'{S}niady
 \cite{collins2006integration}.
 
-\texttt{IntU.jl} leverages the fundamental duality between the orthogonal and
+\texttt{IntegrateUnitary.jl} leverages the fundamental duality between the orthogonal and
 symplectic Weingarten functions:
     \begin{equation}
     \mathrm{Wg}^{Sp}(p, q, d) = (-1)^{\mathrm{loops}(p, q)} \mathrm{Wg}^O(p, q, -d).
@@ -350,7 +350,7 @@ Both $\mathrm{Wg}^O$ and $\mathrm{Wg}^{Sp}$ are rational functions of $d$, and
 their poles mark singularities of the rational inverse-Gram representation; the
 Haar integrals themselves are well defined for admissible group dimensions.
 
-\texttt{IntU.jl} efficiently computes these functions using character-based
+\texttt{IntegrateUnitary.jl} efficiently computes these functions using character-based
 formulas and Gram-matrix inversion (detailed in Section~\ref{sec:implementation}),
 caching results to accelerate repeated integration tasks.
 
@@ -369,7 +369,7 @@ where $k$ is the number of distinct index pairs after the collapse.
 
 \section{Software features}
 \label{sec:features}
-\texttt{IntU.jl} is built on top of the \texttt{Symbolics.jl} ecosystem
+\texttt{IntegrateUnitary.jl} is built on top of the \texttt{Symbolics.jl} ecosystem
 \cite{symbolicsjl}, providing a seamless experience for Julia users.
 
 \subsection{Groups and measures}
@@ -422,7 +422,7 @@ The package supports a wide range of integration measures, grouped as follows:
 \end{itemize}
 
 \subsection{Harish-Chandra-Itzykson-Zuber (HCIZ) integrals}
-Beyond polynomial moments, \texttt{IntU.jl} implements the closed-form
+Beyond polynomial moments, \texttt{IntegrateUnitary.jl} implements the closed-form
 Harish-Chandra-Itzykson-Zuber (HCIZ) integral \cite{harish1958ranges,
 itzykson1980planar}, a fundamental object in random matrix theory related to the
 character expansion of the exponential function:
@@ -434,7 +434,7 @@ and $\Delta(x)$ denotes the Vandermonde determinant. When the eigenvalues are
 symbolic and non-degenerate, the evaluation is exact; for floating-point input
 the result is numerical.
 
-\texttt{IntU.jl} provides two primary interfaces for these integrals. The
+\texttt{IntegrateUnitary.jl} provides two primary interfaces for these integrals. The
 \textbf{eigenvalue interface} allows users to pass vectors of eigenvalues
 directly, facilitating purely symbolic derivations where the spectrum is defined
 algebraically. The \textbf{matrix interface} accepts Hermitian matrices $A$ and
@@ -461,7 +461,7 @@ double-precision arithmetic. For symbolic eigenvalues, degenerate cases must
 be resolved analytically by the user (e.g., via L'H\^{o}pital's rule).
 
 \subsection{Gaussian random matrix ensembles}
-In addition to compact groups, \texttt{IntU.jl} supports integration over the
+In addition to compact groups, \texttt{IntegrateUnitary.jl} supports integration over the
 Gaussian ensembles (GUE, GOE, GSE). These are implemented using Wick's theorem
 \cite{wick1950evaluation} (Isserlis' theorem) for moment contraction. For a
 Gaussian Hermitian matrix $H$, the expectation values are determined by the
@@ -477,13 +477,13 @@ pairwise contractions:
     while odd moments vanish, $\langle \mathrm{tr}(H^{2m+1}) \rangle_{\mathrm{GSE}} = 0$.
     This implies $\langle \mathrm{tr}(H^2) \rangle = d^2 - d$.
 \end{itemize}
-This approach allows \texttt{IntU.jl} to compute moments for all three ensembles
+This approach allows \texttt{IntegrateUnitary.jl} to compute moments for all three ensembles
 while maintaining full support for symbolic dimensions $d$. For concrete integer
 dimensions, the symplectic measure constructor enforces even size:
 \texttt{dGSE(n)} raises an error when \texttt{n} is odd.
 
 \subsection{Ginibre ensembles}
-Moving beyond Hermitian matrices, \texttt{IntU.jl} supports the Ginibre
+Moving beyond Hermitian matrices, \texttt{IntegrateUnitary.jl} supports the Ginibre
 ensembles (GinUE, GinOE, GinSE) \cite{ginibre1965statistical}, which consist of
 non-Hermitian matrices with independent and identically distributed (i.i.d.)
 Gaussian entries. These are integrated using similar Wick contraction rules:
@@ -499,7 +499,7 @@ Like the beta ensembles, these rules are implemented to support both symbolic
 dimensions $d$ and high-level trace expressions.
 
 \subsection{Circular ensembles}
-\texttt{IntU.jl} also supports integration over the circular ensembles of random
+\texttt{IntegrateUnitary.jl} also supports integration over the circular ensembles of random
 unitary matrices, which are important in the study of quantum chaos and
 symmetric spaces.
 \begin{itemize}
@@ -508,7 +508,7 @@ symmetric spaces.
     symmetry constraints.
     \item \textbf{COE (Circular orthogonal ensemble)}: Consists of symmetric
     unitary matrices ($S = S^T$). These are constructed as $S = U U^T$ where $U$
-    is Haar-distributed on $U(d)$. \texttt{IntU.jl} handles integrals over COE
+    is Haar-distributed on $U(d)$. \texttt{IntegrateUnitary.jl} handles integrals over COE
     by mapping the moments of $S$ to higher-order moments of $U$, reducing the
     problem to standard unitary Weingarten calculus.
     \item \textbf{CSE (Circular symplectic ensemble)}: Consists of self-dual
@@ -529,7 +529,7 @@ $\mathcal{D} \subset U(d)$ is a $t$-design if:
 \end{equation}
 for all polynomials $P$ of degree $q \le t$ in the entries of $U$ and $\bar{U}$.
 
-\texttt{IntU.jl} provides the \texttt{dDesign(d, t)} measure to represent
+\texttt{IntegrateUnitary.jl} provides the \texttt{dDesign(d, t)} measure to represent
 such ensembles. The implementation enforces the moment-matching condition as
 follows:
 \begin{enumerate}
@@ -561,9 +561,9 @@ purity by integrating the trace of the squared reduced density matrix, as
 demonstrated in Section~\ref{sec:performance}.
 
 \subsection{Symbolic dimensions and asymptotics}
-A standout feature of \texttt{IntU.jl} is its deep support for symbolic dimensions $d$.
+A standout feature of \texttt{IntegrateUnitary.jl} is its deep support for symbolic dimensions $d$.
 By leveraging the polynomial nature of group characters and Schur functions,
-\texttt{IntU.jl} computes many supported element-wise and trace-of-product
+\texttt{IntegrateUnitary.jl} computes many supported element-wise and trace-of-product
 integrals as exact rational functions of $d$; for supported
 Haar/Weingarten-type matrix-group integrals, these take the form:
 \begin{equation}
@@ -590,7 +590,7 @@ observables, providing theoretical insights alongside numerical results.
 
 \subsection{Symbolic trace logic}
 To simplify the integration of high-rank tensor networks and complex trace
-expressions, \texttt{IntU.jl} introduces a \textbf{symbolic trace logic} system.
+expressions, \texttt{IntegrateUnitary.jl} introduces a \textbf{symbolic trace logic} system.
 This system abstracts away explicit tensor indices, allowing users to define
 computations in terms of coordinate-free matrix objects:
 \begin{itemize}
@@ -617,7 +617,7 @@ formulation of the problem.
 \subsection{ITensors.jl integration}
 \label{sec:itensors}
 Modern quantum circuit analysis and holographic duality models often rely on
-tensor network representations. \texttt{IntU.jl} provides a specialized
+tensor network representations. \texttt{IntegrateUnitary.jl} provides a specialized
 extension for \texttt{ITensors.jl} \cite{fishman2022itensor}, allowing users to
 integrate entire networks of \texttt{ITensor} objects symbolically.
 
@@ -634,21 +634,21 @@ be computationally prohibitive.
 \subsection{Comparison with existing tools}
 \label{sec:comparison}
 Table~\ref{tab:comparison} provides a detailed feature comparison of
-\texttt{IntU.jl} with the two most closely related packages: \texttt{RTNI}
+\texttt{IntegrateUnitary.jl} with the two most closely related packages: \texttt{RTNI}
 \cite{fukuda2019rtni}, a Mathematica package for integrating Haar-random tensor
 networks, and \texttt{Haarpy} \cite{cardin2024haarpy}, a Python library for
 Weingarten calculus over classical compact groups. The comparison highlights
 three key distinctions:
 \begin{enumerate}
     \item \textbf{Ensemble breadth}: Among the compared tools,
-    \texttt{IntU.jl} supports Gaussian, Ginibre, and circular ensembles
+    \texttt{IntegrateUnitary.jl} supports Gaussian, Ginibre, and circular ensembles
     alongside compact groups, as well as discrete structures such as
     permutation groups, unitary $t$-designs, Stiefel manifolds, and diagonal
     unitaries.
     \item \textbf{Symbolic abstractions}: Neither \texttt{RTNI} nor
     \texttt{Haarpy} provides asymptotic $1/d$ expansions or
-    \texttt{IntU.jl}-style symbolic trace logic. \texttt{Haarpy} does not
-    provide matrix-valued integration, while \texttt{IntU.jl} provides direct
+    \texttt{IntegrateUnitary.jl}-style symbolic trace logic. \texttt{Haarpy} does not
+    provide matrix-valued integration, while \texttt{IntegrateUnitary.jl} provides direct
     matrix-valued integration for concrete-size array outputs and
     \texttt{RTNI} exposes graph/tensor outputs that typically require
     additional trace or scalarization
@@ -656,7 +656,7 @@ three key distinctions:
     significantly reduce the manual effort required for common calculations.
     \item \textbf{Platform}: \texttt{RTNI} requires the proprietary Mathematica
     engine (though a Python port exists), while \texttt{Haarpy} and
-    \texttt{IntU.jl} are fully open-source. \texttt{IntU.jl}'s Julia
+    \texttt{IntegrateUnitary.jl} are fully open-source. \texttt{IntegrateUnitary.jl}'s Julia
     implementation offers JIT compilation and native type specialization,
     providing performance advantages for large-scale symbolic computations.
     Direct timing comparisons with \texttt{Haarpy} and \texttt{RTNI} are
@@ -672,7 +672,7 @@ $\checkmark$ = fully supported, $\sim$\textsuperscript{a}/$\sim$\textsuperscript
 \label{tab:comparison}
 \begin{tabular}{llccc}
 \hline
-Category & Feature & \texttt{IntU.jl} & \texttt{RTNI} & \texttt{Haarpy} \\
+Category & Feature & \texttt{IntegrateUnitary.jl} & \texttt{RTNI} & \texttt{Haarpy} \\
 \hline
 \multirow{4}{*}{Groups}
   & $U(d)$             & $\checkmark$ & $\checkmark$ & $\checkmark$ \\
@@ -749,7 +749,7 @@ The current implementation has several known limitations:
 
 \section{Usage examples}
 \label{sec:examples}
-We illustrate the capabilities of \texttt{IntU.jl} with several examples, ranging
+We illustrate the capabilities of \texttt{IntegrateUnitary.jl} with several examples, ranging
 from basic component-wise integration to high-level symbolic trace manipulations
 and asymptotic expansions. These examples demonstrate how the package's design
 principles facilitate practical research tasks.
@@ -757,12 +757,12 @@ principles facilitate practical research tasks.
 \subsection{Basic integration}
 Consider the partial moment $\int_{U(d)} |U_{11}|^2 dU$. This integral represents
 the average magnitude squared of a single entry of a Haar-random unitary matrix.
-In \texttt{IntU.jl}, this can be computed directly with \texttt{@integrate}:
+In \texttt{IntegrateUnitary.jl}, this can be computed directly with \texttt{@integrate}:
 the macro infers both the symbolic matrix symbol (\texttt{U}) and the symbolic
 dimension (\texttt{d}) from the measure context \texttt{dU(d)}:
 
 \begin{lstlisting}[language=Julia]
-using IntU
+using IntegrateUnitary
 # The @integrate macro infers U and d from the measure context
 result = @integrate abs(U[1,1])^2 dU(d)
 # Output: 1/d
@@ -814,15 +814,15 @@ These results contrast with the Haar unitary value of $1/d$, reflecting the
 constraints imposed by the respective symmetries ($S=S^T$ for COE, $S=S^R$ for CSE, $O^TO=I$ for orthogonal, and the symplectic form for $Sp(d)$).
 
 \subsection{Matrix integration}
-\texttt{IntU.jl} allows for the direct integration of matrix-valued expressions
+\texttt{IntegrateUnitary.jl} allows for the direct integration of matrix-valued expressions
 when the result dimensions are concrete integers. This eliminates the need for
 manual element-wise iteration or broadcasting, automatically performing the
 integration over all array entries. For Haar-random unitary matrices, we verify
 the relation $\int U U^\dagger dU = I$:
 \begin{lstlisting}[language=Julia]
-using IntU
+using IntegrateUnitary
 # Integrate the matrix product U * U'
-# IntU handles the element-wise operations internally
+# IntegrateUnitary handles the element-wise operations internally
 @integrate U * U' dU(2)
 # Output: Identity Matrix I
 \end{lstlisting}
@@ -847,12 +847,12 @@ This result neatly recovers the identity $\mathbb{E}[U A U^\dagger] =
 
 \subsection{Asymptotic expansions}
 Analyzing behavior in the large-$d$ limit is crucial for understanding
-thermodynamic properties and concentration of measure. \texttt{IntU.jl}
+thermodynamic properties and concentration of measure. \texttt{IntegrateUnitary.jl}
 facilitates this analysis by expanding exact rational results into power series.
 Consider the fourth moment of a matrix entry, $|U_{11}|^4$:
 
 \begin{lstlisting}[language=Julia]
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 # The shorthand factory functions can be used for explicit variable creation
 U = symbolic_unitary(:U, d)
@@ -868,7 +868,7 @@ observables, it directly exposes both leading behavior and finite-size
 corrections in powers of $1/d$:
 
 \begin{lstlisting}[language=Julia]
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 U = symbolic_unitary(:U, d)
 A = SymbolicMatrix(:A); B = SymbolicMatrix(:B)
@@ -898,7 +898,7 @@ The \texttt{asymptotic} function accepts any rational expression, so we can
 immediately extract the large-$n$ behavior:
 
 \begin{lstlisting}[language=Julia]
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables n
 page_purity = 2n / (n^2 + 1)
 asymptotic(page_purity, n, 5)
@@ -924,7 +924,7 @@ its adjoint $U^\dagger$, and constant tensors $A,B$, then compute its Haar
 average.
 
 \begin{lstlisting}[language=Julia]
-using IntU, ITensors
+using IntegrateUnitary, ITensors
 i, j, k, l = Index(2), Index(2), Index(2), Index(2)
 
 # Define U and its adjoint U_dag
@@ -1008,7 +1008,7 @@ and $\mathbb{E}[\mathrm{tr}(GG^\dagger)] = \sum_{i,j} \mathbb{E}[|G_{ij}|^2] = d
 
 \section{Implementation details}
 \label{sec:implementation}
-\texttt{IntU.jl} is written in pure Julia \cite{bezanson2017julia}, utilizing
+\texttt{IntegrateUnitary.jl} is written in pure Julia \cite{bezanson2017julia}, utilizing
 the language's multiple dispatch and metaprogramming features to build a highly
 modular and extensible system. The core architecture consists of three main
 components: the integration pipeline, the Weingarten engine, and the symbolic
@@ -1018,7 +1018,7 @@ flow.
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.85\textwidth]{figures/architecture.pdf}
-\caption{Architecture of \texttt{IntU.jl}. Scalar expressions follow the
+\caption{Architecture of \texttt{IntegrateUnitary.jl}. Scalar expressions follow the
 left path through normalization, substitution, expansion, and dispatch into
 the library lookup. Trace expressions are first analyzed by the symbolic
 trace logic, which reconstructs the Weingarten graph before entering the
@@ -1026,7 +1026,7 @@ same dispatch stage. Common patterns are returned directly by the library lookup
 in $\mathcal{O}(1)$ time, while misses fall through to the specialized engines.
 Performance-critical internals (representation-theoretic
 quantities and Weingarten-related data) are memoized/cached for reuse.}
-\Description{Architecture diagram of IntU.jl showing two flows: scalar expressions go through normalization, substitution, expansion, and dispatch into a library lookup; trace expressions first pass symbolic trace logic and graph reconstruction before the same dispatch stage. The library lookup returns common patterns in constant time, while remaining expressions fall through to specialized engines. Selected internal computations (for example characters, dimensions, and Weingarten data) are cached.}
+\Description{Architecture diagram of IntegrateUnitary.jl showing two flows: scalar expressions go through normalization, substitution, expansion, and dispatch into a library lookup; trace expressions first pass symbolic trace logic and graph reconstruction before the same dispatch stage. The library lookup returns common patterns in constant time, while remaining expressions fall through to specialized engines. Selected internal computations (for example characters, dimensions, and Weingarten data) are cached.}
 \label{fig:architecture}
 \end{figure*}
 
@@ -1057,7 +1057,7 @@ dispatch symbolic expressions efficiently:
 \subsection{Weingarten engine}
 The calculation of Weingarten functions and combinatorial contractions is
 centralized within a generic integration engine. To achieve high performance
-and extensibility, \texttt{IntU.jl} implements specialized logic for different
+and extensibility, \texttt{IntegrateUnitary.jl} implements specialized logic for different
 mathematical structures while sharing the top-level dispatch mechanism:
 \begin{itemize}
     \item \textbf{Unitary group}: Characters of the symmetric group are computed
@@ -1072,7 +1072,7 @@ mathematical structures while sharing the top-level dispatch mechanism:
     producing exact rational functions of $d$ where applicable.
     \item \textbf{Orthogonal and symplectic groups}: For these groups, the package generates pair partitions
     recursively, canonicalizing them (typically as sorted pairs) to enable $\mathcal{O}(1)$ lookup.
-    For symbolic dimensions $d$, \texttt{IntU.jl} utilizes a specialized univariate polynomial
+    For symbolic dimensions $d$, \texttt{IntegrateUnitary.jl} utilizes a specialized univariate polynomial
     solver based on the Bareiss algorithm~\cite{bareiss1968sylvester} with exact \texttt{BigInt} arithmetic.
     Furthermore, to ensure stability for high-degree Weingarten sums where traditional
     simplification can fail, the engine employs a custom exact rational summation logic.
@@ -1098,7 +1098,7 @@ mathematical structures while sharing the top-level dispatch mechanism:
 \end{itemize}
 
 \subsection{Symbolic trace logic}
-To handle high-level expressions, \texttt{IntU.jl} introduces specialized
+To handle high-level expressions, \texttt{IntegrateUnitary.jl} introduces specialized
 abstract types: \texttt{LazyTrace} and \texttt{LazySum}. These structures maintain
 the algebraic form of trace products (e.g., $\mathrm{tr}(A B) \mathrm{tr}(C)$)
 without strictly evaluating them into scalar components.
@@ -1121,7 +1121,7 @@ The integration strategy for these structures is twofold:
 \end{enumerate}
 
 \paragraph{Input validation}
-\texttt{IntU.jl} validates user inputs at the API boundary to provide clear
+\texttt{IntegrateUnitary.jl} validates user inputs at the API boundary to provide clear
 error messages. The package checks that Stiefel manifold parameters satisfy
 $k \le d$, that partial trace subsystem indices are within range, and that
 $t$-design integrals do not exceed the design order $t$. For the symplectic
@@ -1133,7 +1133,7 @@ design order).
 
 \section{Performance and benchmarks}
 \label{sec:performance}
-We evaluated the performance of \texttt{IntU.jl} using a suite of stress tests
+We evaluated the performance of \texttt{IntegrateUnitary.jl} using a suite of stress tests
 involving high-degree polynomial integrals over the unitary, orthogonal, and
 symplectic groups. The benchmarks were run on a workstation equipped with an
 Intel Core i7-12700KF processor (12 cores, 20 threads) and 64 GB of RAM (Julia
@@ -1143,7 +1143,7 @@ tensor-network workloads. The entry-moment cases test high-degree symbolic
 arithmetic and shortcut dispatch, while the mixed-index and tensor-network
 cases exercise the general combinatorial contraction paths.
 
-All native \texttt{IntU.jl} benchmarks in this section were performed using the
+All native \texttt{IntegrateUnitary.jl} benchmarks in this section were performed using the
 \texttt{BenchmarkTools.jl} package, and reported execution times represent the
 median of $N=30$ cold-cache samples, with memoization caches cleared before
 each sample. These results \emph{exclude} the initial JIT compilation and
@@ -1153,7 +1153,7 @@ use. Cross-tool comparisons (Sections
 benchmark scripts with adaptive sample counts for very slow cases; those
 policies are stated in the corresponding subsections. The reproduction script
 \texttt{benchmarks/00\_manuscript\_benchmarks.jl} generates the native
-\texttt{IntU.jl} benchmark tables in this section and can be executed via the
+\texttt{IntegrateUnitary.jl} benchmark tables in this section and can be executed via the
 runner described in Section \ref{sec:availability}. Cross-tool comparisons
 (Haarpy/RTNI) are generated by dedicated scripts in
 \texttt{benchmarks/haarpy\_benchmarks/} and
@@ -1306,7 +1306,7 @@ Application & Bipartite & $d=6$ & 9.81 \\
 \end{tabular}
 \end{table}
 
-The results demonstrate that \texttt{IntU.jl} remains efficient for practically
+The results demonstrate that \texttt{IntegrateUnitary.jl} remains efficient for practically
 relevant problem sizes. The rapid execution of the bipartite state application ($\approx$
 9.81 ms) highlights the library's utility for routine quantum information tasks,
 while the sub-millisecond performance for low-degree orthogonal integrals
@@ -1359,7 +1359,7 @@ Orthogonal & 6 & 3 & 416.86 \\
 \subsection{Matrix integration benchmarks}
 We evaluated the performance of generic matrix integration by computing
 $\mathbb{E}[U U^\dagger]$ for $N \times N$ symbolic matrices over $U(d)$. The
-results (Table \ref{tab:matrix_bench}) demonstrate efficient scaling, as IntU
+results (Table \ref{tab:matrix_bench}) demonstrate efficient scaling, as IntegrateUnitary
 automatically handles the element-wise operations.
 
 \begin{table}[h]
@@ -1382,23 +1382,23 @@ $4 \times 4$ & 12.53 & 4.84 \\
 \subsection{Performance comparison with Haarpy}
 \label{sec:haarpy_comparison}
 To provide a direct quantitative comparison with existing tools, we benchmarked
-\texttt{IntU.jl} against \texttt{Haarpy} \cite{cardin2024haarpy}, the most
+\texttt{IntegrateUnitary.jl} against \texttt{Haarpy} \cite{cardin2024haarpy}, the most
 closely comparable open-source package. Both packages were evaluated on the same
 machine using identical integrands. We tested both \emph{diagonal} moments
 ($|M_{11}|^{2k}$), which admit closed-form shortcuts, and \emph{off-diagonal}
 products (e.g., $|U_{11}|^2|U_{12}|^2$), which exercise the general Weingarten
-summation path. On the \texttt{IntU.jl} side, each row reports the median over
+summation path. On the \texttt{IntegrateUnitary.jl} side, each row reports the median over
 fixed $N=30$ cold-cache samples, with memoization caches cleared before every
 sample. On the \texttt{Haarpy} side, each row reports the median with default
 $N=30$ samples. The script includes probe-based adaptive reduction to $N=5$
 for very slow cases, but this rerun stayed at $N=30$ for all reported rows.
-Timings exclude JIT warm-up for \texttt{IntU.jl} and import overhead for
+Timings exclude JIT warm-up for \texttt{IntegrateUnitary.jl} and import overhead for
 \texttt{Haarpy}. Speedups are computed from these per-row medians. The
 comparison scripts are available in
 \texttt{benchmarks/haarpy\_benchmarks/}.
 
 Table~\ref{tab:haarpy_comparison} summarizes the results. For unitary integrals,
-\texttt{IntU.jl} achieves strong speedups for diagonal moments ($|U_{11}|^{2k}$,
+\texttt{IntegrateUnitary.jl} achieves strong speedups for diagonal moments ($|U_{11}|^{2k}$,
 $k = 3, 4, 5$): $12.0\times$, $27.5\times$, and $88.5\times$ in the symbolic-$d$
 rows, and $47.5\times$-$55.3\times$ in the numeric-$d$ rows. Off-diagonal
 unitary integrals range from near parity ($1.5\times$ for
@@ -1406,39 +1406,39 @@ $|U_{11}|^2|U_{22}|^2$) to substantial gains ($11.4\times$ for
 $|U_{11}|^4|U_{12}|^4$).
 
 The orthogonal group results reveal a more dramatic separation: while
-both packages handle low-degree cases efficiently, \texttt{IntU.jl} is already
+both packages handle low-degree cases efficiently, \texttt{IntegrateUnitary.jl} is already
 substantially faster ($O_{11}^2$: $34.7\times$, $O_{11}^4$: $70.0\times$),
-\texttt{IntU.jl}'s optimized univariate Weingarten solver delivers speedups
+\texttt{IntegrateUnitary.jl}'s optimized univariate Weingarten solver delivers speedups
 exceeding $2.7\times 10^4\times$ at degree 10. This disparity arises because
 \texttt{Haarpy} constructs and inverts the full $(2k{-}1)!! \times (2k{-}1)!!$
-Weingarten matrix even when a single entry suffices, whereas \texttt{IntU.jl}
+Weingarten matrix even when a single entry suffices, whereas \texttt{IntegrateUnitary.jl}
 exploits the structure of univariate integrands to bypass this cost entirely.
 Off-diagonal orthogonal integrals show a $4.5$-$6.0\times$ advantage.
 
-For the circular orthogonal ensemble (COE), \texttt{IntU.jl} uses a
+For the circular orthogonal ensemble (COE), \texttt{IntegrateUnitary.jl} uses a
 closed-form expression for diagonal moments, yielding $20.9$-$127.2\times$
 speedups that grow with the degree. We note that \texttt{Haarpy} (v0.0.6, the latest release available at
 time of writing) returned incorrect results (zero) for the off-diagonal COE
 integrals tested ($|S_{12}|^{2k}$, $|S_{11}|^2|S_{12}|^2$), which
-\texttt{IntU.jl} evaluates correctly; these cases are therefore excluded
+\texttt{IntegrateUnitary.jl} evaluates correctly; these cases are therefore excluded
 from the table.
 
-Overall, \texttt{IntU.jl} demonstrates a substantial performance
+Overall, \texttt{IntegrateUnitary.jl} demonstrates a substantial performance
 advantage across most tested groups, with the largest gains in high-order
 orthogonal and unitary diagonal moments.
 
 \begin{table}[ht]
   \centering
-  \caption{Performance comparison: \texttt{IntU.jl} vs.\ \texttt{Haarpy}
-  (IntU.jl: fixed $N=30$ cold-cache samples; Haarpy: default $N=30$ with
+  \caption{Performance comparison: \texttt{IntegrateUnitary.jl} vs.\ \texttt{Haarpy}
+  (IntegrateUnitary.jl: fixed $N=30$ cold-cache samples; Haarpy: default $N=30$ with
   probe-based reduction to $N=5$ enabled, not triggered in this run; speedup
-  $=$ Haarpy / IntU.jl from row
+  $=$ Haarpy / IntegrateUnitary.jl from row
   medians). Both packages were run on the same hardware; timings exclude
   JIT/import overhead.}
   \label{tab:haarpy_comparison}
   \begin{tabular}{llrrr}
     \hline
-    Group & Integrand & IntU.jl (ms) & Haarpy (ms) & Speedup \\
+    Group & Integrand & IntegrateUnitary.jl (ms) & Haarpy (ms) & Speedup \\
     \hline
     \multicolumn{5}{l}{\emph{Diagonal moments}} \\
     U($d$) & $|U_{11}|^6$, symbolic $d$ & 0.99 & 11.85 & 12.0$\times$ \\
@@ -1471,12 +1471,12 @@ orthogonal and unitary diagonal moments.
 
 \subsection{Performance comparison with RTNI}
 \label{sec:rtni_comparison}
-We benchmark \texttt{IntU.jl} against \texttt{RTNI} \cite{fukuda2019rtni} on
+We benchmark \texttt{IntegrateUnitary.jl} against \texttt{RTNI} \cite{fukuda2019rtni} on
 identical integrands over $U(d)$, executed on the same hardware.
 Table~\ref{tab:rtni_comparison} reports median runtimes (default $N=10$
 samples, adaptively reduced to $N=3$ for slow cases; JIT/import overhead
-excluded). The speedup is defined as $\mathrm{RTNI} / \mathrm{IntU.jl}$, so
-values greater than one indicate faster execution in \texttt{IntU.jl}.
+excluded). The speedup is defined as $\mathrm{RTNI} / \mathrm{IntegrateUnitary.jl}$, so
+values greater than one indicate faster execution in \texttt{IntegrateUnitary.jl}.
 All rows produce fully evaluated scalar results in both tools, ensuring an
 apples-to-apples comparison. For \texttt{RTNI}'s graph-based engine, this
 includes the cost of converting the internal graph representation to a scalar
@@ -1486,13 +1486,13 @@ in \texttt{benchmarks/rtni\_benchmarks/}.
 \begin{table*}[t]
   \centering
   % \footnotesize
-  \caption{Performance comparison: \texttt{IntU.jl} vs.\ \texttt{RTNI}
+  \caption{Performance comparison: \texttt{IntegrateUnitary.jl} vs.\ \texttt{RTNI}
   (Mathematica). Median runtime over repeated runs. All rows produce
   fully evaluated scalar results in both tools.}
   \label{tab:rtni_comparison}
   \begin{tabular}{llrrr}
     \hline
-    Group & Integrand & IntU.jl (ms) & RTNI (ms) & Speedup \\
+    Group & Integrand & IntegrateUnitary.jl (ms) & RTNI (ms) & Speedup \\
     \hline
     U($d$) (Element API) & $|U_{11}|^2$, symbolic $d$ & 1.34 & 0.53 & 0.4$\times$ \\
     U($d$) (Element API) & $|U_{11}|^4$, symbolic $d$ & 1.49 & 2.51 & 1.7$\times$ \\
@@ -1517,23 +1517,23 @@ in \texttt{benchmarks/rtni\_benchmarks/}.
 For element-wise integrals, the performance gap grows dramatically with
 polynomial degree. At the lowest order ($|U_{11}|^2$), \texttt{RTNI} is
 moderately faster ($0.3\times$). By degree eight ($|U_{11}|^8$),
-\texttt{IntU.jl} is over three orders of magnitude faster
-($3365\times$-$4072\times$), reflecting \texttt{IntU.jl}'s optimized
+\texttt{IntegrateUnitary.jl} is over three orders of magnitude faster
+($3365\times$-$4072\times$), reflecting \texttt{IntegrateUnitary.jl}'s optimized
 cycle-grouping strategy that avoids the full permutation-level expansion. For
 mixed-index integrals, performance is near parity at low degree
 ($0.9\times$-$1.0\times$ for $|U_{11}|^2|U_{12}|^2$) and diverges at higher
 degree ($14\times$-$15\times$ for $|U_{11}|^2|U_{12}|^4$). For trace-polynomial
 integrals, $\mathrm{tr}(UAU^\ast B)$ and $\mathrm{tr}((UAU^\ast B)^2)$,
-\texttt{IntU.jl} shows advantages of $2.8\times$ and $1.9\times$,
+\texttt{IntegrateUnitary.jl} shows advantages of $2.8\times$ and $1.9\times$,
 respectively.
 
 \section{Conclusion}
 \label{sec:conclusion}
-We have presented \texttt{IntU.jl}, a robust and extensible Julia package for
+We have presented \texttt{IntegrateUnitary.jl}, a robust and extensible Julia package for
 performing symbolic integration over the Haar measure of the unitary,
 orthogonal, and symplectic groups (and $SU(d)$ for balanced polynomials). By bridging the gap between the
 abstract theory of Weingarten calculus and practical computation,
-\texttt{IntU.jl} empowers researchers to rigorously derive properties of random
+\texttt{IntegrateUnitary.jl} empowers researchers to rigorously derive properties of random
 quantum channels, higher-order entanglement statistics, and scrambling measures
 without resorting to brittle or approximate numerical sampling.
 
@@ -1549,20 +1549,20 @@ demonstrated by the benchmarks, the optimized Julia implementation ensures that
 this symbolic abstraction does not come at the cost of performance, enabling the
 evaluation of high-degree moments that were previously intractable.
 
-Future development of \texttt{IntU.jl} will focus on expanding support to
+Future development of \texttt{IntegrateUnitary.jl} will focus on expanding support to
 exceptional Lie groups (particularly $G_2$, which arises in holonomy
 classification and string-theoretic compactifications), integrating finite-$d$
 corrections for $SU(d)$ beyond the stable range via $\epsilon$-tensor
 contractions, and further optimizing the asymptotic expansion engine for
-extremely large-scale problems. We believe \texttt{IntU.jl} will become an
+extremely large-scale problems. We believe \texttt{IntegrateUnitary.jl} will become an
 essential utility in the toolkit of theoretical physicists and quantum
 information scientists.
 
 \section{Software availability and reproducibility}
 \label{sec:availability}
-The source code for \texttt{IntU.jl} is available on GitHub under the Apache License 2.0.
+The source code for \texttt{IntegrateUnitary.jl} is available on GitHub under the Apache License 2.0.
 \begin{itemize}
-    \item \textbf{Repository URL}: \url{https://github.com/iitis/IntU.jl}
+    \item \textbf{Repository URL}: \url{https://github.com/iitis/IntegrateUnitary.jl}
     \item \textbf{License}: Apache License 2.0
     \item \textbf{Version}: The results in this paper were generated using
     version v1.0.0.
@@ -1570,7 +1570,7 @@ The source code for \texttt{IntU.jl} is available on GitHub under the Apache Lic
     versioned \texttt{Manifest.toml} files in \texttt{examples/} and
     \texttt{benchmarks/}. The benchmark/example runner scripts instantiate
     these environments before execution.
-    \item \textbf{Benchmarks}: Native IntU Julia benchmarks are turnkey from a
+    \item \textbf{Benchmarks}: Native IntegrateUnitary Julia benchmarks are turnkey from a
     clean checkout (with pinned Julia manifests). To reproduce them, run:
     \begin{lstlisting}[language=bash]
     bash benchmarks/runbenchmarks.sh

@@ -32,7 +32,7 @@ $$\langle \mathrm{tr}(\rho_A^2) \rangle = \frac{d_A + d_B}{d_A d_B + 1}.$$
 The following reproduces this result from first principles:
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 
 # System dimensions: two qubits
 d_A, d_B = 2, 2
@@ -62,7 +62,7 @@ The Page formula can be combined with `asymptotic` to recover the
 large-system behaviour directly:
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables n
 
 # Page formula for equal-size subsystems (d_A = d_B = n)

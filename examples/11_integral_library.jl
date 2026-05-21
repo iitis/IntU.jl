@@ -1,4 +1,4 @@
-using IntU
+using IntegrateUnitary
 using Symbolics
 
 println("=== Pre-computed Integral Library Examples ===\n")

@@ -46,13 +46,13 @@ function dU(dim)
 end
 
 
-IntU._measure_tag(::HaarMeasure) = :U
+IntegrateUnitary._measure_tag(::HaarMeasure) = :U
 
 function _manual_fallback(expr, measure::HaarMeasure)
     throw(ArgumentError("HaarMeasure integration failed for: $(typeof(expr))"))
 end
 
-IntU._reconstruct_symbolic(::HaarMeasure, d_asymp) = dU(d_asymp)
+IntegrateUnitary._reconstruct_symbolic(::HaarMeasure, d_asymp) = dU(d_asymp)
 
 
 function fallback_integrate(t::LazyTrace, measure::HaarMeasure)

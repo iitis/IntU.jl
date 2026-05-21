@@ -1,4 +1,4 @@
-module IntU
+module IntegrateUnitary
 
 using Symbolics
 using Combinatorics

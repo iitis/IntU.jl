@@ -1,4 +1,4 @@
-using IntU
+using IntegrateUnitary
 using Test
 using Symbolics
 using LinearAlgebra
@@ -10,21 +10,21 @@ using LinearAlgebra
     meas = dGUE(N)
 
     @testset "Tr(H)" begin
-        expr = IntU.tr(H)
+        expr = IntegrateUnitary.tr(H)
         res = integrate(expr, meas)
         # Expected: 0
         @test to_numeric(res) == 0
     end
 
     @testset "Tr(H^2)" begin
-        expr = IntU.tr(H^2)
+        expr = IntegrateUnitary.tr(H^2)
         res = integrate(expr, meas)
         # Expected: N^2
         @test to_numeric(res) == N^2
     end
 
     @testset "Tr(H^4)" begin
-        expr = IntU.tr(H^4)
+        expr = IntegrateUnitary.tr(H^4)
         res = integrate(expr, meas)
         # Expected: 2N^3 + N
         expected = 2*N^3 + N

@@ -1,4 +1,4 @@
-using IntU
+using IntegrateUnitary
 using Test
 using Symbolics
 
@@ -34,10 +34,10 @@ end
 
 function is_really_zero(x)
     x = Symbolics.simplify(x)
-    IntU._symbolic_isequal(x, 0) && return true
+    IntegrateUnitary._symbolic_isequal(x, 0) && return true
     x = Symbolics.expand(x)
     x = Symbolics.simplify(x)
-    IntU._symbolic_isequal(x, 0) && return true
+    IntegrateUnitary._symbolic_isequal(x, 0) && return true
 
     vars = Symbolics.get_variables(x)
     if isempty(vars)
@@ -61,7 +61,7 @@ function is_really_zero(x)
 end
 
 
-@testset verbose=true "IntU.jl Suite" begin
+@testset verbose=true "IntegrateUnitary.jl Suite" begin
     @testset verbose=true "Aqua Tests" begin
         include("aqua.jl")
     end
