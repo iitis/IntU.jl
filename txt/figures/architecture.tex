@@ -32,8 +32,10 @@
         minimum width=4.75cm, minimum height=0.92cm, align=center,
         font=\small\bfseries
     },
-    arr/.style={->, thick, black!70},
-    darr/.style={->, thick, black!45, dashed},
+    route/.style={thick, black!70},
+    droute/.style={thick, black!45, dashed},
+    arr/.style={route, ->},
+    darr/.style={droute, ->},
 ]
 
 % Top row: entry points
@@ -68,17 +70,21 @@
 \node[output, below=1.0cm of memo] (result) {Result: exact expression\\[-1pt]\footnotesize symbolic/numeric (scope-dependent)};
 
 % Dedicated routing lanes
-\coordinate (fanout_hub) at ($(dispatch.south)+(0,-0.5cm)$);
-\coordinate (outer_lane_top) at ($(library.east)+(1.05cm,0)$);
+\coordinate (library_out) at ([yshift=0.18cm]library.east);
+\coordinate (library_in) at ([yshift=0.18cm]library.west);
+\coordinate (outer_lane_top) at ($(library_out)+(1.05cm,0)$);
 \coordinate (outer_lane_bot) at ($(outer_lane_top |- result.east)$);
-\coordinate (trace_lane_x) at ($(library.east)+(2.05cm,0)$);
-\coordinate (trace_lane_top) at ($(trace_lane_x |- graph.south east)$);
-\coordinate (trace_lane_low) at ($(trace_lane_x |- dispatch.south)+(0,-0.75cm)$);
-\coordinate (trace_join) at ($(dispatch.east |- trace_lane_low)+(0.55cm,0)$);
+\coordinate (trace_over_lane) at ($(expand.north)+(0,0.28cm)$);
+\coordinate (trace_drop) at ($(graph.south |- trace_over_lane)$);
+\coordinate (trace_in) at (dispatch.north east);
+\coordinate (trace_side) at ($(trace_in)+(0.35cm,0)$);
+\coordinate (trace_turn) at (trace_side |- trace_over_lane);
 \coordinate (wg_u_in) at ($(wg_u.north)+(0,0.45cm)$);
 \coordinate (wg_o_in) at ($(wg_o.north)+(0,0.45cm)$);
 \coordinate (wick_in) at ($(wick.north)+(0,0.45cm)$);
 \coordinate (comb_in) at ($(comb.north)+(0,0.45cm)$);
+\coordinate (fanout_hub) at (comb_in);
+\coordinate (library_fallback_drop) at ($(library.south |- fanout_hub)$);
 
 % Entry arrows
 \draw[arr] (scalar) -- (norm);
@@ -90,23 +96,19 @@
 \draw[arr] (subs) -- (expand);
 \draw[arr] (expand) -- (dispatch);
 
-% Trace merge to dispatch via dedicated outer lane and underpass
-\draw[arr] (graph.south east) -- (trace_lane_top) -- (trace_lane_low) -- (trace_join) |- (dispatch.east);
+% Trace merge to dispatch via an upper lane above the library lookup
+\draw[arr] (graph.south) -- (trace_drop) -- (trace_turn) --
+    (trace_side) -- (trace_in);
 
 % Dispatch to library
-\draw[arr] (dispatch.east) -- (library.west);
+\draw[arr] ([yshift=0.18cm]dispatch.east) -- (library_in);
 
 % Library bypass to result via outer lane (avoids lower boxes)
-\draw[arr] (library.east) -- (outer_lane_top);
-\draw[arr] (outer_lane_top) -- (outer_lane_bot);
-\draw[arr] (outer_lane_bot) -- (result.east);
+\draw[arr] (library_out) -- (outer_lane_top) -- (outer_lane_bot) -- (result.east);
 
-% Dispatch fan-out through shared manifold and branch stubs above boxes
-\draw[arr] (dispatch.south) -- (fanout_hub);
-\draw[arr] (fanout_hub) |- (wg_u_in);
-\draw[arr] (fanout_hub) |- (wg_o_in);
-\draw[arr] (fanout_hub) |- (wick_in);
-\draw[arr] (fanout_hub) |- (comb_in);
+% Library fallback to engines through shared manifold and branch stubs above boxes
+\draw[route] (wg_u_in) -- (fanout_hub);
+\draw[route] (library.south) -- (library_fallback_drop) -- (fanout_hub);
 \draw[arr] (wg_u_in) -- (wg_u.north);
 \draw[arr] (wg_o_in) -- (wg_o.north);
 \draw[arr] (wick_in) -- (wick.north);
@@ -117,19 +119,23 @@
 \coordinate (memo_in2) at ($(memo.north west)!0.37!(memo.north east)$);
 \coordinate (memo_in3) at ($(memo.north west)!0.63!(memo.north east)$);
 \coordinate (memo_in4) at ($(memo.north west)!0.88!(memo.north east)$);
+\coordinate (memo_bus) at ($(memo.north)+(0,0.35cm)$);
+\coordinate (memo_bus1) at (memo_in1 |- memo_bus);
+\coordinate (memo_bus2) at (memo_in2 |- memo_bus);
+\coordinate (memo_bus3) at (memo_in3 |- memo_bus);
+\coordinate (memo_bus4) at (memo_in4 |- memo_bus);
 
-\draw[darr] (wg_u.south) |- (memo_in1);
-\draw[darr] (wg_o.south) |- (memo_in2);
-\draw[darr] (wick.south) |- (memo_in3);
-\draw[darr] (comb.south) |- (memo_in4);
+\draw[droute] (wg_u.south) -- (wg_u.south |- memo_bus) -- (memo_bus1);
+\draw[droute] (wg_o.south) -- (wg_o.south |- memo_bus) -- (memo_bus2);
+\draw[droute] (wick.south) -- (wick.south |- memo_bus) -- (memo_bus3);
+\draw[droute] (comb.south) -- (comb.south |- memo_bus) -- (memo_bus4);
+\draw[darr] (memo_bus1) -- (memo_in1);
+\draw[darr] (memo_bus2) -- (memo_in2);
+\draw[darr] (memo_bus3) -- (memo_in3);
+\draw[darr] (memo_bus4) -- (memo_in4);
 
 % Cache to result
 \draw[arr] (memo.south) -- (result.north);
-
-% O/Sp duality annotation in the gap between boxes
-\draw[darr, <->] ([yshift=-0.15cm]wg_u.east) --
-    node[below, font=\scriptsize, text=black!60] {$d\!\leftrightarrow\!-d$}
-    ([yshift=-0.15cm]wg_o.west);
 
 \end{tikzpicture}
 \end{document}

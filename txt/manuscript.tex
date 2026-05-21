@@ -1019,13 +1019,14 @@ flow.
 \centering
 \includegraphics[width=0.85\textwidth]{figures/architecture.pdf}
 \caption{Architecture of \texttt{IntU.jl}. Scalar expressions follow the
-left path through normalization, substitution, expansion, and dispatch to
-specialized engines. Trace expressions are first analyzed by the symbolic
+left path through normalization, substitution, expansion, and dispatch into
+the library lookup. Trace expressions are first analyzed by the symbolic
 trace logic, which reconstructs the Weingarten graph before entering the
-dispatch stage. Common patterns are intercepted by the library lookup for
-$\mathcal{O}(1)$ evaluation. Performance-critical internals (representation-theoretic
+same dispatch stage. Common patterns are returned directly by the library lookup
+in $\mathcal{O}(1)$ time, while misses fall through to the specialized engines.
+Performance-critical internals (representation-theoretic
 quantities and Weingarten-related data) are memoized/cached for reuse.}
-\Description{Architecture diagram of IntU.jl showing two flows: scalar expressions go through normalization, substitution, expansion, and dispatch to specialized engines; trace expressions first pass symbolic trace logic and graph reconstruction before dispatch. A library lookup path handles common patterns in constant time, and selected internal computations (for example characters, dimensions, and Weingarten data) are cached.}
+\Description{Architecture diagram of IntU.jl showing two flows: scalar expressions go through normalization, substitution, expansion, and dispatch into a library lookup; trace expressions first pass symbolic trace logic and graph reconstruction before the same dispatch stage. The library lookup returns common patterns in constant time, while remaining expressions fall through to specialized engines. Selected internal computations (for example characters, dimensions, and Weingarten data) are cached.}
 \label{fig:architecture}
 \end{figure*}
 
