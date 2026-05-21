@@ -12,7 +12,13 @@ vandermonde_det
 ```
 
 > [!NOTE]
-> `integrate(expr, measure)` is the universal entry point for all calculations in IntU.jl. It automatically handles symbolic dimensions, matrix-valued expressions, and library lookups.
+> `integrate(expr, measure)` is the universal entry point for all calculations
+> in IntU.jl. It handles matrix-valued expressions and library lookups, and
+> supports symbolic dimensions for a broad class of entry-wise and
+> trace-polynomial workflows. Some paths require concrete integer dimensions
+> (including `|tr(U)|^(2k)` for `k > 1`, `hciz` on `SymbolicMatrix` inputs, and
+> direct matrix-valued integration of `SymbolicMatrix` /
+> `SymbolicMatrixProduct` expressions).
 
 ## Measures
 
@@ -24,6 +30,7 @@ IntU.measure_info
 ### Unitary Group
 ```@docs
 dU
+dSU
 ```
 
 ### Orthogonal & Symplectic
@@ -31,6 +38,10 @@ dU
 dO
 dSp
 ```
+
+### Circular Ensembles
+
+See [Circular Ensembles](circular_ensembles.md) for `dCOE`, `dCSE`, `dCUE`.
 
 ### Gaussian Ensembles
 ```@docs
@@ -46,6 +57,8 @@ dGinSE
 ```@docs
 dPsi
 ```
+
+See [Stiefel Manifolds](stiefel_manifold.md) for `dStiefel`.
 
 ### Permutation Groups
 ```@docs
@@ -64,15 +77,16 @@ IntU.DiagonalUnitaryMeasure
 ```@docs
 IntU.SymbolicMatrix
 tr
+symbolic_unitary
+symbolic_orthogonal
+symbolic_symplectic
+symbolic_pure_state
+symbolic_permutation
 ```
 
 ## Quantum Information Utilities
 
 ```@docs
-purity
-average_purity
-fidelity
-average_fidelity
 partial_trace
 ```
 
@@ -84,7 +98,6 @@ These functions are part of the internal machinery but documented for developmen
 
 ```@docs
 integrate_indices
-IntU.integrate_indices_orthogonal
 IntU.integrate_indices_symplectic
 IntU.integrate_indices_permutation
 IntU.integrate_indices_diagonal

@@ -54,7 +54,7 @@ println("U: ", U)
 O = symbolic_orthogonal(:O, d)     # Shorthand for SymbolicMatrix(:O, :O, d)
 println("O: ", O)
 
-psi = symbolic_pure_state(:psi, d) # Shorthand for SymbolicMatrix(:psi, :psi, d)
+psi = symbolic_pure_state(:psi, d) # Shorthand for SymbolicMatrix(:psi, :psi, (d, 1))
 println("psi: ", psi)
 
 # These work seamlessly with the standard integrate() function:

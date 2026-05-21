@@ -18,6 +18,8 @@
 
 # Julia specific
 Manifest.toml
+!examples/Manifest.toml
+!benchmarks/Manifest.toml
 docs/build/
 docs/site/
 test/tmp/
@@ -34,3 +36,6 @@ test/tmp/
 *.synctex.gz
 *.pdf
 comment.cut
+
+*.json
+__pycache__

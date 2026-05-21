@@ -8,7 +8,6 @@ function run_benchmarks()
     measure = dU(d)
     Ud = U'
 
-    # Create constants
     A = SymbolicMatrix(:A)
     B = SymbolicMatrix(:B)
     C = SymbolicMatrix(:C)

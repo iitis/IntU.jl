@@ -8,22 +8,22 @@ U = SymbolicMatrix(:U, :U)
 
 # --- 1. Trace Moments ---
 println("\n--- Trace Moments: ∫ |Tr(U)|^(2k) dU ---")
-println("For large d, Tr(U) converges to a complex Gaussian.")
-println("Expected moments: k! (1, 2, 6, 24...) for d >= k")
+println("Pure trace moments |tr(U)|^{2k} depend on d as a step function,")
+println("so they require a concrete integer dimension (k > 1).")
+println("For d >= k the result equals k!.")
 
+# k=1 works with symbolic d
+expr1 = abs2(tr_lazy(U))
+val1 = integrate(expr1, dU(d))
+println("k=1 (symbolic d): $val1")
+
+# k >= 2 requires concrete d
+U10 = SymbolicMatrix(:U, :U, 10)
 for k = 1:3
-    # |Tr(U)|^(2k) = (Tr(U)Tr(U'))^k
-    expr = abs2(tr_lazy(U))^k
-
-    print("k=$k (Moment $(2*k))... ")
-    val = integrate(expr, dU(d))
-    expected = factorial(k)
-    println("Result: $val")
-
-    # The result should simplify to k! in the large-d limit or for d>=k
-    # We can use symbolic substitution to check specific values
-    val_at_d4 = Symbolics.substitute(val, Dict(d => 4))
-    println("  At d=4: $val_at_d4 (Expected: $expected)")
+    expr = abs2(tr_lazy(U10))^k
+    print("k=$k (d=10)... ")
+    val = integrate(expr, dU(10))
+    println("Result: $val (expected: $(factorial(k)))")
 end
 
 # --- 2. Determinant of a Minor ---

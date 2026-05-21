@@ -4,19 +4,31 @@
 Defines the Circular Unitary Ensemble measure for U(d).
 This is mathematically equivalent to the Haar measure on U(d).
 """
-dCUE(dim) = dU(dim)
+function dCUE(dim)
+    _assert_no_float_param(dim, "dim", "dCUE")
+    return dU(dim)
+end
 
 struct COEMeasure{D,M} <: AbstractMeasure
     dim::D
     matcher::M
 end
 COEMeasure(dim) = COEMeasure(dim, nothing)
+IntU._measure_tag(::COEMeasure) = :COE
 
 struct CSEMeasure{D,M} <: AbstractMeasure
     dim::D
     matcher::M
+    function CSEMeasure(dim::D, matcher::M) where {D,M}
+        d_int = _try_extract_int(dim)
+        if d_int !== nothing && isodd(d_int)
+            throw(ArgumentError("Dimension dim must be even for CSEMeasure, got $dim."))
+        end
+        new{D,M}(dim, matcher)
+    end
 end
 CSEMeasure(dim) = CSEMeasure(dim, nothing)
+IntU._measure_tag(::CSEMeasure) = :CSE
 
 @doc raw"""
     dCOE(dim)
@@ -24,7 +36,10 @@ CSEMeasure(dim) = CSEMeasure(dim, nothing)
 Defines the Circular Orthogonal Ensemble (COE) measure on U(N).
 Integration engine identifies variables via metadata tag `:COE`.
 """
-dCOE(dim) = COEMeasure(dim)
+function dCOE(dim)
+    _assert_no_float_param(dim, "dim", "dCOE")
+    return COEMeasure(dim)
+end
 
 @doc raw"""
     dCSE(dim)
@@ -32,33 +47,25 @@ dCOE(dim) = COEMeasure(dim)
 Defines the Circular Symplectic Ensemble (CSE) measure on U(2N).
 Integration engine identifies variables via metadata tag `:CSE`.
 """
-dCSE(dim) = CSEMeasure(dim)
-
-
-function IntU.measure_info(measure::COEMeasure)
-    subs_dict = Dict{Any,Any}()
-    matcher = measure.matcher === nothing ? MetadataMatcher(:COE) : measure.matcher
-    dim = measure.dim
-    if dim isa SymbolicMatrix
-        dim = dim.dim
-    end
-    return (subs_dict, matcher, dim, :COE)
+function dCSE(dim)
+    _assert_no_float_param(dim, "dim", "dCSE")
+    return CSEMeasure(dim)
 end
-
-function IntU.measure_info(measure::CSEMeasure)
-    subs_dict = Dict{Any,Any}()
-    matcher = measure.matcher === nothing ? MetadataMatcher(:CSE) : measure.matcher
-    dim = measure.dim
-    if dim isa SymbolicMatrix
-        dim = dim.dim
+  
+function _coe_diagonal_moment(m, dim)
+    num = one(Rational{BigInt})
+    for j = 1:m
+        num *= 2 * j
     end
-    return (subs_dict, matcher, dim, :CSE)
+    denom = one(Rational{BigInt})
+    for j = 0:(m-1)
+        denom *= (dim + 2 * j + 1)
+    end
+    return num / denom
 end
-
-
 
 @doc raw"""
-    integrate_indices_coe(all_indices, dim)
+    integrate_indices_coe(indices, U_bar_indices, dim)
 
 Integration of COE terms by reducing to Haar integration.
 
@@ -90,11 +97,7 @@ of connected components in a bipartite graph:
 
 The loop count is computed via union-find on these ``2m`` variable nodes.
 """
-function integrate_indices_coe(
-    indices::AbstractVector,
-    U_bar_indices::AbstractVector,
-    dim,
-)
+function integrate_indices_coe(indices::AbstractVector, U_bar_indices::AbstractVector, dim)
 
     n_s = length(indices)
     n_s_bar = length(U_bar_indices)
@@ -104,6 +107,31 @@ function integrate_indices_coe(
     end
 
     m = n_s
+
+    if m > 0
+        a, b = indices[1]
+        if a == b
+            all_same = true
+            for k = 2:m
+                if indices[k] != indices[1]
+                    all_same = false
+                    break
+                end
+            end
+            if all_same
+                for k = 1:m
+                    if U_bar_indices[k] != indices[1]
+                        all_same = false
+                        break
+                    end
+                end
+            end
+            if all_same
+                return _coe_diagonal_moment(m, dim)
+            end
+        end
+    end
+
     n = 2 * m
 
     U_rows = Vector{Any}(undef, n)
@@ -129,8 +157,6 @@ function integrate_indices_coe(
 
     is_full_group = length(valid_sigmas) == n_fact
 
-    permutations_n = collect(permutations(1:n))
-
     total = 0 // 1
 
     if is_full_group
@@ -155,7 +181,7 @@ function integrate_indices_coe(
         end
 
         loop_counts = Dict{Int,Int}()
-        for tau in permutations_n
+        for tau in permutations(1:n)
             uf = IntDisjointSets(2 * m)
             for r = 1:n
                 u = div(r - 1, 2) + 1
@@ -169,7 +195,7 @@ function integrate_indices_coe(
 
         sum_loops = 0 // 1
         for (loops, count) in loop_counts
-            sum_loops += count * (dim isa Integer ? dim : dim)^loops
+            sum_loops += count * dim^loops
         end
 
         return sum_wg * sum_loops
@@ -177,7 +203,7 @@ function integrate_indices_coe(
     else
         wg_coeffs = Dict{Vector{Int},Any}()
 
-        for tau in permutations_n
+        for tau in permutations(1:n)
             uf = IntDisjointSets(2 * m)
             for r = 1:n
                 u = div(r - 1, 2) + 1
@@ -186,7 +212,7 @@ function integrate_indices_coe(
                 union!(uf, u, m + v)
             end
             loops = num_groups(uf)
-            weight = (dim isa Integer ? dim : dim)^loops
+            weight = dim^loops
 
             if _symbolic_isequal(weight, 0)
                 continue
@@ -298,12 +324,11 @@ function integrate_indices_cse(
         return 0
     end
 
-    permutations_n = collect(permutations(1:n))
     total_val = 0 // 1
 
     wg_coeffs = Dict{Vector{Int},Any}()
 
-    for tau in permutations_n
+    for tau in permutations(1:n)
         possible = true
         uf = ParityUnionFind(2 * m)
 

@@ -51,13 +51,17 @@ integrate(P[1, 1] * P[2, 2], dPerm(d))
 
 The integral of a monomial $P_{i_1, j_1} P_{i_2, j_2} \dots P_{i_k, j_k}$
 follows simple combinatorial rules:
-1. **Consistency**: If the set of pairs $\{(i_m, j_m)\}$ overlaps in rows but
+1. **Deduplication**: Repeated identical factors are collapsed first, i.e., the
+   rule is applied to the set of distinct pairs $\{(i_m, j_m)\}$.
+2. **Consistency**: If this set overlaps in rows but
    not columns (e.g., $P_{11}P_{12}$) or vice versa, the integral is **$0$**
    because no permutation matrix can have two $1$s in the same row or column.
-2. **Monomial Integration**: If the indices are consistent (i.e., all $i_m$ are distinct and all $j_m$ are distinct), the result is:
+3. **Monomial Integration**: If the distinct pairs are consistent (all rows
+   distinct and all columns distinct), the result is:
 ```math
 \mathbb{E}[P_{i_1, j_1} \dots P_{i_k, j_k}] = \frac{(d-k)!}{d!}
 ```
+where $k$ is the number of distinct index pairs after deduplication.
 
 ---
 
@@ -124,3 +128,10 @@ using IntU, Symbolics
 @integrate tr(P * A) dPerm(d)
 # Output: Sum(A_ij) / d
 ```
+
+## See Also
+
+- [Unitary Integration](unitary_integration.md) — Weingarten calculus for $U(d)$
+- [Diagonal Unitaries](diagonal_unitary.md) — integration over the torus (phase matrices)
+- [Asymptotic Expansions](asymptotic.md) — large-$d$ limits
+- [Symbolic Trace Logic](symbolic_trace.md) — index-free trace expressions

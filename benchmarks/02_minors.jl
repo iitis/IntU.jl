@@ -15,21 +15,17 @@ function benchmark_minors(d_vals, sizes)
             end
             println("  $s x $s Minor")
 
-            # Create a simple minor: det(U[1:s, 1:s])
-            # For s=2: U[1,1]*U[2,2] - U[1,2]*U[2,1]
             if s == 1
                 expr = abs(U_sym[1, 1])^2
             elseif s == 2
                 expr = abs(U_sym[1, 1]*U_sym[2, 2] - U_sym[1, 2]*U_sym[2, 1])^2
             else
-                # Using det for larger minors
                 expr = abs(det(U_sym[1:s, 1:s]))^2
             end
 
             # Warmup
             integrate(expr, measure)
 
-            # Benchmark
             t = @benchmark integrate($expr, $measure)
             display(t)
             println()

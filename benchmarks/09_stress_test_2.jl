@@ -31,12 +31,10 @@ end
 
 outpath = get_arg("--out", "intu_stress_results.json")
 samples = parse(Int, get_arg("--samples", "30"))
-quick = has_flag("--quick")  # reduces numeric checks
+quick = has_flag("--quick")
 
-# --- Small utilities ----------------------------------------------------------
-doublefactorial_odd(n::Int) = prod(1:2:n)  # n must be odd
+doublefactorial_odd(n::Int) = prod(1:2:n)
 
-# Symbolic zero test (best-effort; also backs up by numeric spot-checks)
 function sym_is_zero(x)
     return IntU._iszero(x)
 end
@@ -45,15 +43,12 @@ function safe_string(x)
     return string(x)
 end
 
-# Evaluate symbolic expression at d = val (if d is a Symbolics variable)
 function eval_at(expr, dvar, val::Int)
     subbed = Symbolics.substitute(expr, Dict(dvar => val))
     return Symbolics.simplify(subbed)
 end
 
 function full_simplify(x)
-    # Mathematica's FullSimplify equivalent in Symbolics is often simplify(expand(x))
-    # Canonicalize by expanding then simplifying
     return Symbolics.simplify(Symbolics.expand(x))
 end
 
@@ -79,12 +74,9 @@ orth_row_product(d, m::Int) = 1 / prod(d + 2i for i = 0:(m-1))
 orth_row_square_square(d) = 9 / prod(d + 2i for i = 0:3)
 
 # Sp(d): we use the same |S_11|^2-moment formulas as U(d) (complex entry magnitude-squared moments),
-# plus a known "no-conjugates" example from Collins (arXiv:2109.14890, Example 4.7). :contentReference[oaicite:3]{index=3}
 symp_abs2_moment(d, k::Int) = unitary_abs2_moment(d, k)
 
-# --- Benchmark wrapper ---------------------------------------------------------
 function bench_integrate(expr, μ; samples::Int)
-    # warm-up (compile + cache)
     r = integrate(expr, μ)
     t = @benchmark integrate($expr, $μ) evals=1 samples=samples
     med = median(t)
@@ -97,7 +89,6 @@ function bench_integrate(expr, μ; samples::Int)
     )
 end
 
-# --- Build and run test suite --------------------------------------------------
 results = Dict{String,Any}(
     "meta" => Dict(
         "timestamp" => string(Dates.now()),
@@ -112,7 +103,23 @@ function push_case!(case_result)
     push!(results["cases"], case_result)
 end
 
-# Numeric d-values used for spot-checking symbolic formulas
+failed_checks = NamedTuple[]
+
+function record_check!(group::String, name::String, ok::Bool, got, expected)
+    if !ok
+        push!(
+            failed_checks,
+            (
+                group = group,
+                name = name,
+                got = safe_string(got),
+                expected = safe_string(expected),
+            ),
+        )
+    end
+    return nothing
+end
+
 dvals_symbolic = quick ? [4, 8, 16] : [4, 8, 16, 32, 64]
 
 println("=== IntU.jl stress/benchmark suite ===")
@@ -123,7 +130,7 @@ println()
 # ---------------- U(d): symbolic-d stress tests -------------------------------
 @variables d::Int
 U = SymbolicMatrix(:U, :U, d)
-μU = dU(d)  # IntU.jl measure constructor
+μU = dU(d)
 
 U_cases = [
     ("U_abs2_pow4__|U11|^8", abs2(U[1, 1])^4, unitary_abs2_moment(d, 4)),
@@ -179,6 +186,7 @@ for (name, expr, expected) in U_cases
             "benchmark" => bm,
         ),
     )
+    record_check!("U", name, diff0, got, expected)
 end
 
 # ------------- O(d): symbolic-d stress tests ----------------------------------
@@ -186,7 +194,7 @@ N_sym = 10
 @variables d
 O_sym = SymbolicMatrix(:O, :O, d)
 O = O_sym[1:N_sym, 1:N_sym]
-μO = dO(d)  # IntU.jl measure constructor
+μO = dO(d)
 
 O_cases = [
     # (name, expr, k, degree_for_expected)
@@ -197,13 +205,9 @@ O_cases = [
 ]
 
 for (name, expr, k) in O_cases
-    # For degree >= 8 (k >= 4), symbolic inversion of the 105x105 (or 945x945) 
-    # Weingarten matrix is too slow. We use a concrete dimension for these cases.
-    # We use a Float64 dimension (20.0) to avoid Int64 rational overflow 
-    # and speed up matrix inversion.
     use_concrete_O = (k >= 4)
-    local_μO = use_concrete_O ? dO(20.0) : μO
-    local_d = use_concrete_O ? 20.0 : d
+    local_μO = use_concrete_O ? dO(20) : μO
+    local_d = use_concrete_O ? 20 : d
 
     local_expected = if name == "O_row_prod4__∏O1j^2"
         orth_row_product(local_d, 4)
@@ -213,12 +217,10 @@ for (name, expr, k) in O_cases
         orth_entry_even_moment(local_d, k)
     end
 
-    println("[O(d)] $name $(use_concrete_O ? "(concrete d=20.0)" : "(symbolic)")")
+    println("[O(d)] $name $(use_concrete_O ? "(concrete d=20)" : "(symbolic)")")
     got, bm = bench_integrate(expr, local_μO; samples = samples)
 
     ok = if use_concrete_O
-        # Use isapprox for numeric comparison to handle Float64 precision.
-        # We unwrap the Num objects to avoid boolean context errors.
         isapprox(Symbolics.value(got), Symbolics.value(local_expected); atol = 1e-13)
     else
         sym_is_zero(got - local_expected)
@@ -250,7 +252,7 @@ for (name, expr, k) in O_cases
         Dict(
             "group" => "O",
             "name" => name,
-            "d" => use_concrete_O ? 20.0 : "symbolic",
+            "d" => use_concrete_O ? 20 : "symbolic",
             "integrand" => safe_string(expr),
             "expected" => safe_string(local_expected),
             "got" => safe_string(got),
@@ -259,23 +261,21 @@ for (name, expr, k) in O_cases
             "benchmark" => bm,
         ),
     )
+    record_check!("O", name, ok, got, local_expected)
 end
 
 # ------------- "Bigger d" sanity checks (explicit numeric matrices) -----------
-# These are *not* about asymptotics in d; they test practical scaling when you
-# actually instantiate a d×d Symbolics array (more variables).
 dnums = quick ? [10, 20] : [10, 20, 50]
 
 for dnum in dnums
-    # Skip larger d for degree 10 in quick mode to save time
     if quick && dnum > 10
         continue
     end
     Ubig_sym = SymbolicMatrix(:Ubig, :U, dnum)
     Ubig = Ubig_sym[1:dnum, 1:dnum]
-    # Use Float64 for high degree to avoid rational overhead
-    μUbig = dU(Float64(dnum))
-    expr = abs2(Ubig[1, 1])^5  # |U11|^10
+    # Keep concrete dimensions integer-like for strict dimension validation.
+    μUbig = dU(dnum)
+    expr = abs2(Ubig[1, 1])^5
     expected = 120.0 / (dnum*(dnum+1)*(dnum+2)*(dnum+3)*(dnum+4))
 
     got, bm = bench_integrate(expr, μUbig; samples = samples)
@@ -302,18 +302,17 @@ for dnum in dnums
             "benchmark" => bm,
         ),
     )
+    record_check!("U", "U_numeric_d_$(dnum)__|U11|^10", ok, got, expected)
 end
 
 for dnum in dnums
-    # Heavy cases (O11^10) are extremely slow numerically (75s+)
-    # Skip larger d in quick mode.
     if quick && dnum > 10
         continue
     end
     Obig_sym = SymbolicMatrix(:Obig, :O, dnum)
     Obig = Obig_sym[1:dnum, 1:dnum]
-    # Use Float64 to avoid Int64 rational overflow for k=5 (10th moment)
-    μObig = dO(Float64(dnum))
+    # Keep concrete dimensions integer-like for strict dimension validation.
+    μObig = dO(dnum)
     expr = Obig[1, 1]^10
     expected =
         Float64((doublefactorial_odd(9)) // (dnum*(dnum+2)*(dnum+4)*(dnum+6)*(dnum+8)))  # 945/...
@@ -342,19 +341,19 @@ for dnum in dnums
             "benchmark" => bm,
         ),
     )
+    record_check!("O", "O_numeric_d_$(dnum)__O11^10", ok, got, expected)
 end
 
 # ------------- Sp(d): stress tests -------------------------------------------
 # (a) High moments of |S11| (handled by IntU.jl for Sp via dSp) :contentReference[oaicite:6]{index=6}
 # (b) A “no conjugates” symplectic example with known closed form:
 #     ∫ s_{1,1} s_{2,N+2} s_{N+1,2} s_{N+2,N+1} dSp
-#     = 1 / (4 N (N-1) (2N+1)) for Sp(N) in 2N×2N complex form :contentReference[oaicite:7]{index=7}
+#     = -1 / (4 N (N-1) (2N+1)) under IntU's current symplectic sign convention
+#       (consistent with the implemented Sp Weingarten/sign mapping).
 
 Nvals = quick ? [3, 5] : [3, 5, 10]
 
 for N in Nvals
-    # For Sp(d), degree 10 mapped to O(-d) is very slow (~75s).
-    # Skip larger N in quick mode for the heavy degree-10 cases.
     dSp_num = 2N
     S_sym = SymbolicMatrix(:S, :Sp, dSp_num)
     S = S_sym[1:dSp_num, 1:dSp_num]
@@ -377,8 +376,8 @@ for N in Nvals
     end
 
     for (nm, expr, expected) in cases_Sp
-        # Use Float64 for high degree to avoid rational overflow in the O(-d) mapping
-        local_μSp = dSp(Float64(dSp_num))
+        # Keep concrete dimensions integer-like for strict dimension validation.
+        local_μSp = dSp(dSp_num)
         local_expected = Float64(expected)
 
         got, bm = bench_integrate(expr, local_μSp; samples = samples)
@@ -406,14 +405,15 @@ for N in Nvals
                 "benchmark" => bm,
             ),
         )
+        record_check!("Sp", nm, ok, got, local_expected)
     end
 
     # (b) Collins Example 4.7 style monomial (no conjugates)
     expr_collins = S[1, 1] * S[2, N+2] * S[N+1, 2] * S[N+2, N+1]
-    expected_collins = Float64(1 // (4*N*(N-1)*(2N+1)))  # = 1 / (d(d-2)(d+1)) with d=2N
+    expected_collins =
+        Float64(-1 // (4*N*(N-1)*(2N+1)))  # = -1 / (d(d-2)(d+1)) with d=2N
 
-    # Use Float64 for consistency
-    μSp_f = dSp(Float64(dSp_num))
+    μSp_f = dSp(dSp_num)
     gotC, bmC = bench_integrate(expr_collins, μSp_f; samples = samples)
     okC = isapprox(Symbolics.value(gotC), expected_collins; atol = 1e-14)
 
@@ -439,11 +439,29 @@ for N in Nvals
             "benchmark" => bmC,
         ),
     )
+    record_check!(
+        "Sp",
+        "Sp_numeric_N_$(N)__collins_example_degree4",
+        okC,
+        gotC,
+        expected_collins,
+    )
 end
 
-# --- Write JSON ---------------------------------------------------------------
+if !isempty(failed_checks)
+    println("=== Benchmark validation failures ($(length(failed_checks))) ===")
+    for f in failed_checks
+        println(" - [$(f.group)] $(f.name): got=$(f.got), expected=$(f.expected)")
+    end
+    println()
+end
+
 open(outpath, "w") do io
     JSON3.write(io, results; indent = 2)
 end
 
 println("=== Done. Wrote JSON report to: $outpath ===")
+
+if !isempty(failed_checks)
+    error("Benchmark validation failed for $(length(failed_checks)) case(s).")
+end

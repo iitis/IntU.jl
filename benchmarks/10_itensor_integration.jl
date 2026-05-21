@@ -3,7 +3,6 @@ using ITensors
 using BenchmarkTools
 using LinearAlgebra
 
-# Helper to create a loop/trace network of degree k
 function create_trace_network(dim, k, measure_type = :U)
     out_indices = [Index(dim, "Out,$i") for i = 1:k]
     in_indices = [Index(dim, "In,$i") for i = 1:k]
@@ -27,7 +26,6 @@ function create_trace_network(dim, k, measure_type = :U)
             push!(tensors, U)
             push!(tensors, U_dag)
         end
-        # Create a trace by connecting Out[i] to In[i+1] and In[i] to Out[i+1] etc.
         for i = 1:k
             next_i = (i % k) + 1
             A = randomITensor(in_indices[i], out_indices[next_i])
@@ -45,7 +43,6 @@ function create_trace_network(dim, k, measure_type = :U)
             )
             push!(tensors, O)
         end
-        # Need even number of unitaries for O
         if isodd(k)
             push!(
                 tensors,
@@ -54,7 +51,7 @@ function create_trace_network(dim, k, measure_type = :U)
                     in_indices = [in_indices[1]],
                     is_adj = false,
                 ),
-            ) # Placeholder
+            )
         end
         return tensors, dO(dim)
     elseif measure_type == :Sp

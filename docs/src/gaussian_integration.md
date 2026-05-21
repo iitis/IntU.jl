@@ -1,7 +1,5 @@
 # Gaussian Ensembles Integration
 
-# Gaussian Random Matrix Integration
-
 This section details the integration of polynomial functions over Gaussian Random Matrix Ensembles:
 the Gaussian Unitary Ensemble (GUE), the Gaussian Orthogonal Ensemble (GOE), and the Gaussian Symplectic Ensemble (GSE).
 
@@ -36,6 +34,7 @@ The contraction rule involves the symplectic form $J$:
 \langle H_{ij} H_{kl} \rangle_{GSE} = \delta_{il} \delta_{jk} + (J)_{ik} (J)_{jl}
 ```
 IntU.jl implements GSE integration by mapping it to contractions involving the definition of the symplectic metric.
+For concrete integer dimensions, `dGSE(n)` requires even `n`; odd `n` throws an `ArgumentError`.
 
 ## Ginibre Ensembles
 
@@ -59,10 +58,12 @@ Matrices $G$ with i.i.d. real Gaussian entries. The contraction rule is:
 ### GinSE (Symplectic Ginibre Ensemble)
 
 Matrices $G$ with i.i.d. quaternionic Gaussian entries. Integrals are computed using duality relations.
+For concrete integer dimensions, `dGinSE(n)` requires even `n`; odd `n` throws an `ArgumentError`.
 
 ## Usage
 
 You can define the Gaussian measures using `dGUE`, `dGOE`, `dGSE`, `dGinUE`, `dGinOE`, and `dGinSE`.
+For concrete integer dimensions, `dGSE(n)` and `dGinSE(n)` require even `n`.
 
 ### GUE Example
 
@@ -71,10 +72,18 @@ using IntU, Symbolics
 
 # GUE Measure with symbolic dimension
 # Average Trace of H^2
-# < Tr(H^2) > = d^2
+# < tr(H^2) > = d^2
 res = @integrate tr(H^2) dGUE(d)
 println(res)
 # Output: d^2
+
+# Average Trace of H^4
+# < tr(H^4) > = 2d^3 + d
+res4 = @integrate tr(H^4) dGUE(d)
+
+# Average Trace of H^6
+# < tr(H^6) > = 5d^4 + 10d^2
+res6 = @integrate tr(H^6) dGUE(d)
 ```
 
 ### GinUE Example
@@ -82,10 +91,21 @@ println(res)
 ```julia
 # GinUE Measure with symbolic dimension
 # Average Trace of G G'
-# < Tr(G G') > = d^2
+# < tr(G G') > = d^2
 res_ginue = @integrate tr(G * G') dGinUE(d)
 println(res_ginue)
 # Output: d^2
+
+# Average Trace of (G G')^2
+# < tr(G G' G G') > = 2d^3
+res_ginue_sq = @integrate tr(G * G' * G * G') dGinUE(d)
+
+# Wishart-style moments
+# < tr(G G')^2 > = d^4 + d^2
+x2 = @integrate tr(G * G')^2 dGinUE(d)
+
+# < tr((G G')^2) > = 2d^3
+y2 = @integrate tr((G * G')^2) dGinUE(d)
 ```
 
 ### GOE Example
@@ -93,7 +113,7 @@ println(res_ginue)
 ```julia
 # GOE Measure
 # Average Trace of H^2
-# < Tr(H^2) > = d^2 + d
+# < tr(H^2) > = d^2 + d
 res_goe = @integrate tr(H^2) dGOE(d)
 println(res_goe)
 # Output: d^2 + d
@@ -104,7 +124,7 @@ println(res_goe)
 ```julia
 # GSE Measure
 # Average Trace of H^2
-# < Tr(H^2) > = d^2 - d
+# < tr(H^2) > = d^2 - d
 res_gse = @integrate tr(H^2) dGSE(d)
 println(res_gse)
 # Output: d^2 - d
@@ -128,6 +148,14 @@ IntU.jl automates the following steps:
 3.  **Contraction**: For each pair, applies the specific ensemble contraction rule.
 4.  **Summation**: Sums the contributions.
 
+## Potential Pitfalls
+
+> [!IMPORTANT]
+> ### Symbolic (d) Pitfalls
+> - **Small Dimensions**: For Haar-related measures (Unitary, Orthogonal, Circular), element-wise results are rational functions with poles at small $d$ (typically $d < n$ for degree $n$ moments). Pure trace moments $|\mathrm{tr}(U)|^{2k}$ are an exception: they depend on $d$ as a step function and require a concrete integer dimension.
+> - **Removable Singularities**: Substituting numeric values can yield $0/0$ forms (e.g., at $d=1$ or $d=2$).
+> - **Automatic Handling**: `IntU.jl`'s `evaluate` function automatically simplifies expressions to resolve removable singularities when a denominator evaluates to zero.
+
 ## References
 
 1.  **Mehta, M. L.** (2004). *Random Matrices*. Elsevier.
@@ -137,4 +165,25 @@ IntU.jl automates the following steps:
 
 ## Pre-computed Moments
 
-For common moments like $\langle \text{Tr}(H^2) \rangle$, $\langle \text{Tr}(H^4) \rangle$, and $\langle \text{Tr}(H^6) \rangle$, `IntU.jl` uses a [Pre-computed Integral Library](integral_library.md) to provide results instantly.
+For common moments like $\langle \text{Tr}(H^2) \rangle$,
+$\langle \text{Tr}(H^4) \rangle$, and $\langle \text{Tr}(H^6) \rangle$,
+`IntU.jl` uses a [Pre-computed Integral Library](integral_library.md) to
+provide results instantly.
+
+> [!TIP]
+> Cached paths include:
+> - low-order trace moments for GUE/GOE/GSE,
+> - Gaussian element-wise second moments,
+> - GinUE low-order trace moments (`tr(GG^\dagger)`, `tr((GG^\dagger)^2)`,
+>   `tr(GG^\dagger)^2`),
+> - second trace moments for GinOE/GinSE.
+>
+> These are returned in $\mathcal{O}(1)$ by the
+> [Integral Library](integral_library.md).
+
+## See Also
+
+- [Integral Library](integral_library.md) — pre-computed Gaussian/Ginibre moments
+- [Asymptotic Expansions](asymptotic.md) — large-$d$ limit of Gaussian moments
+- [Unitary Integration](unitary_integration.md) — Weingarten calculus for $U(d)$
+- [Circular Ensembles](circular_ensembles.md) — COE, CUE, CSE

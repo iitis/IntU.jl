@@ -67,4 +67,49 @@ using LinearAlgebra
         res_num_2 = map(x -> Float64(to_numeric(real(x))), res_matrix_2)
         @test res_num_2 ≈ I_mat
     end
+
+    @testset verbose=true "High-Order Single-Entry Moments" begin
+        U10 = SymbolicMatrix(:U, :U, 10)
+        res20 = integrate(abs(U10[1, 1])^20, dU(10))
+        expected20 = factorial(big(10)) // prod(BigInt(10):BigInt(19))
+        @test res20 == expected20
+
+        U_sym = SymbolicMatrix(:U, :U, d)
+        res20_sym = integrate(abs(U_sym[1, 1])^20, dU(d))
+        expected20_sym = factorial(big(10)) / prod(d + k for k = 0:9)
+        @test is_really_zero(Symbolics.simplify(res20_sym - expected20_sym))
+
+        res_mixed = integrate(abs(U10[1, 1])^2 * abs(U10[1, 2])^20, dU(10))
+        expected_mixed = factorial(big(1)) * factorial(big(10)) // prod(BigInt(10):BigInt(20))
+        @test res_mixed == expected_mixed
+
+        res_mixed_sym = integrate(abs(U_sym[1, 1])^2 * abs(U_sym[1, 2])^20, dU(d))
+        expected_mixed_sym = factorial(big(1)) * factorial(big(10)) / prod(d + k for k = 0:10)
+        @test is_really_zero(Symbolics.simplify(res_mixed_sym - expected_mixed_sym))
+
+        res_mismatch = integrate(U10[1, 1]^10 * conj(U10[2, 2])^10, dU(10))
+        @test res_mismatch == 0
+    end
+
+    @testset "_try_extract_int edge cases" begin
+        @test IntU._try_extract_int(2) == 2
+        @test IntU._try_extract_int(Num(2)) == 2
+        @test IntU._try_extract_int(2 // 1) == 2
+        @test IntU._try_extract_int(2.0) == 2
+        @test IntU._try_extract_int(big(10)^15) == 10^15
+
+        @variables d_tei
+        @test IntU._try_extract_int(d_tei) === nothing
+        @test IntU._try_extract_int(nothing) === nothing
+        @test IntU._try_extract_int(3.5) === nothing
+        @test IntU._try_extract_int(3 // 2) === nothing
+        @test IntU._try_extract_int(big(10)^50) === nothing
+    end
+
+    @testset "BigInt Dimensions" begin
+        d_big = big(10)^15
+        U_big = symbolic_unitary(:U, d_big)
+        res = integrate(abs(U_big[1, 1])^2, dU(d_big))
+        @test res == 1 // big(10)^15
+    end
 end

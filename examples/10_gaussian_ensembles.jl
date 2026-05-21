@@ -49,8 +49,6 @@ println("<Tr(H^4)>_GUE = ", simplify(res_gue4))
 
 println("--- GOE ---")
 # <Tr(H^4)> = 2d^3 + 5d^2 + 5d
-# Need to use different symbol or manual declaration for mixed types in same scope if overlapping
-# But here scopes are fine.
 res_goe4 = @integrate tr(H^4) dGOE(d)
 println("<Tr(H^4)>_GOE = ", simplify(res_goe4))
 

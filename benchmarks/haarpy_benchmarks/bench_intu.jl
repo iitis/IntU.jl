@@ -1,0 +1,247 @@
+"""
+Performance comparison benchmarks for IntU.jl.
+Computes the same integrals as bench_haarpy.py for a head-to-head comparison.
+
+Usage:
+    julia --project=/path/to/IntU.jl bench_intu.jl
+"""
+
+using IntU
+using Symbolics
+using BenchmarkTools
+using Memoization
+using Printf
+using Dates
+
+@variables d
+
+# Match Haarpy benchmark settings (30 samples, cold-cache via evals=1)
+BenchmarkTools.DEFAULT_PARAMETERS.samples = 30
+
+function median_ms(b)
+    m = median(b)
+    return m.time / 1e6  # ns -> ms
+end
+
+results = Dict{String,Any}()
+
+function module_version(mod)
+    try
+        v = Base.pkgversion(mod)
+        return v === nothing ? "unknown" : string(v)
+    catch
+        return "unknown"
+    end
+end
+
+function benchmark_meta()
+    hostname = try
+        gethostname()
+    catch
+        "unknown"
+    end
+    return Dict(
+        "timestamp_utc" => string(Dates.now(Dates.UTC)),
+        "host" => Dict(
+            "hostname" => hostname,
+            "os" => string(Sys.KERNEL),
+            "arch" => string(Sys.ARCH),
+            "machine" => string(Sys.MACHINE),
+        ),
+        "runtime" => Dict("name" => "Julia", "version" => string(VERSION)),
+        "packages" => Dict("IntU" => module_version(IntU)),
+        "script" => abspath(@__FILE__),
+    )
+end
+
+function json_escape(s::AbstractString)
+    return replace(
+        s,
+        "\\" => "\\\\",
+        "\"" => "\\\"",
+        "\n" => "\\n",
+        "\r" => "\\r",
+        "\t" => "\\t",
+    )
+end
+
+function to_json(x)
+    if x isa Dict
+        parts = String[]
+        for (k, v) in sort(collect(x), by = p -> string(p[1]))
+            push!(parts, "\"" * json_escape(string(k)) * "\": " * to_json(v))
+        end
+        return "{" * join(parts, ", ") * "}"
+    elseif x isa AbstractVector
+        return "[" * join((to_json(v) for v in x), ", ") * "]"
+    elseif x isa AbstractString
+        return "\"" * json_escape(x) * "\""
+    elseif x isa Bool
+        return x ? "true" : "false"
+    elseif x === nothing
+        return "null"
+    else
+        return string(x)
+    end
+end
+
+function run_and_report(name, f)
+    print("  Running: $name ...")
+    # Verify it works
+    res = f()
+    res = simplify(res)
+    b = @benchmark $f() evals=1 samples=30 setup=(Memoization.empty_all_caches!())
+    ms = median_ms(b)
+    @printf(" %.2f ms  (result: %s)\n", ms, string(res))
+    results[name] =
+        Dict("median_ms" => ms, "result" => string(res), "samples" => length(b.times))
+    return ms
+end
+
+# ============================================================================
+# Section 1: Unitary |U_11|^{2k}, symbolic d
+# ============================================================================
+println("\n=== Unitary: |U_11|^{2k}, symbolic d ===")
+
+U = SymbolicMatrix(:U, :U)
+measure_sym = dU(d)
+
+run_and_report("U_|U11|^6_sym", () -> integrate(abs(U[1, 1])^6, measure_sym))
+run_and_report("U_|U11|^8_sym", () -> integrate(abs(U[1, 1])^8, measure_sym))
+run_and_report("U_|U11|^10_sym", () -> integrate(abs(U[1, 1])^10, measure_sym))
+
+# ============================================================================
+# Section 2: Unitary |U_11|^{10}, numeric d
+# ============================================================================
+println("\n=== Unitary: |U_11|^{2k}, numeric d ===")
+
+for d_val in [10, 50]
+    U_n = SymbolicMatrix(:U, :U, d_val)
+    m_n = dU(d_val)
+    run_and_report("U_|U11|^10_d=$d_val", () -> integrate(abs(U_n[1, 1])^10, m_n))
+end
+
+# ============================================================================
+# Section 3: Orthogonal O_11^k, symbolic d
+# ============================================================================
+println("\n=== Orthogonal: O_11^k, symbolic d ===")
+
+O = SymbolicMatrix(:O, :O)
+mO_sym = dO(d)
+
+run_and_report("O_O11^2_sym", () -> integrate(O[1, 1]^2, mO_sym))
+run_and_report("O_O11^4_sym", () -> integrate(O[1, 1]^4, mO_sym))
+
+# ============================================================================
+# Section 4: Orthogonal O_11^k, numeric d
+# ============================================================================
+println("\n=== Orthogonal: O_11^k, numeric d ===")
+
+O10 = SymbolicMatrix(:O, :O, BigInt(10))
+mO10 = dO(BigInt(10))
+run_and_report("O_O11^6_d=10", () -> integrate(O10[1, 1]^6, mO10))
+
+O20 = SymbolicMatrix(:O, :O, BigInt(20))
+mO20 = dO(BigInt(20))
+run_and_report("O_O11^8_d=20", () -> integrate(O20[1, 1]^8, mO20))
+run_and_report("O_O11^10_d=20", () -> integrate(O20[1, 1]^10, mO20))
+
+O50 = SymbolicMatrix(:O, :O, BigInt(50))
+mO50 = dO(BigInt(50))
+run_and_report("O_O11^10_d=50", () -> integrate(O50[1, 1]^10, mO50))
+
+# ============================================================================
+# Section 5: COE |S_11|^{2k}, symbolic d
+# ============================================================================
+println("\n=== Circular Orthogonal (COE): |S_11|^{2k}, symbolic d ===")
+
+S_coe = SymbolicMatrix(:S, :COE)
+mCOE = dCOE(d)
+
+run_and_report("COE_|S11|^2_sym", () -> integrate(abs(S_coe[1, 1])^2, mCOE))
+run_and_report("COE_|S11|^4_sym", () -> integrate(abs(S_coe[1, 1])^4, mCOE))
+run_and_report("COE_|S11|^6_sym", () -> integrate(abs(S_coe[1, 1])^6, mCOE))
+
+# ============================================================================
+# Section 6: Off-diagonal integrals (general Weingarten paths)
+# ============================================================================
+println("\n=== Off-diagonal: Unitary, symbolic d ===")
+
+run_and_report(
+    "U_offdiag_4_sym",
+    () -> integrate(abs(U[1, 1])^2 * abs(U[1, 2])^2, measure_sym),
+)
+run_and_report(
+    "U_offdiag_8_sym",
+    () -> integrate(abs(U[1, 1])^4 * abs(U[1, 2])^4, measure_sym),
+)
+run_and_report(
+    "U_cross_4_sym",
+    () -> integrate(abs(U[1, 1])^2 * abs(U[2, 2])^2, measure_sym),
+)
+
+println("\n=== Off-diagonal: Orthogonal, symbolic d ===")
+
+run_and_report("O_offdiag_4_sym", () -> integrate(O[1, 1]^2 * O[1, 2]^2, mO_sym))
+run_and_report(
+    "O_cross_4_sym",
+    () -> integrate(O[1, 1] * O[1, 2] * O[2, 1] * O[2, 2], mO_sym),
+)
+
+println("\n=== Off-diagonal: COE, symbolic d ===")
+
+run_and_report("COE_offdiag_2_sym", () -> integrate(abs(S_coe[1, 2])^2, mCOE))
+run_and_report("COE_offdiag_4_sym", () -> integrate(abs(S_coe[1, 2])^4, mCOE))
+run_and_report(
+    "COE_mixed_4_sym",
+    () -> integrate(abs(S_coe[1, 1])^2 * abs(S_coe[1, 2])^2, mCOE),
+)
+
+# ============================================================================
+# Section 7: Permutation P_11^k
+# ============================================================================
+println("\n=== Permutation: P_11^k ===")
+
+P100 = SymbolicMatrix(:P, :Perm, 100)
+mP100 = dPerm(100)
+run_and_report("Perm_P11^10_d=100", () -> integrate(P100[1, 1]^10, mP100))
+
+# ============================================================================
+# Save results
+# ============================================================================
+results["_meta"] = benchmark_meta()
+output_path = joinpath(@__DIR__, "results_intu.json")
+
+println("\n" * "="^72)
+println("Summary (median times in ms)")
+println("="^72)
+@printf("%-30s %12s\n", "Benchmark", "Median (ms)")
+println("-"^42)
+for (name, data) in sort(collect(results), by = x->x[1])
+    if name == "_meta"
+        continue
+    end
+    @printf("%-30s %12.2f\n", name, data["median_ms"])
+end
+
+# Write JSON manually (avoids JSON3 dependency)
+open(output_path, "w") do io
+    println(io, "{")
+    entries = sort(collect(results), by = x->x[1])
+    for (idx, (name, data)) in enumerate(entries)
+        comma = idx < length(entries) ? "," : ""
+        if name == "_meta"
+            println(io, "  \"_meta\": $(to_json(data))$comma")
+        else
+            ms = data["median_ms"]
+            res = data["result"]
+            n = data["samples"]
+            println(
+                io,
+                "  \"$name\": {\"median_ms\": $ms, \"result\": \"$(escape_string(string(res)))\", \"samples\": $n}$comma",
+            )
+        end
+    end
+    println(io, "}")
+end
+println("\nResults saved to $(output_path)")

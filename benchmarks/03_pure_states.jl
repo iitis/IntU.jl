@@ -5,10 +5,10 @@ using LinearAlgebra
 
 function benchmark_pure_vs_unitary()
     d = 4
-    psi_sym = SymbolicMatrix(:psi, :psi, d)
+    psi_sym = SymbolicMatrix(:psi, :psi, (d, 1))
     U_sym = SymbolicMatrix(:U, :U, d)
 
-    expr = abs(psi_sym[1])^2 * abs(psi_sym[2])^2
+    expr = abs(psi_sym[1, 1])^2 * abs(psi_sym[2, 1])^2
     unitary_expr = abs(U_sym[1, 1])^2 * abs(U_sym[2, 1])^2
 
     measure_psi = dPsi(d)

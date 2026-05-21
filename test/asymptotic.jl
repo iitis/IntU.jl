@@ -4,9 +4,6 @@ using Symbolics
 using LinearAlgebra
 
 @testset "Asymptotic Expansions" begin
-    # 1. Test basic Weingarten asymptotic expansion Wg(1, d)
-    # Wg(1, d) = 1/d
-    # Expansion should match exactly 1/d term or series
     @variables d
 
     @testset "Weingarten Asymptotic" begin
@@ -21,7 +18,6 @@ using LinearAlgebra
         # Should be -1/d^3 - 1/d^5
         @test is_really_zero(res2 - (-1/d^3 - 1/d^5))
 
-        # Test generic expression
         term = d^2 + 2d + 1
         res3 = asymptotic(term, d, 2)
         @test is_really_zero(res3 - (d^2 + 2d + 1))
@@ -45,7 +41,7 @@ using LinearAlgebra
         # Integrate |U11|^4
         expr4 = abs(U[1, 1])^4
         res4_asymp = asymptotic(expr4, measure, 4)
-        # ∫ |U11|^4 = 2 / (d(d+1)) = 2/d^2 - 2/d^3 + 2/d^4 ...
+        
         diff = Symbolics.simplify(Symbolics.expand(res4_asymp * d^4) - (2 - 2*d + 2*d^2))
         @test is_really_zero(diff)
     end

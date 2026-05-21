@@ -58,6 +58,12 @@ using IntU, Symbolics
 @variables d
 @integrate O[1, 1]^4 dO(d)
 # Output: 3 / (d*(d + 2))
+
+# Example O1: high powers, single row
+@integrate O[1, 1]^2 * O[1, 2]^4 * O[1, 3]^6 dO(d)
+
+# Example O2: mixed rows/cols
+@integrate O[1, 1]^2 * O[2, 2]^4 * O[1, 3]^6 dO(d)
 ```
 
 ## Symplectic Group $Sp(d)$
@@ -115,20 +121,35 @@ integrate(abs(S[1, 1])^2, dSp(d))
 using IntU, Symbolics
 @variables d
 @integrate abs(Sp[1, 1])^4 dSp(d)
-# Output: 2 / ((d + 1)*(d - 1))
+# Output: 2 / (d + d^2)
+
+# Example Sp2: Symplectic mixed moments
+@integrate abs(Sp[1, 1])^2 * abs(Sp[1, 2])^2 dSp(d)
+
+# Example Sp1: high powers, single row
+@integrate abs(Sp[1, 1])^2 * abs(Sp[1, 2])^4 * abs(Sp[1, 3])^6 dSp(d)
 ```
 
-## Implementation Details & Pitfalls
+## Potential Pitfalls
 
-- **Automatic Conjugation**: For $Sp(d)$, the code treats `conj(S)` non-trivially. It uses the relation $\bar{S} = -J S J$ to rewrite conjugate entries in terms of $S$ entries (and J factors). This allows using the efficient Weingarten formula for products of $S$ only.
-- **Dimension Parity**: For $Sp(d)$, $d$ must be even. The symbolic result is valid for even $d$.
-- **Computational Complexity**: The sum over pair partitions $M_{2n}$ grows as $(2n)!!$. This is significantly faster than $(n!)^2$ for $U(d)$ but still grows combinatorially.
-- **Removable Singularities**: When using `evaluate` to substitute numeric values into symbolic 
-  results, $0/0$ forms may appear. `IntU.jl` automatically detects when a 
-  denominator evaluates to zero and simplifies the expression to attempt to 
-  resolve these removable singularities.
+> [!IMPORTANT]
+> ### Symbolic (d) Pitfalls
+> - **Small Dimensions**: For Haar-related measures (Unitary, Orthogonal, Circular), element-wise results are rational functions with poles at small $d$ (typically $d < n$ for degree $n$ moments). Pure trace moments $|\mathrm{tr}(U)|^{2k}$ are an exception: they depend on $d$ as a step function and require a concrete integer dimension.
+> - **Removable Singularities**: Substituting numeric values can yield $0/0$ forms (e.g., at $d=1$ or $d=2$).
+> - **Automatic Handling**: `IntU.jl`'s `evaluate` function automatically simplifies expressions to resolve removable singularities when a denominator evaluates to zero.
+
+- **High-Performance Symbolic Solver**: For symbolic dimensions $d$, `IntU.jl` uses a specialized univariate polynomial solver based on the **Bareiss algorithm**.
+- **Exact Rational Summation**: Orthogonal integration uses an internal exact rational arithmetic engine to compute Weingarten sums.
+- **Cycle Type Grouping**: The integration engine automatically groups pair partitions by their loop cycle types, reducing the number of symbolic operations.
 
 ## References
 
 1.  **Collins, B., & Śniady, P. (2006).** Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups. *Communications in Mathematical Physics*, 264(3), 773-795.
 2.  **Matsuki, T.** (1990). The orbits of affine symmetric spaces under the action of parabolic subgroups. *Hiroshima Mathematical Journal*. (Relevant for O/Sp symmetry groups).
+
+## See Also
+
+- [Unitary Integration](unitary_integration.md) — Weingarten calculus for $U(d)$; shares the same index-contraction framework
+- [Circular Ensembles](circular_ensembles.md) — COE arises from $O(d)$, CSE from $Sp(d)$
+- [Asymptotic Expansions](asymptotic.md) — large-$d$ expansions of orthogonal/symplectic results
+- [Integral Library](integral_library.md) — targeted pre-computed moments for $O(d)$ and $Sp(d)$

@@ -1,6 +1,6 @@
 name = "IntU"
 uuid = "70c8b9a1-b4c5-4d7a-a56e-8e7e6495d68b"
-version = "0.9.0"
+version = "1.0.0"
 authors = ["Łukasz Pawela", "Zbigniew Puchała"]
 
 [deps]
@@ -9,6 +9,7 @@ DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 Memoization = "6fafb56a-5788-4b4e-91ca-c0cea6611c73"
+ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
 SymbolicUtils = "d1185830-fcd6-423d-90d6-eec64667417b"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
@@ -26,6 +27,7 @@ ITensors = "0.3, 0.6"
 LinearAlgebra = "1.11, 1.12"
 MacroTools = "0.5.16"
 Memoization = "0.2.2"
+ProgressMeter = "1.11.0"
 SymbolicUtils = "4"
 Symbolics = "7"
 Test = "1.11, 1.12"
@@ -33,7 +35,8 @@ julia = "1.11, 1.12"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
+ITensors = "9136182c-28ba-11e9-034c-db9fb085ebd5"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "Aqua"]
+test = ["Test", "Aqua", "ITensors"]

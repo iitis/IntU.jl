@@ -1,41 +1,4 @@
 
-"""
-    purity(rho)
-
-Calculate the purity of a density matrix `rho`, defined as Tr(rho^2).
-"""
-function purity(rho)
-    return tr(rho * rho)
-end
-
-"""
-    average_purity(rho, measure)
-
-Calculate the Haar-average purity of a density matrix `rho` under the given `measure`.
-"""
-function average_purity(rho, measure)
-    return integrate(purity(rho), measure)
-end
-
-"""
-    fidelity(rho, sigma)
-
-Calculate the fidelity between two density matrices `rho` and `sigma`.
-For pure states, this is |<phi|psi>|^2. In this package, we use the 
-Hilbert-Schmidt inner product Tr(rho * sigma) as a convenience.
-"""
-function fidelity(rho, sigma)
-    return tr(rho * sigma)
-end
-
-"""
-    average_fidelity(rho, sigma, measure)
-
-Calculate the Haar-average fidelity between `rho` and `sigma` under the given `measure`.
-"""
-function average_fidelity(rho, sigma, measure)
-    return integrate(fidelity(rho, sigma), measure)
-end
 
 """
     partial_trace(M, dims, subsystem)
@@ -49,13 +12,15 @@ returns the reduced density matrix of the first subsystem.
 """
 function partial_trace(M, dims, subsystem)
     n = length(dims)
-    # Total dimension should match size(M, 1)
-    # We'll implement this using Symbolics-friendly indexing.
-    # We can represent M[i1, i2, ..., in; j1, j2, ..., jn]
-    # And sum over ik == jk for k == subsystem.
-
-    # For now, let's implement bipartite specifically as it's the most common case,
-    # or a generic one if possible.
+    if subsystem < 1 || subsystem > n
+        throw(ArgumentError("subsystem index $subsystem out of range 1:$n"))
+    end
+    total = prod(dims)
+    if size(M) != (total, total)
+        throw(ArgumentError(
+            "Matrix size $(size(M)) does not match product of subsystem dimensions ($total × $total)."
+        ))
+    end
 
     target_subs = filter(i -> i != subsystem, 1:n)
     target_dims = dims[target_subs]
@@ -63,7 +28,6 @@ function partial_trace(M, dims, subsystem)
 
     res = similar(M, Union{eltype(M),Num}, new_dim, new_dim)
 
-    # Helper to calculate strides correctly
     function get_strides(d)
         strds = Vector{Int}(undef, length(d))
         s = 1
@@ -77,7 +41,6 @@ function partial_trace(M, dims, subsystem)
     full_strides = get_strides(dims)
     target_strides = get_strides(target_dims)
 
-    # Helper to convert flat index to multi-index
     function to_multi(idx, d, strds)
         m = Vector{Int}(undef, length(d))
         idx -= 1
@@ -88,7 +51,6 @@ function partial_trace(M, dims, subsystem)
         return m
     end
 
-    # Helper to convert multi-index back to flat
     function to_flat(m, strds)
         idx = 0
         for i = 1:length(m)
@@ -98,9 +60,6 @@ function partial_trace(M, dims, subsystem)
     end
 
     traced_dim = dims[subsystem]
-    # Determine result type: Use concrete types for numeric matrices.
-    # For symbolic matrices, we use Matrix{Any} to avoid buggy conversion to Num
-    # when intermediate terms are unwrapped symbols with SymReal metadata.
     E = eltype(M)
     T = (E <: Number && !(E <: Symbolics.Num)) ? E : Any
     res = Matrix{T}(undef, new_dim, new_dim)
@@ -110,14 +69,11 @@ function partial_trace(M, dims, subsystem)
             m_i = to_multi(i, target_dims, target_strides)
             m_j = to_multi(j, target_dims, target_strides)
 
-            # Sum over the subsystem index
-            # Initialize sum with a type-compatible zero
             val = (E <: Number) ? zero(E) : 0
             for k = 1:traced_dim
                 full_m_i = Vector{Int}(undef, n)
                 full_m_j = Vector{Int}(undef, n)
 
-                # Reconstruct full multi-indices
                 curr_target = 1
                 for s = 1:n
                     if s == subsystem
@@ -138,9 +94,7 @@ function partial_trace(M, dims, subsystem)
         end
     end
 
-    # Wrap symbolic results in Num. This is safe even if M was numeric but the sum had symbols (not possible here).
     if any(x -> x isa Symbolics.Num || SymbolicUtils.iscall(Symbolics.unwrap(x)), res)
-        # Use wrap to ensure they are Num, then return Matrix{Num}
         return map(Symbolics.wrap, res)
     end
     return res

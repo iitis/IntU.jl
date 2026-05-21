@@ -2,9 +2,7 @@ using IntU
 using Test
 using Symbolics
 
-# Helper to convert symbolic results to numbers
 function to_numeric(x)
-    # Flatten any complex(...) calls
     ux = Symbolics.unwrap(x)
     xf = SymbolicUtils.Postwalk(
         t -> begin
@@ -48,7 +46,7 @@ function is_really_zero(x)
     end
 
     for i = 1:3
-        subs = Dict(v => rand() + 0.1 for v in vars)
+        subs = Dict(v => 0.1 + 0.3 * i + 0.17 * j for (j, v) in enumerate(vars))
         val_sub = Symbolics.substitute(x, subs)
         v = to_numeric(val_sub)
         if v isa Number
@@ -152,8 +150,13 @@ end
         include("ginibre.jl")
     end
 
+    @testset verbose=true "Float Dimension Rejection" begin
+        include("float_dimension_rejection.jl")
+    end
+
     @testset verbose=true "UX Improvements" begin
         include("ux_improvements.jl")
         include("macro_regression.jl")
+        include("lazy_abs.jl")
     end
 end

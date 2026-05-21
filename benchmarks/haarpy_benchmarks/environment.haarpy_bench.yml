@@ -1,0 +1,10 @@
+name: haarpy_bench
+channels:
+  - defaults
+dependencies:
+  - python=3.11.15
+  - pip=26.0.1
+  - pip:
+      - haarpy==0.0.6
+      - sympy==1.14.0
+      - mpmath==1.3.0

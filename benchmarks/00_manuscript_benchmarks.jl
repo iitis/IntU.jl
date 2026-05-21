@@ -2,13 +2,14 @@ using IntU
 using Symbolics
 using LinearAlgebra
 using BenchmarkTools
+using Memoization
 using Printf
+using Random
 import ITensors
 
-# Helper to run benchmark and return (median time in ms, memory in MiB)
 function measure_median_func(f)
-    # Benchmark the function call. We interpolate f to avoid overhead of finding it.
-    b = @benchmark $f() samples=10 seconds=1
+    b =
+        @benchmark $f() evals=1 samples=30 seconds=120 setup=(Memoization.empty_all_caches!())
     m = median(b)
     return m.time / 1e6, m.memory / (1024 * 1024)
 end
@@ -132,7 +133,7 @@ println("-----------------------------------------------------------------------
 
 # Circular Ensembles
 # Symmetric S (COE)
-S_coe = SymbolicMatrix(:S, :COE) 
+S_coe = SymbolicMatrix(:S, :COE)
 mCOE = dCOE(d)
 
 t, _ = measure_median_func(() -> integrate(abs(S_coe[1, 1])^2, mCOE))
@@ -162,13 +163,14 @@ println("-----------------------------------------------------------------------
 
 # Permutation
 mP100 = dPerm(100)
-P100 = SymbolicMatrix(:P, :P, 100) # Permutation matrices are real
-t, _ = measure_median_func(() -> integrate(P100[1, 1]^10, mP100))
-@printf("%-18s %-25s %-15s %10.2f\n", "Permutation", "P_11^10", "d=100", t)
+P100 = SymbolicMatrix(:P, :Perm, 100) # Permutation matrices are real
+expr_perm10 = prod(P100[i, i] for i = 1:10)
+t, _ = measure_median_func(() -> integrate(expr_perm10, mP100))
+@printf("%-18s %-25s %-15s %10.2f\n", "Permutation", "prod_{i=1}^{10} P_ii", "d=100", t)
 
 # tr(PA)^2, d=4
 mP4 = dPerm(4)
-P4 = SymbolicMatrix(:P, :P, 4)
+P4 = SymbolicMatrix(:P, :Perm, 4)
 A = SymbolicMatrix(:A, :Constant, 4)
 t_trpa, _ = measure_median_func(() -> integrate(tr_lazy(P4*A)^2, mP4))
 @printf("%-18s %-25s %-15s %10.2f\n", "Permutation", "tr(PA)^2", "d=4", t_trpa)
@@ -181,7 +183,7 @@ t, _ = measure_median_func(() -> integrate(Y10[1, 1]^4, mCP10))
 
 println("------------------------------------------------------------------------")
 
-function benchmark_purity()
+function benchmark_bipartite()
     d_total = 6
     dims = (3, 2)
     U = SymbolicMatrix(:U, :U, d_total)
@@ -192,12 +194,12 @@ function benchmark_purity()
 
     t, _ = measure_median_func(() -> begin
         rho_A = partial_trace(rho_random, dims, 2)
-        integrate(purity(rho_A), measure)
+        integrate(tr(rho_A * rho_A), measure)
     end)
     return t
 end
-t_pure = benchmark_purity()
-@printf("%-18s %-25s %-15s %10.2f\n", "Application", "Purity", "d=6", t_pure)
+t_pure = benchmark_bipartite()
+@printf("%-18s %-25s %-15s %10.2f\n", "Application", "Bipartite", "d=6", t_pure)
 
 
 # --- TABLE 2: ITensor Scaling ---
@@ -205,12 +207,8 @@ println("\n\nTable 2: ITensor network integration (Haar measure)")
 println("------------------------------------------------------------------------")
 @printf("%-20s %-10s %-10s %-10s\n", "Scaling Type", "Degree k", "Dim d", "Time (ms)")
 println("------------------------------------------------------------------------")
+Random.seed!(20260410)
 
-function run_itensor_bench(k, d_val)
-    # Placeholder for consistency, actual calls moved to loop
-end
-
-# Copy create_trace_network from 10_itensor_integration.jl
 function create_trace_network(dim, k, measure_type = :U)
     out_indices = [ITensors.Index(dim, "Out,$i") for i = 1:k]
     in_indices = [ITensors.Index(dim, "In,$i") for i = 1:k]
@@ -278,48 +276,37 @@ function create_trace_network(dim, k, measure_type = :U)
     end
 end
 
-# Restore ITensor scaling benchmarks
 for k_val in [1, 2, 3, 4]
-    local t_it, _ = measure_median_func(() -> begin
-        tensors, measure = create_trace_network(2, k_val, :U)
-        integrate(tensors, measure)
-    end)
+    local tensors, measure = create_trace_network(2, k_val, :U)
+    local t_it, _ = measure_median_func(() -> integrate(tensors, measure))
     @printf("%-20s %-10d %-10d %10.2f\n", "Degree k (U)", k_val, 2, t_it)
 end
 
 println("------------------------------------------------------------------------")
 for k_val in [2, 4, 6]
-    local t_it_o, _ = measure_median_func(() -> begin
-        tensors, measure = create_trace_network(3, k_val, :O)
-        integrate(tensors, measure)
-    end)
+    local tensors, measure = create_trace_network(3, k_val, :O)
+    local t_it_o, _ = measure_median_func(() -> integrate(tensors, measure))
     @printf("%-20s %-10d %-10d %10.2f\n", "Degree k (O)", k_val, 3, t_it_o)
 end
 
 println("------------------------------------------------------------------------")
 for d_val in [2, 10, 50, 100]
-    local t_it, _ = measure_median_func(() -> begin
-        tensors, measure = create_trace_network(d_val, 2, :U)
-        integrate(tensors, measure)
-    end)
+    local tensors, measure = create_trace_network(d_val, 2, :U)
+    local t_it, _ = measure_median_func(() -> integrate(tensors, measure))
     @printf("%-20s %-10d %-10d %10.2f\n", "Dimension d (k=2)", 2, d_val, t_it)
 end
 
 println("------------------------------------------------------------------------")
 for d_val in [2, 10, 20, 30]
-    local t_it, _ = measure_median_func(() -> begin
-        tensors, measure = create_trace_network(d_val, 3, :U)
-        integrate(tensors, measure)
-    end)
+    local tensors, measure = create_trace_network(d_val, 3, :U)
+    local t_it, _ = measure_median_func(() -> integrate(tensors, measure))
     @printf("%-20s %-10d %-10d %10.2f\n", "Dimension d (k=3)", 3, d_val, t_it)
 end
 
 println("------------------------------------------------------------------------")
 # Orthogonal k=6, d=3
-t_it_o6, _ = measure_median_func(() -> begin
-    tensors, measure = create_trace_network(3, 6, :O)
-    integrate(tensors, measure)
-end)
+tensors, measure = create_trace_network(3, 6, :O)
+t_it_o6, _ = measure_median_func(() -> integrate(tensors, measure))
 @printf("%-20s %-10d %-10d %10.2f\n", "Orthogonal", 6, 3, t_it_o6)
 
 
@@ -333,7 +320,7 @@ function bench_matrix(N)
     d_val = N
     U_sym = SymbolicMatrix(:U, :U, d_val)
     m = dU(d_val)
-    expr = U_sym * U_sym' # This creates an N x N matrix of expressions if d_val is concrete
+    expr = U_sym * U_sym'
 
     t, mem = measure_median_func(() -> integrate(expr, m))
     @printf("%-15s %10.2f %20.2f\n", "$N x $N", t, mem)

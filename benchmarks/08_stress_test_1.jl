@@ -2,7 +2,7 @@
 # IntU.jl Haar-integration test script (Unitary/Orthogonal/Symplectic)
 #
 # Run:
-#   julia benchmarks/08_stess_test_1.jl
+#   julia benchmarks/08_stress_test_1.jl
 #
 # Notes:
 # - Keep integrands polynomial: use conj(z) explicitly instead of abs(z),
@@ -24,12 +24,10 @@ function is_symbolic_zero(x)
 end
 
 function equal_symbolic(got, expected; subs = Vector{Dict}())
-    # Try direct symbolic simplification first
     diff = got - expected
     if is_symbolic_zero(diff)
         return true
     end
-    # Fallback: validate by substituting several integer values
     for s in subs
         dg = Symbolics.substitute(got, s)
         de = Symbolics.substitute(expected, s)
@@ -39,20 +37,15 @@ function equal_symbolic(got, expected; subs = Vector{Dict}())
             return false
         end
     end
-    return !isempty(subs) # if we had substitutions and they all passed
+    return !isempty(subs)
 end
 
 function run_example(name, expr, μ, expected; subs = Vector{Dict}(), benchmark = false)
-    # Warm-up/Correctness check
     got = IntU.integrate(expr, μ)
 
-    # Simplify the result for display
-    # We try simplify(expand(.)) as it is often stronger
     simplified_got = Symbolics.simplify(got)
-    # optionally: Symbolics.simplify(Symbolics.expand(got)) if we want stronger simplification
 
     println("== $name ==")
-    # println("Integrand: $expr") 
 
     ok = equal_symbolic(got, expected; subs = subs)
     status = ok ? "PASS" : "FAIL"
@@ -60,7 +53,6 @@ function run_example(name, expr, μ, expected; subs = Vector{Dict}(), benchmark 
 
     if benchmark
         println("  -> Benchmarking...")
-        # Benchmark with median time (excluding compilation)
         t = @benchmark IntU.integrate($expr, $μ) samples=30 evals=1
         med_time_ms = median(t).time / 1e6
         println("  -> Median Time: $(round(med_time_ms, digits=2)) ms")
@@ -69,7 +61,6 @@ function run_example(name, expr, μ, expected; subs = Vector{Dict}(), benchmark 
     return got
 end
 
-# Define symbolic dimension globally
 @variables d
 
 # ============================================================
@@ -83,10 +74,8 @@ function test_unitary()
     @variables d::Int
     U = SymbolicMatrix(:U, :U, d)
     μU = dU(d)
-    # Using specific values for substitution checks
     subsU = [Dict(d => 3), Dict(d => 4), Dict(d => 7)]
 
-    # Note: U is infinite lazy matrix, so we can access any index
     run_example("U1: ∫ 1 dU", 1, μU, 1; subs = subsU)
     run_example("U2: ∫ U₁₁ dU = 0", U[1, 1], μU, 0; subs = subsU)
     run_example("U3: ∫ |U₁₁|² dU = 1/d", U[1, 1]*conj(U[1, 1]), μU, 1/d; subs = subsU)
@@ -176,10 +165,6 @@ end
 # ============================================================
 function test_symplectic(N::Int)
     if isodd(N) || N < 4
-        # Skip N=2 (Sp(2)) because the standard Weingarten matrix for degree 6 
-        # is singular at d=2 (Sp(2) uses O(-d) relation).
-        # degree 4 (Sp2) should work, but for consistency in this example 
-        # we start from N=4.
         return
     end
     println("------------------------------------------------------------")
@@ -192,8 +177,6 @@ function test_symplectic(N::Int)
     subsSp = [Dict(d => N)]
 
     run_example("Sp1: ∫ |S₁₁|² dSp = 1/d", S[1, 1]*conj(S[1, 1]), μSp, 1/d; subs = subsSp)
-    # For Sp(d), first row distribution matches U(d), so moments match.
-    # E|S11|^4 = 2 / (d(d+1))
     run_example(
         "Sp2: ∫ |S₁₁|⁴ dSp = 2/(d(d+1))",
         (S[1, 1]*conj(S[1, 1]))^2,
@@ -211,7 +194,6 @@ function test_high_moments()
     println("Testing High-degree Moments (Degree 6) and Benchmarking")
     println("------------------------------------------------------------")
 
-    # Unitary U(d) 6-th moment
     @variables d::Int
     U = SymbolicMatrix(:U, :U, d)
     μU = dU(d)
@@ -224,7 +206,6 @@ function test_high_moments()
         benchmark = true,
     )
 
-    # Orthogonal O(d) 6-th moment - slow with symbolic inversion, using concrete dimension for demonstration
     O_sym = SymbolicMatrix(:O, :O, 10)
     O = O_sym[1:1, 1:1]
     μO_concrete = dO(10)
@@ -250,16 +231,16 @@ function test_application()
     Uψ = Uψ_sym[1:D, 1:D]
     μConcrete = dU(D)
     psi(a, b) = Uψ[(a-1)*nB+b, 1]
-    purity = zero(Num)
+    tr_rhoA2 = zero(Num)
     for a = 1:nA, ap = 1:nA, b = 1:nB, bp = 1:nB
-        purity += psi(a, b) * conj(psi(ap, b)) * psi(ap, bp) * conj(psi(a, bp))
+        tr_rhoA2 += psi(a, b) * conj(psi(ap, b)) * psi(ap, bp) * conj(psi(a, bp))
     end
-    expected_purity = (nA + nB) // (D + 1)
+    expected_tr_rhoA2 = (nA + nB) // (D + 1)
     run_example(
-        "Purity (nA=2,nB=3,D=6): E[tr(ρ_A^2)]",
-        purity,
+        "Bipartite (nA=2,nB=3,D=6): E[tr(ρ_A^2)]",
+        tr_rhoA2,
         μConcrete,
-        expected_purity,
+        expected_tr_rhoA2,
         benchmark = true,
     )
 end
@@ -271,19 +252,15 @@ println("============================================================")
 println("Running IntU examples with symbolic dimension 'd'")
 println("============================================================\n")
 
-# Run unitary once (no benchmark)
 test_unitary()
 
-# Run loops for low-degree moments (no benchmark)
 for N = 2:4
     test_orthogonal(N)
     test_symplectic(N)
 end
 
-# Run high-degree moments ONCE (WITH BENCHMARK)
 test_high_moments()
 
-# Run application (WITH BENCHMARK)
 test_application()
 
 println("All examples completed.")

@@ -38,19 +38,17 @@ println("Result: ", res2, " (Expected: -1/16200)")
 println("\n--- Example 3: Multiple Unitaries ---")
 @variables dU_dim, dV_dim
 U = SymbolicMatrix(:U, :U, dU_dim)
-V = SymbolicMatrix(:V, :U, dV_dim)
+V = SymbolicMatrix(:V, :V, dV_dim)
 X = SymbolicMatrix(:X) # Constant matrix
 
 # Complex expression with two independent unitaries
 # ∫ dU ∫ dV (U ⊗ V) X (U ⊗ V)†
-# Note: For kronecker products of SymbolicMatrix, we usually rely on trace logic
-# or element-wise integration. Here we show nested integration.
 
 # Define elements for a small block demonstration
 integrand3 = (U[1, 1] * V[1, 1]) * X[1, 1] * conj(U[1, 1] * V[1, 1])
 
 println("Integrating over V...")
-tmp = integrate(integrand3, dU(dV_dim))
+tmp = integrate(integrand3, IntU.HaarMeasure(dV_dim, IntU.MetadataMatcher(:V)))
 println("Integrating over U...")
 res3 = integrate(tmp, dU(dU_dim))
 println("Result: ", res3)
@@ -63,9 +61,6 @@ println("\n--- Example 4: Vector moments ---")
 U = SymbolicMatrix(:U, :U)
 X = SymbolicMatrix(:X)
 
-# xi = 1/sqrt(d) * vec(U)
-# This is clunky with lazy matrices, better to integrate entry-wise or use trace logic.
-# Here we integrate a sum of entries
 expr4 = sum(abs(U[i, j])^2 for i = 1:2, j = 1:2)
 res4 = integrate(expr4, dU(d))
 println("Integrating sum of squares...")

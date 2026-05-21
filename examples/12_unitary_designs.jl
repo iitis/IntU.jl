@@ -8,9 +8,6 @@ U = SymbolicMatrix(:U, :U, N)
 println("--- Unitary t-Design Example ---")
 
 # Create a 2-design
-# This measure will behave like Haar measure for polynomials of degree <= 2
-# Create a 2-design measure for U
-# dDesign(U, k) creates a k-design measure for matrix U
 k = 2
 design2 = dDesign(N, k)
 println("Created Unitary 2-Design for N=$N")

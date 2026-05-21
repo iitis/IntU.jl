@@ -1,65 +1,98 @@
 # Quantum Information Helpers
 
-A collection of utility functions to assist with calculations common in Quantum
-Information.
+Utility functions for calculations common in quantum information theory.
+The current helper is `partial_trace`; additional functions (fidelity,
+concurrence, relative entropy) are planned for future releases.
 
-## Functions
+## `partial_trace`
 
-### `purity(rho)`
-Calculates the purity $\gamma = \mathrm{tr}(\rho^2)$.
-- For pure states, $\gamma = 1$.
-- For maximally mixed states, $\gamma = 1/d$.
+```julia
+partial_trace(M, dims, subsystem)
+```
 
-### `fidelity(rho, sigma)`
-Calculates the fidelity between two states.
-- Note: This implements the "Uhlmann fidelity" squared form for states commonly
-  used in some contexts, or simply overlap $\mathrm{tr}(\rho \sigma)$.
-  **Check implementation**: Currently defined as `tr(rho * sigma)`. For pure
-  states $|\psi\rangle, |\phi\rangle$, this equals
-  $|\langle \psi | \phi \rangle|^2$.
+Computes the partial trace of a bipartite (or multipartite) composite
+system. Supports symbolic matrix entries with concrete integer dimensions.
 
-### `partial_trace(M, dims, subsystem)`
-Symbolically computes the partial trace of a composite system.
-- `M`: Matrix to trace.
-- `dims`: Tuple of dimensions of subsystems, e.g., `(2, 2)` for two qubits.
-- `subsystem`: Index of the subsystem to trace out (1 or 2, etc.).
+- **`M`**: the density matrix (or arbitrary matrix) to trace over, of size
+  $d_1 d_2 \times d_1 d_2$.
+- **`dims`**: a tuple of subsystem dimensions, e.g. `(d_A, d_B)`.
+- **`subsystem`**: the index of the subsystem to trace *out* (1-based).
 
-## Example: Average Purity
+The subsystem dimensions must be concrete integers. The matrix entries
+may be symbolic (e.g., products of `SymbolicMatrix` elements), so the
+result retains symbolic dependence for further integration.
 
-Calculating the average purity of a subsystem when the global system is in a random pure state.
+## Example: Average Purity of a Random Bipartite State
+
+For a random pure state $|\psi\rangle$ on $\mathbb{C}^{d_A} \otimes \mathbb{C}^{d_B}$,
+Page's formula gives the average purity of subsystem $A$:
+
+$$\langle \mathrm{tr}(\rho_A^2) \rangle = \frac{d_A + d_B}{d_A d_B + 1}.$$
+
+The following reproduces this result from first principles:
 
 ```julia
 using IntU, Symbolics
 
-# System Dimensions: d_A = 2, d_B = 2
-d_A = 2
-d_B = 2
-d = d_A * d_B
+# System dimensions: two qubits
+d_A, d_B = 2, 2
+d = d_A * d_B    # total dimension = 4
 
-# Random Unitary on full system
+# Random unitary on the full system
 U = SymbolicMatrix(:U, :U, d)
-measure = dU(d)
 
-# Pure state |psi> = U |00> (first column of U)
-# We form the density matrix rho = |psi><psi|
-# rho_{ij} = U_{i,1} * conj(U_{j,1})
+# Pure state |psi> = U|0> (first column of U)
+psi = U[:, 1]
+rho = psi * adjoint(psi)
 
-# We can conceptually construct the partial trace.
-# But IntU provides helpers if you work with explicit indices.
-# Or we can compute the integral of Purity(rho_A).
+# Reduced density matrix: trace out subsystem B
+rho_A = partial_trace(rho, (d_A, d_B), 2)
 
-# < Purity(rho_A) > = (d_A + d_B) / (d + 1)
-# For d_A=d_B=2, d=4 -> (2+2)/5 = 0.8
-
-val = average_purity((d_A, d_B), 1) 
-# Note: average_purity is a helper that returns the analytical formula or value
-println(val)
-# Output: 4//5 (for d_A=2, d_B=2)
+# Average purity tr(rho_A^2) under the Haar measure
+avg_purity = integrate(tr(rho_A * rho_A), dU(d))
+println(avg_purity)
+# Output: 4//5  (matches (2+2)/(4+1))
 ```
+
+The result $4/5$ agrees with the Page formula $(d_A + d_B)/(d_A d_B + 1) = 4/5$.
+
+## Example: Asymptotic Purity
+
+The Page formula can be combined with `asymptotic` to recover the
+large-system behaviour directly:
+
+```julia
+using IntU, Symbolics
+@variables n
+
+# Page formula for equal-size subsystems (d_A = d_B = n)
+page_purity = 2n / (n^2 + 1)
+asymptotic(page_purity, n, 5)
+# Output: 2/n - 2/n^3 + 2/n^5
+# Leading term: 2/n (same O(1/n) scaling as maximally mixed purity 1/n)
+```
+
+> [!NOTE]
+> For large subsystems, the purity is order $1/n$:
+> $\mathbb{E}[\mathrm{tr}(\rho_A^2)] = 2/n + O(1/n^3)$ for equal bipartitions.
+> A maximally mixed $n$-dimensional state has purity exactly $1/n$, so this
+> result indicates highly mixed (and nearly maximally entangled) subsystems,
+> not equality with the maximally mixed value.
+
+## See Also
+
+- [Pure States](pure_states.md) — integration over Haar-random pure states
+- [Stiefel Manifolds](stiefel_manifold.md) — generalisation to $k$-frames
+- [Asymptotic Expansions](asymptotic.md) — large-$d$ behaviour
+- [Integral Library](integral_library.md) — pre-computed moments
 
 ## References
 
+- Page, D. N. (1993). Average entropy of a subsystem. *Physical Review Letters*,
+  71(9), 1291–1294.
 - Nielsen, M. A., & Chuang, I. L. (2010). *Quantum computation and quantum
-  information*. Cambridge university press.
+  information*. Cambridge University Press.
 - Watrous, J. (2018). *The theory of quantum information*. Cambridge University
   Press.
+
+See [`partial_trace`](@ref) in the [API Reference](api.md).

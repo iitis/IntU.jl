@@ -15,6 +15,9 @@ where $U$ is a $d \times d$ unitary matrix ($U U^\dagger = I$). The integral is 
 to the Haar measure, which is the unique translation-invariant probability measure on the compact
 Lie group $U(d)$.
 
+> [!NOTE]
+> **Special Unitary Group $SU(d)$**: For all currently supported "balanced" polynomial expressions (where the number of $U$ and $\bar{U}$ factors are equal), the integration over $SU(d)$ is equivalent to $U(d)$. Non-stable-range effects involving $\epsilon$-tensors for specific small $d$ are not currently covered. In the current backend, non-balanced queries are evaluated with the same phase-invariance rule as $U(d)$ and therefore return `0`.
+
 The result is expressed in terms of the dimension $d$ and Kronecker deltas matching the indices.
 
 ## Theory: Weingarten Calculus
@@ -74,24 +77,69 @@ A key feature of IntU.jl is the ability to leave the dimension $d$ as a symbolic
 This is achieved through the `SymbolicMatrix` type, which represents a matrix
 of arbitrary (symbolic) size.
 
+## Unitary Designs
+ 
+In many applications, full Haar integration is not required. Instead, one uses **Unitary $t$-designs**, which are ensembles that mimic the first $t$ moments of the Haar measure. A unitary $t$-design is a probability distribution $\nu$ such that for any polynomial $P$ of degree at most $t$ in $U$ and $\bar{U}$:
+```math
+\mathbb{E}_{U \sim \nu} [P(U, \bar{U})] = \mathbb{E}_{U \sim \text{Haar}} [P(U, \bar{U})]
+```
+ 
+### Usage: dDesign
+ 
+Use the `dDesign(d, t)` measure to define a unitary $t$-design of dimension $d$ and order $t$.
+ 
+```julia
+using IntU, Symbolics
+@variables d
+# E[|U_11|^2] using a 2-design (degree 1 in U, 1 in U*)
+@integrate abs(U[1,1])^2 dDesign(d, 2)
+# Output: 1/d
+```
+ 
+### Integration Behavior and Guards
+ 
+`IntU.jl` enforces validity of integration over $t$-designs with the
+following behaviour:
+
+1. **Balanced integrands** (equal degree $q$ in $U$ and $U^\dagger$):
+   - $q \le t$: returns the exact Haar-averaged result via Weingarten calculus.
+   - $q > t$: throws an `ArgumentError` (e.g., `Integrand degree (3) exceeds design order t=2`), preventing accidental reliance on non-guaranteed values.
+2. **Unbalanced integrands** (different degree in $U$ and $U^\dagger$):
+   returns zero, which is the Haar-correct value. This is guaranteed correct
+   for total degree $\le t$; for higher-degree unbalanced monomials, a
+   $t$-design does not guarantee this value, but no error is raised.
+
+This guard mechanism helps ensure that physical simulations and protocol
+verifications (such as randomized benchmarking) remain mathematically
+rigorous for balanced polynomial integrands.
+
 ## Examples
 
 ### 1. Basic Integration using `@integrate`
- 
- The `@integrate` macro provides a convenient way to integrate expressions without manually declaring variables. It uses heuristics to identify random unitaries (usually `U`) and dimensions.
- 
- ```julia
- using IntU, Symbolics
- @variables d
- # E[|U_11|^2]
- @integrate abs(U[1, 1])^2 dU(d)
- # Output: 1/d
- ```
- 
- ### 2. Manual Integration
- 
- For more control, or when dealing with multiple matrices, you can declare symbols explicitly.
- 
+
+The `@integrate` macro provides a convenient way to integrate expressions without manually declaring variables. It uses heuristics to identify random unitaries (usually `U`) and dimensions.
+
+```julia
+using IntU, Symbolics
+@variables d
+# E[|U_11|^2]
+@integrate abs(U[1, 1])^2 dU(d)
+# Output: 1/d
+
+# High-degree moments (Example A: different rows/cols)
+res_a = @integrate abs(U[1, 1])^2 * abs(U[2, 2])^4 * abs(U[1, 3])^6 dU(d)
+
+# High-degree moments (Example B: same row, Dirichlet behavior)
+res_b = @integrate abs(U[1, 1])^2 * abs(U[1, 2])^4 * abs(U[1, 3])^6 dU(d)
+
+# Example C: "2-design style" correlator identity
+res_c = @integrate U[1, 1] * conj(U[1, 2]) * U[2, 2] * conj(U[2, 1]) dU(d)
+```
+
+### 2. Manual Integration
+
+For more control, or when dealing with multiple matrices, you can declare symbols explicitly.
+
 
 ```julia
 using IntU, Symbolics
@@ -125,28 +173,58 @@ using IntU, Symbolics
 U = SymbolicMatrix(:U, :U)
 
 # 3. Trace moments
-# Integral of |Tr(U)|^2
+# Integral of |tr(U)|^2
 integrate(abs(tr(U))^2, dU(d))
 # Output: 1
 ```
 
 ### 5. Matrix Integration
 
-You can integrate matrix-valued expressions directly. The function `integrate` will element-wise integrate any `AbstractArray` (including `SymbolicMatrix` and `SymbolicMatrixProduct`) passed to it.
+You can integrate matrix-valued expressions directly. For generic
+`AbstractArray` inputs, `integrate` applies element-wise integration. For direct
+matrix-valued integration of `SymbolicMatrix` and
+`SymbolicMatrixProduct` expressions, the output dimensions must be concrete
+integers.
+
+```julia
+using IntU
+
+# Matrix-valued integration (concrete dimension required)
+res = @integrate U * U' dU(2)
+# Output: 2x2 identity matrix
+```
+
+For symbolic dimensions, use scalar contractions such as `tr(...)` instead of
+requesting a full matrix-valued result.
+
+### 6. Complex Trace Powers
+
+`IntU.jl` supports trace absolute values with integer-power workflows used in
+practice, in particular even powers $|tr(U)|^{2k}$. These are processed via the
+lazy trace engine. Odd or non-integer powers are currently unsupported and
+raise an `IntegrationError`. Also note that pure trace moments
+$|tr(U)|^{2k}$ with $k > 1$ require a concrete integer dimension (the result
+depends on $d$ as a step function, not a polynomial).
 
 ```julia
 using IntU, Symbolics
-@variables d
-U = SymbolicMatrix(:U, :U)
-# E[tr(U A U' B)] = tr(A) * tr(B) / d
-A = SymbolicMatrix(:A)
-B = SymbolicMatrix(:B)
-integrate(tr(U * A * U' * B), dU(d))
+U = SymbolicMatrix(:U, :U, 10)
+
+# Integral of |tr(U)|^4 (requires concrete d)
+integrate(abs(tr(U))^4, dU(10))
+# Output: 2
 ```
 
-### 6. HCIZ Integrals
+### 7. HCIZ Integrals
 
 IntU.jl provides direct support for **Harish-Chandra-Itzykson-Zuber (HCIZ)** integrals.
+
+> [!NOTE]
+> `hciz` supports eigenvalue-vector and matrix interfaces. For
+> `SymbolicMatrix` inputs, the dimension must be a concrete integer (symbolic
+> `d` is unsupported in this path). For numeric matrix inputs with degenerate
+> eigenvalues, IntU sorts both spectra and applies tiny independent
+> perturbations to both before evaluating the HCIZ formula.
 
 ```julia
 using IntU, LinearAlgebra
@@ -165,16 +243,13 @@ See the [API Reference](api.md) for more details.
 
 ## Potential Pitfalls
 
--   **Symbolic vs Numeric Dimension**: The dimension $d$ can be symbolic.
-    However, the Weingarten function has poles at small integers ($d < n$).
-    The symbolic result assumes $d$ is generic/large. Substituting discrete values $d < n$
-    into the rational function may result in division by zero, although the integral itself
-    is well-defined.
--   **Removable Singularities**: When using `evaluate` to substitute numeric values into symbolic 
-    results, $0/0$ forms may appear (e.g., at $d=1$ for some expressions). `IntU.jl` 
-    automatically detects when a denominator evaluates to zero and simplifies the expression 
-    to attempt to resolve these removable singularities.
--   **Computational Complexity**: The sum involves $(n!)^2$ terms. While optimized
+> [!IMPORTANT]
+> ### Symbolic (d) Pitfalls
+> - **Small Dimensions**: For Haar-related measures (Unitary, Orthogonal, Circular), element-wise results are rational functions with poles at small $d$ (typically $d < n$ for degree $n$ moments). Pure trace moments $|\mathrm{tr}(U)|^{2k}$ are an exception: they depend on $d$ as a step function and require a concrete integer dimension.
+> - **Removable Singularities**: Substituting numeric values can yield $0/0$ forms (e.g., at $d=1$ or $d=2$).
+> - **Automatic Handling**: `IntU.jl`'s `evaluate` function automatically simplifies expressions to resolve removable singularities when a denominator evaluates to zero.
+
+- **Computational Complexity**: The sum involves $(n!)^2$ terms. While optimized
     to group cycles, integrals with high degrees ($n > 6$) can become
     computationally expensive. The number of terms grows factorially.
 
@@ -183,3 +258,13 @@ See the [API Reference](api.md) for more details.
 1.  **Collins, B. (2003).** Moments and Cumulants of Polynomial random variables on unitary groups, the Itzykson-Zuber integral and free probability. *International Mathematics Research Notices*, 2003(17), 953-982.
 2.  **Collins, B., & Śniady, P. (2006).** Integration with respect to the Haar measure on unitary, orthogonal and symplectic groups. *Communications in Mathematical Physics*, 264(3), 773-795. [arXiv:math-ph/0402073](https://arxiv.org/abs/math-ph/0402073)
 3.  **Puchala, Z., & Miszczak, J. A. (2017).** Symbolic integration with respect to the Haar measure on the unitary groups. *Bulletin of the Polish Academy of Sciences. Technical Sciences*, 65(1), 21-27.
+
+## See Also
+
+- [Symbolic Trace Logic](symbolic_trace.md) — index-free trace integration built on top of this engine
+- [Orthogonal & Symplectic](orthogonal_integration.md) — Weingarten calculus for $O(d)$ and $Sp(d)$
+- [Circular Ensembles](circular_ensembles.md) — COE, CUE, CSE using the same Haar machinery
+- [Integral Library](integral_library.md) — pre-computed results that bypass this engine
+- [Asymptotic Expansions](asymptotic.md) — large-$d$ expansions of Weingarten results
+- [Pure States](pure_states.md) — first-column Weingarten specialisation
+- [Stiefel Manifolds](stiefel_manifold.md) — first-$k$-column Weingarten specialisation

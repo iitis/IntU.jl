@@ -3,33 +3,43 @@
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://iitis.github.io/IntU.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://iitis.github.io/IntU.jl/dev/)
 
-IntU.jl is a Julia package for the **symbolic** calculation of integrals over
-the Haar measure of classical compact groups ($U(d)$, $O(d)$, $Sp(d)$) and
-related ensembles. It leverages **Weingarten Calculus** to compute exact results
-for polynomial functions of matrix entries, supporting arbitrary symbolic
-dimension $d$.
+IntU.jl is a Julia package for the exact symbolic and numeric calculation of
+integrals over the Haar measure of classical compact groups ($U(d)$, $O(d)$,
+$Sp(d)$) and related ensembles. It leverages **Weingarten Calculus** to compute
+exact results for polynomial functions of matrix entries, with broad support
+for symbolic dimension $d$ in entry-wise and trace-polynomial workflows.
 
 For detailed documentation, please visit [iitis.github.io/IntU.jl](https://iitis.github.io/IntU.jl).
 
 ## IntU in action
 
 To introduce the main functionality of IntU, consider the problem of averaging
-$|U_{i,j}|^2$ over the unitary group, i.e., computing $\int dU |U_{i,j}|^2 =
-\int dU U_{i,j} U_{k,l}^* dU$.
+$|U_{i,j}|^2$ over the unitary group, i.e., computing
+$\int dU\, |U_{i,j}|^2 = \int dU\, U_{i,j}\,\overline{U_{i,j}}$.
+This is the diagonal special case of the general second-moment correlator
+$\int dU\, U_{i,j}\,\overline{U_{k,l}}$ (obtained by setting $k=i$, $l=j$).
 
-IntU provides an exact analytic result instantly, even for symbolic dimensions, using a simple unified interface: `integrate(expr, measure)`. It supports matrix-valued expressions and provides the `@integrate` macro for intuitive symbolic integration.
+IntU provides exact analytic results through a unified interface:
+`integrate(expr, measure)`. It supports matrix-valued expressions (for concrete
+integer result dimensions) and provides the `@integrate` macro for intuitive
+symbolic integration. Symbolic dimensions are supported for a broad class of
+workflows; selected paths currently require concrete integer dimensions
+(notably higher pure trace moments `|tr(U)|^(2k), k > 1`, `hciz` on
+`SymbolicMatrix` inputs, and direct matrix-valued integration of
+`SymbolicMatrix`/`SymbolicMatrixProduct` expressions).
 
 The `@integrate` macro implicitly identifies random matrices based on the measure:
-- `dU`, `dSU` $\rightarrow$ `U` (Unitary)
+- `dU`, `dSU`, `dCUE`, `dDesign` $\rightarrow$ `U` (Unitary / CUE / t-design)
 - `dO` $\rightarrow$ `O` (Orthogonal)
 - `dSp` $\rightarrow$ `Sp` (Symplectic)
 - `dPerm` $\rightarrow$ `P` (Permutation)
 - `dCPerm` $\rightarrow$ `Y` (Centered Permutation)
 - `dCOE`, `dCSE` $\rightarrow$ `S` (Circular Orthogonal/Symplectic)
+- `dGUE`, `dGOE`, `dGSE` $\rightarrow$ `H` (Gaussian Ensembles; `dGSE(n)` requires even integer `n` for concrete dimensions)
+- `dGinUE`, `dGinOE`, `dGinSE` $\rightarrow$ `G` (Ginibre Ensembles)
 - `dPsi` $\rightarrow$ `psi` (Pure State)
 - `dDiagUnitary` $\rightarrow$ `D` (Diagonal Unitary)
 - `dStiefel` $\rightarrow$ `V` (Stiefel Manifold)
-- Ginibre Ensembles $\rightarrow$ `G`
 
 Unknown symbols (like `A`, `B`, `d`) are automatically treated as constants or dimensions.
 
@@ -82,6 +92,15 @@ The Special Unitary group $SU(d)$ consists of unitary matrices with determinant 
 # Output: 1/d
 ```
 
+For the currently supported stable-range workflow, `dSU` delegates to the same
+balanced Weingarten rules as `dU`. As a result, unbalanced monomials evaluate
+to zero:
+
+```julia
+@integrate U[1, 1] dSU(d)
+# Output: 0
+```
+
 ### Orthogonal group
 Orthogonal matrices $O$ are real matrices satisfying $O O^T = I_d$. Averages are
 computed using the `dO` measure.
@@ -104,7 +123,10 @@ preserve the symplectic form, $Sp \Omega Sp^T = \Omega$. Use `dSp`.
 Ginibre ensembles consist of non-Hermitian matrices with i.i.d. Gaussian entries. 
 - **GinUE (Complex Ginibre Ensemble)**: i.i.d. complex Gaussian entries. Use `dGinUE`.
 - **GinOE (Real Ginibre Ensemble)**: i.i.d. real Gaussian entries. Use `dGinOE`.
-- **GinSE (Symplectic Ginibre Ensemble)**: i.i.d. quaternionic Gaussian entries. Use `dGinSE`.
+- **GinSE (Symplectic Ginibre Ensemble)**: i.i.d. quaternionic Gaussian entries. Use `dGinSE` (`dGinSE(n)` requires even integer `n` for concrete dimensions).
+
+For quaternionic/symplectic Gaussian measures, concrete odd dimensions are rejected:
+`dGSE(n)` and `dGinSE(n)` throw an `ArgumentError` when `n` is odd.
 
 ```julia
 # E[Tr(G G')] = d^2
@@ -129,6 +151,7 @@ state vector $|\psi\rangle$ of dimension $d$.
 
 ```julia
 # Average of |ψ_1|^2
+# The @integrate macro treats 'psi' as a (d, 1) column vector
 @integrate abs(psi[1, 1])^2 dPsi(d)
 # Output: 1 / d
 ```
@@ -175,6 +198,13 @@ matrices, which is often more convenient for quantum information tasks.
 ### Harish-Chandra-Itzykson-Zuber (HCIZ) Integrals
 IntU supports calculating HCIZ integrals of the form $\int_{U(d)} dU \exp(\text{Tr}(A U B U^\dagger))$.
 
+> [!NOTE]
+> HCIZ has two user paths: eigenvalue vectors and matrix inputs. For
+> `SymbolicMatrix` inputs, `hciz` requires a concrete integer dimension (symbolic
+> `d` is not supported). For numeric matrix inputs with degenerate spectra, IntU
+> sorts both spectra and applies tiny independent perturbations to both before
+> evaluating the determinant formula.
+
 ```julia
 using IntU, LinearAlgebra
 A = diagm([1.0, 2.0])
@@ -199,12 +229,19 @@ IntU.jl provides a bridge to [ITensors.jl](https://github.com/ITensors/ITensors.
 
 ```julia
 using IntU, ITensors
-i, j = Index(2), Index(2)
-U_it = randomITensor(i, j)
-U = ITensorUnitary(U_it; out_indices=[i], in_indices=[j])
+i = Index(2, "Out")
+j = Index(2, "In")
+i2 = Index(2, "Out2")
+j2 = Index(2, "In2")
 
-A = randomITensor(j, i)
-res = integrate([U, A], dU(2))
+# Mark a Haar-random unitary U and its adjoint U_dag
+U = ITensorUnitary(out_indices=[i], in_indices=[j])
+U_dag = ITensorUnitary(out_indices=[j2], in_indices=[i2], is_adj=true)
+
+# Integrate a balanced network E[Tr(U A U_dag B)] over U(2)
+A = randomITensor(j, j2)
+B = randomITensor(i2, i)
+res = integrate([U, A, U_dag, B], dU(2))
 ```
 
 ## Running Examples and Benchmarks
@@ -241,7 +278,7 @@ sh benchmarks/runbenchmarks.sh 01
 
 ## Installation
 
-IntU is tested with Julia 1.11 or later. Installation can be done through the
+IntU is tested with Julia 1.11 or 1.12. Installation can be done through the
 Pkg REPL:
 
 ```julia

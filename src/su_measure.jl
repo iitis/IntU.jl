@@ -1,4 +1,3 @@
-# Special Unitary Measure Integration
 
 """
     SpecialUnitary{D}
@@ -14,11 +13,16 @@ end
 
 Defines the Haar measure for the Special Unitary group $SU(d)$.
 
-Integration engine identifies variables via metadata tag `:U` (coincides with $U(d)$ in stable range).
+Integration for $SU(d)$ is performed via the $U(d)$ measure. For balanced 
+polynomials, the integrals over $SU(d)$ and $U(d)$ coincide. In the current
+implementation, non-balanced expressions are handled by the same phase
+invariance rule as $U(d)$ and evaluate to zero.
 """
-dSU(dim) = SpecialUnitary(dim)
+function dSU(dim)
+    _assert_no_float_param(dim, "dim", "dSU")
+    return SpecialUnitary(dim)
+end
 
 function IntU.measure_info(measure::SpecialUnitary)
-    # Delegates to HaarMeasure info
     return IntU.measure_info(dU(measure.dim))
 end
