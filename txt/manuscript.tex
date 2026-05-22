@@ -1,4 +1,4 @@
-\documentclass[manuscript,nonacm]{acmart}
+\documentclass[manuscript,screen]{acmart}
 
 %%
 %% \BibTeX command to typeset BibTeX logo in the docs
@@ -7,13 +7,14 @@
     \normalfont B\kern-0.5em{\scshape i\kern-0.25em b}\kern-0.8em\TeX}}}
 
 \setcopyright{none}
-\settopmatter{printacmref=false} % Removes ACM reference format
+
+%% Final article metadata will be supplied by ACM after acceptance.
 % \copyrightyear{2026}
 % \acmYear{2026}
 % \acmDOI{XXXXXXX.XXXXXXX}
 
 %% These commands are for a JOURNAL article.
-% \acmJournal{TOMS}
+\acmJournal{TOMS}
 % \acmVolume{1}
 % \acmNumber{1}
 % \acmArticle{1}
@@ -33,6 +34,8 @@
 %% You can then either use BibTeX with the ACM-Reference-Format style,
 %% or BibLaTeX with the acmauthoryear style.
 %%
+\citestyle{acmauthoryear}
+
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{graphicx}
@@ -77,7 +80,7 @@
 %%
 %% The "title" command has an optional parameter,
 %% allowing the author to define a "short title" to be used in page headers.
-\title{IntegrateUnitary.jl: A \texttt{Julia} package for symbolic integration over Haar measures}
+\title[IntegrateUnitary.jl]{IntegrateUnitary.jl: A \texttt{Julia} package for symbolic integration over Haar measures}
 
 %%
 %% The "author" command and its associated commands are used to define
@@ -1563,6 +1566,7 @@ information scientists.
 The source code for \texttt{IntegrateUnitary.jl} is available on GitHub under the Apache License 2.0.
 \begin{itemize}
     \item \textbf{Repository URL}: \url{https://github.com/iitis/IntegrateUnitary.jl}
+    \item \textbf{Archived release DOI}: \url{https://doi.org/10.5281/zenodo.20346848}
     \item \textbf{License}: Apache License 2.0
     \item \textbf{Version}: The results in this paper were generated using
     version v1.0.0.
