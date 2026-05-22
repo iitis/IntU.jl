@@ -1,8 +1,8 @@
 #!/bin/bash
-# Run IntU.jl and RTNI benchmarks and produce comparison table.
+# Run IntegrateUnitary.jl and RTNI benchmarks and produce comparison table.
 #
 # Prerequisites:
-#   - Julia with IntU.jl available
+#   - Julia with IntegrateUnitary.jl available
 #     (Julia dependencies are pinned by ../Manifest.toml and instantiated below)
 #   - Wolfram Mathematica with RTNI package installed
 #     (RTNI.wl and precomputedWG/ must be in this directory or on $Path)
@@ -28,7 +28,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BENCH_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 RTNI_RECOMMENDED_SHA256="${RTNI_RECOMMENDED_SHA256:-cf7aaa1ba49b249ce7b9dd4a682bf2dd4cf83b47b8b92b341a84a882238694b2}"
 
-echo "=== Running IntU.jl benchmarks (Julia) ==="
+echo "=== Running IntegrateUnitary.jl benchmarks (Julia) ==="
 cd "$SCRIPT_DIR"
 julia --project="$BENCH_ROOT" -e 'using Pkg; Pkg.instantiate()' 2>/dev/null
 julia --project="$BENCH_ROOT" bench_intu.jl

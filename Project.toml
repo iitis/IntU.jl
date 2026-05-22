@@ -1,4 +1,4 @@
-name = "IntU"
+name = "IntegrateUnitary"
 uuid = "70c8b9a1-b4c5-4d7a-a56e-8e7e6495d68b"
 version = "1.0.0"
 authors = ["Łukasz Pawela", "Zbigniew Puchała"]
@@ -17,7 +17,7 @@ Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 ITensors = "9136182c-28ba-11e9-034c-db9fb085ebd5"
 
 [extensions]
-IntUITensorsExt = "ITensors"
+IntegrateUnitaryITensorsExt = "ITensors"
 
 [compat]
 Aqua = "0.8.14"

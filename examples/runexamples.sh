@@ -4,7 +4,7 @@ set -e
 cd "$(dirname "$0")/.."
 
 echo "========================================"
-echo "    Running IntU.jl Examples            "
+echo "    Running IntegrateUnitary.jl Examples            "
 echo "========================================"
 
 # Instantiate examples environment to ensure dependencies are available

@@ -1,12 +1,12 @@
 """
-Performance comparison benchmarks for IntU.jl.
+Performance comparison benchmarks for IntegrateUnitary.jl.
 Computes the same integrals as bench_haarpy.py for a head-to-head comparison.
 
 Usage:
-    julia --project=/path/to/IntU.jl bench_intu.jl
+    julia --project=/path/to/IntegrateUnitary.jl bench_intu.jl
 """
 
-using IntU
+using IntegrateUnitary
 using Symbolics
 using BenchmarkTools
 using Memoization
@@ -49,7 +49,7 @@ function benchmark_meta()
             "machine" => string(Sys.MACHINE),
         ),
         "runtime" => Dict("name" => "Julia", "version" => string(VERSION)),
-        "packages" => Dict("IntU" => module_version(IntU)),
+        "packages" => Dict("IntegrateUnitary" => module_version(IntegrateUnitary)),
         "script" => abspath(@__FILE__),
     )
 end

@@ -1,6 +1,6 @@
 # Stiefel Manifold Integration
 
-IntU.jl supports integration over the **Stiefel manifold** $V_k(\mathbb{C}^d)$,
+IntegrateUnitary.jl supports integration over the **Stiefel manifold** $V_k(\mathbb{C}^d)$,
 the set of all $d \times k$ matrices with orthonormal columns:
 
 $$V_k(\mathbb{C}^d) = \{ V \in \mathbb{C}^{d \times k} \mid V^\dagger V = I_k \}.$$
@@ -20,7 +20,7 @@ unitary Weingarten calculus:
 
 $$\int_{V_k(\mathbb{C}^d)} f(V)\, dV = \int_{U(d)} f\!\left(U_{1:d,\, 1:k}\right) dU.$$
 
-IntU.jl exploits this reduction internally — the full symbolic Weingarten
+IntegrateUnitary.jl exploits this reduction internally — the full symbolic Weingarten
 engine is automatically available for Stiefel integrals.
 
 ### Special case: $k = 1$ and pure states
@@ -42,7 +42,7 @@ identifies `V` as the random Stiefel matrix.
 ### Basic integration
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 
 # E[|V_{11}|^2] = 1/d
@@ -92,7 +92,7 @@ Large-$d$ expansions are fully supported. Pass the exact result as a rational
 function of `d` to `asymptotic`, or integrate and expand in one step:
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 
 # Exact: 1/(d*(d+1)); leading large-d behaviour:
@@ -105,7 +105,7 @@ asymptotic(1 / (d * (d + 1)), d, 3)
 For more control, create the `SymbolicMatrix` explicitly:
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 V = SymbolicMatrix(:V, :V)
 integrate(abs(V[1, 1])^2, dStiefel(d, 2))
@@ -139,6 +139,6 @@ integrate(abs(V[1, 1])^2, dStiefel(d, 2))
 ## API Reference
 
 ```@docs
-IntU.StiefelMeasure
+IntegrateUnitary.StiefelMeasure
 dStiefel
 ```

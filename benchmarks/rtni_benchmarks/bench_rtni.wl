@@ -273,14 +273,14 @@ runAndReport[
 
 (* Build the graph for |tr(U)|^{2k} and integrate with concrete d=10.
    Pure trace moments depend on d as a step function (not a polynomial),
-   so both IntU.jl and RTNI use a concrete dimension here.
+   so both IntegrateUnitary.jl and RTNI use a concrete dimension here.
 
    The result of integrateHaarUnitary is a list of {graph, weight} pairs
    (a tensor-network superposition), NOT a scalar.  To obtain the scalar
    value we pass the result through converttomonomial[..., {}, True],
    which traverses each graph, constructs the matrix product, and applies
    Tr[].  This makes the benchmark an apples-to-apples comparison with
-   IntU.jl, which returns a scalar directly. *)
+   IntegrateUnitary.jl, which returns a scalar directly. *)
 
 trMomentGraphScalar[k_, dim_] := Module[{g, graphResult},
   g = Join[

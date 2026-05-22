@@ -1,6 +1,6 @@
 # Symbolic Trace Integration
 
-IntU.jl allows integration of expressions involving traces of products of random
+IntegrateUnitary.jl allows integration of expressions involving traces of products of random
 matrices — such as $\mathrm{tr}(U A U^\dagger B)$ — without writing out tensor
 indices explicitly.
 
@@ -32,7 +32,7 @@ produce a multi-cycle `LazyTrace`; sums (`tr(A) + tr(B)`) produce a
 ### With `@integrate`
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 
 # E[tr(U A U' B)] = tr(A)*tr(B) / d
@@ -42,13 +42,13 @@ using IntU, Symbolics
 ### Manual construction
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 
 U = SymbolicMatrix(:U, :U)
 A = SymbolicMatrix(:A)
 
-expr = IntU.tr(U * A * U' * A)
+expr = IntegrateUnitary.tr(U * A * U' * A)
 integrate(expr, dU(d))
 # Output: tr(A)^2 / d
 ```
@@ -56,7 +56,7 @@ integrate(expr, dU(d))
 ### Using `tr_lazy` with a vector of factors
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 U = symbolic_unitary(:U, d)
 A = SymbolicMatrix(:A)
@@ -135,4 +135,4 @@ high-degree expressions.
 - [Unitary Integration](unitary_integration.md) — Weingarten calculus background
 - [ITensors Integration](itensors.md) — graphical Weingarten for tensor networks
 
-See [`IntU.LazyTrace`](@ref), [`IntU.LazySum`](@ref), and [`tr_lazy`](@ref) in the [API Reference](api.md).
+See [`IntegrateUnitary.LazyTrace`](@ref), [`IntegrateUnitary.LazySum`](@ref), and [`tr_lazy`](@ref) in the [API Reference](api.md).

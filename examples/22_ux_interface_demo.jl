@@ -1,9 +1,9 @@
 # Example 22: Streamlined UX Interface
 # ===================================
 # This example demonstrates the new, more ergonomic interface for 
-# symbolic integration in IntU.jl.
+# symbolic integration in IntegrateUnitary.jl.
 
-using IntU
+using IntegrateUnitary
 using Symbolics
 using LinearAlgebra
 @variables d

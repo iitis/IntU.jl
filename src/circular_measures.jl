@@ -14,7 +14,7 @@ struct COEMeasure{D,M} <: AbstractMeasure
     matcher::M
 end
 COEMeasure(dim) = COEMeasure(dim, nothing)
-IntU._measure_tag(::COEMeasure) = :COE
+IntegrateUnitary._measure_tag(::COEMeasure) = :COE
 
 struct CSEMeasure{D,M} <: AbstractMeasure
     dim::D
@@ -28,7 +28,7 @@ struct CSEMeasure{D,M} <: AbstractMeasure
     end
 end
 CSEMeasure(dim) = CSEMeasure(dim, nothing)
-IntU._measure_tag(::CSEMeasure) = :CSE
+IntegrateUnitary._measure_tag(::CSEMeasure) = :CSE
 
 @doc raw"""
     dCOE(dim)

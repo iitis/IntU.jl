@@ -4,7 +4,7 @@ set -e
 cd "$(dirname "$0")/.."
 
 echo "========================================"
-    echo "    Running IntU.jl Benchmarks          "
+    echo "    Running IntegrateUnitary.jl Benchmarks          "
 echo "========================================"
 
 # Instantiate benchmarks environment to ensure dependencies are available

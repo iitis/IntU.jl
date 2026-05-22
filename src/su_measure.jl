@@ -23,6 +23,6 @@ function dSU(dim)
     return SpecialUnitary(dim)
 end
 
-function IntU.measure_info(measure::SpecialUnitary)
-    return IntU.measure_info(dU(measure.dim))
+function IntegrateUnitary.measure_info(measure::SpecialUnitary)
+    return IntegrateUnitary.measure_info(dU(measure.dim))
 end

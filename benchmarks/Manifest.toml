@@ -441,15 +441,15 @@ version = "1.4.5"
     ArrowTypes = "31f734f8-188a-4ce0-8406-c8a06bd891cd"
     Parsers = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
 
-[[deps.IntU]]
+[[deps.IntegrateUnitary]]
 deps = ["Combinatorics", "DataStructures", "LinearAlgebra", "MacroTools", "Memoization", "ProgressMeter", "SymbolicUtils", "Symbolics"]
 path = ".."
 uuid = "70c8b9a1-b4c5-4d7a-a56e-8e7e6495d68b"
 version = "1.0.0"
 weakdeps = ["ITensors"]
 
-    [deps.IntU.extensions]
-    IntUITensorsExt = "ITensors"
+    [deps.IntegrateUnitary.extensions]
+    IntegrateUnitaryITensorsExt = "ITensors"
 
 [[deps.IntegerMathUtils]]
 git-tree-sha1 = "4c1acff2dc6b6967e7e750633c50bc3b8d83e617"

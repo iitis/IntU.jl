@@ -1,10 +1,10 @@
 
-module IntUITensorsExt
+module IntegrateUnitaryITensorsExt
 
-using IntU
+using IntegrateUnitary
 using ITensors
 using Symbolics
-import IntU:
+import IntegrateUnitary:
     integrate,
     _contract_all,
     _create_deltas,
@@ -17,32 +17,32 @@ import IntU:
     GraphicalUnitary,
     ITensorUnitary
 
-function integrate(u::ITensorUnitary, measure::IntU.HaarMeasure)
+function integrate(u::ITensorUnitary, measure::IntegrateUnitary.HaarMeasure)
     return integrate([u], measure)
 end
 
-IntU.integrate_graphical(
+IntegrateUnitary.integrate_graphical(
     constants::AbstractVector{ITensor},
     unitaries,
-    measure::IntU.HaarMeasure,
-) = IntU._integrate_graphical_unitary(constants, unitaries, measure.dim)
+    measure::IntegrateUnitary.HaarMeasure,
+) = IntegrateUnitary._integrate_graphical_unitary(constants, unitaries, measure.dim)
 
-IntU.integrate_graphical(
+IntegrateUnitary.integrate_graphical(
     constants::AbstractVector{ITensor},
     unitaries,
-    measure::IntU.UnitaryDesign,
-) = IntU._integrate_graphical_unitary(constants, unitaries, measure.dim; design_t = measure.t)
+    measure::IntegrateUnitary.UnitaryDesign,
+) = IntegrateUnitary._integrate_graphical_unitary(constants, unitaries, measure.dim; design_t = measure.t)
 
-function integrate(tensors::AbstractVector, measure::IntU.AbstractMeasure)
+function integrate(tensors::AbstractVector, measure::IntegrateUnitary.AbstractMeasure)
     is_tensor_network = any(t -> t isa ITensor || t isa ITensorUnitary, tensors)
 
     if is_tensor_network
         return _integrate_tensor_network(tensors, measure)
     else
-        # Fallback to standard element-wise integration from IntU
+        # Fallback to standard element-wise integration from IntegrateUnitary
         return invoke(
             integrate,
-            Tuple{AbstractArray,IntU.AbstractMeasure},
+            Tuple{AbstractArray,IntegrateUnitary.AbstractMeasure},
             tensors,
             measure,
         )
@@ -65,17 +65,17 @@ function _integrate_tensor_network(tensors::AbstractVector, measure)
             )
         elseif t isa ITensor
             push!(constants, t)
-        elseif t isa Union{Number,IntU.Num}
+        elseif t isa Union{Number,IntegrateUnitary.Num}
             push!(constants, ITensor(t))
         else
             error("Unknown tensor type: $(typeof(t))")
         end
     end
 
-    return IntU.integrate_graphical(constants, unitaries, measure)
+    return IntegrateUnitary.integrate_graphical(constants, unitaries, measure)
 end
 
-function integrate(tensors::AbstractVector{<:ITensor}, measure::IntU.AbstractMeasure)
+function integrate(tensors::AbstractVector{<:ITensor}, measure::IntegrateUnitary.AbstractMeasure)
     return integrate(collect(Any, tensors), measure)
 end
 
@@ -141,7 +141,7 @@ function _is_scalar_itensor(t::ITensor)
 end
 
 function _canonicalize_scalar_coeff(x)
-    x_unwrapped = x isa IntU.Num ? Symbolics.unwrap(x) : x
+    x_unwrapped = x isa IntegrateUnitary.Num ? Symbolics.unwrap(x) : x
 
     if x_unwrapped isa Integer || x_unwrapped isa Rational
         return x_unwrapped
@@ -226,7 +226,7 @@ function _scalar_coeff_constant_across_pairs(
            _all_legs_dim_one(u_dag_in)
 end
 
-function IntU._create_deltas_symplectic(idxs1, idxs2, dim)
+function IntegrateUnitary._create_deltas_symplectic(idxs1, idxs2, dim)
     if length(idxs1) != length(idxs2)
         error("Index mismatch in symplectic delta creation")
     end

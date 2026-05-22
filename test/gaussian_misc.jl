@@ -1,12 +1,12 @@
-using IntU
+using IntegrateUnitary
 using Symbolics
 using Test
 
 @testset "Gaussian Miscellaneous" begin
     @testset "GSE Dimension Parity" begin
         # Should work for even
-        @test dGSE(2) isa IntU.GSEMeasure
-        @test dGSE(4) isa IntU.GSEMeasure
+        @test dGSE(2) isa IntegrateUnitary.GSEMeasure
+        @test dGSE(4) isa IntegrateUnitary.GSEMeasure
 
         # Should throw for odd
         @test_throws ArgumentError dGSE(1)
@@ -14,7 +14,7 @@ using Test
 
         # Should work for symbolic
         @variables d
-        @test dGSE(d) isa IntU.GSEMeasure
+        @test dGSE(d) isa IntegrateUnitary.GSEMeasure
     end
 
     @testset "GSE Asymptotic" begin
@@ -23,7 +23,7 @@ using Test
         meas = dGSE(d_sym)
 
         # <Tr(H^2)>_GSE = d^2 - d
-        res2 = asymptotic(IntU.tr(H^2), meas)
+        res2 = asymptotic(IntegrateUnitary.tr(H^2), meas)
         # Expected: d^2 - d
         @test simplify(res2 - (d_sym^2 - d_sym)) == 0
     end
@@ -34,16 +34,16 @@ using Test
 
         # GUE
         m_gue = dGUE(N)
-        @test integrate(IntU.tr(H^2), m_gue) == N^2
+        @test integrate(IntegrateUnitary.tr(H^2), m_gue) == N^2
 
         # GOE
         H_goe = SymbolicMatrix(:H_goe, :GOE, N)
         m_goe = dGOE(N)
-        @test integrate(IntU.tr(H_goe^2), m_goe) == N^2 + N
+        @test integrate(IntegrateUnitary.tr(H_goe^2), m_goe) == N^2 + N
 
         # GSE
         H_gse = SymbolicMatrix(:H_gse, :GSE, N)
         m_gse = dGSE(N)
-        @test integrate(IntU.tr(H_gse^2), m_gse) == 2
+        @test integrate(IntegrateUnitary.tr(H_gse^2), m_gse) == 2
     end
 end

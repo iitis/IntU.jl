@@ -1,4 +1,4 @@
-using IntU
+using IntegrateUnitary
 using Symbolics
 using BenchmarkTools
 
@@ -32,7 +32,7 @@ function benchmark_trace(k, d_val)
     @variables A[1:d_val, 1:d_val]
     measure = dPerm(d_val)
     # Integral of tr(P * A)^k
-    expr = Symbolics.scalarize(IntU.tr(P * A))^k
+    expr = Symbolics.scalarize(IntegrateUnitary.tr(P * A))^k
 
     println("\nk = $k, d = $d_val (Integral of tr(P * A)^$k)")
     @btime integrate($expr, $measure)
@@ -45,7 +45,7 @@ integrate(P_warm[1, 1], dPerm(2))
 Y_warm_sym = SymbolicMatrix(:Y, :CPerm, 2)
 Y_warm = Y_warm_sym[1:2, 1:2]
 integrate(Y_warm[1, 1], dCPerm(2))
-integrate(Symbolics.scalarize(IntU.tr(P_warm)), dPerm(2))
+integrate(Symbolics.scalarize(IntegrateUnitary.tr(P_warm)), dPerm(2))
 
 println("\n--- Permutation Group (S_d) ---")
 benchmark_permutation(1, 100)

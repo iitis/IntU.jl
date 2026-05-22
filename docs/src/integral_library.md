@@ -1,6 +1,6 @@
 # Pre-computed Integral Library
 
-IntU.jl maintains a library of pre-computed results for frequently encountered
+IntegrateUnitary.jl maintains a library of pre-computed results for frequently encountered
 integrals. Matching expressions are returned in $\mathcal{O}(1)$ time,
 bypassing the Weingarten or Wick-contraction engines entirely.
 
@@ -19,7 +19,7 @@ The most commonly needed library entry is the first-moment identity:
 $$\int_{U(d)} \mathrm{tr}(U A U^\dagger B)\, dU = \frac{\mathrm{tr}(A)\,\mathrm{tr}(B)}{d}.$$
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 A = SymbolicMatrix(:A)
 B = SymbolicMatrix(:B)
@@ -61,7 +61,7 @@ Low-order trace moments are pre-computed for GUE, GOE, and GSE.
 | $\langle \mathrm{tr}(H^6) \rangle$ | $5d^4 + 10d^2$ | — | — |
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 
 # GUE 4th moment — retrieved from library
@@ -120,7 +120,7 @@ high-degree monomials). For example:
 
 ## Fallback Mechanism
 
-If an expression is not found in the library, IntU.jl automatically falls back
+If an expression is not found in the library, IntegrateUnitary.jl automatically falls back
 to full symbolic integration (Weingarten calculus for compact groups, Wick
 contraction for Gaussian/Ginibre ensembles). No user action is required — the
 library is consulted transparently on every `integrate` call.

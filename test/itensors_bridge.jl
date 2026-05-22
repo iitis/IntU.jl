@@ -1,6 +1,6 @@
 
 using Test
-using IntU
+using IntegrateUnitary
 using Symbolics
 
 struct MockIndex
@@ -13,7 +13,7 @@ struct MockTensor
     name::Symbol
 end
 
-function IntU._contract_all(cs::Vector)
+function IntegrateUnitary._contract_all(cs::Vector)
     if isempty(cs)
         return 1
     end
@@ -21,13 +21,13 @@ function IntU._contract_all(cs::Vector)
     return Symbol("Contracted(", join(names, ","), ")")
 end
 
-function IntU._create_deltas(idxs1::Vector, idxs2::Vector)
+function IntegrateUnitary._create_deltas(idxs1::Vector, idxs2::Vector)
     return [(idxs1[i], idxs2[i]) for i = 1:length(idxs1)]
 end
 
 const mock_mode = Ref(:Unitary)
 
-function IntU._contract_with_deltas(cs, ds, wg)
+function IntegrateUnitary._contract_with_deltas(cs, ds, wg)
     if mock_mode[] == :Unitary
         return string(wg) * " * Tr(A)Tr(B)"
     elseif mock_mode[] == :Orthogonal
@@ -80,7 +80,7 @@ end
     @test contains(res_o, "Tr(O1 O2)")
 
     # 3. Test Symplectic
-    function IntU._create_deltas_symplectic(idxs1, idxs2, dim)
+    function IntegrateUnitary._create_deltas_symplectic(idxs1, idxs2, dim)
         return ["J($dim)"]
     end
 

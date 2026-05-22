@@ -4,12 +4,12 @@
 #
 # What it does:
 #   - Runs a battery of higher-degree Haar integrals (8th/10th moments, mixed moments)
-#     over U(d), O(d), and Sp(d) using IntU.jl.
+#     over U(d), O(d), and Sp(d) using IntegrateUnitary.jl.
 #   - Compares results against closed-form expected expressions.
 #   - Benchmarks runtime (median time, memory, allocs) per test case.
 #   - Writes a JSON report for regression testing.
 
-using IntU
+using IntegrateUnitary
 using Symbolics
 using BenchmarkTools
 using JSON3
@@ -36,7 +36,7 @@ quick = has_flag("--quick")
 doublefactorial_odd(n::Int) = prod(1:2:n)
 
 function sym_is_zero(x)
-    return IntU._iszero(x)
+    return IntegrateUnitary._iszero(x)
 end
 
 function safe_string(x)
@@ -122,7 +122,7 @@ end
 
 dvals_symbolic = quick ? [4, 8, 16] : [4, 8, 16, 32, 64]
 
-println("=== IntU.jl stress/benchmark suite ===")
+println("=== IntegrateUnitary.jl stress/benchmark suite ===")
 println("samples per benchmark: $samples")
 println("JSON output: $outpath")
 println()
@@ -345,10 +345,10 @@ for dnum in dnums
 end
 
 # ------------- Sp(d): stress tests -------------------------------------------
-# (a) High moments of |S11| (handled by IntU.jl for Sp via dSp) :contentReference[oaicite:6]{index=6}
+# (a) High moments of |S11| (handled by IntegrateUnitary.jl for Sp via dSp) :contentReference[oaicite:6]{index=6}
 # (b) A “no conjugates” symplectic example with known closed form:
 #     ∫ s_{1,1} s_{2,N+2} s_{N+1,2} s_{N+2,N+1} dSp
-#     = -1 / (4 N (N-1) (2N+1)) under IntU's current symplectic sign convention
+#     = -1 / (4 N (N-1) (2N+1)) under IntegrateUnitary's current symplectic sign convention
 #       (consistent with the implemented Sp Weingarten/sign mapping).
 
 Nvals = quick ? [3, 5] : [3, 5, 10]

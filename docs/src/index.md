@@ -1,16 +1,16 @@
-# IntU.jl Documentation
+# IntegrateUnitary.jl Documentation
 
-Welcome to the documentation for **IntU.jl**, a generic symbolic integration engine for random matrices and quantum states.
+Welcome to the documentation for **IntegrateUnitary.jl**, a generic symbolic integration engine for random matrices and quantum states.
 
 ## Getting Started
 
-IntU.jl is designed to make "back-of-the-envelope" calculations in Random Matrix Theory and Quantum Information exact and automated.
+IntegrateUnitary.jl is designed to make "back-of-the-envelope" calculations in Random Matrix Theory and Quantum Information exact and automated.
 
 ### Installation
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/iitis/IntU.jl")
+Pkg.add(url="https://github.com/iitis/IntegrateUnitary.jl")
 ```
 
 ### Reproducible Setup From a Checkout
@@ -29,7 +29,7 @@ This uses the versioned `Manifest.toml` files in `examples/` and `benchmarks/`.
 
 ## The @integrate Macro
 
-For more intuitive symbolic integration, **IntU.jl** provides the `@integrate` macro. It automatically identifies random matrices based on the measure and manages variable declarations.
+For more intuitive symbolic integration, **IntegrateUnitary.jl** provides the `@integrate` macro. It automatically identifies random matrices based on the measure and manages variable declarations.
 
 ```julia
 @integrate expr measure
@@ -40,7 +40,7 @@ For more intuitive symbolic integration, **IntU.jl** provides the `@integrate` m
 
 ## Common Interface
 
-The primary way to interact with **IntU.jl** is through the `integrate` function. It provides a unified interface for all supported groups and ensembles.
+The primary way to interact with **IntegrateUnitary.jl** is through the `integrate` function. It provides a unified interface for all supported groups and ensembles.
 
 ```julia
 integrate(expr, measure)

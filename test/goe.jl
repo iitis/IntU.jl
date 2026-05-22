@@ -5,19 +5,19 @@
     meas = dGOE(N)
 
     @testset "Tr(H)" begin
-        expr = IntU.tr(H)
+        expr = IntegrateUnitary.tr(H)
         res = integrate(expr, meas)
         @test to_numeric(res) == 0
     end
 
     @testset "Tr(H^2)" begin
-        expr = IntU.tr(H^2)
+        expr = IntegrateUnitary.tr(H^2)
         res = integrate(expr, meas)
         @test to_numeric(res) == N^2 + N
     end
 
     @testset "Tr(H^4)" begin
-        expr = IntU.tr(H^4)
+        expr = IntegrateUnitary.tr(H^4)
         res = integrate(expr, meas)
         expected = 2*N^3 + 5*N^2 + 5*N
         @test to_numeric(res) == expected

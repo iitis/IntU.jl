@@ -1,4 +1,4 @@
-using IntU
+using IntegrateUnitary
 using Test
 using Symbolics
 using LinearAlgebra
@@ -59,7 +59,7 @@ import LinearAlgebra: tr
         G_oe = SymbolicMatrix(:G, :GinOE, N)
         meas = dGinOE(N)
         # < Tr(G * G^T) > = N^2
-        @test to_numeric(integrate(IntU.tr(G_oe * transpose(G_oe)), meas)) == N^2
+        @test to_numeric(integrate(IntegrateUnitary.tr(G_oe * transpose(G_oe)), meas)) == N^2
 
         # < G_11^2 > = 1
         @test to_numeric(integrate(G_oe[1, 1]^2, meas)) == 1
@@ -68,7 +68,7 @@ import LinearAlgebra: tr
     @testset "Symplectic Ginibre (GinSE)" begin
         G_se = SymbolicMatrix(:G, :GinSE, N)
         meas = dGinSE(N)
-        @test to_numeric(integrate(IntU.tr(G_se * G_se'), meas)) !== nothing
+        @test to_numeric(integrate(IntegrateUnitary.tr(G_se * G_se'), meas)) !== nothing
     end
 
     @testset "Asymptotic Expansion" begin
@@ -79,6 +79,6 @@ import LinearAlgebra: tr
 
         asymp = asymptotic(expr, meas, 1)
         val = Symbolics.substitute(asymp, Dict(d_val => 10))
-        @test IntU._symbolic_isequal(val, 100)
+        @test IntegrateUnitary._symbolic_isequal(val, 100)
     end
 end

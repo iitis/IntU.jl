@@ -1,5 +1,5 @@
 
-using IntU
+using IntegrateUnitary
 using Test
 using Symbolics
 
@@ -39,7 +39,7 @@ using Symbolics
 
         # Test auto-definition of multiple matrices
         res_tr = @integrate tr(U * A * U' * B) dU(d)
-        @test IntU.is_number(evaluate(res_tr, [d => 2, tr(A) => 1, tr(B) => 1]))
+        @test IntegrateUnitary.is_number(evaluate(res_tr, [d => 2, tr(A) => 1, tr(B) => 1]))
     end
 
     @testset "Evaluate Helper" begin

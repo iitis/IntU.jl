@@ -43,7 +43,7 @@ identifies `D` as the random diagonal unitary.
 ### Basic examples
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 
 # |D_{11}|^2 = 1 deterministically (unit modulus)
@@ -87,7 +87,7 @@ Higher moments vanish unless the multisets of $D$ and $\bar{D}$ indices match:
 ### Manual integration
 
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 D = SymbolicMatrix(:D, :DiagUnitary)
 

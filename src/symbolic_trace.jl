@@ -185,7 +185,7 @@ to `integrate` or used inside `@integrate`. `d` may be an integer or a
 
 # Examples
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 U = symbolic_unitary(:U, d)
 integrate(abs(U[1,1])^2, dU(d))   # 1/d
@@ -202,7 +202,7 @@ Use with `dO(d)` for integration over the orthogonal group `O(d)`.
 
 # Examples
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 O = symbolic_orthogonal(:O, d)
 integrate(O[1,1]^2, dO(d))   # 1/d
@@ -219,7 +219,7 @@ Use with `dSp(d)` for integration over the symplectic group `Sp(d)`.
 
 # Examples
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 Sp = symbolic_symplectic(:Sp, 4)
 integrate(abs(Sp[1,1])^2, dSp(4))   # 1/4
 ```
@@ -235,7 +235,7 @@ Use with `dPsi(d)` for integration over the Fubini–Study measure.
 
 # Examples
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 psi = symbolic_pure_state(:psi, d)
 integrate(abs(psi[1,1])^2, dPsi(d))   # 1/d
@@ -252,7 +252,7 @@ symmetric group `S_d`.
 
 # Examples
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 P = symbolic_permutation(:P, d)
 integrate(P[1,1] * P[2,2], dPerm(d))   # 1/(d*(d-1))
@@ -606,14 +606,14 @@ function adjoint(P::SymbolicMatrixProduct)
 end
 
 function _is_identity(A)
-    if A isa AbstractMatrix && !(A isa IntU.SymbolicAny)
+    if A isa AbstractMatrix && !(A isa IntegrateUnitary.SymbolicAny)
         return A == I || (size(A, 1) == size(A, 2) && A == I(size(A, 1)))
     end
     return false
 end
 
 function _are_inverses(A, B)
-    if A isa IntU.SymbolicMatrix && B isa IntU.SymbolicMatrix
+    if A isa IntegrateUnitary.SymbolicMatrix && B isa IntegrateUnitary.SymbolicMatrix
         if A.name === B.name &&
            A.special_type === B.special_type &&
            isequal(A.dim, B.dim) &&
@@ -625,7 +625,7 @@ function _are_inverses(A, B)
         end
     end
 
-    if A isa IntU.SymbolicKron && B isa IntU.SymbolicKron
+    if A isa IntegrateUnitary.SymbolicKron && B isa IntegrateUnitary.SymbolicKron
         cancel1 = _are_inverses(A.A, B.A) || (_is_identity(A.A) && _is_identity(B.A))
         cancel2 = _are_inverses(A.B, B.B) || (_is_identity(A.B) && _is_identity(B.B))
         return cancel1 && cancel2
@@ -717,7 +717,7 @@ pre-assembled `Vector` of matrix factors.
 
 # Examples
 ```julia
-using IntU, Symbolics
+using IntegrateUnitary, Symbolics
 @variables d
 U = symbolic_unitary(:U, d)
 A = SymbolicMatrix(:A)

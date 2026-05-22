@@ -6,7 +6,7 @@ for (T, tag) in [(:PermutationMeasure, :Perm), (:CenteredPermutationMeasure, :CP
             matcher::M
         end
         $T(dim) = $T(dim, nothing)
-        IntU._measure_tag(::$T) = $(QuoteNode(tag))
+        IntegrateUnitary._measure_tag(::$T) = $(QuoteNode(tag))
     end
 end
 

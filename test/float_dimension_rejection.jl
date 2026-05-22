@@ -1,4 +1,4 @@
-using IntU
+using IntegrateUnitary
 using Test
 using Symbolics
 
@@ -71,25 +71,25 @@ using Symbolics
     @testset "Symbolic Inputs Remain Valid" begin
         @variables d k t
 
-        @test dU(d) isa IntU.HaarMeasure
-        @test dSU(d) isa IntU.SpecialUnitary
-        @test dO(d) isa IntU.OrthogonalMeasure
-        @test dSp(d) isa IntU.SymplecticMeasure
-        @test dCUE(d) isa IntU.HaarMeasure
-        @test dCOE(d) isa IntU.COEMeasure
-        @test dCSE(d) isa IntU.CSEMeasure
-        @test dPsi(d) isa IntU.PureStateMeasure
-        @test dDiagUnitary(d) isa IntU.DiagonalUnitaryMeasure
-        @test dPerm(d) isa IntU.PermutationMeasure
-        @test dCPerm(d) isa IntU.CenteredPermutationMeasure
-        @test dGUE(d) isa IntU.GUEMeasure
-        @test dGOE(d) isa IntU.GOEMeasure
-        @test dGSE(d) isa IntU.GSEMeasure
-        @test dGinUE(d) isa IntU.GinUEMeasure
-        @test dGinOE(d) isa IntU.GinOEMeasure
-        @test dGinSE(d) isa IntU.GinSEMeasure
-        @test dStiefel(d, k) isa IntU.StiefelMeasure
-        @test dDesign(d, t) isa IntU.UnitaryDesign
+        @test dU(d) isa IntegrateUnitary.HaarMeasure
+        @test dSU(d) isa IntegrateUnitary.SpecialUnitary
+        @test dO(d) isa IntegrateUnitary.OrthogonalMeasure
+        @test dSp(d) isa IntegrateUnitary.SymplecticMeasure
+        @test dCUE(d) isa IntegrateUnitary.HaarMeasure
+        @test dCOE(d) isa IntegrateUnitary.COEMeasure
+        @test dCSE(d) isa IntegrateUnitary.CSEMeasure
+        @test dPsi(d) isa IntegrateUnitary.PureStateMeasure
+        @test dDiagUnitary(d) isa IntegrateUnitary.DiagonalUnitaryMeasure
+        @test dPerm(d) isa IntegrateUnitary.PermutationMeasure
+        @test dCPerm(d) isa IntegrateUnitary.CenteredPermutationMeasure
+        @test dGUE(d) isa IntegrateUnitary.GUEMeasure
+        @test dGOE(d) isa IntegrateUnitary.GOEMeasure
+        @test dGSE(d) isa IntegrateUnitary.GSEMeasure
+        @test dGinUE(d) isa IntegrateUnitary.GinUEMeasure
+        @test dGinOE(d) isa IntegrateUnitary.GinOEMeasure
+        @test dGinSE(d) isa IntegrateUnitary.GinSEMeasure
+        @test dStiefel(d, k) isa IntegrateUnitary.StiefelMeasure
+        @test dDesign(d, t) isa IntegrateUnitary.UnitaryDesign
     end
 
     @testset "Regression: Large Float dU Rejected Early" begin
@@ -101,15 +101,15 @@ using Symbolics
         H = SymbolicMatrix(:H, :GUE)
         V = SymbolicMatrix(:V, :V, (4, 2))
 
-        @test_throws ArgumentError integrate(abs(U[1, 1])^2, IntU.HaarMeasure(2.0, nothing))
-        @test_throws ArgumentError integrate(H[1, 1]^2, IntU.GUEMeasure(2.0, nothing))
+        @test_throws ArgumentError integrate(abs(U[1, 1])^2, IntegrateUnitary.HaarMeasure(2.0, nothing))
+        @test_throws ArgumentError integrate(H[1, 1]^2, IntegrateUnitary.GUEMeasure(2.0, nothing))
         @test_throws ArgumentError integrate(
             abs(V[1, 1])^2,
-            IntU.StiefelMeasure(4, 2.0, nothing),
+            IntegrateUnitary.StiefelMeasure(4, 2.0, nothing),
         )
         @test_throws ArgumentError integrate(
             abs(U[1, 1])^2,
-            IntU.UnitaryDesign(4, 2.0, nothing),
+            IntegrateUnitary.UnitaryDesign(4, 2.0, nothing),
         )
     end
 
@@ -122,17 +122,17 @@ using Symbolics
 
         @test_throws ArgumentError integrate(
             tr(U_lazy * U_lazy'),
-            IntU.HaarMeasure(2.0, nothing),
+            IntegrateUnitary.HaarMeasure(2.0, nothing),
         )
 
         @test_throws ArgumentError integrate(
             tr(H_lazy * H_lazy),
-            IntU.GUEMeasure(2.0, nothing),
+            IntegrateUnitary.GUEMeasure(2.0, nothing),
         )
 
         @test_throws ArgumentError integrate(
             V_lazy' * V_lazy,
-            IntU.StiefelMeasure(4, 2.0, nothing),
+            IntegrateUnitary.StiefelMeasure(4, 2.0, nothing),
         )
     end
 
@@ -140,11 +140,11 @@ using Symbolics
         # Odd Num dimension rejected for Sp and CSE
         @test_throws ArgumentError dSp(Num(3))
         @test_throws ArgumentError dCSE(Num(3))
-        @test dSp(Num(4)) isa IntU.SymplecticMeasure
-        @test dCSE(Num(4)) isa IntU.CSEMeasure
+        @test dSp(Num(4)) isa IntegrateUnitary.SymplecticMeasure
+        @test dCSE(Num(4)) isa IntegrateUnitary.CSEMeasure
 
         # Stiefel k > d rejected for Num
         @test_throws ArgumentError dStiefel(Num(3), Num(4))
-        @test dStiefel(Num(4), Num(2)) isa IntU.StiefelMeasure
+        @test dStiefel(Num(4), Num(2)) isa IntegrateUnitary.StiefelMeasure
     end
 end

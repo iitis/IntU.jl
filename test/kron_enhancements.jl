@@ -1,4 +1,4 @@
-using IntU
+using IntegrateUnitary
 using Symbolics
 using LinearAlgebra
 using Test
@@ -8,21 +8,21 @@ using Test
     @variables d
     U = symbolic_unitary(:U, d)
     K = kron(U, U)
-    @test K isa IntU.SymbolicKron
+    @test K isa IntegrateUnitary.SymbolicKron
     @test size(K) == (d^2, d^2)
 
     # 2. Trace Distribution
     # tr(U ⊗ U) = tr(U) * tr(U)
     expr = tr(K)
-    @test expr isa IntU.LazyTrace
+    @test expr isa IntegrateUnitary.LazyTrace
     @test length(expr.cycles) == 2
 
     # 3. Multiplication Optimization
     # (U ⊗ U) * (U† ⊗ U†) = (U*U†) ⊗ (U*U†)
     K_adj = adjoint(K)
     prod_K = K * K_adj
-    @test prod_K isa IntU.SymbolicKron
-    @test prod_K.A isa IntU.SymbolicMatrixProduct
+    @test prod_K isa IntegrateUnitary.SymbolicKron
+    @test prod_K.A isa IntegrateUnitary.SymbolicMatrixProduct
 
     # tr( (U ⊗ U) * (U† ⊗ U†) ) = tr(U*U†) * tr(U*U†) = d * d = d^2
     res = integrate(tr(prod_K), dU(d))

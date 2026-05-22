@@ -1,13 +1,13 @@
 # ITensors.jl Integration
 
-IntU.jl provides a seamless bridge to [ITensors.jl](https://github.com/ITensors/ITensors.jl), allowing you to integrate entire tensor networks symbolically. This is particularly useful for studying random tensor networks, quantum circuits, and holographic models.
+IntegrateUnitary.jl provides a seamless bridge to [ITensors.jl](https://github.com/ITensors/ITensors.jl), allowing you to integrate entire tensor networks symbolically. This is particularly useful for studying random tensor networks, quantum circuits, and holographic models.
 
 ## Basic Usage
 
 The primary way to use the integration is to wrap the tensors you wish to integrate in the `ITensorUnitary` struct. For pure symbolic work, you don't even need a "dummy" ITensor object; you can just specify the indices.
 
 ```julia
-using IntU, ITensors
+using IntegrateUnitary, ITensors
 
 # Define indices
 i = Index(2, "Out")
@@ -66,7 +66,7 @@ The ITensors integration supports the following measure types:
 
 ### Example: Orthogonal Integration
 ```julia
-using IntU, ITensors
+using IntegrateUnitary, ITensors
 
 # Define indices for a 3x3 orthogonal matrix O
 o1 = Index(3, "Out")
@@ -84,10 +84,10 @@ res = integrate([O, A], dO(3))
 
 ## Symbolic Dimensions
 
-You can use symbolic dimensions from `Symbolics.jl` even when working with ITensors. While ITensor objects require a concrete size for construction, IntU will interpret the integration dimension symbolically if a symbolic variable is passed to the measure.
+You can use symbolic dimensions from `Symbolics.jl` even when working with ITensors. While ITensor objects require a concrete size for construction, IntegrateUnitary will interpret the integration dimension symbolically if a symbolic variable is passed to the measure.
 
 ```julia
-using IntU, ITensors, Symbolics
+using IntegrateUnitary, ITensors, Symbolics
 
 @variables d_sym
 i = Index(2, "Out"); j = Index(2, "In")
@@ -106,7 +106,7 @@ res = integrate([U, U_dag], dU(d_sym))
 For networks with multiple independent random unitaries, you can perform integration in steps.
 
 ```julia
-using IntU, ITensors
+using IntegrateUnitary, ITensors
 
 i = Index(2); j = Index(2); k = Index(2)
 U_it = randomITensor(i, j); V_it = randomITensor(j, k)
@@ -139,5 +139,5 @@ This is much more efficient than traditional matrix methods for large sparse net
 ```@docs
 ITensorUnitary
 GraphicalUnitary
-IntU.integrate_graphical
+IntegrateUnitary.integrate_graphical
 ```

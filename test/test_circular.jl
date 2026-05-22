@@ -1,4 +1,4 @@
-using IntU
+using IntegrateUnitary
 using Symbolics
 using LinearAlgebra
 using Test
@@ -74,7 +74,7 @@ using Test
 
         # Invalid dimension
         @test_throws ArgumentError dCSE(5)
-        @test_throws ArgumentError IntU.CSEMeasure(5, nothing)
+        @test_throws ArgumentError IntegrateUnitary.CSEMeasure(5, nothing)
     end
 
     # 3. CUE

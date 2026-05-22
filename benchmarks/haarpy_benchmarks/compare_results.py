@@ -1,5 +1,5 @@
 """
-Compare IntU.jl and Haarpy benchmark results side-by-side.
+Compare IntegrateUnitary.jl and Haarpy benchmark results side-by-side.
 
 Usage:
     python compare_results.py
@@ -123,12 +123,12 @@ def warn_meta_consistency(intu_meta, haarpy_meta):
         (("host", "os"), "host.os"),
         (("host", "arch"), "host.arch"),
     ]:
-        warn_mismatch_field(intu_meta, haarpy_meta, path, label, "IntU", "Haarpy")
+        warn_mismatch_field(intu_meta, haarpy_meta, path, label, "IntegrateUnitary", "Haarpy")
 
     for path, label, side in [
-        (("runtime", "name"), "runtime.name", "IntU"),
-        (("runtime", "version"), "runtime.version", "IntU"),
-        (("packages", "IntU"), "packages.IntU", "IntU"),
+        (("runtime", "name"), "runtime.name", "IntegrateUnitary"),
+        (("runtime", "version"), "runtime.version", "IntegrateUnitary"),
+        (("packages", "IntegrateUnitary"), "packages.IntegrateUnitary", "IntegrateUnitary"),
     ]:
         warn_missing_meta_field(intu_meta, path, label, side)
 
@@ -141,7 +141,7 @@ def warn_meta_consistency(intu_meta, haarpy_meta):
 
     intu_runtime = nested_get(intu_meta, ("runtime", "name"))
     if intu_runtime is not None and intu_runtime != "Julia":
-        print(f"Warning: unexpected IntU runtime.name={intu_runtime!r} (expected 'Julia').")
+        print(f"Warning: unexpected IntegrateUnitary runtime.name={intu_runtime!r} (expected 'Julia').")
 
     haarpy_runtime = nested_get(haarpy_meta, ("runtime", "name"))
     if haarpy_runtime is not None and haarpy_runtime != "Python":
@@ -154,15 +154,15 @@ def main():
     intu_meta = get_meta(intu)
     haarpy_meta = get_meta(haarpy)
 
-    print_meta("IntU.jl", intu_meta)
+    print_meta("IntegrateUnitary.jl", intu_meta)
     print_meta("Haarpy", haarpy_meta)
     warn_meta_consistency(intu_meta, haarpy_meta)
 
-    header = f"{'Integral':<35s} {'IntU.jl (ms)':>14s} {'Haarpy (ms)':>14s} {'Speedup':>10s}"
+    header = f"{'Integral':<35s} {'IntegrateUnitary.jl (ms)':>14s} {'Haarpy (ms)':>14s} {'Speedup':>10s}"
     sep = "-" * len(header)
 
     print("\n" + "=" * len(header))
-    print("IntU.jl vs Haarpy — Performance Comparison")
+    print("IntegrateUnitary.jl vs Haarpy — Performance Comparison")
     print("=" * len(header))
     print(header)
     print(sep)
@@ -186,20 +186,20 @@ def main():
         print(f"{label:<35s} {i_str:>14s} {h_str:>14s} {sp_str:>10s}")
 
     print(sep)
-    print("IntU.jl rows: fixed N=30 cold-cache samples (median reported).")
+    print("IntegrateUnitary.jl rows: fixed N=30 cold-cache samples (median reported).")
     print("Haarpy rows: default N=30, adaptively reduced to N=5 for slow cases (median reported).")
-    print("Speedup = Haarpy / IntU.jl.")
+    print("Speedup = Haarpy / IntegrateUnitary.jl.")
 
     print("\n\n% LaTeX table (paste into manuscript)")
     print(r"\begin{table}")
     print(r"  \centering")
     print(
-        r"  \caption{Performance comparison: IntU.jl vs.\ Haarpy (IntU.jl: fixed $N=30$ cold-cache samples; Haarpy: default $N=30$ adaptively reduced to $N=5$ for slow rows).}"
+        r"  \caption{Performance comparison: IntegrateUnitary.jl vs.\ Haarpy (IntegrateUnitary.jl: fixed $N=30$ cold-cache samples; Haarpy: default $N=30$ adaptively reduced to $N=5$ for slow rows).}"
     )
     print(r"  \label{tab:haarpy_comparison}")
     print(r"  \begin{tabular}{llrrr}")
     print(r"    \hline")
-    print(r"    Group & Integrand & IntU.jl (ms) & Haarpy (ms) & Speedup \\")
+    print(r"    Group & Integrand & IntegrateUnitary.jl (ms) & Haarpy (ms) & Speedup \\")
     print(r"    \hline")
 
     for key, label in BENCHMARKS:

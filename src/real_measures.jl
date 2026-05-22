@@ -42,8 +42,8 @@ function dSp(dim)
 end
 
 
-IntU._measure_tag(::OrthogonalMeasure) = :O
-IntU._measure_tag(::SymplecticMeasure) = :Sp
+IntegrateUnitary._measure_tag(::OrthogonalMeasure) = :O
+IntegrateUnitary._measure_tag(::SymplecticMeasure) = :Sp
 
 function _j_pair_sign(idx, n)
     if idx <= n
@@ -53,5 +53,5 @@ function _j_pair_sign(idx, n)
     end
 end
 
-IntU._reconstruct_symbolic(::OrthogonalMeasure, d_asymp) = dO(d_asymp)
-IntU._reconstruct_symbolic(::SymplecticMeasure, d_asymp) = dSp(d_asymp)
+IntegrateUnitary._reconstruct_symbolic(::OrthogonalMeasure, d_asymp) = dO(d_asymp)
+IntegrateUnitary._reconstruct_symbolic(::SymplecticMeasure, d_asymp) = dSp(d_asymp)

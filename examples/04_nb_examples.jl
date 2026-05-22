@@ -1,4 +1,4 @@
-using IntU
+using IntegrateUnitary
 using Symbolics
 using LinearAlgebra
 
@@ -48,7 +48,7 @@ X = SymbolicMatrix(:X) # Constant matrix
 integrand3 = (U[1, 1] * V[1, 1]) * X[1, 1] * conj(U[1, 1] * V[1, 1])
 
 println("Integrating over V...")
-tmp = integrate(integrand3, IntU.HaarMeasure(dV_dim, IntU.MetadataMatcher(:V)))
+tmp = integrate(integrand3, IntegrateUnitary.HaarMeasure(dV_dim, IntegrateUnitary.MetadataMatcher(:V)))
 println("Integrating over U...")
 res3 = integrate(tmp, dU(dU_dim))
 println("Result: ", res3)

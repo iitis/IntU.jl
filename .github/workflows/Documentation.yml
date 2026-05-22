@@ -23,6 +23,6 @@ jobs:
         shell: julia --project=docs {0}
         run: |
           using Documenter: DocMeta, doctest
-          using IntU
-          DocMeta.setdocmeta!(IntU, :DocTestSetup, :(using IntU); recursive=true)
-          doctest(IntU)
+          using IntegrateUnitary
+          DocMeta.setdocmeta!(IntegrateUnitary, :DocTestSetup, :(using IntegrateUnitary); recursive=true)
+          doctest(IntegrateUnitary)

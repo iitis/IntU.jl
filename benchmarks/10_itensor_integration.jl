@@ -1,4 +1,4 @@
-using IntU
+using IntegrateUnitary
 using ITensors
 using BenchmarkTools
 using LinearAlgebra

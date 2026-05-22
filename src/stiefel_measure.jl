@@ -43,11 +43,11 @@ struct StiefelMeasure{D,K,M} <: AbstractMeasure
 end
 StiefelMeasure(dim, k) = StiefelMeasure(dim, k, nothing)
 
-IntU._measure_tag(::StiefelMeasure) = :V
+IntegrateUnitary._measure_tag(::StiefelMeasure) = :V
 
-function IntU.measure_info(measure::StiefelMeasure)
+function IntegrateUnitary.measure_info(measure::StiefelMeasure)
     subs_dict = Dict{Any,Any}()
-    tag = IntU._measure_tag(measure)
+    tag = IntegrateUnitary._measure_tag(measure)
     matcher = measure.matcher === nothing ? MetadataMatcher(tag) : measure.matcher
     dim = measure.dim
     if dim isa SymbolicMatrix
@@ -138,4 +138,4 @@ function integrate(P::SymbolicMatrixProduct, measure::StiefelMeasure)
     )
 end
 
-IntU._reconstruct_symbolic(m::StiefelMeasure, d_asymp) = dStiefel(d_asymp, m.k)
+IntegrateUnitary._reconstruct_symbolic(m::StiefelMeasure, d_asymp) = dStiefel(d_asymp, m.k)

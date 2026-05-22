@@ -3,7 +3,7 @@
 # This example demonstrates integration over the Stiefel manifold V_k(C^d),
 # which consists of d x k matrices with orthonormal columns (V'V = I_k).
 
-using IntU
+using IntegrateUnitary
 using Symbolics
 using LinearAlgebra
 
